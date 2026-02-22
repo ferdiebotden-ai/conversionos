@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 8,
+  "sessionsRun": 9,
   "units": [
     {
       "id": "U-1",
@@ -93,7 +93,7 @@
     {
       "id": "U-7",
       "name": "scraper",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-07-scraper.md",
       "description": "FireCrawl integration, extraction schema, scoring, image classification, AI content generation",

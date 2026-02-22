@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
+    "@mendable/firecrawl-js": "^4.13.0",
     "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -68,6 +69,7 @@
     "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/ui": "^4.0.18",
+    "culori": "^4.0.2",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
