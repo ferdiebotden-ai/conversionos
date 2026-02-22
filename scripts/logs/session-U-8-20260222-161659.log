@@ -1,0 +1,18 @@
+U-8 complete. All 8 units are now done. Here's the summary:
+
+**Unit 8: Provisioner** — committed `8795806`
+
+**Files created (5):**
+- `scripts/onboarding/upload-images.mjs` — Downloads scraped images and uploads to Supabase Storage (`tenant-assets` bucket), rewrites URLs in the data JSON
+- `scripts/onboarding/provision.mjs` — Maps scraped data to `admin_settings` JSONB rows (business_info, branding, company_profile, plan), upserts into DB, updates `proxy.ts` with new domain mapping
+- `scripts/onboarding/onboard.mjs` — Orchestrator that chains score → scrape → upload → provision → verify, with caching of intermediate artifacts
+- `scripts/onboarding/verify.mjs` — Playwright QA running 8 checks (no demo images, no broken images, primary colour set, testimonials, services, contact info, business name, site ID)
+- `scripts/onboarding/README.md` — Pipeline documentation
+
+**Files modified (1):**
+- `package.json` — Added `"onboard"` npm script
+
+**Verification:**
+- All 4 scripts print correct `--help` usage
+- `npm run build` passes clean (no regressions)
+- `build-state.json` updated: U-8 status → `done`
