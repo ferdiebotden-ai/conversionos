@@ -1,0 +1,13 @@
+**U-1 Data Layer complete.** Commit `88a64c0`. Summary of changes:
+
+| File | Change |
+|------|--------|
+| `src/lib/branding.ts` | Added `primaryOklch` to `Branding` interface, `DEMO_BRANDING`, and `getBranding()` |
+| `src/components/branding-provider.tsx` | Added `primaryOklch` to client-side DEMO_BRANDING and fetch mapping (build fix) |
+| `src/lib/ai/knowledge/company.ts` | Extended `CompanyConfig` with 11 new fields (hero, about, logo, trust badges, why choose us, values, process steps, team, portfolio), enriched `services` type with slug/features/packages/imageUrl/iconHint, updated `FALLBACK_CONFIG`, `getCompanyConfig()`, and `buildCompanyProfile()` dynamic service paths |
+| `src/app/layout.tsx` | Added `<head>` with CSS `:root{--primary:oklch(...)}` injection from tenant DB, added `data-site-id` on `<body>` |
+| `src/lib/storage.ts` | **New** — `getAssetUrl()` and `getAssetUrlOrFallback()` for tenant asset URLs |
+| `src/lib/utils/hours.ts` | **New** — `parseBusinessHours()` for contact page structured hours |
+| `supabase/migrations/20260222300000_tenant_assets_bucket.sql` | **New** — Creates `tenant-assets` public storage bucket with RLS policies |
+
+Build passes clean. Zero TypeScript errors.

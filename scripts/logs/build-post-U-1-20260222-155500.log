@@ -1,0 +1,82 @@
+
+> conversionos-demo@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+⚠ Using edge runtime on a page currently disables static generation for that page
+  Generating static pages using 9 workers (0/30) ...
+  Generating static pages using 9 workers (7/30) 
+  Generating static pages using 9 workers (14/30) 
+  Generating static pages using 9 workers (22/30) 
+✓ Generating static pages using 9 workers (30/30) in 310.3ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ƒ /admin
+├ ƒ /admin/drawings
+├ ƒ /admin/drawings/[id]
+├ ƒ /admin/invoices
+├ ƒ /admin/invoices/[id]
+├ ƒ /admin/leads
+├ ƒ /admin/leads/[id]
+├ ƒ /admin/login
+├ ƒ /admin/quotes
+├ ○ /admin/settings
+├ ƒ /api/admin/leads/[id]/visualizations
+├ ƒ /api/admin/settings
+├ ƒ /api/admin/visualizations/[id]
+├ ƒ /api/admin/visualizations/metrics
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/receptionist
+├ ƒ /api/ai/summarize-voice
+├ ƒ /api/ai/visualize
+├ ƒ /api/ai/visualizer-chat
+├ ƒ /api/drawings
+├ ƒ /api/drawings/[id]
+├ ƒ /api/invoices
+├ ƒ /api/invoices/[id]
+├ ƒ /api/invoices/[id]/payments
+├ ƒ /api/invoices/[id]/pdf
+├ ƒ /api/invoices/[id]/send
+├ ƒ /api/invoices/export/sage
+├ ƒ /api/leads
+├ ƒ /api/leads/[id]
+├ ƒ /api/leads/[id]/audit
+├ ƒ /api/quotes/[leadId]
+├ ƒ /api/quotes/[leadId]/draft-email
+├ ƒ /api/quotes/[leadId]/pdf
+├ ƒ /api/quotes/[leadId]/regenerate
+├ ƒ /api/quotes/[leadId]/send
+├ ƒ /api/sessions/[id]
+├ ƒ /api/sessions/save
+├ ƒ /api/visualizations
+├ ƒ /api/visualizations/[id]
+├ ƒ /api/voice/check
+├ ƒ /api/voice/signed-url
+├ ○ /contact
+├ ○ /estimate
+├ ○ /estimate/resume
+├ ○ /projects
+├ ○ /services
+├ ○ /services/basement
+├ ○ /services/bathroom
+├ ○ /services/kitchen
+├ ○ /services/outdoor
+├ ○ /visualizer
+└ ƒ /visualizer/share/[token]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
