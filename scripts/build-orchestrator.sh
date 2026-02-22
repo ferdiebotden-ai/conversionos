@@ -209,14 +209,18 @@ $(cat "$UNIT_PROMPT_FILE")"
     echo "  $UNIT_ID: $UNIT_NAME — DONE"
     set_unit_status "$UNIT_ID" "done"
 
-    # Commit changes
-    echo "  Committing changes..."
-    git add -A
-    git commit -m "feat(onboarding): implement $UNIT_ID — $UNIT_NAME
+    # Commit any remaining uncommitted changes (claude session may have already committed)
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+      echo "  Committing remaining changes..."
+      git add -A
+      git commit -m "feat(onboarding): implement $UNIT_ID — $UNIT_NAME
 
 Automated by build-orchestrator.sh
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>" 2>/dev/null || echo "  (nothing to commit)"
+    else
+      echo "  (claude session already committed all changes)"
+    fi
 
   else
     # Build failed

@@ -1,0 +1,13 @@
+**U-2 (homepage) complete.** Summary of changes to `src/app/page.tsx`:
+
+| Section | Before | After |
+|---------|--------|-------|
+| Hero image | Hardcoded `/images/demo/hero-kitchen.png` | `config.heroImageUrl` with fallback |
+| Hero headline | Hardcoded "Dream. Plan. Build." | `config.heroHeadline` with styled fallback |
+| Hero subtitle | Hardcoded paragraph | `config.heroSubheadline` with fallback |
+| Trust badges | 3 hardcoded badges | `config.trustBadges` → `config.certifications` → hidden |
+| Craftsmanship image | Hardcoded path | `config.aboutImageUrl` with fallback |
+| Why Choose Us | 3 hardcoded cards | `config.whyChooseUs[]` with fallback defaults |
+| Process steps | 4 hardcoded steps | `config.processSteps[]` with fallback defaults |
+
+All sections gracefully fall back to defaults when DB fields are empty. Removed unused `Users` import. Build passes clean.
