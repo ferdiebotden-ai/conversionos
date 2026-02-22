@@ -1,0 +1,21 @@
+U-7 complete. Here's the summary:
+
+**Unit 07: Scraper — Done**
+
+Created 4 scripts in `scripts/onboarding/`:
+
+| File | Purpose |
+|------|---------|
+| `convert-color.mjs` | Hex → OKLCH conversion (e.g., `#D60000` → `0.55 0.23 29`) |
+| `schema.mjs` | 34-field Zod extraction schema for contractor websites |
+| `score.mjs` | Quick fit scoring — 100-point scale using 1 FireCrawl credit |
+| `scrape.mjs` | Full pipeline: homepage + multi-page fallback extraction, colour conversion, GPT-4o content generation for safe fields, completeness report |
+
+**Installed deps:** `@mendable/firecrawl-js`, `culori` (devDependencies)
+
+**Verifications passed:**
+- All 4 scripts execute without errors (--help / CLI mode)
+- Schema exports 34 fields + ScrapedTenantSchema
+- Build passes clean (no regressions)
+
+**Commit:** `3f0ce98` — `feat(onboarding): implement U-7 — scraper`
