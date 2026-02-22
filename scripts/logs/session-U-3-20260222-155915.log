@@ -1,0 +1,12 @@
+U-3 (inner-pages) is complete. Here's the summary:
+
+**Changes made (6 files, build passes clean):**
+
+| File | What changed |
+|------|------|
+| `src/app/about/page.tsx` | Hero headline from `config.heroHeadline`, values section from `config.values[]` with icon mapping, team section from `config.teamMembers[]`, about image from `config.aboutImageUrl` — all with hardcoded fallbacks |
+| `src/app/contact/page.tsx` | Removed hardcoded `businessHours` array, now uses `parseBusinessHours(config.hours)` |
+| `src/components/footer.tsx` | Removed hardcoded `services` array, now reads `branding.services[]` with fallback defaults |
+| `src/lib/branding.ts` | Added `services: { name: string; slug: string }[]` to `Branding` interface, fetches `company_profile` in `getBranding()`, auto-generates slugs |
+| `src/components/branding-provider.tsx` | Added `services` to client-side DEMO_BRANDING default and client-fetch logic |
+| `scripts/build-state.json` | U-3 status → `done` |
