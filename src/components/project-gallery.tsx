@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { ProjectCard, type Project } from "@/components/project-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const projects: Project[] = [
+const defaultProjects: Project[] = [
   {
     id: "1",
     title: "Modern Kitchen Transformation",
@@ -80,23 +80,30 @@ const projects: Project[] = [
   },
 ]
 
-type FilterType = "all" | Project["type"]
+interface ProjectGalleryProps {
+  projects?: Project[];
+}
 
-export function ProjectGallery() {
-  const [filter, setFilter] = React.useState<FilterType>("all")
+export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) {
+  const [filter, setFilter] = React.useState<string>("all")
   const shouldReduce = useReducedMotion()
+
+  const displayProjects = propProjects && propProjects.length > 0 ? propProjects : defaultProjects
+
+  // Derive unique project types for filter tabs
+  const projectTypes = Array.from(new Set(displayProjects.map(p => p.type)))
 
   const filteredProjects =
     filter === "all"
-      ? projects
-      : projects.filter((project) => project.type === filter)
+      ? displayProjects
+      : displayProjects.filter((project) => project.type === filter)
 
   return (
     <div>
       {/* Filter Tabs */}
       <Tabs
         value={filter}
-        onValueChange={(value) => setFilter(value as FilterType)}
+        onValueChange={(value) => setFilter(value)}
         className="w-full"
       >
         <TabsList className="mb-8 flex h-auto flex-wrap justify-center gap-2 bg-transparent p-0">
@@ -106,30 +113,15 @@ export function ProjectGallery() {
           >
             All Projects
           </TabsTrigger>
-          <TabsTrigger
-            value="kitchen"
-            className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Kitchen
-          </TabsTrigger>
-          <TabsTrigger
-            value="bathroom"
-            className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Bathroom
-          </TabsTrigger>
-          <TabsTrigger
-            value="basement"
-            className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Basement
-          </TabsTrigger>
-          <TabsTrigger
-            value="flooring"
-            className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Flooring
-          </TabsTrigger>
+          {projectTypes.map((type) => (
+            <TabsTrigger
+              key={type}
+              value={type}
+              className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
@@ -171,4 +163,4 @@ export function ProjectGallery() {
   )
 }
 
-export { projects }
+export { defaultProjects as projects }

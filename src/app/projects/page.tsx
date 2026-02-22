@@ -3,6 +3,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProjectGallery } from "@/components/project-gallery"
 import { getBranding } from "@/lib/branding"
+import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import type { Project } from "@/components/project-card"
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
@@ -12,7 +14,18 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const config = await getCompanyConfig()
+
+  const dbProjects: Project[] = config.portfolio.map((p, i) => ({
+    id: String(i + 1),
+    title: p.title,
+    type: p.serviceType.toLowerCase().split(' ')[0] as Project["type"],
+    description: p.description,
+    location: p.location,
+    image: p.imageUrl,
+  }))
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -47,7 +60,7 @@ export default function ProjectsPage() {
       {/* Project Gallery */}
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto">
-          <ProjectGallery />
+          <ProjectGallery {...(dbProjects.length > 0 ? { projects: dbProjects } : {})} />
         </div>
       </section>
 

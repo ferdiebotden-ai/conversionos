@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 6,
+  "sessionsRun": 7,
   "units": [
     {
       "id": "U-1",
@@ -70,7 +70,7 @@
     {
       "id": "U-5",
       "name": "gallery",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-05-gallery.md",
       "description": "Dynamic project gallery from DB, testimonials optional image",

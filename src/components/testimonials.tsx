@@ -11,7 +11,7 @@ interface Testimonial {
   author: string;
   projectType: string;
   rating: number;
-  image: string;
+  image?: string;
 }
 
 // Fallback testimonials when none are configured in admin_settings
@@ -47,14 +47,20 @@ function TestimonialCard({
   return (
     <Card className="h-full overflow-hidden">
       <div className="relative h-32">
-        <Image
-          src={testimonial.image}
-          alt={testimonial.projectType}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
+        {testimonial.image ? (
+          <>
+            <Image
+              src={testimonial.image}
+              alt={testimonial.projectType}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+        )}
         <div className="absolute bottom-3 left-4 flex gap-1">
           {Array.from({ length: testimonial.rating }).map((_, i) => (
             <Star
