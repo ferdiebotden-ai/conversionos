@@ -1,0 +1,11 @@
+U-6 complete. Here's the summary:
+
+**Unit U-6: Seed Data** — Done
+
+Created `supabase/migrations/20260222400000_extend_seed_data.sql` with:
+
+- **McCarty Squared**: Hero headline/subheadline, 3 trust badges (RenoMark, 13 Services, NetZero), 3 why-choose-us items, 3 values, 4 process steps, 2 team members (Garnet & Carisa), and all 13 services extended with slugs and features
+- **Red White Reno**: Hero headline/subheadline, 2 trust badges (5.0 Google, Full-Service), 3 why-choose-us items, 3 values, 4 process steps, 2 team members (Michel & Clodagh), and 4 services extended with slugs and features
+- **Demo**: Empty defaults for all new fields, 4 services with slugs added
+
+Migration uses `||` (JSONB concatenation) to add fields without overwriting existing data, and `jsonb_set` to replace the services array with enriched versions. Wrapped in a transaction. Build passes clean.
