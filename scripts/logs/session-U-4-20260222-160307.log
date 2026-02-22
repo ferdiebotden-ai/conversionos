@@ -1,0 +1,14 @@
+Unit U-4 complete. Here's what was done:
+
+**Changes (10 files, +282 / -977 lines):**
+
+| Task | File | What |
+|------|------|------|
+| 1 | `src/components/services-grid.tsx` | Added optional `services` prop, `ServiceItem` interface, icon mapping by keyword, `DEFAULT_SERVICES` fallback |
+| 2 | `src/components/services-grid-server.tsx` | New server component wrapper fetching `getCompanyConfig().services` |
+| 3 | `src/app/services/[slug]/page.tsx` | New dynamic route with breadcrumb, hero, features, pricing packages, portfolio, CTA |
+| 4 | `src/app/services/page.tsx` | Switched from `ServicesGrid` to `ServicesGridServer` |
+| 5 | Deleted 4 static pages | `kitchen/`, `bathroom/`, `basement/`, `outdoor/` (-977 lines) |
+| 6 | `next.config.ts` | Added permanent redirects from old slugs to new slugs |
+
+**Build:** Passes clean with zero TypeScript errors. Commit: `d0de523`.
