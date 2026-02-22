@@ -1,0 +1,9 @@
+**U-5 (gallery) complete.** Committed as `c41d79d`. Summary of changes:
+
+1. **`project-gallery.tsx`** — Accepts optional `projects` prop. Hardcoded array renamed to `defaultProjects` (still exported as `projects` for backward compat). Filter tabs are now derived dynamically from project types via `Array.from(new Set(...))`.
+
+2. **`testimonials.tsx`** — `image` field is now optional in the `Testimonial` interface. `TestimonialCard` renders a `from-primary/20 to-primary/5` gradient placeholder when no image is provided.
+
+3. **`projects/page.tsx`** — Now async, fetches `getCompanyConfig()` and maps `config.portfolio` to `Project[]`. Passes DB projects when available, falls back to default gallery data when portfolio is empty.
+
+Build passes clean with zero TypeScript errors.
