@@ -14,6 +14,9 @@ const DEMO_BRANDING: Branding = {
   province: "ON",
   postal: "N6A 1A1",
   socials: [],
+  paymentEmail: "payments@example.com",
+  quotesEmail: "quotes@example.com",
+  primaryColor: "#1565C0",
 }
 
 const BrandingContext = createContext<Branding>(DEMO_BRANDING)
@@ -49,6 +52,7 @@ export function BrandingProvider({
         const brand = json.data?.branding?.value as Record<string, unknown> | undefined
         if (!info) return
 
+        const colors = (brand?.["colors"] as Record<string, string>) || {}
         setBranding({
           name: (info["name"] as string) || DEMO_BRANDING.name,
           tagline: (brand?.["tagline"] as string) || (info["tagline"] as string) || DEMO_BRANDING.tagline,
@@ -60,6 +64,9 @@ export function BrandingProvider({
           province: (info["province"] as string) || DEMO_BRANDING.province,
           postal: (info["postal"] as string) || DEMO_BRANDING.postal,
           socials: (brand?.["socials"] as Branding["socials"]) || DEMO_BRANDING.socials,
+          paymentEmail: (info["payment_email"] as string) || DEMO_BRANDING.paymentEmail,
+          quotesEmail: (info["quotes_email"] as string) || DEMO_BRANDING.quotesEmail,
+          primaryColor: colors["primary_hex"] || DEMO_BRANDING.primaryColor,
         })
       } catch {
         // Keep defaults on failure

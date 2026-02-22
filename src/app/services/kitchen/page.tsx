@@ -1,14 +1,16 @@
-import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Check, ChefHat } from "lucide-react"
+import { getBranding } from "@/lib/branding"
 
-export const metadata: Metadata = {
-  title: "Kitchen Renovation",
-  description:
-    "Transform your kitchen with McCarty Squared. Custom cabinets, countertops, appliance installation, and complete kitchen remodels in London, ON.",
+export async function generateMetadata() {
+  const branding = await getBranding()
+  return {
+    title: "Kitchen Renovation",
+    description: `Transform your kitchen with ${branding.name}. Custom cabinets, countertops, appliance installation, and complete kitchen remodels in ${branding.city}, ${branding.province}.`,
+  }
 }
 
 const features = [

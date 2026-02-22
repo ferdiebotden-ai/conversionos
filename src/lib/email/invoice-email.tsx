@@ -20,177 +20,14 @@ import {
   Link,
 } from '@react-email/components';
 import type { Invoice } from '@/types/database';
+import type { Branding } from '@/lib/branding';
 
-const COLORS = {
-  primary: '#1565C0',
+const STATIC_COLORS = {
   secondary: '#1a1a1a',
   muted: '#666666',
   border: '#e5e5e5',
   background: '#f8f8f8',
   white: '#ffffff',
-};
-
-const main = {
-  backgroundColor: COLORS.background,
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
-};
-
-const container = {
-  backgroundColor: COLORS.white,
-  margin: '0 auto',
-  padding: '40px 0',
-  maxWidth: '600px',
-};
-
-const headerSection = {
-  padding: '0 40px 30px',
-  borderBottom: `2px solid ${COLORS.primary}`,
-};
-
-const brandName = {
-  fontSize: '28px',
-  fontWeight: '700' as const,
-  color: COLORS.primary,
-  margin: '0',
-};
-
-const tagline = {
-  fontSize: '14px',
-  color: COLORS.muted,
-  margin: '4px 0 0',
-};
-
-const contentSection = {
-  padding: '30px 40px',
-};
-
-const greeting = {
-  fontSize: '18px',
-  fontWeight: '600' as const,
-  color: COLORS.secondary,
-  margin: '0 0 16px',
-};
-
-const paragraph = {
-  fontSize: '15px',
-  lineHeight: '1.6',
-  color: COLORS.secondary,
-  margin: '0 0 16px',
-};
-
-const invoiceCard = {
-  backgroundColor: COLORS.background,
-  borderRadius: '8px',
-  padding: '24px',
-  margin: '24px 0',
-};
-
-const invoiceTitle = {
-  fontSize: '16px',
-  fontWeight: '600' as const,
-  color: COLORS.primary,
-  margin: '0 0 16px',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
-};
-
-const invoiceRow = {
-  margin: '0 0 8px',
-};
-
-const invoiceLabel = {
-  fontSize: '14px',
-  color: COLORS.muted,
-  margin: '0',
-};
-
-const invoiceValue = {
-  fontSize: '14px',
-  fontWeight: '600' as const,
-  color: COLORS.secondary,
-  margin: '0',
-};
-
-const totalRow = {
-  paddingTop: '16px',
-  marginTop: '16px',
-  borderTop: `2px solid ${COLORS.primary}`,
-};
-
-const totalLabel = {
-  fontSize: '18px',
-  fontWeight: '700' as const,
-  color: COLORS.secondary,
-  margin: '0',
-};
-
-const totalValue = {
-  fontSize: '24px',
-  fontWeight: '700' as const,
-  color: COLORS.primary,
-  margin: '0',
-};
-
-const balanceText = {
-  fontSize: '14px',
-  fontWeight: '600' as const,
-  color: COLORS.primary,
-  margin: '8px 0 0',
-};
-
-const ctaSection = {
-  textAlign: 'center' as const,
-  padding: '16px 0 24px',
-};
-
-const ctaButton = {
-  backgroundColor: COLORS.primary,
-  borderRadius: '6px',
-  color: COLORS.white,
-  fontSize: '16px',
-  fontWeight: '600' as const,
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  padding: '14px 32px',
-  display: 'inline-block',
-};
-
-const customMessageSection = {
-  backgroundColor: '#fef3c7',
-  borderRadius: '8px',
-  padding: '16px 20px',
-  margin: '0 0 24px',
-  borderLeft: '4px solid #f59e0b',
-};
-
-const customMessageText = {
-  fontSize: '14px',
-  lineHeight: '1.5',
-  color: COLORS.secondary,
-  margin: '0',
-  fontStyle: 'italic' as const,
-};
-
-const footerSection = {
-  padding: '24px 40px',
-  borderTop: `1px solid ${COLORS.border}`,
-};
-
-const footerText = {
-  fontSize: '13px',
-  color: COLORS.muted,
-  margin: '0 0 4px',
-  textAlign: 'center' as const,
-};
-
-const footerLink = {
-  color: COLORS.primary,
-  textDecoration: 'none',
-};
-
-const hr = {
-  borderColor: COLORS.border,
-  margin: '24px 0',
 };
 
 function formatCurrency(amount: number): string {
@@ -212,26 +49,191 @@ function formatDate(date: Date | string): string {
 export interface InvoiceEmailProps {
   invoice: Invoice;
   customMessage?: string;
+  branding: Branding;
 }
 
-export function InvoiceEmailTemplate({ invoice, customMessage }: InvoiceEmailProps) {
+export function InvoiceEmailTemplate({ invoice, customMessage, branding }: InvoiceEmailProps) {
   const firstName = invoice.customer_name.split(' ')[0];
   const total = Number(invoice.total) || 0;
   const balanceDue = Number(invoice.balance_due) || 0;
   const depositRequired = Number(invoice.deposit_required) || 0;
+  const primaryColor = branding.primaryColor;
+
+  const main = {
+    backgroundColor: STATIC_COLORS.background,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
+  };
+
+  const container = {
+    backgroundColor: STATIC_COLORS.white,
+    margin: '0 auto',
+    padding: '40px 0',
+    maxWidth: '600px',
+  };
+
+  const headerSection = {
+    padding: '0 40px 30px',
+    borderBottom: `2px solid ${primaryColor}`,
+  };
+
+  const brandNameStyle = {
+    fontSize: '28px',
+    fontWeight: '700' as const,
+    color: primaryColor,
+    margin: '0',
+  };
+
+  const taglineStyle = {
+    fontSize: '14px',
+    color: STATIC_COLORS.muted,
+    margin: '4px 0 0',
+  };
+
+  const contentSection = {
+    padding: '30px 40px',
+  };
+
+  const greeting = {
+    fontSize: '18px',
+    fontWeight: '600' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0 0 16px',
+  };
+
+  const paragraph = {
+    fontSize: '15px',
+    lineHeight: '1.6',
+    color: STATIC_COLORS.secondary,
+    margin: '0 0 16px',
+  };
+
+  const invoiceCard = {
+    backgroundColor: STATIC_COLORS.background,
+    borderRadius: '8px',
+    padding: '24px',
+    margin: '24px 0',
+  };
+
+  const invoiceTitle = {
+    fontSize: '16px',
+    fontWeight: '600' as const,
+    color: primaryColor,
+    margin: '0 0 16px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  };
+
+  const invoiceRow = {
+    margin: '0 0 8px',
+  };
+
+  const invoiceLabel = {
+    fontSize: '14px',
+    color: STATIC_COLORS.muted,
+    margin: '0',
+  };
+
+  const invoiceValue = {
+    fontSize: '14px',
+    fontWeight: '600' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+  };
+
+  const totalRow = {
+    paddingTop: '16px',
+    marginTop: '16px',
+    borderTop: `2px solid ${primaryColor}`,
+  };
+
+  const totalLabel = {
+    fontSize: '18px',
+    fontWeight: '700' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+  };
+
+  const totalValue = {
+    fontSize: '24px',
+    fontWeight: '700' as const,
+    color: primaryColor,
+    margin: '0',
+  };
+
+  const balanceText = {
+    fontSize: '14px',
+    fontWeight: '600' as const,
+    color: primaryColor,
+    margin: '8px 0 0',
+  };
+
+  const ctaSection = {
+    textAlign: 'center' as const,
+    padding: '16px 0 24px',
+  };
+
+  const ctaButton = {
+    backgroundColor: primaryColor,
+    borderRadius: '6px',
+    color: STATIC_COLORS.white,
+    fontSize: '16px',
+    fontWeight: '600' as const,
+    textDecoration: 'none',
+    textAlign: 'center' as const,
+    padding: '14px 32px',
+    display: 'inline-block',
+  };
+
+  const customMessageSection = {
+    backgroundColor: '#fef3c7',
+    borderRadius: '8px',
+    padding: '16px 20px',
+    margin: '0 0 24px',
+    borderLeft: '4px solid #f59e0b',
+  };
+
+  const customMessageText = {
+    fontSize: '14px',
+    lineHeight: '1.5',
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+    fontStyle: 'italic' as const,
+  };
+
+  const footerSection = {
+    padding: '24px 40px',
+    borderTop: `1px solid ${STATIC_COLORS.border}`,
+  };
+
+  const footerText = {
+    fontSize: '13px',
+    color: STATIC_COLORS.muted,
+    margin: '0 0 4px',
+    textAlign: 'center' as const,
+  };
+
+  const footerLink = {
+    color: primaryColor,
+    textDecoration: 'none',
+  };
+
+  const hr = {
+    borderColor: STATIC_COLORS.border,
+    margin: '24px 0',
+  };
 
   return (
     <Html>
       <Head />
       <Preview>
-        Invoice #{invoice.invoice_number} from McCarty Squared - {formatCurrency(total)}
+        Invoice #{invoice.invoice_number} from {branding.name} - {formatCurrency(total)}
       </Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
           <Section style={headerSection}>
-            <Text style={brandName}>McCarty Squared</Text>
-            <Text style={tagline}>Quality Renovations in London, ON</Text>
+            <Text style={brandNameStyle}>{branding.name}</Text>
+            <Text style={taglineStyle}>{branding.tagline}</Text>
           </Section>
 
           {/* Content */}
@@ -239,7 +241,7 @@ export function InvoiceEmailTemplate({ invoice, customMessage }: InvoiceEmailPro
             <Text style={greeting}>Hi {firstName},</Text>
 
             <Text style={paragraph}>
-              Please find attached your invoice from McCarty Squared for your renovation project.
+              Please find attached your invoice from {branding.name} for your renovation project.
             </Text>
 
             {customMessage && (
@@ -310,7 +312,7 @@ export function InvoiceEmailTemplate({ invoice, customMessage }: InvoiceEmailPro
                 Balance Due: {formatCurrency(balanceDue)}
               </Text>
               {depositRequired > 0 && Number(invoice.amount_paid) === 0 && (
-                <Text style={{ ...balanceText, color: COLORS.muted }}>
+                <Text style={{ ...balanceText, color: STATIC_COLORS.muted }}>
                   Deposit required: {formatCurrency(depositRequired)} (50%)
                 </Text>
               )}
@@ -318,12 +320,12 @@ export function InvoiceEmailTemplate({ invoice, customMessage }: InvoiceEmailPro
 
             {/* Payment instructions */}
             <Text style={paragraph}>
-              Payment can be made via E-Transfer to <strong>payments@mccartysquared.ca</strong>.
-              Cheques payable to McCarty Squared Inc.
+              Payment can be made via E-Transfer to <strong>{branding.paymentEmail}</strong>.
+              Cheques payable to {branding.name}.
             </Text>
 
             <Section style={ctaSection}>
-              <Button href="mailto:info@mccartysquared.ca" style={ctaButton}>
+              <Button href={`mailto:${branding.email}`} style={ctaButton}>
                 Questions? Contact Us
               </Button>
             </Section>
@@ -338,15 +340,15 @@ export function InvoiceEmailTemplate({ invoice, customMessage }: InvoiceEmailPro
           {/* Footer */}
           <Section style={footerSection}>
             <Text style={footerText}>
-              McCarty Squared | London, ON
+              {branding.name} | {branding.city}, {branding.province}
             </Text>
             <Text style={footerText}>
-              <Link href="mailto:info@mccartysquared.ca" style={footerLink}>
-                info@mccartysquared.ca
+              <Link href={`mailto:${branding.email}`} style={footerLink}>
+                {branding.email}
               </Link>
               {' '}&bull;{' '}
-              <Link href="tel:+15193019140" style={footerLink}>
-                (226) 667-8940
+              <Link href={`tel:${branding.phone.replace(/[^+\d]/g, '')}`} style={footerLink}>
+                {branding.phone}
               </Link>
             </Text>
             <Text style={{ ...footerText, marginTop: '16px', fontSize: '11px' }}>

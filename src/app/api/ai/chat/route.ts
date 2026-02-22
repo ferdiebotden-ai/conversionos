@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     const userMessage = lastUserMsg?.content as string | undefined;
 
     // Build system prompt with optional handoff context prefix + pricing gate
-    let systemPrompt = buildAgentSystemPrompt('quote-specialist', {
+    let systemPrompt = await buildAgentSystemPrompt('quote-specialist', {
       userMessage,
       handoffContext: handoffContext as Record<string, unknown> | undefined,
     });

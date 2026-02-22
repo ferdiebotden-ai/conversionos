@@ -22,6 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Check, Pencil, X, Camera, ChevronDown, ChevronUp } from 'lucide-react';
+import { useBranding } from '@/components/branding-provider';
 
 export interface ProjectSummaryData {
   projectType?: string;
@@ -233,6 +234,7 @@ export function EstimateSidebar({
   onDataChange,
   onSubmitRequest,
 }: ProjectSummarySidebarProps) {
+  const branding = useBranding();
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Field label mapping for friendly chat acknowledgements
@@ -403,7 +405,7 @@ export function EstimateSidebar({
               Submit Request
             </Button>
             <p className="text-xs text-center text-muted-foreground">
-              Get a detailed quote from McCarty Squared
+              Get a detailed quote from {branding.name}
             </p>
           </>
         )}

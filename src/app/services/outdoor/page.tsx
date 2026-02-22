@@ -1,14 +1,16 @@
-import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Check, TreeDeciduous } from "lucide-react"
+import { getBranding } from "@/lib/branding"
 
-export const metadata: Metadata = {
-  title: "Outdoor Renovation",
-  description:
-    "Transform your outdoor living space with McCarty Squared. Decks, fences, porches, driveways, and exterior painting in London, ON.",
+export async function generateMetadata() {
+  const branding = await getBranding()
+  return {
+    title: "Outdoor Renovation",
+    description: `Transform your outdoor living space with ${branding.name}. Decks, fences, porches, driveways, and exterior painting in ${branding.city}, ${branding.province}.`,
+  }
 }
 
 const features = [

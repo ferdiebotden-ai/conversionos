@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { sendEmail } from '@/lib/email/resend';
 import { SessionResumeEmail } from '@/emails/session-resume';
+import { getBranding } from '@/lib/branding';
 import type { Json } from '@/types/database';
 
 /**
@@ -98,10 +99,11 @@ export async function POST(request: NextRequest) {
     const resumeUrl = `${baseUrl}/estimate/resume?session=${sessionId}`;
 
     // Send magic link email
+    const branding = await getBranding();
     const emailResult = await sendEmail({
       to: data.email,
-      subject: 'Continue Your Renovation Quote - McCarty Squared',
-      react: SessionResumeEmail({ resumeUrl, expiresInDays: 7 }),
+      subject: `Continue Your Renovation Quote - ${branding.name}`,
+      react: SessionResumeEmail({ resumeUrl, expiresInDays: 7, branding }),
     });
 
     if (!emailResult.success) {

@@ -12,6 +12,7 @@ import { getSiteId, withSiteId } from '@/lib/db/site';
 import { QuotePdfDocument } from '@/lib/pdf/quote-template';
 import { QuoteEmailTemplate } from '@/lib/email/quote-email';
 import { getResend } from '@/lib/email/resend';
+import { getBranding } from '@/lib/branding';
 
 type RouteContext = { params: Promise<{ leadId: string }> };
 
@@ -60,6 +61,7 @@ export async function POST(
     const { customMessage, recipientEmail, emailSubject, emailBody, useCustomEmail } = validationResult.data;
 
     const supabase = createServiceClient();
+    const branding = await getBranding();
 
     // Fetch lead
     const { data: lead, error: leadError } = await supabase
@@ -123,7 +125,7 @@ export async function POST(
 
     // Generate PDF for attachment
     const pdfBuffer = await renderToBuffer(
-      QuotePdfDocument({ lead, quote })
+      QuotePdfDocument({ lead, quote, branding })
     );
 
     // Create filename
@@ -144,7 +146,7 @@ export async function POST(
     const projectType = projectTypeLabels[lead.project_type || 'other'] || 'Renovation';
 
     // Determine email subject
-    const finalSubject = emailSubject || `Your ${projectType} Quote from McCarty Squared - ${quoteNumber}`;
+    const finalSubject = emailSubject || `Your ${projectType} Quote from ${branding.name} - ${quoteNumber}`;
 
     // Send email with Resend
     const resend = getResend();
@@ -166,18 +168,18 @@ export async function POST(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="border-bottom: 3px solid #1565C0; padding-bottom: 20px; margin-bottom: 20px;">
-    <h1 style="color: #1565C0; margin: 0; font-size: 24px;">McCarty Squared</h1>
-    <p style="color: #666; margin: 4px 0 0 0; font-size: 14px;">Quality Renovations in London, ON</p>
+  <div style="border-bottom: 3px solid ${branding.primaryColor}; padding-bottom: 20px; margin-bottom: 20px;">
+    <h1 style="color: ${branding.primaryColor}; margin: 0; font-size: 24px;">${branding.name}</h1>
+    <p style="color: #666; margin: 4px 0 0 0; font-size: 14px;">${branding.tagline}</p>
   </div>
 
   ${emailBody.split('\n').map(line => line.trim() ? `<p style="margin-bottom: 16px; color: #333;">${line}</p>` : '<br/>').join('\n')}
 
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #666;">
-    <p style="margin: 0;"><strong style="color: #1565C0;">McCarty Squared</strong></p>
-    <p style="margin: 4px 0;">123 Innovation Drive, London, ON N0N 0N0</p>
-    <p style="margin: 4px 0;">Tel: (226) 667-8940</p>
-    <p style="margin: 4px 0;"><a href="https://www.mccartysquared.ca" style="color: #1565C0;">www.mccartysquared.ca</a></p>
+    <p style="margin: 0;"><strong style="color: ${branding.primaryColor};">${branding.name}</strong></p>
+    <p style="margin: 4px 0;">${branding.address}, ${branding.city}, ${branding.province} ${branding.postal}</p>
+    <p style="margin: 4px 0;">Tel: ${branding.phone}</p>
+    <p style="margin: 4px 0;"><a href="https://${branding.website}" style="color: ${branding.primaryColor};">${branding.website}</a></p>
   </div>
 </body>
 </html>
@@ -196,7 +198,7 @@ export async function POST(
         to: [toEmail],
         replyTo: REPLY_TO_EMAIL,
         subject: finalSubject,
-        react: QuoteEmailTemplate({ lead, quote, customMessage }),
+        react: QuoteEmailTemplate({ lead, quote, customMessage, branding }),
         attachments: [
           {
             filename,

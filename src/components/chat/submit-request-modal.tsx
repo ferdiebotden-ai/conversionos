@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Check, ArrowLeft, PartyPopper, Calendar, Home, AlertCircle } from 'lucide-react';
 import { StepProgress } from '@/components/ui/progress-loader';
 import type { ProjectSummaryData } from './estimate-sidebar';
+import { useBranding } from '@/components/branding-provider';
 
 interface SubmitRequestModalProps {
   isOpen: boolean;
@@ -125,6 +126,7 @@ export function SubmitRequestModal({
   projectData,
   onSubmit,
 }: SubmitRequestModalProps) {
+  const branding = useBranding();
   const [step, setStep] = useState<Step>('review');
   const [error, setError] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
@@ -295,7 +297,7 @@ export function SubmitRequestModal({
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="(226) 667-8940"
+                  placeholder={branding.phone}
                   value={contactInfo.phone}
                   onChange={(e) =>
                     setContactInfo((prev) => ({ ...prev, phone: e.target.value }))
@@ -537,7 +539,7 @@ export function SubmitRequestModal({
               </div>
               <DialogTitle>Request submitted!</DialogTitle>
               <DialogDescription className="text-center">
-                Thanks{contactInfo.name ? `, ${contactInfo.name.split(' ')[0]}` : ''}! McCarty Squared will
+                Thanks{contactInfo.name ? `, ${contactInfo.name.split(' ')[0]}` : ''}! {branding.name} will
                 review your project and contact you within 24 hours.
               </DialogDescription>
             </DialogHeader>

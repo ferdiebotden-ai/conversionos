@@ -1,6 +1,6 @@
 /**
  * Invoice PDF Template
- * Professional PDF matching McCarty Squared's invoice format
+ * Professional PDF for tenant-branded invoices
  * Adapted from quote-template.tsx
  * [DEV-089]
  */
@@ -13,252 +13,14 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer';
 import type { Invoice, Payment, QuoteLineItem } from '@/types/database';
+import type { Branding } from '@/lib/branding';
 
-const COLORS = {
-  primary: '#1565C0',
+const STATIC_COLORS = {
   secondary: '#1a1a1a',
   muted: '#666666',
   border: '#e5e5e5',
-  headerBg: '#1565C0',
   white: '#ffffff',
-  success: '#16a34a',
 };
-
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 10,
-    color: COLORS.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  logoSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    marginRight: 15,
-  },
-  companyInfo: {
-    paddingTop: 5,
-  },
-  companyAddress: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    marginBottom: 2,
-  },
-  companyPhone: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    marginBottom: 2,
-  },
-  companyWebsite: {
-    fontSize: 10,
-    color: COLORS.primary,
-    fontFamily: 'Helvetica-Bold',
-  },
-  invoiceSection: {
-    alignItems: 'flex-end',
-  },
-  invoiceTitle: {
-    fontSize: 24,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.secondary,
-    marginBottom: 10,
-  },
-  invoiceInfo: {
-    alignItems: 'flex-end',
-  },
-  invoiceInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 2,
-  },
-  invoiceInfoLabel: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    width: 60,
-  },
-  invoiceInfoValue: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'right' as const,
-    width: 90,
-  },
-  customerWorkRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  customerSection: {
-    flex: 1,
-  },
-  paymentSection: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.secondary,
-  },
-  cellText: {
-    fontSize: 10,
-    color: COLORS.secondary,
-  },
-  table: {
-    width: '100%',
-    marginBottom: 0,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.headerBg,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  tableHeaderText: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.white,
-  },
-  tableHeaderDescription: {
-    flex: 3,
-  },
-  tableHeaderAmount: {
-    flex: 1,
-    textAlign: 'right' as const,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    minHeight: 25,
-  },
-  tableRowDescription: {
-    flex: 3,
-  },
-  tableRowAmount: {
-    flex: 1,
-    textAlign: 'right' as const,
-  },
-  cellAmount: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    textAlign: 'right' as const,
-  },
-  emptyRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    minHeight: 25,
-  },
-  totalsRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  hstRow: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderBottomWidth: 0,
-  },
-  bottomSection: {
-    flexDirection: 'row',
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  termsSection: {
-    flex: 3,
-    paddingTop: 10,
-    paddingRight: 20,
-  },
-  termsTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.secondary,
-    marginBottom: 4,
-  },
-  termsText: {
-    fontSize: 8,
-    color: COLORS.muted,
-    lineHeight: 1.4,
-    marginBottom: 8,
-  },
-  totalSection: {
-    flex: 1,
-    paddingTop: 10,
-    paddingLeft: 10,
-    borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  totalLabel: {
-    fontSize: 10,
-    color: COLORS.secondary,
-  },
-  totalValue: {
-    fontSize: 10,
-    color: COLORS.secondary,
-    fontFamily: 'Helvetica-Bold',
-  },
-  grandTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 6,
-    borderTopWidth: 2,
-    borderTopColor: COLORS.primary,
-    marginTop: 4,
-  },
-  grandTotalLabel: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.secondary,
-  },
-  grandTotalValue: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.secondary,
-  },
-  balanceDueRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 4,
-    marginTop: 4,
-  },
-  balanceDueLabel: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.primary,
-  },
-  balanceDueValue: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORS.primary,
-  },
-});
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-CA', {
@@ -275,18 +37,251 @@ function formatDate(date: Date | string): string {
 export interface InvoicePdfProps {
   invoice: Invoice;
   payments: Payment[];
+  branding: Branding;
 }
 
-export function InvoicePdfDocument({ invoice, payments }: InvoicePdfProps) {
+export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfProps) {
   const lineItems = (invoice.line_items as unknown as QuoteLineItem[]) || [];
   const subtotal = Number(invoice.subtotal) || 0;
   const hstAmount = Number(invoice.hst_amount) || 0;
   const total = Number(invoice.total) || 0;
   const amountPaid = Number(invoice.amount_paid) || 0;
   const balanceDue = Number(invoice.balance_due) || 0;
+  const primaryColor = branding.primaryColor;
 
   const minRows = 10;
   const emptyRowsNeeded = Math.max(0, minRows - lineItems.length - 3);
+
+  const styles = StyleSheet.create({
+    page: {
+      padding: 40,
+      fontFamily: 'Helvetica',
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    logoSection: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      flex: 1,
+    },
+    companyInfo: {
+      paddingTop: 5,
+    },
+    companyAddress: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      marginBottom: 2,
+    },
+    companyPhone: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      marginBottom: 2,
+    },
+    companyWebsite: {
+      fontSize: 10,
+      color: primaryColor,
+      fontFamily: 'Helvetica-Bold',
+    },
+    invoiceSection: {
+      alignItems: 'flex-end',
+    },
+    invoiceTitle: {
+      fontSize: 24,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.secondary,
+      marginBottom: 10,
+    },
+    invoiceInfo: {
+      alignItems: 'flex-end',
+    },
+    invoiceInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginBottom: 2,
+    },
+    invoiceInfoLabel: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      width: 60,
+    },
+    invoiceInfoValue: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      fontFamily: 'Helvetica-Bold',
+      textAlign: 'right' as const,
+      width: 90,
+    },
+    customerWorkRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    customerSection: {
+      flex: 1,
+    },
+    paymentSection: {
+      flex: 1,
+      alignItems: 'flex-end',
+    },
+    sectionLabel: {
+      fontSize: 10,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.secondary,
+    },
+    cellText: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+    },
+    table: {
+      width: '100%',
+      marginBottom: 0,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: primaryColor,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+    },
+    tableHeaderText: {
+      fontSize: 11,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.white,
+    },
+    tableHeaderDescription: {
+      flex: 3,
+    },
+    tableHeaderAmount: {
+      flex: 1,
+      textAlign: 'right' as const,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: STATIC_COLORS.border,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      minHeight: 25,
+    },
+    tableRowDescription: {
+      flex: 3,
+    },
+    tableRowAmount: {
+      flex: 1,
+      textAlign: 'right' as const,
+    },
+    cellAmount: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      textAlign: 'right' as const,
+    },
+    emptyRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: STATIC_COLORS.border,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      minHeight: 25,
+    },
+    totalsRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: STATIC_COLORS.border,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+    },
+    hstRow: {
+      flexDirection: 'row',
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderBottomWidth: 0,
+    },
+    bottomSection: {
+      flexDirection: 'row',
+      marginTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: STATIC_COLORS.border,
+    },
+    termsSection: {
+      flex: 3,
+      paddingTop: 10,
+      paddingRight: 20,
+    },
+    termsTitle: {
+      fontSize: 9,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.secondary,
+      marginBottom: 4,
+    },
+    termsText: {
+      fontSize: 8,
+      color: STATIC_COLORS.muted,
+      lineHeight: 1.4,
+      marginBottom: 8,
+    },
+    totalSection: {
+      flex: 1,
+      paddingTop: 10,
+      paddingLeft: 10,
+      borderLeftWidth: 1,
+      borderLeftColor: STATIC_COLORS.border,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    totalLabel: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+    },
+    totalValue: {
+      fontSize: 10,
+      color: STATIC_COLORS.secondary,
+      fontFamily: 'Helvetica-Bold',
+    },
+    grandTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 6,
+      borderTopWidth: 2,
+      borderTopColor: primaryColor,
+      marginTop: 4,
+    },
+    grandTotalLabel: {
+      fontSize: 12,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.secondary,
+    },
+    grandTotalValue: {
+      fontSize: 14,
+      fontFamily: 'Helvetica-Bold',
+      color: STATIC_COLORS.secondary,
+    },
+    balanceDueRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 4,
+      marginTop: 4,
+    },
+    balanceDueLabel: {
+      fontSize: 12,
+      fontFamily: 'Helvetica-Bold',
+      color: primaryColor,
+    },
+    balanceDueValue: {
+      fontSize: 14,
+      fontFamily: 'Helvetica-Bold',
+      color: primaryColor,
+    },
+  });
 
   return (
     <Document>
@@ -294,12 +289,12 @@ export function InvoicePdfDocument({ invoice, payments }: InvoicePdfProps) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: COLORS.primary }}>McCarty Squared</Text>
+            <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: primaryColor }}>{branding.name}</Text>
             <View style={styles.companyInfo}>
-              <Text style={styles.companyAddress}>123 Innovation Drive</Text>
-              <Text style={styles.companyAddress}>London, ON N0N 0N0</Text>
-              <Text style={styles.companyPhone}>Tel: (226) 667-8940</Text>
-              <Text style={styles.companyWebsite}>www.mccartysquared.ca</Text>
+              <Text style={styles.companyAddress}>{branding.address}</Text>
+              <Text style={styles.companyAddress}>{branding.city}, {branding.province} {branding.postal}</Text>
+              <Text style={styles.companyPhone}>Tel: {branding.phone}</Text>
+              <Text style={styles.companyWebsite}>{branding.website}</Text>
             </View>
           </View>
 
@@ -342,7 +337,7 @@ export function InvoicePdfDocument({ invoice, payments }: InvoicePdfProps) {
           <View style={styles.paymentSection}>
             <Text style={styles.sectionLabel}>Payment Terms</Text>
             <Text style={styles.cellText}>50% Deposit Required</Text>
-            <Text style={styles.cellText}>E-Transfer: payments@mccartysquared.ca</Text>
+            <Text style={styles.cellText}>E-Transfer: {branding.paymentEmail}</Text>
           </View>
         </View>
 
@@ -407,11 +402,11 @@ export function InvoicePdfDocument({ invoice, payments }: InvoicePdfProps) {
           <View style={styles.termsSection}>
             <Text style={styles.termsTitle}>Terms: 50% Deposit required to schedule work.</Text>
             <Text style={styles.termsText}>
-              Invoices payable upon receipt. Please make cheques payable to McCarty Squared Inc.
+              Invoices payable upon receipt. Please make cheques payable to {branding.name}.
               Finance Charges will be applied at a rate of 1.25% per month.
             </Text>
             <Text style={styles.termsText}>
-              E-Transfer payments to: payments@mccartysquared.ca
+              E-Transfer payments to: {branding.paymentEmail}
             </Text>
             {payments.length > 0 && (
               <>

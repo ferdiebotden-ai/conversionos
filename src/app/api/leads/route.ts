@@ -7,6 +7,7 @@ import { generateAIQuote, convertAIQuoteToLineItems, calculateAIQuoteTotals } fr
 import { sendEmail, getOwnerEmail } from '@/lib/email/resend';
 import { LeadConfirmationEmail } from '@/emails/lead-confirmation';
 import { NewLeadNotificationEmail } from '@/emails/new-lead-notification';
+import { getBranding } from '@/lib/branding';
 import type { LeadStatus, ProjectType, FinishLevel, Timeline, BudgetBand, Json } from '@/types/database';
 
 /**
@@ -292,18 +293,20 @@ export async function POST(request: NextRequest) {
     }));
 
     // Send email notifications (don't block on these)
+    const branding = await getBranding();
     const emailPromises: Promise<unknown>[] = [];
 
     // Customer confirmation email
     emailPromises.push(
       sendEmail({
         to: data.email,
-        subject: `Thanks for your ${data.projectType} renovation inquiry - McCarty Squared`,
+        subject: `Thanks for your ${data.projectType} renovation inquiry - ${branding.name}`,
         react: LeadConfirmationEmail({
           customerName: data.name,
           projectType: data.projectType,
           estimateLow: quoteDraftJson?.estimateLow,
           estimateHigh: quoteDraftJson?.estimateHigh,
+          branding,
         }),
       }).catch((err) => {
         console.error('Failed to send customer confirmation email:', err);

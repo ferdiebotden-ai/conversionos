@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateAIEmail } from '@/lib/ai/email-generation';
+import { getBranding } from '@/lib/branding';
 
 /**
  * Schema for POST /api/quotes/[leadId]/draft-email
@@ -48,7 +49,8 @@ export async function POST(
 
     const input = validationResult.data;
 
-    // Generate AI email
+    // Generate AI email with tenant branding
+    const branding = await getBranding();
     const aiEmail = await generateAIEmail({
       customerName: input.customerName,
       projectType: input.projectType,
@@ -58,7 +60,7 @@ export async function POST(
       goalsText: input.goalsText,
       specialNotes: input.specialNotes,
       isResend: input.isResend,
-    });
+    }, branding);
 
     return NextResponse.json({
       success: true,

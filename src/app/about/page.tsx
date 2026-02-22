@@ -1,4 +1,3 @@
-import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,11 +12,15 @@ import {
   FileText,
   Clock,
 } from "lucide-react"
+import { getBranding } from "@/lib/branding"
+import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Learn about McCarty Squared Inc. — London, ON's trusted renovation contractor. Dream. Plan. Build. Quality craftsmanship for residential and commercial projects since 2021.",
+export async function generateMetadata() {
+  const branding = await getBranding()
+  return {
+    title: "About Us",
+    description: `Learn about ${branding.name} — ${branding.city}, ${branding.province}'s trusted renovation contractor. Quality craftsmanship for residential and commercial projects.`,
+  }
 }
 
 const values = [
@@ -31,7 +34,7 @@ const values = [
     icon: Target,
     title: "Quality Craftsmanship",
     description:
-      "RenoMark certified. Every detail matters, from initial design to final walkthrough.",
+      "Every detail matters, from initial design to final walkthrough.",
   },
   {
     icon: Shield,
@@ -41,53 +44,9 @@ const values = [
   },
 ]
 
-const certifications = [
-  "RenoMark",
-  "LHBA",
-  "NetZero Home",
-  "Houzz Pro",
-  "London Chamber of Commerce",
-]
-
-const teamMembers = [
-  {
-    name: "Garnet",
-    role: "Co-Owner / Lead Builder",
-    description: "Job site contact and lead craftsman",
-    image: "/images/demo/team-male.png",
-  },
-  {
-    name: "Carisa",
-    role: "Co-Owner / Business Manager",
-    description: "General inquiries and project coordination",
-    image: "/images/demo/team-female.png",
-  },
-]
-
-const serviceAreas = [
-  "London",
-  "Argyle",
-  "Arva",
-  "Belmont",
-  "Byron",
-  "Dorchester",
-  "Hyde Park",
-  "Ingersoll",
-  "Komoka",
-  "Masonville",
-  "Mt Brydges",
-  "North London",
-  "Oakridge",
-  "Old North",
-  "OEV",
-  "St Thomas",
-  "Strathroy",
-  "Tillsonburg",
-  "Woodfield",
-  "Wortley",
-]
-
-export default function AboutPage() {
+export default async function AboutPage() {
+  const config = await getCompanyConfig()
+  const branding = await getBranding()
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -111,8 +70,8 @@ export default function AboutPage() {
               Dream. Plan. Build.
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              McCarty Squared Inc. transforms homes in London, ON
-              with quality craftsmanship and modern building techniques.
+              {branding.name} transforms homes in {branding.city}, {branding.province}
+              {" "}with quality craftsmanship and modern building techniques.
               Taking care of our clients is what we do best.
             </p>
           </div>
@@ -128,25 +87,27 @@ export default function AboutPage() {
                 What We Do
               </h2>
               <div className="mt-4 space-y-4 text-muted-foreground">
-                <p>
-                  Founded in 2021 by Garnet and Carisa, McCarty Squared Inc.
-                  has quickly become one of London&apos;s most trusted renovation
-                  contractors. Our past projects include both commercial and
-                  residential spaces across 13 service categories.
-                </p>
-                <p>
-                  From accessibility modifications and net-zero homes to heritage
-                  restoration and custom cabinetry — we focus on quality craftsmanship
-                  as well as modern building techniques. A clean, courteous, efficient
-                  worksite is a must, and taking care of our clients is what we do best.
-                </p>
-                <p>
-                  We offer an end-to-end client experience that includes
-                  seamless communication, budgeting, on-site organization, and
-                  solid, quality handiwork every time. From the design phase to
-                  the last touch-ups, we&apos;ll be there working hard to finish on
-                  time and on budget.
-                </p>
+                {config.aboutCopy.length > 0 ? (
+                  config.aboutCopy.map((paragraph, i) => (
+                    <p key={i}>{paragraph}</p>
+                  ))
+                ) : (
+                  <>
+                    <p>
+                      Founded in {config.founded} by {config.principals}, {branding.name}
+                      {" "}has quickly become one of {branding.city}&apos;s most trusted renovation
+                      contractors. Our past projects include both commercial and
+                      residential spaces.
+                    </p>
+                    <p>
+                      We offer an end-to-end client experience that includes
+                      seamless communication, budgeting, on-site organization, and
+                      solid, quality handiwork every time. From the design phase to
+                      the last touch-ups, we&apos;ll be there working hard to finish on
+                      time and on budget.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
@@ -169,10 +130,7 @@ export default function AboutPage() {
             Our Mission
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/90">
-            To transform houses into dream homes through exceptional
-            craftsmanship, innovative technology, and an unwavering commitment
-            to customer satisfaction. We believe every homeowner deserves a
-            renovation experience that&apos;s as enjoyable as the final result.
+            {config.mission || "To transform houses into dream homes through exceptional craftsmanship, innovative technology, and an unwavering commitment to customer satisfaction. We believe every homeowner deserves a renovation experience that's as enjoyable as the final result."}
           </p>
         </div>
       </section>
@@ -211,6 +169,7 @@ export default function AboutPage() {
       </section>
 
       {/* Certifications */}
+      {config.certifications.length > 0 && (
       <section className="border-y border-border bg-muted/30 px-4 py-12 md:py-16">
         <div className="container mx-auto">
           <div className="mx-auto max-w-2xl text-center">
@@ -221,7 +180,7 @@ export default function AboutPage() {
               </h2>
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {certifications.map((cert) => (
+              {config.certifications.map((cert) => (
                 <span
                   key={cert}
                   className="rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary"
@@ -272,6 +231,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Team Section */}
       <section className="px-4 py-12 md:py-16">
@@ -281,31 +241,28 @@ export default function AboutPage() {
               Meet the Team
             </h2>
             <p className="mt-2 text-muted-foreground">
-              The husband-and-wife team dedicated to your project&apos;s success.
+              The team dedicated to your project&apos;s success.
             </p>
           </div>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 max-w-2xl mx-auto">
-            {teamMembers.map((member) => (
-              <Card key={member.name}>
-                <CardContent className="p-6 text-center">
-                  <div className="relative mx-auto size-24 overflow-hidden rounded-full">
-                    <Image
-                      src={member.image}
-                      alt={member.name}
-                      fill
-                      className="object-cover"
-                      sizes="96px"
-                    />
-                  </div>
-                  <p className="mt-4 font-semibold text-foreground">
-                    {member.name}
-                  </p>
-                  <p className="text-sm text-primary">{member.role}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{member.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="relative mx-auto size-24 overflow-hidden rounded-full">
+                  <Image
+                    src="/images/demo/team-male.png"
+                    alt={config.principals}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                  />
+                </div>
+                <p className="mt-4 font-semibold text-foreground">
+                  {config.principals}
+                </p>
+                <p className="text-sm text-primary">Principals</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -321,19 +278,8 @@ export default function AboutPage() {
               </h2>
             </div>
             <p className="mt-4 text-muted-foreground">
-              We proudly serve homeowners and businesses throughout London, ON
-              and 20+ surrounding communities:
+              We proudly serve homeowners and businesses throughout {config.serviceArea}.
             </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {serviceAreas.map((area) => (
-                <span
-                  key={area}
-                  className="rounded-full bg-muted px-3 py-1 text-sm text-foreground"
-                >
-                  {area}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       </section>

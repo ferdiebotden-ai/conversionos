@@ -9,6 +9,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { QuotePdfDocument } from '@/lib/pdf/quote-template';
+import { getBranding } from '@/lib/branding';
 
 type RouteContext = { params: Promise<{ leadId: string }> };
 
@@ -31,6 +32,7 @@ export async function GET(
     }
 
     const supabase = createServiceClient();
+    const branding = await getBranding();
 
     // Fetch lead
     const { data: lead, error: leadError } = await supabase
@@ -77,7 +79,7 @@ export async function GET(
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      QuotePdfDocument({ lead, quote })
+      QuotePdfDocument({ lead, quote, branding })
     );
 
     // Create filename

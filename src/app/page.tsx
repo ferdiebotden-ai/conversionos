@@ -21,8 +21,22 @@ import {
   Hammer,
   CheckCircle,
 } from "lucide-react"
+import { getBranding } from "@/lib/branding"
+import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 
-export default function Home() {
+export default async function Home() {
+  const branding = await getBranding()
+  const config = await getCompanyConfig()
+
+  // Map testimonials for the component
+  const testimonials = config.testimonials.map((t, i) => ({
+    id: i + 1,
+    quote: t.quote,
+    author: t.author,
+    projectType: t.projectType,
+    rating: 5,
+    image: `/images/demo/${['kitchen-modern', 'bathroom-spa', 'basement-entertainment'][i % 3]}.png`,
+  }))
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -48,9 +62,9 @@ export default function Home() {
                 </StaggerItem>
                 <StaggerItem>
                   <p className="mt-6 text-lg leading-8 text-white/85 md:text-xl">
-                    With a focus on quality craftsmanship and integrity, McCarty Squared
-                    provides superior construction and renovation services in London, Ontario
-                    and surrounding areas, dedicated to bringing your dream projects to fruition.
+                    With a focus on quality craftsmanship and integrity, {branding.name}
+                    {" "}provides superior construction and renovation services in {branding.city}, {branding.province}
+                    {" "}and surrounding areas, dedicated to bringing your dream projects to fruition.
                   </p>
                 </StaggerItem>
                 <StaggerItem>
@@ -157,7 +171,7 @@ export default function Home() {
               Our Services
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              From kitchens to net-zero homes, McCarty Squared handles every aspect
+              From kitchens to net-zero homes, {branding.name} handles every aspect
               of your renovation with expertise and care.
             </p>
           </FadeInUp>
@@ -192,7 +206,7 @@ export default function Home() {
             <div>
               <FadeInUp>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                  Why Choose McCarty Squared?
+                  Why Choose {branding.name}?
                 </h2>
                 <p className="mt-4 text-lg text-muted-foreground">
                   We combine traditional craftsmanship with modern technology to
@@ -286,13 +300,13 @@ export default function Home() {
               What Our Clients Say
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Don&apos;t just take our word for it. Here&apos;s what London-area
+              Don&apos;t just take our word for it. Here&apos;s what local
               homeowners have to say.
             </p>
           </FadeInUp>
 
           <div className="mt-12">
-            <Testimonials />
+            <Testimonials items={testimonials} />
           </div>
         </div>
       </section>

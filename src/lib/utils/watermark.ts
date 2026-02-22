@@ -14,7 +14,7 @@ export interface WatermarkOptions {
 }
 
 const DEFAULT_OPTIONS: Required<WatermarkOptions> = {
-  text: 'McCarty Squared',
+  text: 'ConversionOS Demo',
   subtext: 'AI Visualization - For Concept Purposes Only',
   position: 'bottom-right',
   opacity: 0.85,

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Mail, Loader2, Sparkles } from 'lucide-react';
+import { useBranding } from '@/components/branding-provider';
 
 interface EmailCaptureModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function EmailCaptureModal({
   visualizationId,
   onEmailSubmitted,
 }: EmailCaptureModalProps) {
+  const branding = useBranding();
   const [email, setEmail] = useState('');
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +127,7 @@ export function EmailCaptureModal({
               disabled={isLoading}
             />
             <Label htmlFor="marketing-optin" className="text-sm text-muted-foreground font-normal">
-              Send me design inspiration and renovation tips from McCarty Squared
+              Send me design inspiration and renovation tips from {branding.name}
               (you can unsubscribe anytime)
             </Label>
           </div>

@@ -10,6 +10,7 @@ import { getSiteId } from '@/lib/db/site';
 import { Button } from '@/components/ui/button';
 import { SharedVisualizationView } from './shared-view';
 import { Sparkles, MessageSquare, ArrowLeft } from 'lucide-react';
+import { getBranding } from '@/lib/branding';
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function SharedVisualizationPage({ params }: PageProps) {
   const { token } = await params;
   const supabase = createServiceClient();
+  const branding = await getBranding();
 
   // Fetch the visualization by share token
   const { data: visualization, error } = await supabase
@@ -51,7 +53,7 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">McCarty Squared</span>
+              <span className="font-bold text-lg">{branding.name}</span>
             </Link>
             <Link href="/estimate">
               <Button>
@@ -82,7 +84,7 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
               {formatRoomType(visualization.room_type)} Design
             </h1>
             <p className="text-muted-foreground mt-2">
-              AI-generated visualization by McCarty Squared
+              AI-generated visualization by {branding.name}
             </p>
           </div>
 
@@ -96,7 +98,7 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
             <h2 className="text-2xl font-bold">Love This Design?</h2>
             <p className="text-muted-foreground mt-2 max-w-md mx-auto">
               Get a personalized quote for your renovation project from the
-              experts at McCarty Squared in London, ON.
+              experts at {branding.name} in {branding.city}, {branding.province}.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
               <Link href={`/estimate?visualization=${visualization.id}`}>

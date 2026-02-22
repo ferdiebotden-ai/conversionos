@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { InvoiceSendSchema } from '@/lib/schemas/invoice';
 import { InvoicePdfDocument } from '@/lib/pdf/invoice-template';
+import { getBranding } from '@/lib/branding';
 import type { Json } from '@/types/database';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -30,6 +31,7 @@ export async function POST(
 
     const { to_email, custom_message } = validation.data;
     const supabase = createServiceClient();
+    const branding = await getBranding();
 
     // Fetch invoice
     const { data: invoice, error } = await supabase
@@ -52,7 +54,7 @@ export async function POST(
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      InvoicePdfDocument({ invoice, payments: payments || [] })
+      InvoicePdfDocument({ invoice, payments: payments || [], branding })
     );
 
     // Send email via Resend
@@ -73,14 +75,14 @@ export async function POST(
       `Balance Due: $${Number(invoice.balance_due).toFixed(2)}`,
       `Due Date: ${invoice.due_date}`,
       '',
-      custom_message ? `Note from McCarty Squared: ${custom_message}\n` : '',
-      'Payment can be made via E-Transfer to payments@mccartysquared.ca',
+      custom_message ? `Note from ${branding.name}: ${custom_message}\n` : '',
+      `Payment can be made via E-Transfer to ${branding.paymentEmail}`,
       '',
-      'Thank you for choosing McCarty Squared!',
+      `Thank you for choosing ${branding.name}!`,
       '',
-      'McCarty Squared Inc.',
-      '123 Innovation Drive, London, ON N0N 0N0',
-      'Tel: (226) 667-8940',
+      branding.name,
+      `${branding.address}, ${branding.city}, ${branding.province} ${branding.postal}`,
+      `Tel: ${branding.phone}`,
     ].join('\n');
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -90,9 +92,9 @@ export async function POST(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'McCarty Squared <info@mccartysquared.ca>',
+        from: `${branding.name} <${branding.email}>`,
         to: [to_email],
-        subject: `Invoice #${invoice.invoice_number} from McCarty Squared`,
+        subject: `Invoice #${invoice.invoice_number} from ${branding.name}`,
         text: emailBody,
         attachments: [
           {

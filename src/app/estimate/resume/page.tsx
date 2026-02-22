@@ -1,11 +1,14 @@
-import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { ResumeChat } from './resume-chat';
+import { getBranding } from '@/lib/branding';
 
-export const metadata: Metadata = {
-  title: 'Continue Your Quote | McCarty Squared',
-  description: 'Pick up where you left off on your renovation estimate.',
-};
+export async function generateMetadata() {
+  const branding = await getBranding();
+  return {
+    title: `Continue Your Quote | ${branding.name}`,
+    description: 'Pick up where you left off on your renovation estimate.',
+  };
+}
 
 export default function ResumePage() {
   return (

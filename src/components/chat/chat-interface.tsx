@@ -27,6 +27,7 @@ import { compressImage, fileToBase64 } from '@/lib/utils/image';
 import { readHandoffContext, clearHandoffContext, buildHandoffPromptPrefix, type HandoffContext } from '@/lib/chat/handoff';
 import { Save, FileText, Send } from 'lucide-react';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
+import { useBranding } from '@/components/branding-provider';
 
 // Helper to extract text content from UIMessage parts
 function getMessageContent(message: UIMessage): string {
@@ -60,7 +61,9 @@ interface ChatInterfaceProps {
   visualizationContext?: VisualizationContext | undefined;
 }
 
-const WELCOME_MESSAGE = "Hey there! I'm Marcus, the budget and cost specialist here at McCarty Squared. I help homeowners in the London, ON area understand what their renovation will cost — no surprises, no pressure.\n\nTell me about the space you're thinking of renovating, or snap a quick photo and I'll take a look!";
+function getWelcomeMessage(companyName: string, city: string, province: string) {
+  return `Hey there! I'm Marcus, the budget and cost specialist here at ${companyName}. I help homeowners in the ${city}, ${province} area understand what their renovation will cost — no surprises, no pressure.\n\nTell me about the space you're thinking of renovating, or snap a quick photo and I'll take a look!`;
+}
 
 // Map frontend timeline values to API enum values
 function mapTimelineToApi(timeline: string | undefined): string | undefined {
@@ -89,17 +92,18 @@ function mapRoomTypeToProjectType(roomType: string): string {
 }
 
 // Generate a custom welcome message when coming from visualizer
-function getVisualizationWelcomeMessage(context: VisualizationContext): string {
+function getVisualizationWelcomeMessage(context: VisualizationContext, companyName: string): string {
   const roomType = context.roomType.replace(/_/g, ' ');
   const style = context.style.charAt(0).toUpperCase() + context.style.slice(1);
 
-  return `Hi! I see you've been exploring designs for your ${roomType} renovation in a ${style} style - it looks great! 🎨\n\nI'm your renovation assistant from McCarty Squared. I can help turn that vision into a detailed estimate.\n\nTo get started, could you tell me a bit more about the space? For example:\n- What's the approximate size of the room?\n- When are you hoping to start the project?\n- Is there anything specific from your visualization you want to prioritize?`;
+  return `Hi! I see you've been exploring designs for your ${roomType} renovation in a ${style} style - it looks great! 🎨\n\nI'm your renovation assistant from ${companyName}. I can help turn that vision into a detailed estimate.\n\nTo get started, could you tell me a bit more about the space? For example:\n- What's the approximate size of the room?\n- When are you hoping to start the project?\n- Is there anything specific from your visualization you want to prioritize?`;
 }
 
 /**
  * Inner component that uses VoiceProvider context
  */
 function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visualizationContext }: ChatInterfaceProps) {
+  const branding = useBranding();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -154,17 +158,17 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       const styleLabel = dp.customStyle || dp.style;
       const conceptCount = ctx.visualizationData?.concepts.length || 0;
       const conceptNote = conceptCount > 0 ? ` I can see you generated ${conceptCount} design concepts — they look great!` : '';
-      return `Hey there! I see you've been designing a ${roomLabel} renovation in a ${styleLabel} style with ${fromName}.${conceptNote}\n\nI'm Marcus, the budget and cost specialist here at McCarty Squared. Let's turn that vision into real numbers.\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
+      return `Hey there! I see you've been designing a ${roomLabel} renovation in a ${styleLabel} style with ${fromName}.${conceptNote}\n\nI'm Marcus, the budget and cost specialist here at ${branding.name}. Let's turn that vision into real numbers.\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
     }
 
-    return `Hey! ${fromName} filled me in on what you've been discussing. I'm Marcus, the budget and cost specialist here at McCarty Squared.\n\nLet's pick up where you left off and get you some solid numbers. What would you like to focus on first?`;
+    return `Hey! ${fromName} filled me in on what you've been discussing. I'm Marcus, the budget and cost specialist here at ${branding.name}.\n\nLet's pick up where you left off and get you some solid numbers. What would you like to focus on first?`;
   };
 
   const welcomeMessage = handoffContext
     ? getHandoffWelcome(handoffContext)
     : visualizationContext
-      ? getVisualizationWelcomeMessage(visualizationContext)
-      : WELCOME_MESSAGE;
+      ? getVisualizationWelcomeMessage(visualizationContext, branding.name)
+      : getWelcomeMessage(branding.name, branding.city, branding.province);
 
   const startingMessages: ChatMessage[] = initialMessages && initialMessages.length > 0
     ? initialMessages

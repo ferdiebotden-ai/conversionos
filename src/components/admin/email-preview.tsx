@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Monitor, Smartphone, Mail, Paperclip } from 'lucide-react';
+import { useBranding } from '@/components/branding-provider';
 
 interface EmailPreviewProps {
   subject: string;
@@ -75,14 +76,18 @@ export function EmailPreview({
   body,
   recipientEmail,
   recipientName,
-  senderName = 'McCarty Squared',
-  senderEmail = 'info@mccartysquared.ca',
-  companyName = 'McCarty Squared',
+  senderName,
+  senderEmail,
+  companyName,
   quoteTotal,
   depositRequired,
   className,
 }: EmailPreviewProps) {
+  const branding = useBranding();
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const resolvedSenderName = senderName ?? branding.name;
+  const resolvedSenderEmail = senderEmail ?? branding.email;
+  const resolvedCompanyName = companyName ?? branding.name;
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -101,10 +106,10 @@ export function EmailPreview({
               <tr>
                 <td style="background-color: #1565C0; padding: 24px 30px; text-align: center;">
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">
-                    ${companyName}
+                    ${resolvedCompanyName}
                   </h1>
                   <p style="margin: 4px 0 0 0; color: #ffffff; opacity: 0.9; font-size: 14px;">
-                    Quality Renovations in London, ON
+                    ${branding.tagline} in ${branding.city}, ${branding.province}
                   </p>
                 </td>
               </tr>
@@ -150,12 +155,12 @@ export function EmailPreview({
               <tr>
                 <td style="background-color: #f4f4f4; padding: 24px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
                   <p style="margin: 0; color: #666666; font-size: 14px;">
-                    <strong>${companyName}</strong><br>
-                    London, ON<br>
-                    <a href="mailto:${senderEmail}" style="color: #1565C0; text-decoration: none;">${senderEmail}</a>
+                    <strong>${resolvedCompanyName}</strong><br>
+                    ${branding.city}, ${branding.province}<br>
+                    <a href="mailto:${resolvedSenderEmail}" style="color: #1565C0; text-decoration: none;">${resolvedSenderEmail}</a>
                   </p>
                   <p style="margin: 16px 0 0 0; color: #999999; font-size: 12px;">
-                    © ${new Date().getFullYear()} ${companyName}. All rights reserved.
+                    © ${new Date().getFullYear()} ${resolvedCompanyName}. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -201,7 +206,7 @@ export function EmailPreview({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">From:</span>
-                <span className="font-medium">{senderName} &lt;{senderEmail}&gt;</span>
+                <span className="font-medium">{resolvedSenderName} &lt;{resolvedSenderEmail}&gt;</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">To:</span>

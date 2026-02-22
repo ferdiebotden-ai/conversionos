@@ -160,7 +160,7 @@ async function generateInitialResponse(analysis: RoomAnalysis): Promise<string> 
   const layout = analysis.layoutType;
   const fixtures = analysis.identifiedFixtures.slice(0, 4);
 
-  let response = `Hi! I'm Mia, your design consultant at McCarty Squared. I can see this is ${/^[aeiou]/i.test(roomType) ? 'an' : 'a'} ${roomType} `;
+  let response = `I can see this is ${/^[aeiou]/i.test(roomType) ? 'an' : 'a'} ${roomType} `;
 
   if (layout) {
     response += `with a ${layout.toLowerCase()} layout. `;

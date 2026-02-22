@@ -2,11 +2,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProjectGallery } from "@/components/project-gallery"
+import { getBranding } from "@/lib/branding"
 
-export const metadata: Metadata = {
-  title: "Our Projects",
-  description:
-    "Browse our portfolio of kitchen, bathroom, basement, and flooring renovations in London, ON and surrounding areas.",
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding()
+  return {
+    title: "Our Projects",
+    description: `Browse our portfolio of kitchen, bathroom, basement, and flooring renovations in ${branding.city}, ${branding.province} and surrounding areas.`,
+  }
 }
 
 export default function ProjectsPage() {

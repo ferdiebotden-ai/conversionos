@@ -18,6 +18,9 @@ export interface Branding {
   province: string;
   postal: string;
   socials: { label: string; href: string }[];
+  paymentEmail: string;
+  quotesEmail: string;
+  primaryColor: string;
 }
 
 const DEMO_BRANDING: Branding = {
@@ -31,6 +34,9 @@ const DEMO_BRANDING: Branding = {
   province: 'ON',
   postal: 'N6A 1A1',
   socials: [],
+  paymentEmail: 'payments@example.com',
+  quotesEmail: 'quotes@example.com',
+  primaryColor: '#1565C0',
 };
 
 /**
@@ -55,6 +61,8 @@ export async function getBranding(): Promise<Branding> {
     const info = (map['business_info'] ?? {}) as Record<string, unknown>;
     const brand = (map['branding'] ?? {}) as Record<string, unknown>;
 
+    const colors = (brand['colors'] as Record<string, string>) || {};
+
     return {
       name: (info['name'] as string) || DEMO_BRANDING.name,
       tagline: (brand['tagline'] as string) || (info['tagline'] as string) || DEMO_BRANDING.tagline,
@@ -66,6 +74,9 @@ export async function getBranding(): Promise<Branding> {
       province: (info['province'] as string) || DEMO_BRANDING.province,
       postal: (info['postal'] as string) || DEMO_BRANDING.postal,
       socials: (brand['socials'] as Branding['socials']) || DEMO_BRANDING.socials,
+      paymentEmail: (info['payment_email'] as string) || DEMO_BRANDING.paymentEmail,
+      quotesEmail: (info['quotes_email'] as string) || DEMO_BRANDING.quotesEmail,
+      primaryColor: colors['primary_hex'] || DEMO_BRANDING.primaryColor,
     };
   } catch {
     return DEMO_BRANDING;

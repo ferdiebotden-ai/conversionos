@@ -21,189 +21,15 @@ import {
   Text,
 } from '@react-email/components';
 import type { Lead, QuoteDraft } from '@/types/database';
+import type { Branding } from '@/lib/branding';
 
-// Brand colors
-const COLORS = {
-  primary: '#1565C0',
+// Static colors (non-brand)
+const STATIC_COLORS = {
   secondary: '#1a1a1a',
   muted: '#666666',
   border: '#e5e5e5',
   background: '#f8f8f8',
   white: '#ffffff',
-};
-
-// Styles
-const main = {
-  backgroundColor: COLORS.background,
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
-};
-
-const container = {
-  backgroundColor: COLORS.white,
-  margin: '0 auto',
-  padding: '40px 0',
-  maxWidth: '600px',
-};
-
-const headerSection = {
-  padding: '0 40px 30px',
-  borderBottom: `2px solid ${COLORS.primary}`,
-};
-
-const brandName = {
-  fontSize: '28px',
-  fontWeight: '700' as const,
-  color: COLORS.primary,
-  margin: '0',
-};
-
-const tagline = {
-  fontSize: '14px',
-  color: COLORS.muted,
-  margin: '4px 0 0',
-};
-
-const contentSection = {
-  padding: '30px 40px',
-};
-
-const greeting = {
-  fontSize: '18px',
-  fontWeight: '600' as const,
-  color: COLORS.secondary,
-  margin: '0 0 16px',
-};
-
-const paragraph = {
-  fontSize: '15px',
-  lineHeight: '1.6',
-  color: COLORS.secondary,
-  margin: '0 0 16px',
-};
-
-const quoteCard = {
-  backgroundColor: COLORS.background,
-  borderRadius: '8px',
-  padding: '24px',
-  margin: '24px 0',
-};
-
-const quoteTitle = {
-  fontSize: '16px',
-  fontWeight: '600' as const,
-  color: COLORS.primary,
-  margin: '0 0 16px',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
-};
-
-const quoteRow = {
-  margin: '0 0 8px',
-};
-
-const quoteLabel = {
-  fontSize: '14px',
-  color: COLORS.muted,
-  margin: '0',
-};
-
-const quoteValue = {
-  fontSize: '14px',
-  fontWeight: '600' as const,
-  color: COLORS.secondary,
-  margin: '0',
-};
-
-const totalRow = {
-  paddingTop: '16px',
-  marginTop: '16px',
-  borderTop: `2px solid ${COLORS.primary}`,
-};
-
-const totalLabel = {
-  fontSize: '18px',
-  fontWeight: '700' as const,
-  color: COLORS.secondary,
-  margin: '0',
-};
-
-const totalValue = {
-  fontSize: '24px',
-  fontWeight: '700' as const,
-  color: COLORS.primary,
-  margin: '0',
-};
-
-const depositText = {
-  fontSize: '14px',
-  color: COLORS.muted,
-  margin: '8px 0 0',
-};
-
-const ctaSection = {
-  textAlign: 'center' as const,
-  padding: '16px 0 24px',
-};
-
-const ctaButton = {
-  backgroundColor: COLORS.primary,
-  borderRadius: '6px',
-  color: COLORS.white,
-  fontSize: '16px',
-  fontWeight: '600' as const,
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  padding: '14px 32px',
-  display: 'inline-block',
-};
-
-const validityBadge = {
-  backgroundColor: COLORS.secondary,
-  borderRadius: '4px',
-  color: COLORS.white,
-  fontSize: '12px',
-  fontWeight: '500' as const,
-  padding: '6px 12px',
-  display: 'inline-block',
-  margin: '16px 0 0',
-};
-
-const customMessageSection = {
-  backgroundColor: '#fef3c7',
-  borderRadius: '8px',
-  padding: '16px 20px',
-  margin: '0 0 24px',
-  borderLeft: `4px solid #f59e0b`,
-};
-
-const customMessageText = {
-  fontSize: '14px',
-  lineHeight: '1.5',
-  color: COLORS.secondary,
-  margin: '0',
-  fontStyle: 'italic' as const,
-};
-
-const footerSection = {
-  padding: '24px 40px',
-  borderTop: `1px solid ${COLORS.border}`,
-};
-
-const footerText = {
-  fontSize: '13px',
-  color: COLORS.muted,
-  margin: '0 0 4px',
-  textAlign: 'center' as const,
-};
-
-const footerLink = {
-  color: COLORS.primary,
-  textDecoration: 'none',
-};
-
-const hr = {
-  borderColor: COLORS.border,
-  margin: '24px 0',
 };
 
 // Format currency
@@ -239,9 +65,10 @@ export interface QuoteEmailProps {
   lead: Lead;
   quote: QuoteDraft;
   customMessage?: string | undefined;
+  branding: Branding;
 }
 
-export function QuoteEmailTemplate({ lead, quote, customMessage }: QuoteEmailProps) {
+export function QuoteEmailTemplate({ lead, quote, customMessage, branding }: QuoteEmailProps) {
   const firstName = lead.name.split(' ')[0];
   const projectType = PROJECT_TYPE_LABELS[lead.project_type || 'other'] || 'Renovation Project';
   const quoteDate = new Date(quote.created_at);
@@ -250,19 +77,194 @@ export function QuoteEmailTemplate({ lead, quote, customMessage }: QuoteEmailPro
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const quoteNumber = `DEMO-${quoteDate.getFullYear()}-${String(lead.id).slice(0, 8).toUpperCase()}`;
   const lineItemCount = Array.isArray(quote.line_items) ? quote.line_items.length : 0;
+  const primaryColor = branding.primaryColor;
+
+  // Styles (use branding color)
+  const main = {
+    backgroundColor: STATIC_COLORS.background,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
+  };
+
+  const container = {
+    backgroundColor: STATIC_COLORS.white,
+    margin: '0 auto',
+    padding: '40px 0',
+    maxWidth: '600px',
+  };
+
+  const headerSection = {
+    padding: '0 40px 30px',
+    borderBottom: `2px solid ${primaryColor}`,
+  };
+
+  const brandNameStyle = {
+    fontSize: '28px',
+    fontWeight: '700' as const,
+    color: primaryColor,
+    margin: '0',
+  };
+
+  const taglineStyle = {
+    fontSize: '14px',
+    color: STATIC_COLORS.muted,
+    margin: '4px 0 0',
+  };
+
+  const contentSection = {
+    padding: '30px 40px',
+  };
+
+  const greeting = {
+    fontSize: '18px',
+    fontWeight: '600' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0 0 16px',
+  };
+
+  const paragraph = {
+    fontSize: '15px',
+    lineHeight: '1.6',
+    color: STATIC_COLORS.secondary,
+    margin: '0 0 16px',
+  };
+
+  const quoteCard = {
+    backgroundColor: STATIC_COLORS.background,
+    borderRadius: '8px',
+    padding: '24px',
+    margin: '24px 0',
+  };
+
+  const quoteTitle = {
+    fontSize: '16px',
+    fontWeight: '600' as const,
+    color: primaryColor,
+    margin: '0 0 16px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  };
+
+  const quoteRow = {
+    margin: '0 0 8px',
+  };
+
+  const quoteLabel = {
+    fontSize: '14px',
+    color: STATIC_COLORS.muted,
+    margin: '0',
+  };
+
+  const quoteValue = {
+    fontSize: '14px',
+    fontWeight: '600' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+  };
+
+  const totalRow = {
+    paddingTop: '16px',
+    marginTop: '16px',
+    borderTop: `2px solid ${primaryColor}`,
+  };
+
+  const totalLabel = {
+    fontSize: '18px',
+    fontWeight: '700' as const,
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+  };
+
+  const totalValue = {
+    fontSize: '24px',
+    fontWeight: '700' as const,
+    color: primaryColor,
+    margin: '0',
+  };
+
+  const depositText = {
+    fontSize: '14px',
+    color: STATIC_COLORS.muted,
+    margin: '8px 0 0',
+  };
+
+  const ctaSection = {
+    textAlign: 'center' as const,
+    padding: '16px 0 24px',
+  };
+
+  const ctaButton = {
+    backgroundColor: primaryColor,
+    borderRadius: '6px',
+    color: STATIC_COLORS.white,
+    fontSize: '16px',
+    fontWeight: '600' as const,
+    textDecoration: 'none',
+    textAlign: 'center' as const,
+    padding: '14px 32px',
+    display: 'inline-block',
+  };
+
+  const validityBadge = {
+    backgroundColor: STATIC_COLORS.secondary,
+    borderRadius: '4px',
+    color: STATIC_COLORS.white,
+    fontSize: '12px',
+    fontWeight: '500' as const,
+    padding: '6px 12px',
+    display: 'inline-block',
+    margin: '16px 0 0',
+  };
+
+  const customMessageSection = {
+    backgroundColor: '#fef3c7',
+    borderRadius: '8px',
+    padding: '16px 20px',
+    margin: '0 0 24px',
+    borderLeft: `4px solid #f59e0b`,
+  };
+
+  const customMessageText = {
+    fontSize: '14px',
+    lineHeight: '1.5',
+    color: STATIC_COLORS.secondary,
+    margin: '0',
+    fontStyle: 'italic' as const,
+  };
+
+  const footerSection = {
+    padding: '24px 40px',
+    borderTop: `1px solid ${STATIC_COLORS.border}`,
+  };
+
+  const footerText = {
+    fontSize: '13px',
+    color: STATIC_COLORS.muted,
+    margin: '0 0 4px',
+    textAlign: 'center' as const,
+  };
+
+  const footerLink = {
+    color: primaryColor,
+    textDecoration: 'none',
+  };
+
+  const hr = {
+    borderColor: STATIC_COLORS.border,
+    margin: '24px 0',
+  };
 
   return (
     <Html>
       <Head />
       <Preview>
-        Your quote from McCarty Squared - {formatCurrency(quote.total || 0)} for your {projectType.toLowerCase()}
+        Your quote from {branding.name} - {formatCurrency(quote.total || 0)} for your {projectType.toLowerCase()}
       </Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
           <Section style={headerSection}>
-            <Text style={brandName}>McCarty Squared</Text>
-            <Text style={tagline}>Quality Renovations in London, ON</Text>
+            <Text style={brandNameStyle}>{branding.name}</Text>
+            <Text style={taglineStyle}>{branding.tagline}</Text>
           </Section>
 
           {/* Content */}
@@ -270,7 +272,7 @@ export function QuoteEmailTemplate({ lead, quote, customMessage }: QuoteEmailPro
             <Text style={greeting}>Hi {firstName},</Text>
 
             <Text style={paragraph}>
-              Thank you for considering McCarty Squared for your {projectType.toLowerCase()}.
+              Thank you for considering {branding.name} for your {projectType.toLowerCase()}.
               We&apos;re excited about the possibility of bringing your vision to life!
             </Text>
 
@@ -380,7 +382,7 @@ export function QuoteEmailTemplate({ lead, quote, customMessage }: QuoteEmailPro
             </Text>
 
             <Section style={ctaSection}>
-              <Button href="mailto:quotes@mccartysquared.ca" style={ctaButton}>
+              <Button href={`mailto:${branding.quotesEmail}`} style={ctaButton}>
                 Reply to This Quote
               </Button>
             </Section>
@@ -389,15 +391,15 @@ export function QuoteEmailTemplate({ lead, quote, customMessage }: QuoteEmailPro
           {/* Footer */}
           <Section style={footerSection}>
             <Text style={footerText}>
-              McCarty Squared | London, ON
+              {branding.name} | {branding.city}, {branding.province}
             </Text>
             <Text style={footerText}>
-              <Link href="mailto:quotes@mccartysquared.ca" style={footerLink}>
-                quotes@mccartysquared.ca
+              <Link href={`mailto:${branding.quotesEmail}`} style={footerLink}>
+                {branding.quotesEmail}
               </Link>
               {' '}&bull;{' '}
-              <Link href="tel:+15195550000" style={footerLink}>
-                (519) 555-RENO
+              <Link href={`tel:${branding.phone.replace(/[^+\d]/g, '')}`} style={footerLink}>
+                {branding.phone}
               </Link>
             </Text>
             <Text style={{ ...footerText, marginTop: '16px', fontSize: '11px' }}>

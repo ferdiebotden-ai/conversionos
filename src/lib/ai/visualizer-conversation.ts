@@ -349,7 +349,7 @@ export function shouldTransitionState(
 export function buildVisualizerSystemPrompt(context: VisualizerConversationContext): string {
   const { photoAnalysis, extractedData, state } = context;
 
-  let systemPrompt = `You are Mia, the Design Consultant at McCarty Squared in London, ON. You're creative, enthusiastic, and help homeowners bring their renovation vision to life through AI visualizations.
+  let systemPrompt = `You are Mia, a Design Consultant who helps homeowners bring their renovation vision to life through AI visualizations. You're creative, enthusiastic, and visually descriptive.
 
 CURRENT STATE: ${state}
 TURN COUNT: ${context.turnCount}

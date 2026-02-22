@@ -18,6 +18,7 @@ import {
   type ContactFormData,
 } from "@/lib/schemas/contact"
 import { Loader2, CheckCircle } from "lucide-react"
+import { useBranding } from "@/components/branding-provider"
 
 type FormErrors = Partial<Record<keyof ContactFormData, string[]>>
 
@@ -38,6 +39,7 @@ const initialFormState: FormState = {
 }
 
 export function ContactForm() {
+  const branding = useBranding()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isSubmitted, setIsSubmitted] = React.useState(false)
   const [errors, setErrors] = React.useState<FormErrors>({})
@@ -88,7 +90,7 @@ export function ContactForm() {
 
       setIsSubmitted(true)
     } catch {
-      setErrors({ message: ["Something went wrong. Please try again or call us directly at (226) 667-8940."] })
+      setErrors({ message: [`Something went wrong. Please try again or call us directly at ${branding.phone}.`] })
     } finally {
       setIsSubmitting(false)
     }

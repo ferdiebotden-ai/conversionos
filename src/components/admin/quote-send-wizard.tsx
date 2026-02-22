@@ -45,6 +45,7 @@ import {
 import { StepProgress, PdfSkeleton } from '@/components/ui/progress-loader';
 import { EmailPreview } from './email-preview';
 import type { AIEmail } from '@/lib/schemas/ai-email';
+import { useBranding } from '@/components/branding-provider';
 
 const EMAIL_GEN_STEPS = [
   { label: 'Reading project details...' },
@@ -107,6 +108,7 @@ export function QuoteSendWizard({
   sentAt,
   onSendComplete,
 }: QuoteSendWizardProps) {
+  const branding = useBranding();
   const [currentStep, setCurrentStep] = useState<WizardStep>('review');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,10 +171,10 @@ export function QuoteSendWizard({
 
       if (!response.ok) {
         // Fall back to default if AI fails
-        setEmailSubject(`Your ${projectType} Renovation Quote - McCarty Squared`);
+        setEmailSubject(`Your ${projectType} Renovation Quote - ${branding.name}`);
         setEmailBody(`Hi ${customerName.split(' ')[0]},
 
-Thank you for considering McCarty Squared for your ${projectType} renovation project. Please find your detailed quote attached to this email.
+Thank you for considering ${branding.name} for your ${projectType} renovation project. Please find your detailed quote attached to this email.
 
 We've carefully reviewed your requirements and prepared an estimate that reflects our commitment to quality workmanship and fair pricing.
 
@@ -181,7 +183,7 @@ If you have any questions about the quote or would like to discuss your project 
 We look forward to working with you.
 
 Best regards,
-The McCarty Squared Team`);
+The ${branding.name} Team`);
         return;
       }
 
@@ -194,13 +196,13 @@ The McCarty Squared Team`);
     } catch (err) {
       console.error('Error generating email:', err);
       // Use default email on error
-      setEmailSubject(`Your ${projectType} Renovation Quote - McCarty Squared`);
+      setEmailSubject(`Your ${projectType} Renovation Quote - ${branding.name}`);
       setEmailBody(`Hi ${customerName.split(' ')[0]},
 
-Thank you for considering McCarty Squared for your ${projectType} renovation project. Please find your detailed quote attached.
+Thank you for considering ${branding.name} for your ${projectType} renovation project. Please find your detailed quote attached.
 
 Best regards,
-The McCarty Squared Team`);
+The ${branding.name} Team`);
     } finally {
       setIsGeneratingEmail(false);
     }

@@ -30,7 +30,7 @@ export const ONTARIO_GENERAL_KNOWLEDGE = `## Ontario Renovation Knowledge
 - All legitimate contractors in Ontario carry WSIB (Workplace Safety and Insurance Board) coverage
 - Always ask for proof of WSIB clearance certificate
 - Contractors should carry a minimum of $2M liability insurance
-- McCarty Squared carries full WSIB and liability coverage
+- Always verify your contractor carries full WSIB and liability coverage
 
 ### Common Housing Stock (Ontario Area)
 - Many homes built 1940s–1980s with original kitchens and bathrooms

@@ -5,40 +5,32 @@ import { Card, CardContent } from "@/components/ui/card"
 import { StaggerContainer, StaggerItem } from "@/components/motion"
 import { Star } from "lucide-react"
 
-const testimonials = [
-  {
-    id: 1,
-    quote:
-      "McCarty Squared did a fantastic job renovating our house. Garnet and Carisa fully understood our vision, ensuring everything \u2014 kitchen, bathrooms and bedrooms \u2014 was perfect. We won\u2019t hesitate to call them for future projects. Highly recommend them!",
-    author: "Ziad A.",
-    projectType: "Whole Home Renovation",
-    rating: 5,
-    image: "/images/demo/kitchen-modern.png",
-  },
-  {
-    id: 2,
-    quote:
-      "Garnet and Carisa helped with my apartment overhaul in a 112-year-old house. They combined what I had hoped with new ideas I had never considered and provided exceptional workmanship to complete the project. They made me feel like family and my house is now truly a home.",
-    author: "Megan E.",
-    projectType: "Heritage Apartment Overhaul",
-    rating: 5,
-    image: "/images/demo/bathroom-spa.png",
-  },
-  {
-    id: 3,
-    quote:
-      "Garnet\u2019s professionalism, knowledge, and expertise are among the best in London. I\u2019ve worked with six other contractors in the past nine years, and Garnet was by far my favorite. His precise assessment and detailed education on technical aspects were invaluable.",
-    author: "Jenny K. S.",
-    projectType: "Home Renovation",
-    rating: 5,
-    image: "/images/demo/basement-entertainment.png",
-  },
-]
+interface Testimonial {
+  id: number;
+  quote: string;
+  author: string;
+  projectType: string;
+  rating: number;
+  image: string;
+}
 
-export function Testimonials() {
+// Fallback testimonials when none are configured in admin_settings
+const DEFAULT_TESTIMONIALS: Testimonial[] = []
+
+interface TestimonialsProps {
+  items?: Testimonial[];
+}
+
+export function Testimonials({ items }: TestimonialsProps) {
+  const displayTestimonials = items && items.length > 0 ? items : DEFAULT_TESTIMONIALS
+
+  if (displayTestimonials.length === 0) {
+    return null
+  }
+
   return (
     <StaggerContainer className="grid gap-6 md:grid-cols-2">
-      {testimonials.map((testimonial) => (
+      {displayTestimonials.map((testimonial) => (
         <StaggerItem key={testimonial.id}>
           <TestimonialCard testimonial={testimonial} />
         </StaggerItem>
@@ -50,7 +42,7 @@ export function Testimonials() {
 function TestimonialCard({
   testimonial,
 }: {
-  testimonial: (typeof testimonials)[number]
+  testimonial: Testimonial
 }) {
   return (
     <Card className="h-full overflow-hidden">
@@ -89,5 +81,3 @@ function TestimonialCard({
     </Card>
   )
 }
-
-export { testimonials }

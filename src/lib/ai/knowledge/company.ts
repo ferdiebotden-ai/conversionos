@@ -24,6 +24,20 @@ export interface CompanyConfig {
   serviceArea: string;
   certifications: string[];
   socials: { platform: string; url: string }[];
+  // Extended fields for templates, pages, and AI prompts
+  paymentEmail: string;
+  quotesEmail: string;
+  address: string;
+  city: string;
+  province: string;
+  postal: string;
+  hours: string;
+  primaryColor: string;
+  primaryOklch: string;
+  testimonials: { author: string; quote: string; projectType: string }[];
+  aboutCopy: string[];
+  mission: string;
+  services: { name: string; description: string }[];
 }
 
 /**
@@ -48,9 +62,13 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
     const profile = (map['company_profile'] ?? {}) as Record<string, unknown>;
     const brand = (map['branding'] ?? {}) as Record<string, unknown>;
 
+    const city = (info['city'] as string) || FALLBACK_CONFIG.city;
+    const province = (info['province'] as string) || FALLBACK_CONFIG.province;
+    const colors = (brand['colors'] as Record<string, string>) || {};
+
     return {
       name: (info['name'] as string) || FALLBACK_CONFIG.name,
-      location: `${(info['city'] as string) || 'London'}, ${(info['province'] as string) || 'ON'}, Canada`,
+      location: `${city}, ${province}, Canada`,
       phone: (info['phone'] as string) || FALLBACK_CONFIG.phone,
       email: (info['email'] as string) || FALLBACK_CONFIG.email,
       website: (info['website'] as string) || FALLBACK_CONFIG.website,
@@ -61,6 +79,19 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       serviceArea: (profile['serviceArea'] as string) || FALLBACK_CONFIG.serviceArea,
       certifications: (profile['certifications'] as string[]) || FALLBACK_CONFIG.certifications,
       socials: (brand['socials'] as CompanyConfig['socials']) || FALLBACK_CONFIG.socials,
+      paymentEmail: (info['payment_email'] as string) || FALLBACK_CONFIG.paymentEmail,
+      quotesEmail: (info['quotes_email'] as string) || FALLBACK_CONFIG.quotesEmail,
+      address: (info['address'] as string) || FALLBACK_CONFIG.address,
+      city,
+      province,
+      postal: (info['postal'] as string) || FALLBACK_CONFIG.postal,
+      hours: (profile['hours'] as string) || FALLBACK_CONFIG.hours,
+      primaryColor: colors['primary_hex'] || FALLBACK_CONFIG.primaryColor,
+      primaryOklch: colors['primary_oklch'] || FALLBACK_CONFIG.primaryOklch,
+      testimonials: (profile['testimonials'] as CompanyConfig['testimonials']) || FALLBACK_CONFIG.testimonials,
+      aboutCopy: (profile['aboutCopy'] as string[]) || FALLBACK_CONFIG.aboutCopy,
+      mission: (profile['mission'] as string) || FALLBACK_CONFIG.mission,
+      services: (profile['services'] as CompanyConfig['services']) || FALLBACK_CONFIG.services,
     };
   } catch {
     return FALLBACK_CONFIG;
@@ -80,6 +111,19 @@ const FALLBACK_CONFIG: CompanyConfig = {
   serviceArea: 'London, ON and surrounding communities',
   certifications: [],
   socials: [],
+  paymentEmail: 'payments@example.com',
+  quotesEmail: 'quotes@example.com',
+  address: '123 Demo Street',
+  city: 'London',
+  province: 'ON',
+  postal: 'N6A 1A1',
+  hours: 'Mon-Fri 9am-5pm',
+  primaryColor: '#1565C0',
+  primaryOklch: '0.45 0.18 250',
+  testimonials: [],
+  aboutCopy: [],
+  mission: '',
+  services: [],
 };
 
 /**

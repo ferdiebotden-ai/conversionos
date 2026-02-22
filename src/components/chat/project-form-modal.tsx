@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import type { ProjectSummaryData } from './estimate-sidebar';
+import { useBranding } from '@/components/branding-provider';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -79,6 +80,7 @@ export function ProjectFormModal({
   initialData,
   onSubmit,
 }: ProjectFormModalProps) {
+  const branding = useBranding();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +149,7 @@ export function ProjectFormModal({
               </div>
               <DialogTitle>Request Submitted!</DialogTitle>
               <DialogDescription className="text-center">
-                Thanks{formData.name ? `, ${formData.name.split(' ')[0]}` : ''}! McCarty Squared will
+                Thanks{formData.name ? `, ${formData.name.split(' ')[0]}` : ''}! {branding.name} will
                 review your project and contact you within 24 hours.
               </DialogDescription>
             </DialogHeader>
@@ -208,7 +210,7 @@ export function ProjectFormModal({
                   <Input
                     id="form-phone"
                     type="tel"
-                    placeholder="(226) 667-8940"
+                    placeholder={branding.phone}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
                   />

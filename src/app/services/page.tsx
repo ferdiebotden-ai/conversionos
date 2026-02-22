@@ -2,14 +2,18 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ServicesGrid } from "@/components/services-grid"
+import { getBranding } from "@/lib/branding"
 
-export const metadata: Metadata = {
-  title: "Our Services",
-  description:
-    "Professional renovation services in London, ON. Kitchen, bathroom, basement, and flooring renovations with expert craftsmanship.",
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding()
+  return {
+    title: "Our Services",
+    description: `Professional renovation services in ${branding.city}, ${branding.province}. Kitchen, bathroom, basement, and flooring renovations with expert craftsmanship.`,
+  }
 }
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const branding = await getBranding()
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -34,7 +38,7 @@ export default function ServicesPage() {
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
               From complete kitchen remodels to basement finishing, we provide
-              comprehensive renovation services for homeowners in London, ON
+              comprehensive renovation services for homeowners in {branding.city}, {branding.province}{" "}
               and surrounding areas.
             </p>
           </div>

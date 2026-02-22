@@ -1,9 +1,17 @@
 /**
  * Services Knowledge Base
- * Detailed service scope information for all AI agents
+ * Detailed service scope information for all AI agents.
+ * Content is generic — company name injected via builder functions.
  */
 
-export const SERVICES_KNOWLEDGE = `## Renovation Services — McCarty Squared Inc.
+import type { CompanyConfig } from './company';
+
+/**
+ * Full services knowledge for AI prompts.
+ * Company name in the heading is injected dynamically.
+ */
+export function buildServicesKnowledge(companyName: string): string {
+  return `## Renovation Services — ${companyName}
 
 ### Accessibility Modifications
 Making homes safe and livable for all ages and abilities:
@@ -80,7 +88,7 @@ Energy-efficient homes for a sustainable future:
 - Blower door testing and certification
 
 ### Heritage Restoration
-Preserving London's architectural history:
+Preserving architectural history:
 - Period-appropriate renovations
 - Heritage-compliant upgrades
 - Original feature restoration (moldings, trim, hardware)
@@ -121,5 +129,22 @@ Professional spaces built to perform:
 - Medical and dental offices
 - Multi-unit residential
 `;
+}
 
-export const SERVICES_SUMMARY = `McCarty Squared Inc. offers 13 service categories: Accessibility Modifications, Home Renovations & Additions, Bathrooms, Kitchens, Home Design, General Repair, Custom Cabinetry, Net Zero Homes, Heritage Restoration, Basements, Full Design-Build, General Contracting, and Commercial renovations. Based in London, ON, certified RenoMark, LHBA, NetZero Home, and Houzz Pro.`;
+/**
+ * Brief services summary for AI prompts.
+ */
+export function buildServicesSummary(config: CompanyConfig): string {
+  const serviceCount = config.services.length || 13;
+  const serviceList = config.services.length > 0
+    ? config.services.map(s => s.name).join(', ')
+    : 'Accessibility Modifications, Home Renovations & Additions, Bathrooms, Kitchens, Home Design, General Repair, Custom Cabinetry, Net Zero Homes, Heritage Restoration, Basements, Full Design-Build, General Contracting, and Commercial renovations';
+  const certs = config.certifications.length > 0
+    ? `, certified ${config.certifications.join(', ')}`
+    : '';
+  return `${config.name} offers ${serviceCount} service categories: ${serviceList}. Based in ${config.location}${certs}.`;
+}
+
+// Legacy static exports — use builder functions with CompanyConfig in async contexts.
+export const SERVICES_KNOWLEDGE = buildServicesKnowledge('the company');
+export const SERVICES_SUMMARY = `The company offers renovation services including kitchens, bathrooms, basements, flooring, heritage restoration, net-zero homes, accessibility modifications, custom cabinetry, and more.`;

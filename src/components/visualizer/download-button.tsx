@@ -12,6 +12,7 @@ import {
   downloadWithWatermark,
   generateFilename,
 } from '@/lib/utils/watermark';
+import { useBranding } from '@/components/branding-provider';
 
 interface DownloadButtonProps {
   imageUrl: string;
@@ -38,6 +39,7 @@ export function DownloadButton({
   className,
   onBeforeDownload,
 }: DownloadButtonProps) {
+  const branding = useBranding();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
@@ -55,7 +57,7 @@ export function DownloadButton({
 
       // Download with watermark
       await downloadWithWatermark(imageUrl, filename, {
-        text: 'McCarty Squared',
+        text: branding.name,
         subtext: 'AI Visualization - For Concept Purposes Only',
       });
 

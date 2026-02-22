@@ -15,6 +15,7 @@ import { MessageCircle, X, AudioLines } from 'lucide-react';
 import { ReceptionistChat } from './receptionist-chat';
 import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
 import { panelSpring } from '@/lib/animations';
+import { useBranding } from '@/components/branding-provider';
 
 /** Pages where the widget is hidden (these have their own AI chat) */
 const HIDDEN_PATHS = ['/estimate', '/visualizer'];
@@ -36,6 +37,7 @@ const PAGE_TEASERS: Record<string, string> = {
 const DEFAULT_TEASER = 'Hi! I\'m Emma. Need help with a renovation project?';
 
 export function ReceptionistWidget() {
+  const branding = useBranding();
   const pathname = usePathname();
   const shouldReduce = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
@@ -101,7 +103,7 @@ export function ReceptionistWidget() {
           >
             {/* Chat Content — wrapped in VoiceProvider */}
             <VoiceProvider>
-              <WidgetPanelHeader onClose={() => setIsOpen(false)} />
+              <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
               <div className="flex-1 min-h-0">
                 <ReceptionistChat />
               </div>
@@ -169,7 +171,7 @@ export function ReceptionistWidget() {
  * Panel header with Emma info and close button.
  * Uses VoiceProvider context to show voice status.
  */
-function WidgetPanelHeader({ onClose }: { onClose: () => void }) {
+function WidgetPanelHeader({ onClose, companyName }: { onClose: () => void; companyName: string }) {
   const { status } = useVoice();
   const isVoiceActive = status === 'connected' || status === 'connecting';
 
@@ -186,7 +188,7 @@ function WidgetPanelHeader({ onClose }: { onClose: () => void }) {
         <div>
           <p className="text-sm font-semibold">Emma</p>
           <p className="text-xs opacity-80">
-            {isVoiceActive ? 'Listening...' : 'McCarty Squared'}
+            {isVoiceActive ? 'Listening...' : companyName}
           </p>
         </div>
       </div>

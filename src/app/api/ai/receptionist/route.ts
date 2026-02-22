@@ -48,9 +48,11 @@ export async function POST(req: Request) {
     const lastUserMsg = formattedMessages.filter((m: { role: string }) => m.role === 'user').pop();
     const userMessage = lastUserMsg?.content as string | undefined;
 
+    const system = await buildAgentSystemPrompt('receptionist', { userMessage });
+
     const result = streamText({
       model: openai(AI_CONFIG.openai.chat),
-      system: buildAgentSystemPrompt('receptionist', { userMessage }),
+      system,
       messages: formattedMessages,
       maxOutputTokens: 512,
       temperature: 0.7,

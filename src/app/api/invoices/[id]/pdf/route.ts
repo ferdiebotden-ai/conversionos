@@ -3,6 +3,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
 import { InvoicePdfDocument } from '@/lib/pdf/invoice-template';
+import { getBranding } from '@/lib/branding';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,7 @@ export async function GET(
   try {
     const { id } = await context.params;
     const supabase = createServiceClient();
+    const branding = await getBranding();
 
     // Fetch invoice with payments
     const { data: invoice, error } = await supabase
@@ -39,7 +41,7 @@ export async function GET(
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      InvoicePdfDocument({ invoice, payments: payments || [] })
+      InvoicePdfDocument({ invoice, payments: payments || [], branding })
     );
 
     return new NextResponse(new Uint8Array(pdfBuffer), {

@@ -15,12 +15,14 @@ import {
   Section,
   Text,
 } from '@react-email/components';
+import type { Branding } from '@/lib/branding';
 
 interface LeadConfirmationEmailProps {
   customerName: string;
   projectType: string;
   estimateLow?: number | undefined;
   estimateHigh?: number | undefined;
+  branding: Branding;
 }
 
 export function LeadConfirmationEmail({
@@ -28,9 +30,103 @@ export function LeadConfirmationEmail({
   projectType,
   estimateLow,
   estimateHigh,
+  branding,
 }: LeadConfirmationEmailProps) {
   const hasEstimate = estimateLow && estimateHigh;
   const formattedProjectType = projectType.charAt(0).toUpperCase() + projectType.slice(1);
+  const primaryColor = branding.primaryColor;
+
+  const main = {
+    backgroundColor: '#f6f9fc',
+    fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  };
+
+  const container = {
+    backgroundColor: '#ffffff',
+    margin: '0 auto',
+    padding: '40px 20px',
+    maxWidth: '580px',
+    borderRadius: '8px',
+  };
+
+  const heading = {
+    fontSize: '28px',
+    lineHeight: '1.3',
+    fontWeight: '700',
+    textAlign: 'center' as const,
+    margin: '0 0 30px',
+    color: primaryColor,
+  };
+
+  const paragraph = {
+    fontSize: '16px',
+    lineHeight: '26px',
+    color: '#333',
+    margin: '16px 0',
+  };
+
+  const estimateBox = {
+    backgroundColor: '#f8f9fa',
+    borderRadius: '8px',
+    padding: '20px',
+    margin: '24px 0',
+    borderLeft: `4px solid ${primaryColor}`,
+  };
+
+  const estimateLabel = {
+    fontSize: '14px',
+    color: '#666',
+    margin: '0 0 8px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  };
+
+  const estimateValue = {
+    fontSize: '28px',
+    fontWeight: '700',
+    color: primaryColor,
+    margin: '0 0 12px',
+  };
+
+  const estimateNote = {
+    fontSize: '12px',
+    color: '#666',
+    margin: '0',
+    fontStyle: 'italic',
+  };
+
+  const listItem = {
+    fontSize: '16px',
+    lineHeight: '24px',
+    color: '#333',
+    margin: '8px 0',
+    paddingLeft: '8px',
+  };
+
+  const link = {
+    color: primaryColor,
+    textDecoration: 'underline',
+  };
+
+  const hr = {
+    borderColor: '#e6ebf1',
+    margin: '32px 0',
+  };
+
+  const footer = {
+    color: '#666',
+    fontSize: '12px',
+    lineHeight: '20px',
+    margin: '8px 0',
+    textAlign: 'center' as const,
+  };
+
+  const footerLink = {
+    color: primaryColor,
+    textDecoration: 'underline',
+  };
+
+  const websiteUrl = branding.website.startsWith('http') ? branding.website : `https://${branding.website}`;
 
   return (
     <Html>
@@ -39,9 +135,7 @@ export function LeadConfirmationEmail({
       <Body style={main}>
         <Container style={container}>
           <Heading style={heading}>
-            <span style={{ color: '#1565C0' }}>Red</span>{' '}
-            <span style={{ color: '#1a1a1a' }}>White</span>{' '}
-            <span style={{ color: '#666' }}>Reno</span>
+            {branding.name}
           </Heading>
 
           <Text style={paragraph}>Hi {customerName},</Text>
@@ -81,7 +175,7 @@ export function LeadConfirmationEmail({
 
           <Text style={paragraph}>
             In the meantime, feel free to browse our{' '}
-            <Link href="https://mccartysquared.ca/projects" style={link}>
+            <Link href={`${websiteUrl}/projects`} style={link}>
               recent projects
             </Link>{' '}
             for inspiration!
@@ -91,16 +185,16 @@ export function LeadConfirmationEmail({
 
           <Text style={paragraph}>
             Have questions? Reply to this email or call us at{' '}
-            <Link href="tel:+15195551234" style={link}>
-              (519) 555-1234
+            <Link href={`tel:${branding.phone.replace(/[^+\d]/g, '')}`} style={link}>
+              {branding.phone}
             </Link>
           </Text>
 
           <Text style={footer}>
-            McCarty Squared - Quality Renovations in London, ON
+            {branding.name} - {branding.tagline}
             <br />
-            <Link href="https://mccartysquared.ca" style={footerLink}>
-              mccartysquared.ca
+            <Link href={websiteUrl} style={footerLink}>
+              {branding.website}
             </Link>
           </Text>
         </Container>
@@ -108,95 +202,5 @@ export function LeadConfirmationEmail({
     </Html>
   );
 }
-
-// Styles
-const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
-};
-
-const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '40px 20px',
-  maxWidth: '580px',
-  borderRadius: '8px',
-};
-
-const heading = {
-  fontSize: '28px',
-  lineHeight: '1.3',
-  fontWeight: '700',
-  textAlign: 'center' as const,
-  margin: '0 0 30px',
-};
-
-const paragraph = {
-  fontSize: '16px',
-  lineHeight: '26px',
-  color: '#333',
-  margin: '16px 0',
-};
-
-const estimateBox = {
-  backgroundColor: '#f8f9fa',
-  borderRadius: '8px',
-  padding: '20px',
-  margin: '24px 0',
-  borderLeft: '4px solid #1565C0',
-};
-
-const estimateLabel = {
-  fontSize: '14px',
-  color: '#666',
-  margin: '0 0 8px',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
-};
-
-const estimateValue = {
-  fontSize: '28px',
-  fontWeight: '700',
-  color: '#1565C0',
-  margin: '0 0 12px',
-};
-
-const estimateNote = {
-  fontSize: '12px',
-  color: '#666',
-  margin: '0',
-  fontStyle: 'italic',
-};
-
-const listItem = {
-  fontSize: '16px',
-  lineHeight: '24px',
-  color: '#333',
-  margin: '8px 0',
-  paddingLeft: '8px',
-};
-
-const link = {
-  color: '#1565C0',
-  textDecoration: 'underline',
-};
-
-const hr = {
-  borderColor: '#e6ebf1',
-  margin: '32px 0',
-};
-
-const footer = {
-  color: '#666',
-  fontSize: '12px',
-  lineHeight: '20px',
-  margin: '8px 0',
-  textAlign: 'center' as const,
-};
-
-const footerLink = {
-  color: '#1565C0',
-  textDecoration: 'underline',
-};
 
 export default LeadConfirmationEmail;

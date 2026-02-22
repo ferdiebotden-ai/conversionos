@@ -23,7 +23,7 @@ import {
 /**
  * System prompt for quote generation
  */
-const QUOTE_GENERATION_SYSTEM_PROMPT = `You are an expert renovation cost estimator for McCarty Squared, a home renovation company in London, ON, Canada.
+const QUOTE_GENERATION_SYSTEM_PROMPT = `You are an expert renovation cost estimator for a professional home renovation company.
 
 Your task is to generate specific, project-appropriate line items for renovation quotes based on the customer's conversation and project details.
 
@@ -71,7 +71,7 @@ Your task is to generate specific, project-appropriate line items for renovation
 
 ## Output Requirements
 - Each line item must have a clear, descriptive name
-- Totals must be realistic for the London, ON market
+- Totals must be realistic for the Ontario market
 - Include aiReasoning explaining why this item is needed and how it's priced
 - Confidence scores should reflect certainty (lower if info is missing)
 - Assumptions should note anything you've assumed

@@ -1,11 +1,14 @@
-import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { EstimatePageClient } from './estimate-client';
+import { getBranding } from '@/lib/branding';
 
-export const metadata: Metadata = {
-  title: 'Get an Instant Estimate | McCarty Squared',
-  description: 'Chat with our AI assistant to get a preliminary renovation estimate in minutes. Upload photos of your space and describe your project.',
-};
+export async function generateMetadata() {
+  const branding = await getBranding();
+  return {
+    title: `Get an Instant Estimate | ${branding.name}`,
+    description: 'Chat with our AI assistant to get a preliminary renovation estimate in minutes. Upload photos of your space and describe your project.',
+  };
+}
 
 function EstimateLoading() {
   return (

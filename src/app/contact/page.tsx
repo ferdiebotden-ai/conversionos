@@ -1,13 +1,16 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { ContactForm } from "@/components/contact-form"
 import { Clock, Mail, MapPin, Phone } from "lucide-react"
+import { getBranding } from "@/lib/branding"
+import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 
-export const metadata: Metadata = {
-  title: "Contact Us",
-  description:
-    "Get in touch with McCarty Squared Inc. Request a free quote or ask questions about your renovation project in London, ON.",
+export async function generateMetadata() {
+  const branding = await getBranding()
+  return {
+    title: "Contact Us",
+    description: `Get in touch with ${branding.name}. Request a free quote or ask questions about your renovation project in ${branding.city}, ${branding.province}.`,
+  }
 }
 
 const businessHours = [
@@ -16,7 +19,9 @@ const businessHours = [
   { day: "Sunday", hours: "Closed" },
 ]
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const branding = await getBranding()
+  const config = await getCompanyConfig()
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -79,7 +84,7 @@ export default function ContactPage() {
                         <Phone className="mt-0.5 size-5 shrink-0 text-primary" />
                         <span>
                           <strong className="block text-foreground">Phone</strong>
-                          <a href="tel:2266678940" className="hover:text-primary">(226) 667-8940</a>
+                          <a href={`tel:${branding.phone.replace(/\D/g, '')}`} className="hover:text-primary">{branding.phone}</a>
                         </span>
                       </div>
                     </li>
@@ -88,7 +93,7 @@ export default function ContactPage() {
                         <Mail className="mt-0.5 size-5 shrink-0 text-primary" />
                         <span>
                           <strong className="block text-foreground">Email</strong>
-                          <a href="mailto:info@mccartysquared.ca" className="hover:text-primary">info@mccartysquared.ca</a>
+                          <a href={`mailto:${branding.email}`} className="hover:text-primary">{branding.email}</a>
                         </span>
                       </div>
                     </li>
@@ -96,13 +101,14 @@ export default function ContactPage() {
                       <MapPin className="mt-0.5 size-5 shrink-0 text-primary" />
                       <span>
                         <strong className="block text-foreground">Location</strong>
-                        London, ON, Canada
+                        {branding.city}, {branding.province}, Canada
                       </span>
                     </li>
                   </ul>
+                  {config.booking && (
                   <div className="mt-4 pt-4 border-t border-border">
                     <a
-                      href="https://myonlinebooking.co/booking/mccarty-squared-inc"
+                      href={config.booking}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block text-sm font-medium text-primary hover:underline"
@@ -110,6 +116,7 @@ export default function ContactPage() {
                       Book a consultation online →
                     </a>
                   </div>
+                  )}
                 </CardContent>
               </Card>
 
