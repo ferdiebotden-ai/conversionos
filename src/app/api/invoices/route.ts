@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { InvoiceCreateSchema } from '@/lib/schemas/invoice';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { InvoiceStatus, Json } from '@/types/database';
 
 const HST_PERCENT = 13;
@@ -13,6 +15,11 @@ const DEPOSIT_PERCENT = 50;
  */
 export async function GET(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -67,6 +74,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = InvoiceCreateSchema.safeParse(body);
 

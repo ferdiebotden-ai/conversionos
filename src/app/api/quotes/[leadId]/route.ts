@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { QuoteDraftUpdate, Json } from '@/types/database';
 
 /**
@@ -66,6 +68,11 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'ai_quote_engine')) {
+      return NextResponse.json({ error: 'Quotes require the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { leadId } = await context.params;
 
     if (!leadId) {
@@ -161,6 +168,11 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'ai_quote_engine')) {
+      return NextResponse.json({ error: 'Quotes require the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { leadId } = await context.params;
 
     if (!leadId) {

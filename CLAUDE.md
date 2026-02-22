@@ -1,6 +1,6 @@
-# ConversionOS — Multi-Tenant Demo Platform
+# ConversionOS — Multi-Tenant AI Renovation Platform
 
-White-label AI quoting platform for Ontario renovation contractors. Each tenant gets a fully branded instance from a single codebase.
+White-label AI quoting platform for Ontario renovation contractors. Single codebase, three pricing tiers, environment + domain-driven multi-tenancy.
 
 ## Stack
 Next.js 16.1.6 (App Router) • React 19 • TypeScript 5 (strict) • Supabase (PostgreSQL) • Vercel AI SDK v6 • Tailwind v4 • shadcn/ui • Vitest • Playwright
@@ -8,7 +8,7 @@ Next.js 16.1.6 (App Router) • React 19 • TypeScript 5 (strict) • Supabase 
 ## AI Stack
 - **Chat/Vision:** OpenAI GPT-5.2
 - **Image generation:** Google Gemini 3 Pro Image
-- **Voice agents:** ElevenLabs (Emma, Marcus, Mia personas)
+- **Voice agents:** ElevenLabs (Emma, Marcus, Mia personas) — Dominate tier only
 - **Validation:** Zod schemas on all AI outputs
 
 ## Commands
@@ -20,20 +20,46 @@ npm run test         # vitest unit tests
 npm run test:e2e     # playwright E2E tests
 ```
 
-## Multi-Tenancy
-**Environment-driven.** `NEXT_PUBLIC_SITE_ID` env var controls which tenant is active.
+## Pricing Tiers & Feature Map
 
-- `getSiteId()` from `src/lib/db/site.ts` reads the env var (throws if missing)
+| Feature | Elevate ($249/mo) | Accelerate ($699/mo) | Dominate ($2,500/mo) |
+|---------|:-:|:-:|:-:|
+| Branded website (all public pages) | Yes | Yes | Yes |
+| AI Visualizer | Yes | Yes | Yes |
+| Lead capture + email notify | Yes | Yes | Yes |
+| Emma text chat widget | Yes | Yes | Yes |
+| Admin Dashboard | — | Yes | Yes |
+| AI Quote Engine | — | Yes | Yes |
+| PDF quotes + email sending | — | Yes | Yes |
+| Invoicing + payment tracking | — | Yes | Yes |
+| Drawings management | — | Yes | Yes |
+| Voice agents (web + phone) | — | — | Yes |
+| Custom integrations | — | — | Yes |
+| Location exclusivity | — | — | Yes |
+
+## Entitlements System
+- **`src/lib/entitlements.ts`** — `canAccess(tier, feature)` pure function, `PlanTier` and `Feature` types
+- **`src/lib/entitlements.server.ts`** — `getTier()` reads `plan` key from `admin_settings` (defaults to `'accelerate'`)
+- **`src/components/tier-provider.tsx`** — `TierProvider` context + `useTier()` hook for client components
+- Entitlements gated at: admin layout, sidebar nav, API routes (voice, quotes, invoices, drawings), receptionist widget
+
+## Multi-Tenancy
+**Two deployment patterns coexist:**
+1. **Per-tenant Vercel projects** (current) — `NEXT_PUBLIC_SITE_ID` env var per project
+2. **Single Vercel project + proxy routing** (new) — `src/proxy.ts` resolves tenant from hostname
+
+- `getSiteId()` reads env var (synchronous, 80+ call sites)
+- `getSiteIdAsync()` also checks proxy-set `x-site-id` header (for single-project pattern)
 - `withSiteId()` helper injects `site_id` into data objects
 - All DB queries MUST filter by `site_id` — no exceptions
-- `admin_settings` table stores per-tenant branding: business name, colors, logo, contact info, pricing
+- `admin_settings` table stores per-tenant: branding, pricing, plan tier
 - Never hardcode tenant branding — always read from `admin_settings`
-- Never create branches per tenant — all tenants deploy from `main`
+- Dev: `?__site_id=` query param override (dev mode only)
 
 ## Key Directories
 ```
 src/app/              — 50+ routes (public pages, admin dashboard, 30+ API endpoints)
-  app/admin/          — Admin dashboard (leads, quotes, settings, analytics)
+  app/admin/          — Admin dashboard (gated: Accelerate+)
   app/api/            — API routes (ai/, admin/, quotes, contact, export, voice)
   app/visualizer/     — AI renovation visualizer
   app/estimate/       — Estimate request flow
@@ -41,65 +67,48 @@ src/components/       — React components
   components/admin/   — Admin UI (dashboard, leads, settings)
   components/chat/    — AI chat widget
   components/visualizer/ — Renovation visualizer UI
-  components/voice/   — Voice agent UI
+  components/voice/   — Voice agent UI (Dominate only)
   components/ui/      — shadcn/ui primitives
-src/lib/ai/           — AI integrations (personas, knowledge base, config)
-src/lib/db/           — Database helpers (server.ts for queries, site.ts for multi-tenancy)
-src/lib/email/        — Email templates (Resend)
-src/lib/pdf/          — PDF generation (quotes, invoices)
-src/lib/voice/        — ElevenLabs voice agent config
-src/lib/schemas/      — Zod validation schemas
-tests/                — Vitest unit + Playwright E2E
+src/lib/              — Shared utilities
+  lib/entitlements.ts — Feature gating by tier
+  lib/db/site.ts      — Tenant resolution (env var + proxy header)
+  lib/ai/             — AI integrations (personas, knowledge base, config)
+  lib/branding.ts     — Server-side branding from admin_settings
+src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 ```
 
 ## Deployment
-Each tenant = separate Vercel project pointing to the same GitHub repo (`conversionos-demo`) and `main` branch. Push to main → all tenants auto-deploy.
+- **Primary pattern:** Single Vercel project with proxy-based domain routing (unlimited tenants)
+- **Legacy pattern:** Per-tenant Vercel projects with `NEXT_PUBLIC_SITE_ID` env var (still supported)
+- Push to `main` → all tenant projects auto-deploy
+- Never create per-tenant branches
 
 ## Supabase
 - **Demo project:** `ktpfyangnmpwufghgasx` — shared by all demo tenants, isolated by `site_id`
 - **Production clients** get their own Supabase project (separate data, separate billing)
-- Key tables: `admin_settings`, `leads`, `quotes`, `quote_items`, `contacts`, `chat_messages`
+- Key tables: `admin_settings`, `leads`, `quotes`, `quote_items`, `invoices`, `drawings`, `tenants`
 
 ## Current Tenants
-| Site ID | Domain | Purpose |
-|---------|--------|---------|
-| `demo` | `ai-reno-demo.vercel.app` | Base demo |
-| `mccarty-squared` | `mccarty.norbotsystems.com` | McCarty Squared demo |
-
-## Environment Variables
-```
-NEXT_PUBLIC_SITE_ID            — Tenant identifier (required)
-NEXT_PUBLIC_SUPABASE_URL       — Supabase project URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY  — Supabase anonymous key (client-safe)
-SUPABASE_SERVICE_ROLE_KEY      — Supabase service role key (server-only)
-OPENAI_API_KEY                 — OpenAI (GPT-5.2 chat/vision)
-GOOGLE_GENERATIVE_AI_API_KEY   — Gemini (image generation)
-ELEVENLABS_API_KEY             — ElevenLabs (voice agents)
-ELEVENLABS_AGENT_EMMA          — Emma agent ID
-ELEVENLABS_AGENT_MARCUS        — Marcus agent ID
-ELEVENLABS_AGENT_MIA           — Mia agent ID
-NEXT_PUBLIC_DEMO_MODE          — Enable demo mode features
-```
+| Site ID | Domain | Tier | Purpose |
+|---------|--------|------|---------|
+| `demo` | `ai-reno-demo.vercel.app` | Accelerate | Base demo |
+| `mccarty-squared` | `mccarty.norbotsystems.com` | Dominate | McCarty Squared demo |
+| `redwhitereno` | `redwhite.norbotsystems.com` | Accelerate | Red White Reno demo |
 
 ## Adding a New Tenant
-1. Seed `admin_settings` rows in Supabase with the tenant's branding (name, colors, logo, contact, pricing)
-2. Create a new Vercel project linked to `conversionos-demo` repo
-3. Set `NEXT_PUBLIC_SITE_ID=<tenant-slug>` + copy all other env vars
-4. Add custom subdomain (e.g., `eagleview.norbotsystems.com`)
-5. Push to `main` triggers deploy — done
-
-## Patterns
-**Server Components by default.** Client only for interactivity.
-
-**AI outputs → Zod validation → render.** Never trust raw AI output.
-
-**Mobile-first.** Test on 375px. Touch targets >=44px.
+1. Seed `admin_settings` rows in Supabase: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
+2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
+3. Add domain to Vercel project (or create new Vercel project with `NEXT_PUBLIC_SITE_ID`)
+4. Insert into `tenants` table with domain and plan tier
+5. Push to `main` → deploy
 
 ## Rules
 - All DB queries must use `getSiteId()` for tenant isolation
-- Never hardcode tenant-specific values (names, colors, logos, pricing)
-- Never create per-tenant branches — single `main` branch serves all tenants
-- Keep `admin_settings` as the single source of truth for branding
+- All new features must be gated with `canAccess(tier, feature)` — never expose to all tiers by default
+- Use `useTier()` in client components, `getTier()` in server components/API routes
+- Never check `tier === 'dominate'` directly — always use `canAccess()`
+- Never hardcode tenant-specific values
+- Never create per-tenant branches
 - Validate all AI outputs with Zod before rendering or storing
 
 ## Business Constants

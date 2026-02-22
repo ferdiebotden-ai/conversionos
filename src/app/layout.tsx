@@ -4,7 +4,9 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ReceptionistWidgetLoader } from "@/components/receptionist/receptionist-widget-loader";
 import { BrandingProvider } from "@/components/branding-provider";
+import { TierProvider } from "@/components/tier-provider";
 import { getBranding } from "@/lib/branding";
+import { getTier } from "@/lib/entitlements.server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,7 +50,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const branding = await getBranding();
+  const [branding, tier] = await Promise.all([getBranding(), getTier()]);
 
   return (
     <html lang="en">
@@ -56,10 +58,12 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <BrandingProvider initial={branding}>
-          <Header />
-          <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-          <Footer />
-          <ReceptionistWidgetLoader />
+          <TierProvider tier={tier}>
+            <Header />
+            <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+            <Footer />
+            <ReceptionistWidgetLoader />
+          </TierProvider>
         </BrandingProvider>
       </body>
     </html>

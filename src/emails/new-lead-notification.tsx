@@ -16,6 +16,8 @@ import {
   Text,
 } from '@react-email/components';
 
+import type { PlanTier } from '@/lib/entitlements';
+
 interface NewLeadNotificationEmailProps {
   leadId: string;
   customerName: string;
@@ -28,6 +30,8 @@ interface NewLeadNotificationEmailProps {
   goalsText?: string | null | undefined;
   hasPhotos?: boolean | undefined;
   confidenceScore?: number | null | undefined;
+  tier?: PlanTier;
+  adminUrl?: string;
 }
 
 export function NewLeadNotificationEmail({
@@ -42,10 +46,13 @@ export function NewLeadNotificationEmail({
   goalsText,
   hasPhotos,
   confidenceScore,
+  tier = 'accelerate',
+  adminUrl: customAdminUrl,
 }: NewLeadNotificationEmailProps) {
   const hasEstimate = estimateLow && estimateHigh;
   const formattedProjectType = projectType.charAt(0).toUpperCase() + projectType.slice(1);
-  const adminUrl = `https://leadquoteenginev2.vercel.app/admin/dashboard`;
+  const hasDashboard = tier !== 'elevate';
+  const adminUrl = customAdminUrl || `https://leadquoteenginev2.vercel.app/admin/dashboard`;
 
   const timelineLabels: Record<string, string> = {
     asap: 'ASAP',
@@ -127,11 +134,19 @@ export function NewLeadNotificationEmail({
 
           <Hr style={hr} />
 
-          <Section style={ctaSection}>
-            <Link href={adminUrl} style={ctaButton}>
-              View in Dashboard
-            </Link>
-          </Section>
+          {hasDashboard ? (
+            <Section style={ctaSection}>
+              <Link href={adminUrl} style={ctaButton}>
+                View in Dashboard
+              </Link>
+            </Section>
+          ) : (
+            <Section style={ctaSection}>
+              <Text style={elevateCta}>
+                Reply to this email or call the homeowner directly to follow up.
+              </Text>
+            </Section>
+          )}
 
           <Text style={footer}>
             This lead was generated via the AI Quote Assistant.
@@ -282,6 +297,14 @@ const ctaButton = {
   textAlign: 'center' as const,
   display: 'inline-block',
   padding: '14px 32px',
+};
+
+const elevateCta = {
+  fontSize: '16px',
+  fontWeight: '600',
+  color: '#1565C0',
+  textAlign: 'center' as const,
+  margin: '0',
 };
 
 const footer = {

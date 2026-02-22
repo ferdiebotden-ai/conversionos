@@ -21,6 +21,7 @@ import { RECEPTIONIST_PERSONA } from '@/lib/ai/personas/receptionist';
 import { cn } from '@/lib/utils';
 import { MessageCircle, AudioLines, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTier } from '@/components/tier-provider';
 
 function getMessageContent(message: UIMessage): string {
   return message.parts
@@ -42,6 +43,8 @@ type ChatMode = 'chat' | 'talk';
 export function ReceptionistChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ChatMode>('chat');
+  const { canAccess: checkAccess } = useTier();
+  const hasVoice = checkAccess('voice_web');
 
   const { status, startVoice, endVoice, isApiConfigured, transcript: voiceTranscript } = useVoice();
 
@@ -119,35 +122,37 @@ export function ReceptionistChat() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Mode Toggle — Chat / Talk segmented control */}
-      <div className="flex items-center gap-1 px-3 pt-2 pb-1">
-        <div className="flex bg-muted rounded-lg p-0.5 w-full">
-          <button
-            onClick={() => handleModeChange('chat')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all',
-              mode === 'chat'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-            Chat
-          </button>
-          <button
-            onClick={() => handleModeChange('talk')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all',
-              mode === 'talk'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <AudioLines className="h-3.5 w-3.5" />
-            Talk
-          </button>
+      {/* Mode Toggle — Chat / Talk segmented control (voice = Dominate only) */}
+      {hasVoice && (
+        <div className="flex items-center gap-1 px-3 pt-2 pb-1">
+          <div className="flex bg-muted rounded-lg p-0.5 w-full">
+            <button
+              onClick={() => handleModeChange('chat')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all',
+                mode === 'chat'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Chat
+            </button>
+            <button
+              onClick={() => handleModeChange('talk')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all',
+                mode === 'talk'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <AudioLines className="h-3.5 w-3.5" />
+              Talk
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
       <ScrollArea ref={scrollRef} className="flex-1 min-h-0">

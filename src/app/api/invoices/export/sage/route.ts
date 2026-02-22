@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
 import { generateSageCsv } from '@/lib/export/sage-csv';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { Invoice, InvoiceStatus } from '@/types/database';
 
 /**
@@ -10,6 +12,11 @@ import type { Invoice, InvoiceStatus } from '@/types/database';
  */
 export async function GET(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');

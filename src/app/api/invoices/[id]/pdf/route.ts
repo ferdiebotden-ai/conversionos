@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
 import { InvoicePdfDocument } from '@/lib/pdf/invoice-template';
 import { getBranding } from '@/lib/branding';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -16,6 +18,11 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id } = await context.params;
     const supabase = createServiceClient();
     const branding = await getBranding();

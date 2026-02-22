@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { DrawingCreateSchema } from '@/lib/schemas/drawing';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { DrawingStatus } from '@/types/database';
 
 /**
@@ -10,6 +12,11 @@ import type { DrawingStatus } from '@/types/database';
  */
 export async function GET(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'drawings')) {
+      return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const leadId = searchParams.get('lead_id');
@@ -62,6 +69,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'drawings')) {
+      return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = DrawingCreateSchema.safeParse(body);
 

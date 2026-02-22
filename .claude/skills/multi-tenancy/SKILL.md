@@ -1,11 +1,11 @@
 ---
 name: multi-tenancy
-description: "Multi-tenant architecture patterns for ConversionOS. Use when adding new features, creating new tables, onboarding tenants, understanding data isolation, or working with per-tenant branding and configuration."
+description: "Multi-tenant architecture patterns for ConversionOS. Use when adding new features, creating new tables, onboarding tenants, understanding data isolation, entitlements, or working with per-tenant branding and configuration."
 ---
 
 # Multi-Tenancy Architecture
 
-ConversionOS is a multi-tenant platform where a single codebase serves multiple renovation contractor clients. Each tenant gets their own Vercel deployment, but all deployments share the same `main` branch.
+ConversionOS is a multi-tenant platform where a single codebase serves multiple renovation contractor clients. Tenants are resolved via proxy (hostname) or env var, gated by pricing tier (Elevate/Accelerate/Dominate).
 
 ## Core Architecture
 
@@ -13,128 +13,133 @@ ConversionOS is a multi-tenant platform where a single codebase serves multiple 
 ┌─────────────────────────────────────────────────┐
 │                  Git: main branch                │
 │               (single codebase)                  │
-└──────────┬──────────┬──────────┬────────────────┘
-           │          │          │
-    ┌──────▼──┐ ┌─────▼───┐ ┌───▼───────┐
-    │ Vercel  │ │ Vercel  │ │ Vercel    │
-    │ Project │ │ Project │ │ Project   │
-    │ Tenant A│ │ Tenant B│ │ Tenant C  │
-    └────┬────┘ └────┬────┘ └────┬──────┘
-         │           │           │
-    SITE_ID=a   SITE_ID=b   SITE_ID=c
-         │           │           │
-    ┌────▼───────────▼───────────▼──────┐
-    │         Supabase Database          │
-    │  (all tables have site_id column)  │
-    └────────────────────────────────────┘
+└──────────────────────┬──────────────────────────┘
+                       │
+              ┌────────▼────────┐
+              │  Vercel Project  │
+              │  (single or      │
+              │   per-tenant)    │
+              └────────┬────────┘
+                       │
+              ┌────────▼────────┐
+              │   proxy.ts       │
+              │  hostname →      │
+              │  x-site-id       │
+              └────────┬────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         │             │             │
+    ┌────▼────┐  ┌─────▼───┐  ┌─────▼───────┐
+    │Elevate  │  │Accelerate│  │ Dominate    │
+    │Website  │  │+ Admin   │  │+ Voice      │
+    │+ Chat   │  │+ Quotes  │  │+ Integrations│
+    └────┬────┘  └────┬─────┘  └────┬────────┘
+         │            │             │
+    ┌────▼────────────▼─────────────▼──────┐
+    │         Supabase Database             │
+    │  (all tables have site_id column)     │
+    │  admin_settings.plan → tier           │
+    └───────────────────────────────────────┘
 ```
 
 ## How Tenant Identity Works
 
-### Environment Variable
+### Resolution Order
 
-Each Vercel project sets `NEXT_PUBLIC_SITE_ID` to a unique identifier (e.g., `mccarty-squared`, `red-white-reno`).
+1. `NEXT_PUBLIC_SITE_ID` env var (always checked first, synchronous)
+2. `x-site-id` header set by `src/proxy.ts` (from hostname mapping)
+3. Dev-only: `?__site_id=` query param override
 
 ### getSiteId() Helper
 
 ```typescript
 // src/lib/db/site.ts
 export function getSiteId(): string {
-  const siteId = process.env.NEXT_PUBLIC_SITE_ID
-  if (!siteId) throw new Error('NEXT_PUBLIC_SITE_ID is not set')
-  return siteId
+  // Synchronous — reads env var only (80+ call sites)
+  const siteId = process.env['NEXT_PUBLIC_SITE_ID']
+  if (siteId) return siteId
+  throw new Error('Could not resolve site_id')
 }
 
-export function withSiteId<T extends Record<string, unknown>>(data: T): T & { site_id: string } {
+export async function getSiteIdAsync(): Promise<string> {
+  // Also checks proxy-set header — use for new code
+}
+
+export function withSiteId<T extends Record<string, unknown>>(data: T) {
   return { ...data, site_id: getSiteId() }
 }
 ```
 
 **Every server component, server action, and API route** that touches the database must call `getSiteId()` and use it to filter queries.
 
+## Entitlements System
+
+### Feature Map
+
+| Feature | Elevate | Accelerate | Dominate |
+|---------|:---:|:---:|:---:|
+| branded_website | Yes | Yes | Yes |
+| ai_visualizer | Yes | Yes | Yes |
+| lead_capture | Yes | Yes | Yes |
+| emma_text_chat | Yes | Yes | Yes |
+| admin_dashboard | — | Yes | Yes |
+| ai_quote_engine | — | Yes | Yes |
+| pdf_quotes | — | Yes | Yes |
+| invoicing | — | Yes | Yes |
+| drawings | — | Yes | Yes |
+| voice_web | — | — | Yes |
+| voice_phone | — | — | Yes |
+| custom_integrations | — | — | Yes |
+| location_exclusivity | — | — | Yes |
+
+### Gating Code
+
+```typescript
+// Server-side
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
+
+const tier = await getTier();
+if (!canAccess(tier, 'invoicing')) {
+  return NextResponse.json({ error: '...' }, { status: 403 });
+}
+
+// Client-side
+import { useTier } from '@/components/tier-provider';
+
+const { canAccess } = useTier();
+if (canAccess('voice_web')) { /* show voice UI */ }
+```
+
 ## admin_settings Table
 
-Per-tenant branding and configuration is stored as key/value pairs.
-
-### Schema
-
-```sql
-CREATE TABLE admin_settings (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  site_id TEXT NOT NULL,
-  key TEXT NOT NULL,
-  value TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(site_id, key)
-);
-```
+Per-tenant branding and configuration stored as JSONB key/value pairs.
 
 ### Standard Keys
 
-| Key | Description | Example |
-|-----|-------------|---------|
-| `company_name` | Display name | "McCarty Squared Inc." |
-| `tagline` | Company tagline | "Building Dreams, Squared" |
-| `primary_color` | Brand primary color | "#1B365D" |
-| `secondary_color` | Brand accent color | "#C5A572" |
-| `logo_url` | Logo image URL | "https://..." |
-| `phone` | Contact phone | "+15195551234" |
-| `email` | Contact email | "info@mccarty.ca" |
-| `address` | Physical address | "123 Main St, London, ON" |
-| `service_area` | Service region | "London & Southwestern Ontario" |
-| `google_rating` | Google review rating | "4.8" |
-| `google_review_count` | Number of reviews | "127" |
+| Key | Type | Description |
+|-----|------|-------------|
+| `business_info` | JSONB | name, phone, email, address, city, province, postal |
+| `branding` | JSONB | tagline, colors (primary_hex, primary_oklch), socials |
+| `company_profile` | JSONB | principals, testimonials, services, aboutCopy, mission |
+| `plan` | JSONB | `{"tier": "elevate" | "accelerate" | "dominate"}` |
+| `pricing_*` | JSONB | Per-project-type pricing (kitchen, bathroom, etc.) |
 
 ### Reading Branding in Components
 
 ```typescript
-// Server component
-import { createClient } from '@/lib/db/server'
-import { getSiteId } from '@/lib/db/site'
+// Server: use getBranding() from src/lib/branding.ts
+const branding = await getBranding();
 
-export async function BrandedHeader() {
-  const supabase = await createClient()
-  const { data: settings } = await supabase
-    .from('admin_settings')
-    .select('key, value')
-    .eq('site_id', getSiteId())
-
-  const branding = Object.fromEntries(
-    (settings ?? []).map(s => [s.key, s.value])
-  )
-
-  return (
-    <header style={{ backgroundColor: branding.primary_color }}>
-      <img src={branding.logo_url} alt={branding.company_name} />
-      <h1>{branding.company_name}</h1>
-    </header>
-  )
-}
+// Client: use useBranding() from src/components/branding-provider.tsx
+const branding = useBranding();
 ```
-
-**NEVER hardcode tenant-specific values** (company names, colors, phone numbers) in components. Always read from `admin_settings`.
 
 ## Data Isolation
 
 ### All Tables Must Have site_id
 
 Every table that contains tenant data MUST include a `site_id TEXT NOT NULL` column.
-
-```sql
-CREATE TABLE leads (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  site_id TEXT NOT NULL,  -- REQUIRED
-  name TEXT NOT NULL,
-  email TEXT,
-  phone TEXT,
-  project_type TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Index for fast tenant-scoped queries
-CREATE INDEX idx_leads_site_id ON leads(site_id);
-```
 
 ### All Queries Must Filter by site_id
 
@@ -151,79 +156,13 @@ const { data } = await supabase
   .select('*')
 ```
 
-### Insert with withSiteId
-
-```typescript
-import { withSiteId } from '@/lib/db/site'
-
-const { data } = await supabase
-  .from('leads')
-  .insert(withSiteId({
-    name: 'John Doe',
-    email: 'john@example.com',
-    project_type: 'kitchen',
-  }))
-```
-
 ## How to Add a New Tenant
 
-### 1. Seed admin_settings
-
-```sql
-INSERT INTO admin_settings (site_id, key, value) VALUES
-  ('new-tenant', 'company_name', 'New Tenant Co.'),
-  ('new-tenant', 'tagline', 'Quality Renovations'),
-  ('new-tenant', 'primary_color', '#2563EB'),
-  ('new-tenant', 'secondary_color', '#F59E0B'),
-  ('new-tenant', 'logo_url', 'https://...'),
-  ('new-tenant', 'phone', '+15195551234'),
-  ('new-tenant', 'email', 'info@newtenant.ca'),
-  ('new-tenant', 'address', '456 Oak St, London, ON'),
-  ('new-tenant', 'service_area', 'London, ON');
-```
-
-### 2. Create Vercel Project
-
-```bash
-# Create project pointing to same repo, dashboard/ subdirectory
-vercel project create new-tenant-site
-```
-
-### 3. Set Environment Variables
-
-```bash
-# Set NEXT_PUBLIC_SITE_ID — this is the tenant identity
-NEXT_PUBLIC_SITE_ID=new-tenant
-
-# Supabase credentials (shared or dedicated)
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-
-# AI provider keys
-OPENAI_API_KEY=...
-ELEVENLABS_API_KEY=...
-
-# Tenant-specific voice agent IDs
-ELEVENLABS_AGENT_EMMA=...
-ELEVENLABS_AGENT_MARCUS=...
-ELEVENLABS_AGENT_MIA=...
-```
-
-### 4. Add Subdomain (Optional)
-
-Configure custom domain in Vercel project settings or use the `.vercel.app` URL.
-
-### 5. Deploy
-
-Push to `main` — all tenant projects auto-deploy simultaneously.
-
-## Deployment Model
-
-- **One codebase, one branch:** All tenants run the same code from `main`
-- **NEVER create per-tenant branches:** Customization is data-driven via `admin_settings`
-- **Push to main = deploy all:** Every push auto-deploys every tenant project
-- **Production clients:** Get their own Supabase project (separate database) for full isolation
-- **Demo/dev tenants:** Share the demo Supabase project
+1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
+2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
+3. Insert into `tenants` table with domain and plan tier
+4. Add domain to Vercel project (or create new project with `NEXT_PUBLIC_SITE_ID`)
+5. Push to `main` → deploy
 
 ## Adding New Features
 
@@ -231,12 +170,6 @@ When building any new feature, always:
 
 1. Include `site_id` column on any new tables
 2. Filter by `getSiteId()` in all queries
-3. Read tenant-specific config from `admin_settings` instead of hardcoding
-4. Test with at least 2 different `NEXT_PUBLIC_SITE_ID` values
-5. Consider: "If I deploy this to 10 tenants, does it still work?"
-
-## Related Skills
-
-- `supabase-patterns` — Database queries and RLS
-- `nextjs-patterns` — Server components and data fetching
-- `security-compliance` — RLS policies and auth
+3. Gate behind `canAccess(tier, feature)` — never expose to all tiers
+4. Read tenant-specific config from `admin_settings` instead of hardcoding
+5. Test with at least 2 different `NEXT_PUBLIC_SITE_ID` values

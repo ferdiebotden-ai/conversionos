@@ -5,6 +5,8 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { PersonaKey } from '@/lib/ai/personas/types';
 
 const ELEVENLABS_API_KEY = process.env['ELEVENLABS_API_KEY']?.trim();
@@ -18,6 +20,15 @@ const AGENT_ENV_MAP: Record<PersonaKey, string> = {
 };
 
 export async function POST(request: Request) {
+  // Gate voice behind Dominate tier
+  const tier = await getTier();
+  if (!canAccess(tier, 'voice_web')) {
+    return NextResponse.json(
+      { error: 'Voice agents require the Dominate plan' },
+      { status: 403 }
+    );
+  }
+
   if (!ELEVENLABS_API_KEY) {
     return NextResponse.json(
       { error: 'Voice service not configured' },

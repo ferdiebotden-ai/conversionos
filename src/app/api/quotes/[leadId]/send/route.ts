@@ -13,6 +13,8 @@ import { QuotePdfDocument } from '@/lib/pdf/quote-template';
 import { QuoteEmailTemplate } from '@/lib/email/quote-email';
 import { getResend } from '@/lib/email/resend';
 import { getBranding } from '@/lib/branding';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 
 type RouteContext = { params: Promise<{ leadId: string }> };
 
@@ -38,6 +40,11 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'pdf_quotes')) {
+      return NextResponse.json({ error: 'Quote sending requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { leadId } = await context.params;
 
     if (!leadId) {

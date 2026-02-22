@@ -8,6 +8,8 @@ import { sendEmail, getOwnerEmail } from '@/lib/email/resend';
 import { LeadConfirmationEmail } from '@/emails/lead-confirmation';
 import { NewLeadNotificationEmail } from '@/emails/new-lead-notification';
 import { getBranding } from '@/lib/branding';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { LeadStatus, ProjectType, FinishLevel, Timeline, BudgetBand, Json } from '@/types/database';
 
 /**
@@ -154,6 +156,8 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+    const tier = await getTier();
+    const hasQuoteEngine = canAccess(tier, 'ai_quote_engine');
 
     // Calculate basic estimate for range display
     let quoteDraftJson = null;
@@ -175,29 +179,31 @@ export async function POST(request: NextRequest) {
         notes: estimate.notes,
       };
 
-      // Generate AI-powered detailed quote with line items
-      try {
-        aiGeneratedQuote = await generateAIQuote({
-          projectType: data.projectType,
-          areaSqft: data.areaSqft,
-          finishLevel: data.finishLevel,
-          chatTranscript: data.chatTranscript,
-          goalsText: data.goalsText,
-          city: 'Ontario', // Default for now
-          province: 'ON',
-        });
+      // Generate AI-powered detailed quote with line items (Accelerate+ only)
+      if (hasQuoteEngine) {
+        try {
+          aiGeneratedQuote = await generateAIQuote({
+            projectType: data.projectType,
+            areaSqft: data.areaSqft,
+            finishLevel: data.finishLevel,
+            chatTranscript: data.chatTranscript,
+            goalsText: data.goalsText,
+            city: 'Ontario', // Default for now
+            province: 'ON',
+          });
 
-        // Add AI quote data to the draft JSON
-        const aiTotals = calculateAIQuoteTotals(aiGeneratedQuote);
-        quoteDraftJson = {
-          ...quoteDraftJson,
-          aiQuote: aiGeneratedQuote,
-          aiLineItems: convertAIQuoteToLineItems(aiGeneratedQuote),
-          aiTotals,
-        };
-      } catch (aiError) {
-        // Log but don't fail - the basic estimate is still valuable
-        console.error('AI quote generation failed, using basic estimate:', aiError);
+          // Add AI quote data to the draft JSON
+          const aiTotals = calculateAIQuoteTotals(aiGeneratedQuote);
+          quoteDraftJson = {
+            ...quoteDraftJson,
+            aiQuote: aiGeneratedQuote,
+            aiLineItems: convertAIQuoteToLineItems(aiGeneratedQuote),
+            aiTotals,
+          };
+        } catch (aiError) {
+          // Log but don't fail - the basic estimate is still valuable
+          console.error('AI quote generation failed, using basic estimate:', aiError);
+        }
       }
     }
 
@@ -330,6 +336,7 @@ export async function POST(request: NextRequest) {
           goalsText: data.goalsText,
           hasPhotos: (data.uploadedPhotos?.length ?? 0) > 0,
           confidenceScore: data.confidenceScore,
+          tier,
         }),
         replyTo: data.email,
       }).catch((err) => {

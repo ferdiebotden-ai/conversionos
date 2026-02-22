@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { PaymentRecordSchema } from '@/lib/schemas/invoice';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import type { Json } from '@/types/database';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -15,6 +17,11 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id } = await context.params;
     const supabase = createServiceClient();
 
@@ -49,6 +56,11 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id } = await context.params;
     const body = await request.json();
     const validation = PaymentRecordSchema.safeParse(body);

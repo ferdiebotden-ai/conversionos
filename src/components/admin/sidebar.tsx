@@ -21,13 +21,20 @@ import {
   Home,
 } from 'lucide-react';
 import { useBranding } from '@/components/branding-provider';
+import { useTier } from '@/components/tier-provider';
+import type { Feature } from '@/lib/entitlements';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  feature?: Feature;
+}[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/leads', label: 'Leads', icon: Users },
-  { href: '/admin/quotes', label: 'Quotes', icon: FileText },
-  { href: '/admin/invoices', label: 'Invoices', icon: DollarSign },
-  { href: '/admin/drawings', label: 'Drawings', icon: Pencil },
+  { href: '/admin/quotes', label: 'Quotes', icon: FileText, feature: 'ai_quote_engine' },
+  { href: '/admin/invoices', label: 'Invoices', icon: DollarSign, feature: 'invoicing' },
+  { href: '/admin/drawings', label: 'Drawings', icon: Pencil, feature: 'drawings' },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -40,6 +47,11 @@ export function Sidebar({ className, onNavClick }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const branding = useBranding();
+  const { canAccess } = useTier();
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.feature || canAccess(item.feature)
+  );
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -75,7 +87,7 @@ export function Sidebar({ className, onNavClick }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
 

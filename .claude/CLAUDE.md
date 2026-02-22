@@ -2,32 +2,33 @@
 
 ## What This Is
 ConversionOS is an AI-powered renovation platform sold to Ontario contractors.
-Single codebase, environment-driven tenancy. Each Vercel deployment = one tenant.
+Single codebase, three pricing tiers, environment + domain-driven tenancy.
 
-Business: NorBot Systems Inc. | $15K setup + $497/mo per territory | 1 contractor per territory
+Business: NorBot Systems Inc. | Three tiers: Elevate ($1,500 setup + $249/mo), Accelerate ($4,500 + $699/mo), Dominate ($15,000 + $2,500/mo)
 Product: https://dashboard-rho-ten-70.vercel.app (internal pipeline dashboard)
-This repo: The platform. One `main` branch serves ALL tenants via `NEXT_PUBLIC_SITE_ID`.
+This repo: The platform. One `main` branch serves ALL tenants. Feature gating via entitlements system.
 
 ## Architecture
 - **Single codebase, single branch** (`main`). NO branches per tenant.
-- Tenant identity: `NEXT_PUBLIC_SITE_ID` env var → `getSiteId()` → all queries filter by `site_id`
-- Branding: `admin_settings` table stores per-tenant config (name, colors, contact, pricing)
-- UI: `BrandingProvider` context feeds branding to client components
-- Server: `getBranding()` / `getCompanyConfig()` for SSR + AI prompts
-- Deploy: Each tenant = separate Vercel project, same repo, same branch
+- **Entitlements:** `canAccess(tier, feature)` gates features by plan tier (Elevate/Accelerate/Dominate)
+- **Tenant identity:** proxy resolves from hostname → `x-site-id` header, falls back to `NEXT_PUBLIC_SITE_ID` env var
+- **Branding:** `admin_settings` table stores per-tenant config (name, colors, contact, pricing, plan tier)
+- **UI:** `BrandingProvider` + `TierProvider` contexts feed branding and entitlements to client components
+- **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
+- **Deploy:** Single Vercel project with proxy routing (or legacy per-tenant projects)
 
 ## Adding a New Tenant (Bespoke Demo)
-1. Seed `admin_settings` rows in Supabase with tenant branding
-2. Create new Vercel project linked to `ferdiebotden-ai/conversionos-demo`
-3. Set `NEXT_PUBLIC_SITE_ID=<slug>` + copy env vars from existing project
-4. Add subdomain (e.g., `eagleview.norbotsystems.com`)
-5. Optionally duplicate ElevenLabs voice agents for custom voice personas
-6. Push to `main` → all tenant projects auto-deploy
+1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
+2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
+3. Add domain to Vercel project (or create new project with `NEXT_PUBLIC_SITE_ID`)
+4. Insert into `tenants` table with domain and plan tier
+5. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
+6. Push to `main` → deploy
 
 ## ElevenLabs Voice Agents
 - 3 personas: Emma (receptionist), Marcus (quote specialist), Mia (design consultant)
+- **Dominate tier only** — voice toggle hidden on Elevate/Accelerate, API returns 403
 - Each tenant can have duplicated agents via `POST /v1/convai/agents/{id}/duplicate`
-- Customize via `PATCH /v1/convai/agents/{id}` with tenant-specific prompts
 - Agent IDs stored in env vars per Vercel project (zero code changes)
 
 ## Gemini Image Generation
@@ -47,3 +48,5 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - Vercel env vars: use API (curl), NOT `echo | vercel env add` (adds newline)
 - Primary color uses OKLCH: `--primary: oklch(...)` in `globals.css`
 - Admin header: uses User icon, not initials
+- `getSiteId()` is synchronous (env var only) — do NOT make async (80+ call sites)
+- `getSiteIdAsync()` exists for new code that needs proxy header support
