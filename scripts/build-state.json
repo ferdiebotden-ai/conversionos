@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 7,
+  "sessionsRun": 8,
   "units": [
     {
       "id": "U-1",
@@ -82,7 +82,7 @@
     {
       "id": "U-6",
       "name": "seed-data",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-06-seed-data.md",
       "description": "Update existing tenant seed data (McCarty, RedWhite, demo) with all new fields",
