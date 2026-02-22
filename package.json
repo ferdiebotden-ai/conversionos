@@ -12,7 +12,8 @@
     "test:visualizer": "npm run test:visualizer:unit && npm run test:visualizer:e2e",
     "test:visualizer:unit": "vitest run tests/unit/visualizer/",
     "test:visualizer:e2e": "playwright test tests/e2e/visualizer/",
-    "test:visualizer:watch": "vitest tests/unit/visualizer/"
+    "test:visualizer:watch": "vitest tests/unit/visualizer/",
+    "onboard": "node scripts/onboarding/onboard.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.20",

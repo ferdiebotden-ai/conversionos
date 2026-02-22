@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 9,
+  "sessionsRun": 10,
   "units": [
     {
       "id": "U-1",
@@ -107,7 +107,7 @@
     {
       "id": "U-8",
       "name": "provisioner",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-08-provisioner.md",
       "description": "DB seeding script, image upload, proxy.ts update, orchestrator, Playwright QA",
