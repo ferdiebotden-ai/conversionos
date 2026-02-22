@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 3,
+  "sessionsRun": 4,
   "units": [
     {
       "id": "U-1",
@@ -25,7 +25,7 @@
     {
       "id": "U-2",
       "name": "homepage",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-02-homepage.md",
       "description": "Make home page fully DB-driven (hero, trust badges, why choose us, process steps)",
@@ -121,5 +121,5 @@
       ]
     }
   ],
-  "sessions_run": 0
+  "sessions_run": 1
 }

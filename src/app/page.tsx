@@ -15,7 +15,6 @@ import {
   Clock,
   Shield,
   Award,
-  Users,
   ClipboardList,
   FileCheck,
   Hammer,
@@ -43,8 +42,8 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="relative h-[500px] md:h-[600px] lg:h-[650px]">
           <Image
-            src="/images/demo/hero-kitchen.png"
-            alt="Stunning modern kitchen renovation with white cabinetry and waterfall quartz island"
+            src={config.heroImageUrl || "/images/demo/hero-kitchen.png"}
+            alt={`${branding.name} — ${config.heroHeadline || branding.tagline}`}
             fill
             priority
             className="object-cover"
@@ -55,16 +54,20 @@ export default async function Home() {
             <div className="container mx-auto px-4">
               <StaggerContainer className="mx-auto max-w-3xl text-center">
                 <StaggerItem>
-                  <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                    Dream. Plan.{" "}
-                    <span className="text-primary">Build.</span>
-                  </h1>
+                  {config.heroHeadline ? (
+                    <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                      {config.heroHeadline}
+                    </h1>
+                  ) : (
+                    <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                      Dream. Plan.{" "}
+                      <span className="text-primary">Build.</span>
+                    </h1>
+                  )}
                 </StaggerItem>
                 <StaggerItem>
                   <p className="mt-6 text-lg leading-8 text-white/85 md:text-xl">
-                    With a focus on quality craftsmanship and integrity, {branding.name}
-                    {" "}provides superior construction and renovation services in {branding.city}, {branding.province}
-                    {" "}and surrounding areas, dedicated to bringing your dream projects to fruition.
+                    {config.heroSubheadline || `With a focus on quality craftsmanship and integrity, ${branding.name} provides superior construction and renovation services in ${branding.city}, ${branding.province} and surrounding areas, dedicated to bringing your dream projects to fruition.`}
                   </p>
                 </StaggerItem>
                 <StaggerItem>
@@ -82,23 +85,24 @@ export default async function Home() {
                     </Button>
                   </div>
                 </StaggerItem>
-                <StaggerItem>
-                  {/* Trust Indicators */}
-                  <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-white/80">
-                    <div className="flex items-center gap-2">
-                      <Award className="size-5 text-primary" />
-                      <span>RenoMark Certified</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="size-5 text-primary" />
-                      <span>13 Service Categories</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="size-5 text-primary" />
-                      <span>NetZero Home Certified</span>
-                    </div>
-                  </div>
-                </StaggerItem>
+                {(() => {
+                  const badges = config.trustBadges.length > 0
+                    ? config.trustBadges
+                    : config.certifications.map(c => ({ label: c, iconHint: 'award' }));
+                  if (badges.length === 0) return null;
+                  return (
+                    <StaggerItem>
+                      <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-white/80">
+                        {badges.slice(0, 3).map((badge, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <Award className="size-5 text-primary" />
+                            <span>{badge.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </StaggerItem>
+                  );
+                })()}
               </StaggerContainer>
             </div>
           </div>
@@ -195,8 +199,8 @@ export default async function Home() {
             <FadeInUp>
               <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
                 <Image
-                  src="/images/demo/craftsmanship-detail.png"
-                  alt="Expert renovation craftsmanship showing perfectly mitered crown molding"
+                  src={config.aboutImageUrl || "/images/demo/craftsmanship-detail.png"}
+                  alt={`${branding.name} expert craftsmanship`}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -214,29 +218,32 @@ export default async function Home() {
                 </p>
               </FadeInUp>
 
-              <StaggerContainer className="mt-8 space-y-6">
-                <StaggerItem>
-                  <WhyUsCard
-                    icon={<Award className="size-6" />}
-                    title="RenoMark Certified"
-                    description="Minimum 2-year warranty on all work, $2M liability insurance, and strict Code of Conduct compliance."
-                  />
-                </StaggerItem>
-                <StaggerItem>
-                  <WhyUsCard
-                    icon={<Shield className="size-6" />}
-                    title="Quality Guaranteed"
-                    description="Written contracts required on every project. Code of Conduct compliance ensures your renovation meets the highest standards."
-                  />
-                </StaggerItem>
-                <StaggerItem>
-                  <WhyUsCard
-                    icon={<Clock className="size-6" />}
-                    title="2-Day Response Time"
-                    description="RenoMark's 2-business-day response commitment means you'll never be left waiting. Quick answers, clear communication."
-                  />
-                </StaggerItem>
-              </StaggerContainer>
+              {(() => {
+                const defaultWhyUs = [
+                  { title: 'Quality Guaranteed', description: 'Written contracts on every project with strict quality standards and comprehensive warranty coverage.' },
+                  { title: 'Expert Team', description: 'Skilled professionals with years of experience delivering exceptional renovation results.' },
+                  { title: 'Fast Response', description: 'Quick answers and clear communication throughout your entire renovation project.' },
+                ];
+                const items = config.whyChooseUs.length > 0 ? config.whyChooseUs : defaultWhyUs;
+                const icons = [
+                  <Award key="0" className="size-6" />,
+                  <Shield key="1" className="size-6" />,
+                  <Clock key="2" className="size-6" />,
+                ];
+                return (
+                  <StaggerContainer className="mt-8 space-y-6">
+                    {items.map((item, i) => (
+                      <StaggerItem key={i}>
+                        <WhyUsCard
+                          icon={icons[i % icons.length]}
+                          title={item.title}
+                          description={item.description}
+                        />
+                      </StaggerItem>
+                    ))}
+                  </StaggerContainer>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -255,40 +262,35 @@ export default async function Home() {
             </p>
           </FadeInUp>
 
-          <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <StaggerItem>
-              <ProcessStep
-                step={1}
-                icon={<ClipboardList className="size-6" />}
-                title="Design Consultation"
-                description="Collaborate with experts to refine your vision"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <ProcessStep
-                step={2}
-                icon={<FileCheck className="size-6" />}
-                title="Planning & Approval"
-                description="Finalize detailed plans and obtain necessary permits"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <ProcessStep
-                step={3}
-                icon={<Hammer className="size-6" />}
-                title="Construction Phase"
-                description="Skilled crew executes with precision and quality materials"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <ProcessStep
-                step={4}
-                icon={<CheckCircle className="size-6" />}
-                title="Final Inspection"
-                description="Review completed project for quality assurance"
-              />
-            </StaggerItem>
-          </StaggerContainer>
+          {(() => {
+            const defaultSteps = [
+              { title: 'Design Consultation', description: 'Collaborate with experts to refine your vision' },
+              { title: 'Planning & Approval', description: 'Finalize detailed plans and obtain necessary permits' },
+              { title: 'Construction Phase', description: 'Skilled crew executes with precision and quality materials' },
+              { title: 'Final Inspection', description: 'Review completed project for quality assurance' },
+            ];
+            const steps = config.processSteps.length > 0 ? config.processSteps : defaultSteps;
+            const icons = [
+              <ClipboardList key="0" className="size-6" />,
+              <FileCheck key="1" className="size-6" />,
+              <Hammer key="2" className="size-6" />,
+              <CheckCircle key="3" className="size-6" />,
+            ];
+            return (
+              <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                {steps.map((step, i) => (
+                  <StaggerItem key={i}>
+                    <ProcessStep
+                      step={i + 1}
+                      icon={icons[i % icons.length]}
+                      title={step.title}
+                      description={step.description}
+                    />
+                  </StaggerItem>
+                ))}
+              </StaggerContainer>
+            );
+          })()}
         </div>
       </section>
 
