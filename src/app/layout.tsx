@@ -54,8 +54,16 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        {branding.primaryOklch && (
+          <style dangerouslySetInnerHTML={{
+            __html: `:root{--primary:oklch(${branding.primaryOklch})}`
+          }} />
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        data-site-id={process.env['NEXT_PUBLIC_SITE_ID'] || ''}
       >
         <BrandingProvider initial={branding}>
           <TierProvider tier={tier}>

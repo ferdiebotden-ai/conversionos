@@ -37,7 +37,27 @@ export interface CompanyConfig {
   testimonials: { author: string; quote: string; projectType: string }[];
   aboutCopy: string[];
   mission: string;
-  services: { name: string; description: string }[];
+  services: {
+    name: string;
+    slug: string;
+    description: string;
+    features?: string[];
+    packages?: { name: string; startingPrice?: string; description?: string }[];
+    imageUrl?: string;
+    iconHint?: string;
+  }[];
+  // Extended content fields for DB-driven pages
+  heroHeadline: string;
+  heroSubheadline: string;
+  heroImageUrl: string;
+  aboutImageUrl: string;
+  logoUrl: string;
+  trustBadges: { label: string; iconHint: string }[];
+  whyChooseUs: { title: string; description: string }[];
+  values: { title: string; description: string; iconHint: string }[];
+  processSteps: { title: string; description: string }[];
+  teamMembers: { name: string; role: string; photoUrl: string; bio?: string }[];
+  portfolio: { title: string; description: string; imageUrl: string; serviceType: string; location: string }[];
 }
 
 /**
@@ -91,7 +111,21 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       testimonials: (profile['testimonials'] as CompanyConfig['testimonials']) || FALLBACK_CONFIG.testimonials,
       aboutCopy: (profile['aboutCopy'] as string[]) || FALLBACK_CONFIG.aboutCopy,
       mission: (profile['mission'] as string) || FALLBACK_CONFIG.mission,
-      services: (profile['services'] as CompanyConfig['services']) || FALLBACK_CONFIG.services,
+      services: ((profile['services'] as CompanyConfig['services']) || FALLBACK_CONFIG.services).map(s => ({
+        ...s,
+        slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      })),
+      heroHeadline: (profile['heroHeadline'] as string) || FALLBACK_CONFIG.heroHeadline,
+      heroSubheadline: (profile['heroSubheadline'] as string) || FALLBACK_CONFIG.heroSubheadline,
+      heroImageUrl: (profile['heroImageUrl'] as string) || FALLBACK_CONFIG.heroImageUrl,
+      aboutImageUrl: (profile['aboutImageUrl'] as string) || FALLBACK_CONFIG.aboutImageUrl,
+      logoUrl: (profile['logoUrl'] as string) || FALLBACK_CONFIG.logoUrl,
+      trustBadges: (profile['trustBadges'] as CompanyConfig['trustBadges']) || FALLBACK_CONFIG.trustBadges,
+      whyChooseUs: (profile['whyChooseUs'] as CompanyConfig['whyChooseUs']) || FALLBACK_CONFIG.whyChooseUs,
+      values: (profile['values'] as CompanyConfig['values']) || FALLBACK_CONFIG.values,
+      processSteps: (profile['processSteps'] as CompanyConfig['processSteps']) || FALLBACK_CONFIG.processSteps,
+      teamMembers: (profile['teamMembers'] as CompanyConfig['teamMembers']) || FALLBACK_CONFIG.teamMembers,
+      portfolio: (profile['portfolio'] as CompanyConfig['portfolio']) || FALLBACK_CONFIG.portfolio,
     };
   } catch {
     return FALLBACK_CONFIG;
@@ -123,7 +157,23 @@ const FALLBACK_CONFIG: CompanyConfig = {
   testimonials: [],
   aboutCopy: [],
   mission: '',
-  services: [],
+  services: [
+    { name: 'Kitchen Renovation', slug: 'kitchen-renovation', description: 'Custom kitchen design and renovation' },
+    { name: 'Bathroom Renovation', slug: 'bathroom-renovation', description: 'Full bathroom remodels' },
+    { name: 'Basement Finishing', slug: 'basement-finishing', description: 'Unfinished to entertainment-ready' },
+    { name: 'Flooring', slug: 'flooring', description: 'Hardwood, vinyl plank, tile installation' },
+  ],
+  heroHeadline: '',
+  heroSubheadline: '',
+  heroImageUrl: '',
+  aboutImageUrl: '',
+  logoUrl: '',
+  trustBadges: [],
+  whyChooseUs: [],
+  values: [],
+  processSteps: [],
+  teamMembers: [],
+  portfolio: [],
 };
 
 /**
@@ -160,11 +210,11 @@ Sunday: Closed`;
   }
 
   profile += `\n\n## Website Pages
-- /services — Overview of all renovation services
-- /services/kitchen — Kitchen renovation details
-- /services/bathroom — Bathroom renovation details
-- /services/basement — Basement finishing details
-- /services/outdoor — Outdoor living and decks
+- /services — Overview of all renovation services`;
+  for (const svc of config.services) {
+    profile += `\n- /services/${svc.slug} — ${svc.name}`;
+  }
+  profile += `
 - /estimate — AI-powered renovation cost estimator
 - /visualizer — AI room visualization tool
 - /projects — Portfolio of completed work

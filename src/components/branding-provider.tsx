@@ -17,6 +17,7 @@ const DEMO_BRANDING: Branding = {
   paymentEmail: "payments@example.com",
   quotesEmail: "quotes@example.com",
   primaryColor: "#1565C0",
+  primaryOklch: "0.45 0.18 250",
 }
 
 const BrandingContext = createContext<Branding>(DEMO_BRANDING)
@@ -67,6 +68,7 @@ export function BrandingProvider({
           paymentEmail: (info["payment_email"] as string) || DEMO_BRANDING.paymentEmail,
           quotesEmail: (info["quotes_email"] as string) || DEMO_BRANDING.quotesEmail,
           primaryColor: colors["primary_hex"] || DEMO_BRANDING.primaryColor,
+          primaryOklch: colors["primary_oklch"] || DEMO_BRANDING.primaryOklch,
         })
       } catch {
         // Keep defaults on failure

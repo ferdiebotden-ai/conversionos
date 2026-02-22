@@ -1,0 +1,125 @@
+{
+  "project": "conversionos-onboarding",
+  "created": "2026-02-22",
+  "totalUnits": 8,
+  "maxRetries": 2,
+  "maxSessions": 20,
+  "sessionsRun": 3,
+  "units": [
+    {
+      "id": "U-1",
+      "name": "data-layer",
+      "status": "done",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-01-data-layer.md",
+      "description": "Extend Branding + CompanyConfig interfaces, CSS injection in layout, storage utils, hours parser",
+      "files": [
+        "src/lib/branding.ts",
+        "src/lib/ai/knowledge/company.ts",
+        "src/app/layout.tsx",
+        "src/lib/storage.ts",
+        "src/lib/utils/hours.ts",
+        "supabase/migrations/20260222300000_tenant_assets_bucket.sql"
+      ]
+    },
+    {
+      "id": "U-2",
+      "name": "homepage",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-02-homepage.md",
+      "description": "Make home page fully DB-driven (hero, trust badges, why choose us, process steps)",
+      "files": [
+        "src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "U-3",
+      "name": "inner-pages",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-03-inner-pages.md",
+      "description": "About page (values, team), contact page (hours), footer (service links)",
+      "files": [
+        "src/app/about/page.tsx",
+        "src/app/contact/page.tsx",
+        "src/components/footer.tsx"
+      ]
+    },
+    {
+      "id": "U-4",
+      "name": "services",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-04-services.md",
+      "description": "Dynamic services grid, [slug] route, delete static service pages, redirects",
+      "files": [
+        "src/components/services-grid.tsx",
+        "src/components/services-grid-server.tsx",
+        "src/app/services/[slug]/page.tsx",
+        "src/app/services/page.tsx",
+        "next.config.ts"
+      ],
+      "delete": [
+        "src/app/services/kitchen/page.tsx",
+        "src/app/services/bathroom/page.tsx",
+        "src/app/services/basement/page.tsx",
+        "src/app/services/outdoor/page.tsx"
+      ]
+    },
+    {
+      "id": "U-5",
+      "name": "gallery",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-05-gallery.md",
+      "description": "Dynamic project gallery from DB, testimonials optional image",
+      "files": [
+        "src/components/project-gallery.tsx",
+        "src/components/testimonials.tsx"
+      ]
+    },
+    {
+      "id": "U-6",
+      "name": "seed-data",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-06-seed-data.md",
+      "description": "Update existing tenant seed data (McCarty, RedWhite, demo) with all new fields",
+      "files": [
+        "supabase/migrations/20260222400000_extend_seed_data.sql"
+      ]
+    },
+    {
+      "id": "U-7",
+      "name": "scraper",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-07-scraper.md",
+      "description": "FireCrawl integration, extraction schema, scoring, image classification, AI content generation",
+      "files": [
+        "scripts/onboarding/schema.mjs",
+        "scripts/onboarding/score.mjs",
+        "scripts/onboarding/scrape.mjs",
+        "scripts/onboarding/convert-color.mjs"
+      ]
+    },
+    {
+      "id": "U-8",
+      "name": "provisioner",
+      "status": "pending",
+      "retries": 0,
+      "prompt": "scripts/prompts/unit-08-provisioner.md",
+      "description": "DB seeding script, image upload, proxy.ts update, orchestrator, Playwright QA",
+      "files": [
+        "scripts/onboarding/provision.mjs",
+        "scripts/onboarding/upload-images.mjs",
+        "scripts/onboarding/onboard.mjs",
+        "scripts/onboarding/verify.mjs",
+        "scripts/onboarding/README.md",
+        "package.json"
+      ]
+    }
+  ],
+  "sessions_run": 0
+}
