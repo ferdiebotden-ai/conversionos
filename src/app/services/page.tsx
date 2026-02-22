@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ServicesGrid } from "@/components/services-grid"
+import { ServicesGridServer } from "@/components/services-grid-server"
 import { getBranding } from "@/lib/branding"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,7 +48,7 @@ export default async function ServicesPage() {
       {/* Services Grid */}
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto">
-          <ServicesGrid />
+          <ServicesGridServer />
         </div>
       </section>
 

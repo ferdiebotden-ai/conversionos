@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: '/services/kitchen', destination: '/services/kitchen-renovation', permanent: true },
+      { source: '/services/bathroom', destination: '/services/bathroom-renovation', permanent: true },
+      { source: '/services/basement', destination: '/services/basement-finishing', permanent: true },
+      { source: '/services/outdoor', destination: '/services/outdoor-living', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

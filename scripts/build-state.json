@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 5,
+  "sessionsRun": 6,
   "units": [
     {
       "id": "U-1",
@@ -49,7 +49,7 @@
     {
       "id": "U-4",
       "name": "services",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-04-services.md",
       "description": "Dynamic services grid, [slug] route, delete static service pages, redirects",
