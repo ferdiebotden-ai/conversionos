@@ -22,6 +22,7 @@ export interface Branding {
   quotesEmail: string;
   primaryColor: string;
   primaryOklch: string;
+  services: { name: string; slug: string }[];
 }
 
 const DEMO_BRANDING: Branding = {
@@ -39,6 +40,7 @@ const DEMO_BRANDING: Branding = {
   quotesEmail: 'quotes@example.com',
   primaryColor: '#1565C0',
   primaryOklch: '0.45 0.18 250',
+  services: [],
 };
 
 /**
@@ -54,7 +56,7 @@ export async function getBranding(): Promise<Branding> {
       .from('admin_settings')
       .select('key, value')
       .eq('site_id', siteId)
-      .in('key', ['business_info', 'branding']);
+      .in('key', ['business_info', 'branding', 'company_profile']);
 
     if (!data || data.length === 0) return DEMO_BRANDING;
 
@@ -62,8 +64,10 @@ export async function getBranding(): Promise<Branding> {
 
     const info = (map['business_info'] ?? {}) as Record<string, unknown>;
     const brand = (map['branding'] ?? {}) as Record<string, unknown>;
+    const profile = (map['company_profile'] ?? {}) as Record<string, unknown>;
 
     const colors = (brand['colors'] as Record<string, string>) || {};
+    const rawServices = (profile['services'] as { name: string; slug?: string }[]) || [];
 
     return {
       name: (info['name'] as string) || DEMO_BRANDING.name,
@@ -80,6 +84,10 @@ export async function getBranding(): Promise<Branding> {
       quotesEmail: (info['quotes_email'] as string) || DEMO_BRANDING.quotesEmail,
       primaryColor: colors['primary_hex'] || DEMO_BRANDING.primaryColor,
       primaryOklch: colors['primary_oklch'] || DEMO_BRANDING.primaryOklch,
+      services: rawServices.map(s => ({
+        name: s.name,
+        slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      })),
     };
   } catch {
     return DEMO_BRANDING;

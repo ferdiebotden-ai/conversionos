@@ -4,6 +4,7 @@ import { ContactForm } from "@/components/contact-form"
 import { Clock, Mail, MapPin, Phone } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import { parseBusinessHours } from "@/lib/utils/hours"
 
 export async function generateMetadata() {
   const branding = await getBranding()
@@ -13,15 +14,10 @@ export async function generateMetadata() {
   }
 }
 
-const businessHours = [
-  { day: "Monday - Friday", hours: "9:00 AM - 5:00 PM" },
-  { day: "Saturday", hours: "Closed" },
-  { day: "Sunday", hours: "Closed" },
-]
-
 export default async function ContactPage() {
   const branding = await getBranding()
   const config = await getCompanyConfig()
+  const businessHours = parseBusinessHours(config.hours)
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}

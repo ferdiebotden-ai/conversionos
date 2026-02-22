@@ -12,17 +12,19 @@ const quickLinks = [
   { href: "/contact", label: "Contact" },
 ]
 
-const services = [
-  { href: "/services/kitchen", label: "Kitchens" },
-  { href: "/services/bathroom", label: "Bathrooms" },
-  { href: "/services/basement", label: "Basements" },
-  { href: "/services/outdoor", label: "Outdoor" },
-]
-
 export function Footer() {
   const pathname = usePathname()
   const branding = useBranding()
   const currentYear = new Date().getFullYear()
+
+  const serviceLinks = branding.services.length > 0
+    ? branding.services.map(s => ({ href: `/services/${s.slug}`, label: s.name }))
+    : [
+        { href: "/services/kitchen-renovation", label: "Kitchen Renovation" },
+        { href: "/services/bathroom-renovation", label: "Bathroom Renovation" },
+        { href: "/services/basement-finishing", label: "Basement Finishing" },
+        { href: "/services/flooring", label: "Flooring" },
+      ]
 
   // Hide public footer on admin routes
   if (pathname.startsWith('/admin')) {
@@ -92,7 +94,7 @@ export function Footer() {
               Services
             </h3>
             <ul className="space-y-3">
-              {services.map((link) => (
+              {serviceLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

@@ -4,7 +4,7 @@
   "totalUnits": 8,
   "maxRetries": 2,
   "maxSessions": 20,
-  "sessionsRun": 4,
+  "sessionsRun": 5,
   "units": [
     {
       "id": "U-1",
@@ -36,7 +36,7 @@
     {
       "id": "U-3",
       "name": "inner-pages",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "prompt": "scripts/prompts/unit-03-inner-pages.md",
       "description": "About page (values, team), contact page (hours), footer (service links)",

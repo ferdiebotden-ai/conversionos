@@ -18,6 +18,7 @@ const DEMO_BRANDING: Branding = {
   quotesEmail: "quotes@example.com",
   primaryColor: "#1565C0",
   primaryOklch: "0.45 0.18 250",
+  services: [],
 }
 
 const BrandingContext = createContext<Branding>(DEMO_BRANDING)
@@ -51,9 +52,11 @@ export function BrandingProvider({
         const json = await res.json()
         const info = json.data?.business_info?.value as Record<string, unknown> | undefined
         const brand = json.data?.branding?.value as Record<string, unknown> | undefined
+        const profileData = json.data?.company_profile?.value as Record<string, unknown> | undefined
         if (!info) return
 
         const colors = (brand?.["colors"] as Record<string, string>) || {}
+        const rawServices = (profileData?.["services"] as { name: string; slug?: string }[]) || []
         setBranding({
           name: (info["name"] as string) || DEMO_BRANDING.name,
           tagline: (brand?.["tagline"] as string) || (info["tagline"] as string) || DEMO_BRANDING.tagline,
@@ -69,6 +72,10 @@ export function BrandingProvider({
           quotesEmail: (info["quotes_email"] as string) || DEMO_BRANDING.quotesEmail,
           primaryColor: colors["primary_hex"] || DEMO_BRANDING.primaryColor,
           primaryOklch: colors["primary_oklch"] || DEMO_BRANDING.primaryOklch,
+          services: rawServices.map(s => ({
+            name: s.name,
+            slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          })),
         })
       } catch {
         // Keep defaults on failure

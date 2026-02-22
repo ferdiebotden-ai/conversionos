@@ -23,27 +23,6 @@ export async function generateMetadata() {
   }
 }
 
-const values = [
-  {
-    icon: Heart,
-    title: "Customer First",
-    description:
-      "Your satisfaction drives everything we do. We listen, communicate, and deliver on our promises.",
-  },
-  {
-    icon: Target,
-    title: "Quality Craftsmanship",
-    description:
-      "Every detail matters, from initial design to final walkthrough.",
-  },
-  {
-    icon: Shield,
-    title: "Integrity",
-    description:
-      "Honest pricing, realistic timelines, and transparent communication throughout your project.",
-  },
-]
-
 export default async function AboutPage() {
   const config = await getCompanyConfig()
   const branding = await getBranding()
@@ -67,7 +46,7 @@ export default async function AboutPage() {
         <div className="container mx-auto">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Dream. Plan. Build.
+              {config.heroHeadline || `About ${branding.name}`}
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
               {branding.name} transforms homes in {branding.city}, {branding.province}
@@ -112,8 +91,8 @@ export default async function AboutPage() {
             </div>
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
               <Image
-                src="/images/demo/flooring-vinyl.png"
-                alt="Beautifully renovated heritage living room with stone fireplace, built-in bookshelves, and expert trim work"
+                src={config.aboutImageUrl || "/images/demo/flooring-vinyl.png"}
+                alt={`${branding.name} renovation work`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -147,24 +126,40 @@ export default async function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
-            {values.map((value) => {
-              const Icon = value.icon
-              return (
-                <div key={value.title} className="text-center">
-                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon className="size-6" />
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-foreground">
-                    {value.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {value.description}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+          {(() => {
+            const defaultValues = [
+              { title: 'Customer First', description: 'Your satisfaction drives everything we do. We listen, communicate, and deliver on our promises.', iconHint: 'heart' },
+              { title: 'Quality Craftsmanship', description: 'Every detail matters, from initial design to final walkthrough.', iconHint: 'target' },
+              { title: 'Integrity', description: 'Honest pricing, realistic timelines, and transparent communication throughout your project.', iconHint: 'shield' },
+            ];
+            const valueItems = config.values.length > 0 ? config.values : defaultValues;
+
+            const iconMap: Record<string, typeof Heart> = {
+              heart: Heart, target: Target, shield: Shield,
+              award: Award, clock: Clock, check: CheckCircle,
+            };
+
+            return (
+              <div className="mt-10 grid gap-8 md:grid-cols-3">
+                {valueItems.map((value) => {
+                  const Icon = iconMap[value.iconHint?.toLowerCase() || ''] || Heart;
+                  return (
+                    <div key={value.title} className="text-center">
+                      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Icon className="size-6" />
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-foreground">
+                        {value.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {value.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </section>
 
@@ -245,25 +240,38 @@ export default async function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 max-w-2xl mx-auto">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="relative mx-auto size-24 overflow-hidden rounded-full">
-                  <Image
-                    src="/images/demo/team-male.png"
-                    alt={config.principals}
-                    fill
-                    className="object-cover"
-                    sizes="96px"
-                  />
-                </div>
-                <p className="mt-4 font-semibold text-foreground">
-                  {config.principals}
-                </p>
-                <p className="text-sm text-primary">Principals</p>
-              </CardContent>
-            </Card>
-          </div>
+          {(() => {
+            const members = config.teamMembers.length > 0
+              ? config.teamMembers
+              : [{ name: config.principals, role: 'Principals', photoUrl: '/images/demo/team-male.png' }];
+
+            return (
+              <div className={`mt-10 grid gap-6 ${members.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl' : 'sm:grid-cols-2 max-w-2xl'} mx-auto`}>
+                {members.map((member, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-6 text-center">
+                      <div className="relative mx-auto size-24 overflow-hidden rounded-full">
+                        <Image
+                          src={member.photoUrl || '/images/demo/team-male.png'}
+                          alt={member.name}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                        />
+                      </div>
+                      <p className="mt-4 font-semibold text-foreground">
+                        {member.name}
+                      </p>
+                      <p className="text-sm text-primary">{member.role}</p>
+                      {member.bio && (
+                        <p className="mt-2 text-xs text-muted-foreground">{member.bio}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </section>
 
