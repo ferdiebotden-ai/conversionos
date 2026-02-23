@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import { ProjectSelector } from "@/components/home/project-selector"
+import { VisualizerTeaser } from "@/components/home/visualizer-teaser"
 
 export default async function Home() {
   const branding = await getBranding()
@@ -73,7 +75,7 @@ export default async function Home() {
                 <StaggerItem>
                   <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <Button asChild size="lg" className="h-14 w-full px-8 text-lg sm:w-auto">
-                      <Link href="/estimate">Get a Free Quote</Link>
+                      <Link href="/estimate">Get Your Estimate in Minutes</Link>
                     </Button>
                     <Button
                       asChild
@@ -106,6 +108,15 @@ export default async function Home() {
               </StaggerContainer>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Project Type Quick Selector */}
+      <section className="px-4 py-12 md:py-16">
+        <div className="container mx-auto">
+          <FadeInUp>
+            <ProjectSelector />
+          </FadeInUp>
         </div>
       </section>
 
@@ -167,8 +178,17 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Services Section */}
+      {/* Visualizer Teaser */}
       <section className="px-4 py-16 md:py-20">
+        <div className="container mx-auto">
+          <FadeInUp>
+            <VisualizerTeaser />
+          </FadeInUp>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="border-t border-border px-4 py-16 md:py-20">
         <div className="container mx-auto">
           <FadeInUp className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

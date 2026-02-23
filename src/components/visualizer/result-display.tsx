@@ -10,10 +10,13 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BeforeAfterSlider } from './before-after-slider';
 import { ConceptThumbnails } from './concept-thumbnails';
+import { CostRangeIndicator } from './cost-range-indicator';
 import { SaveVisualizationModal } from './save-visualization-modal';
 import { DownloadButton } from './download-button';
 import { EmailCaptureModal } from './email-capture-modal';
 import { FadeInUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
+import { useTier } from '@/components/tier-provider';
+import { useBranding } from '@/components/branding-provider';
 import type { VisualizationResponse } from '@/lib/schemas/visualization';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,6 +25,8 @@ import {
   RefreshCw,
   Clock,
   Sparkles,
+  Phone,
+  Palette,
 } from 'lucide-react';
 
 interface ResultDisplayProps {
@@ -29,6 +34,7 @@ interface ResultDisplayProps {
   originalImage: string;
   onStartOver: () => void;
   onGetQuote: () => void;
+  onTryAnotherStyle?: () => void;
   className?: string;
 }
 
@@ -37,13 +43,22 @@ export function ResultDisplay({
   originalImage,
   onStartOver,
   onGetQuote,
+  onTryAnotherStyle,
   className,
 }: ResultDisplayProps) {
+  const { canAccess } = useTier();
+  const branding = useBranding();
   const [selectedConceptIndex, setSelectedConceptIndex] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCaptureOpen, setEmailCaptureOpen] = useState(false);
   const [hasProvidedEmail, setHasProvidedEmail] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
+
+  // Tier-aware CTA configuration
+  const hasQuoteEngine = canAccess('ai_quote_engine');
+  const primaryCTA = hasQuoteEngine
+    ? { label: 'Get a Personalised Estimate', icon: MessageSquare }
+    : { label: `Request a Callback from ${branding.name}`, icon: Phone };
 
   // Show sticky CTA after intro animation completes (~3s)
   useEffect(() => {
@@ -144,17 +159,24 @@ export function ResultDisplay({
         </FadeInUp>
       )}
 
+      {/* Cost range indicator (tier + mode gated — hidden for Elevate or mode=none) */}
+      <FadeInUp>
+        <CostRangeIndicator
+          roomType={visualization.roomType}
+        />
+      </FadeInUp>
+
       {/* Action buttons */}
       <StaggerContainer className="flex flex-col sm:flex-row gap-3">
-        {/* Primary CTA */}
+        {/* Primary CTA — tier-aware */}
         <StaggerItem className="flex-1">
           <Button
             size="lg"
             className="w-full min-h-[52px]"
             onClick={onGetQuote}
           >
-            <MessageSquare className="w-5 h-5 mr-2" />
-            Get a Quote for This Design
+            <primaryCTA.icon className="w-5 h-5 mr-2" />
+            {primaryCTA.label}
           </Button>
         </StaggerItem>
 
@@ -187,9 +209,15 @@ export function ResultDisplay({
         </StaggerItem>
       </StaggerContainer>
 
-      {/* Start over option */}
-      <FadeInUp className="text-center pt-4 border-t border-border">
-        <Button variant="ghost" onClick={onStartOver}>
+      {/* Try another style / Start over */}
+      <FadeInUp className="flex flex-col items-center gap-2 pt-4 border-t border-border">
+        {onTryAnotherStyle && (
+          <Button variant="outline" onClick={onTryAnotherStyle}>
+            <Palette className="w-4 h-4 mr-2" />
+            Try Another Style
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" onClick={onStartOver} className="text-muted-foreground">
           <RefreshCw className="w-4 h-4 mr-2" />
           Start Over with a Different Photo
         </Button>
@@ -232,8 +260,8 @@ export function ResultDisplay({
                 className="w-full min-h-[56px] bg-[#1565C0] hover:bg-[#B71C1C] text-white text-base font-semibold backdrop-blur-md shadow-xl shadow-[#1565C0]/20 rounded-xl"
                 onClick={onGetQuote}
               >
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Get a Quote for This Design
+                <primaryCTA.icon className="w-5 h-5 mr-2" />
+                {primaryCTA.label}
               </Button>
             </div>
           </motion.div>

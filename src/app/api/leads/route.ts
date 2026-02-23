@@ -273,6 +273,7 @@ export async function POST(request: NextRequest) {
 
     // Link visualization to lead if provided
     if (data.visualizationId) {
+      // Direct FK link on visualizations table
       const { error: vizError } = await supabase
         .from('visualizations')
         .update({ lead_id: lead.id })
@@ -281,7 +282,20 @@ export async function POST(request: NextRequest) {
 
       if (vizError) {
         console.error('Failed to link visualization to lead:', vizError);
-        // Don't fail the request - lead was created successfully
+      }
+
+      // Also create join table entry with is_primary flag via RPC
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcError } = await (supabase.rpc as any)('link_visualization_to_lead', {
+        p_lead_id: lead.id,
+        p_visualization_id: data.visualizationId,
+        p_is_primary: true,
+        p_admin_selected: false,
+      });
+
+      if (rpcError) {
+        console.error('Failed to link visualization via RPC:', rpcError);
+        // Non-fatal — the direct FK link above is the primary mechanism
       }
     }
 

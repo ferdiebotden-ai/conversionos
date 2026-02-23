@@ -9,7 +9,8 @@
 export { COMPANY_PROFILE, COMPANY_SUMMARY, buildCompanyProfile, buildCompanySummary, getCompanyConfig } from './company';
 export type { CompanyConfig } from './company';
 export { SERVICES_KNOWLEDGE, SERVICES_SUMMARY, buildServicesKnowledge, buildServicesSummary } from './services';
-export { PRICING_FULL, PRICING_SUMMARY } from './pricing';
+export { PRICING_FULL, PRICING_SUMMARY, calculateCostEstimate, snapToRangeBand, formatCAD, getMaterialsForRoom } from './pricing';
+export type { CostEstimate, MaterialCost, RoomCategory, FinishLevel } from './pricing';
 export {
   ONTARIO_GENERAL_KNOWLEDGE,
   ONTARIO_BUDGET_KNOWLEDGE,

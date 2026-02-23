@@ -18,7 +18,9 @@ export type Feature =
   | 'voice_web'
   | 'voice_phone'
   | 'custom_integrations'
-  | 'location_exclusivity';
+  | 'location_exclusivity'
+  | 'pricing_display'
+  | 'analytics_dashboard';
 
 const TIER_FEATURES: Record<PlanTier, Set<Feature>> = {
   elevate: new Set([
@@ -37,6 +39,7 @@ const TIER_FEATURES: Record<PlanTier, Set<Feature>> = {
     'pdf_quotes',
     'invoicing',
     'drawings',
+    'pricing_display',
   ]),
   dominate: new Set([
     'branded_website',
@@ -52,6 +55,8 @@ const TIER_FEATURES: Record<PlanTier, Set<Feature>> = {
     'voice_phone',
     'custom_integrations',
     'location_exclusivity',
+    'pricing_display',
+    'analytics_dashboard',
   ]),
 };
 

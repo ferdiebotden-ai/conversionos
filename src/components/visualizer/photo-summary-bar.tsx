@@ -14,6 +14,7 @@ import { Camera } from 'lucide-react';
 interface PhotoSummaryBarProps {
   photoSrc: string;
   detectedRoomType?: string | undefined;
+  isAnalyzing?: boolean | undefined;
   onChangePhoto: () => void;
   className?: string;
 }
@@ -21,6 +22,7 @@ interface PhotoSummaryBarProps {
 export function PhotoSummaryBar({
   photoSrc,
   detectedRoomType,
+  isAnalyzing,
   onChangePhoto,
   className,
 }: PhotoSummaryBarProps) {
@@ -51,13 +53,18 @@ export function PhotoSummaryBar({
         />
       </div>
 
-      {/* Room type badge + spacer */}
+      {/* Room type badge + analyzing indicator */}
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        {roomTypeLabel && (
+        {isAnalyzing ? (
+          <span className="bg-muted text-muted-foreground text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            Analysing photo...
+          </span>
+        ) : roomTypeLabel ? (
           <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full truncate">
             {roomTypeLabel}
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* Change photo action */}

@@ -88,39 +88,24 @@ export async function generateVisualizationConcept(
 
   // Handle both legacy and new signatures
   if (typeof roomTypeOrConfig === 'object') {
-    // New config-based approach with enhanced prompts
+    // Config-based approach — always pass all available data to prompt builder
     const config = roomTypeOrConfig;
-    const useEnhanced = config.useEnhancedPrompts !== false;
 
-    if (useEnhanced && (config.photoAnalysis || config.designIntent || config.voicePreferencesSummary)) {
-      // Use full 6-part prompt with analysis/intent/voice data
-      const promptData: RenovationPromptData = {
-        roomType: config.roomType,
-        style: config.style,
-        variationIndex: conceptIndex,
-        ...(config.constraints && { constraints: config.constraints }),
-        ...(config.photoAnalysis && { photoAnalysis: config.photoAnalysis }),
-        ...(config.designIntent && { designIntent: config.designIntent }),
-        ...(config.hasDepthMap && { hasDepthMap: true }),
-        ...(config.hasEdgeMap && { hasEdgeMap: true }),
-        ...(config.depthRange && { depthRange: config.depthRange }),
-        ...(config.customRoomType && { customRoomType: config.customRoomType }),
-        ...(config.customStyle && { customStyle: config.customStyle }),
-        ...(config.voicePreferencesSummary && { voicePreferencesSummary: config.voicePreferencesSummary }),
-      };
-      prompt = buildRenovationPrompt(promptData);
-    } else {
-      const promptData: RenovationPromptData = {
-        roomType: config.roomType,
-        style: config.style,
-        variationIndex: conceptIndex,
-        ...(config.constraints && { constraints: config.constraints }),
-        ...(config.customRoomType && { customRoomType: config.customRoomType }),
-        ...(config.customStyle && { customStyle: config.customStyle }),
-        ...(config.voicePreferencesSummary && { voicePreferencesSummary: config.voicePreferencesSummary }),
-      };
-      prompt = buildRenovationPrompt(promptData);
-    }
+    const promptData: RenovationPromptData = {
+      roomType: config.roomType,
+      style: config.style,
+      variationIndex: conceptIndex,
+      ...(config.constraints && { constraints: config.constraints }),
+      ...(config.photoAnalysis && { photoAnalysis: config.photoAnalysis }),
+      ...(config.designIntent && { designIntent: config.designIntent }),
+      ...(config.hasDepthMap && { hasDepthMap: true }),
+      ...(config.hasEdgeMap && { hasEdgeMap: true }),
+      ...(config.depthRange && { depthRange: config.depthRange }),
+      ...(config.customRoomType && { customRoomType: config.customRoomType }),
+      ...(config.customStyle && { customStyle: config.customStyle }),
+      ...(config.voicePreferencesSummary && { voicePreferencesSummary: config.voicePreferencesSummary }),
+    };
+    prompt = buildRenovationPrompt(promptData);
 
     // Pass through reference images for structural conditioning
     referenceImages = config.referenceImages;

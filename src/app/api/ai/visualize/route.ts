@@ -28,6 +28,10 @@ import {
   analyzeRoomPhotoForVisualization,
   type RoomAnalysis,
 } from '@/lib/ai/photo-analyzer';
+import {
+  generateConceptDescriptions,
+  analyzeConceptForPricing,
+} from '@/lib/ai/concept-pricing';
 import type { DesignIntent } from '@/lib/schemas/visualizer-extraction';
 
 // Extended request schema with optional photo analysis and design intent
@@ -74,6 +78,43 @@ const enhancedVisualizationRequestSchema = visualizationRequestSchema
 
 // Maximum execution time for Vercel (120s for Gemini image gen headroom)
 export const maxDuration = 120;
+
+// Simple in-memory cache for photo analysis (survives within same serverless instance)
+const photoAnalysisCache = new Map<string, { analysis: RoomAnalysis; timestamp: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/** Hash the first 2KB of image data for fast cache lookup */
+function hashImagePrefix(imageBase64: string): string {
+  // Use a simple FNV-1a hash on the first 2048 chars of the base64 data
+  const data = imageBase64.slice(0, 2048);
+  let hash = 2166136261;
+  for (let i = 0; i < data.length; i++) {
+    hash ^= data.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function getCachedAnalysis(imageBase64: string): RoomAnalysis | undefined {
+  const key = hashImagePrefix(imageBase64);
+  const entry = photoAnalysisCache.get(key);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    return entry.analysis;
+  }
+  if (entry) photoAnalysisCache.delete(key);
+  return undefined;
+}
+
+function setCachedAnalysis(imageBase64: string, analysis: RoomAnalysis): void {
+  const key = hashImagePrefix(imageBase64);
+  photoAnalysisCache.set(key, { analysis, timestamp: Date.now() });
+  // Evict old entries if cache grows too large
+  if (photoAnalysisCache.size > 50) {
+    const oldest = [...photoAnalysisCache.entries()]
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) photoAnalysisCache.delete(oldest[0]);
+  }
+}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -123,22 +164,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(error, { status: 500 });
     }
 
-    // Photo analysis - either use provided or perform new analysis
+    // Photo analysis - use provided, cached, or perform new analysis
     let photoAnalysis: RoomAnalysis | undefined;
 
     if (providedAnalysis) {
       // Use pre-analyzed data from conversation mode
       photoAnalysis = providedAnalysis as RoomAnalysis;
     } else if (!skipAnalysis && process.env['OPENAI_API_KEY']) {
-      // Perform photo analysis for enhanced prompts
-      try {
-        console.log('Analyzing photo for enhanced visualization...');
-        const analysisStartTime = Date.now();
-        photoAnalysis = await analyzeRoomPhotoForVisualization(image, roomType as RoomType);
-        console.log(`Photo analysis completed in ${Date.now() - analysisStartTime}ms`);
-      } catch (analysisError) {
-        // Log but don't fail - we can generate without analysis
-        console.warn('Photo analysis failed, proceeding without:', analysisError);
+      // Check cache first (saves ~$0.02 and ~3-5s per re-generation)
+      const cached = getCachedAnalysis(image);
+      if (cached) {
+        console.log('Using cached photo analysis');
+        photoAnalysis = cached;
+      } else {
+        // Perform photo analysis for enhanced prompts
+        try {
+          console.log('Analyzing photo for enhanced visualization...');
+          const analysisStartTime = Date.now();
+          photoAnalysis = await analyzeRoomPhotoForVisualization(image, roomType as RoomType);
+          console.log(`Photo analysis completed in ${Date.now() - analysisStartTime}ms`);
+          // Cache for subsequent re-generations with same photo
+          if (photoAnalysis) {
+            setCachedAnalysis(image, photoAnalysis);
+          }
+        } catch (analysisError) {
+          // Log but don't fail - we can generate without analysis
+          console.warn('Photo analysis failed, proceeding without:', analysisError);
+        }
       }
     }
 
@@ -238,10 +290,55 @@ export async function POST(request: NextRequest) {
     // Upload generated concepts to Supabase Storage (for real generated images)
     // For placeholders, we use external URLs directly
 
+    // Enrich concepts with AI-generated descriptions (batched, ~$0.01 total)
+    // This runs BEFORE response — descriptions are shown to the user immediately
+    if (concepts.length > 0 && process.env['OPENAI_API_KEY']) {
+      try {
+        const conceptUrls = concepts.map(c => c.imageUrl);
+        const descriptions = await generateConceptDescriptions(
+          conceptUrls,
+          effectiveRoomType,
+          effectiveStyle,
+        );
+        // Merge descriptions into concepts
+        for (let i = 0; i < Math.min(concepts.length, descriptions.length); i++) {
+          const desc = descriptions[i];
+          if (desc) {
+            concepts[i] = {
+              ...concepts[i]!,
+              description: desc.shortDescription,
+            };
+          }
+        }
+      } catch (descError) {
+        // Non-fatal — concepts already have basic descriptions from buildConceptDescription
+        console.warn('Concept description enrichment failed:', descError);
+      }
+    }
+
     const generationTimeMs = Date.now() - startTime;
 
     // Generate share token
     const shareToken = generateShareToken();
+
+    // Build conversation_context JSONB from all captured data (all tiers — silent capture for Elevate upsell)
+    const fullConversationContext = {
+      ...(conversationContext as Record<string, unknown> || {}),
+      ...(designIntent && { designIntent }),
+      ...(voicePreferencesSummary && { voicePreferencesSummary }),
+      ...(voiceTranscript && voiceTranscript.length > 0 && {
+        voiceTranscript: voiceTranscript.map(t => ({
+          role: t.role,
+          content: t.content,
+          timestamp: t.timestamp.toISOString(),
+        })),
+      }),
+      mode,
+      customRoomType: customRoomType || undefined,
+      customStyle: customStyle || undefined,
+    };
+    // Only include if there's actual data beyond just the mode
+    const hasConversationData = designIntent || voicePreferencesSummary || (voiceTranscript && voiceTranscript.length > 0);
 
     // Save visualization to database with enhanced fields
     // Map 'exterior'/'other' to 'living_room' for DB compatibility (DB enum doesn't include them)
@@ -261,9 +358,9 @@ export async function POST(request: NextRequest) {
         source: mode === 'conversation' ? 'visualizer_conversation' : 'visualizer',
         device_type: getDeviceType(request),
         user_agent: request.headers.get('user-agent') || null,
-        // Enhanced fields (will be ignored if columns don't exist yet)
+        // Enhanced fields — always write when available (all tiers, silent capture for Elevate)
         ...(photoAnalysis && { photo_analysis: photoAnalysis }),
-        ...(conversationContext && { conversation_context: conversationContext }),
+        ...(hasConversationData && { conversation_context: fullConversationContext }),
       }))
       .select()
       .single();
@@ -272,6 +369,25 @@ export async function POST(request: NextRequest) {
       // DB save failed — log but still return the generated concepts
       // The visualization was expensive to generate; don't throw it away
       console.error('Database error (non-fatal, returning concepts anyway):', dbError);
+    }
+
+    // Concept pricing analysis — fire and forget, stored in DB for all tiers (silent capture)
+    // Analyses the first generated concept for visible materials and prices them
+    if (!dbError && visualization && concepts.length > 0 && process.env['OPENAI_API_KEY']) {
+      const firstConceptUrl = concepts[0]!.imageUrl;
+      analyzeConceptForPricing(firstConceptUrl, effectiveRoomType, effectiveStyle)
+        .then(async (pricingAnalysis) => {
+          // Store pricing analysis on the visualization record
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('visualizations') as any)
+            .update({
+              concept_pricing: pricingAnalysis,
+            })
+            .eq('id', visualization.id)
+            .eq('site_id', getSiteId());
+          console.log('Concept pricing analysis stored');
+        })
+        .catch((err) => console.warn('Concept pricing analysis failed (non-fatal):', err));
     }
 
     // Record metrics (fire and forget - don't block response)

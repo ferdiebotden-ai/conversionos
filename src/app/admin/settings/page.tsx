@@ -15,7 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote } from 'lucide-react';
 
 // Types for settings
 interface PricingRange {
@@ -60,6 +61,11 @@ interface Settings {
     email: string;
     website: string;
   };
+  // Quote assistance
+  quote_assistance?: {
+    mode: 'none' | 'range' | 'estimate';
+    rangeBand: number;
+  };
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -88,6 +94,10 @@ const DEFAULT_SETTINGS: Settings = {
     phone: '',
     email: '',
     website: '',
+  },
+  quote_assistance: {
+    mode: 'range',
+    rangeBand: 10000,
   },
 };
 
@@ -233,6 +243,7 @@ export default function SettingsPage() {
         { key: 'quote_validity', value: settings.quote_validity },
         { key: 'notifications', value: settings.notifications },
         { key: 'business_info', value: settings.business_info },
+        { key: 'quote_assistance', value: settings.quote_assistance },
       ];
 
       const response = await fetch('/api/admin/settings', {
@@ -296,6 +307,10 @@ export default function SettingsPage() {
           <TabsTrigger value="rates" className="gap-2">
             <Settings2 className="h-4 w-4" />
             Rates & Defaults
+          </TabsTrigger>
+          <TabsTrigger value="quoting" className="gap-2">
+            <MessageSquareQuote className="h-4 w-4" />
+            Quoting
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
@@ -445,6 +460,96 @@ export default function SettingsPage() {
                   />
                   <p className="text-xs text-muted-foreground">Ontario HST rate (locked)</p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Quoting Tab */}
+        <TabsContent value="quoting" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quote Assistance</CardTitle>
+              <CardDescription>
+                Control how pricing information is shown to homeowners during the AI estimate experience.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="quoteMode">Pricing Display Mode</Label>
+                <Select
+                  value={settings.quote_assistance?.mode || 'range'}
+                  onValueChange={(value) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      quote_assistance: {
+                        ...prev.quote_assistance!,
+                        mode: value as 'none' | 'range' | 'estimate',
+                      },
+                    }));
+                    setHasChanges(true);
+                    setSaveSuccess(false);
+                  }}
+                >
+                  <SelectTrigger id="quoteMode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Pricing</SelectItem>
+                    <SelectItem value="range">Price Range</SelectItem>
+                    <SelectItem value="estimate">Full Estimate</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {settings.quote_assistance?.mode === 'none' && 'No dollar amounts shown. Homeowners see "Request a callback for pricing."'}
+                  {settings.quote_assistance?.mode === 'range' && 'Cost ranges shown with configurable band width (e.g. "$25,000 – $35,000 + HST").'}
+                  {settings.quote_assistance?.mode === 'estimate' && 'Best AI estimate shown with disclaimer (e.g. "AI estimate: ~$31,500 + HST").'}
+                </p>
+              </div>
+
+              {settings.quote_assistance?.mode === 'range' && (
+                <div className="space-y-2">
+                  <Label htmlFor="rangeBand">Range Band Width</Label>
+                  <Select
+                    value={String(settings.quote_assistance?.rangeBand || 10000)}
+                    onValueChange={(value) => {
+                      setSettings(prev => ({
+                        ...prev,
+                        quote_assistance: {
+                          ...prev.quote_assistance!,
+                          rangeBand: parseInt(value, 10) as 1000 | 5000 | 10000,
+                        },
+                      }));
+                      setHasChanges(true);
+                      setSaveSuccess(false);
+                    }}
+                  >
+                    <SelectTrigger id="rangeBand">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1000">$1,000 bands</SelectItem>
+                      <SelectItem value="5000">$5,000 bands</SelectItem>
+                      <SelectItem value="10000">$10,000 bands</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    How wide the price range should be. Wider bands = less specific.
+                  </p>
+                </div>
+              )}
+
+              <Separator />
+
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium">Preview</p>
+                <p className="text-sm text-muted-foreground">
+                  {settings.quote_assistance?.mode === 'none' && 'Your homeowner would see: "Interested in this design? Request a callback from your contractor."'}
+                  {settings.quote_assistance?.mode === 'range' && (
+                    <>Your homeowner would see: &ldquo;Estimated: $25,000 – ${(25000 + (settings.quote_assistance?.rangeBand || 10000)).toLocaleString()} + HST&rdquo;</>
+                  )}
+                  {settings.quote_assistance?.mode === 'estimate' && 'Your homeowner would see: "AI estimate: ~$31,500 + HST. This is a preliminary estimate."'}
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -369,6 +369,64 @@ ${personaRules}`;
       handoffSection += `Visualization: ${concepts?.length || 0} concepts generated (ID: ${vd['id']})\n`;
     }
 
+    // Photo analysis — structural and spatial data from GPT Vision
+    const pa = hc['photoAnalysis'] as Record<string, unknown> | undefined;
+    if (pa) {
+      handoffSection += `\n### Room Analysis (from photo)\n`;
+      if (pa['layoutType']) handoffSection += `Layout: ${pa['layoutType']}\n`;
+      if (pa['currentCondition']) handoffSection += `Condition: ${pa['currentCondition']}\n`;
+      if (pa['estimatedDimensions']) handoffSection += `Dimensions: ${pa['estimatedDimensions']}\n`;
+      if (pa['estimatedCeilingHeight']) handoffSection += `Ceiling: ${pa['estimatedCeilingHeight']}\n`;
+      const structural = pa['structuralElements'] as string[] | undefined;
+      if (structural?.length) handoffSection += `Structural elements: ${structural.join(', ')}\n`;
+      const fixtures = pa['identifiedFixtures'] as string[] | undefined;
+      if (fixtures?.length) handoffSection += `Fixtures: ${fixtures.join(', ')}\n`;
+      const walls = pa['wallDimensions'] as Array<{ wall: string; estimatedLength: string }> | undefined;
+      if (walls?.length) {
+        handoffSection += `Walls: ${walls.map(w => `${w.wall} ~${w.estimatedLength}`).join(', ')}\n`;
+      }
+    }
+
+    // Voice-extracted structured preferences
+    const vep = hc['voiceExtractedPreferences'] as Record<string, string[]> | undefined;
+    if (vep) {
+      if (vep['desiredChanges']?.length) {
+        handoffSection += `\nDesired changes: ${vep['desiredChanges'].join('; ')}\n`;
+      }
+      if (vep['materialPreferences']?.length) {
+        handoffSection += `Material preferences: ${vep['materialPreferences'].join('; ')}\n`;
+      }
+      if (vep['preservationNotes']?.length) {
+        handoffSection += `Preserve: ${vep['preservationNotes'].join('; ')}\n`;
+      }
+    }
+
+    // Cost signals
+    const cs = hc['costSignals'] as Record<string, unknown> | undefined;
+    if (cs && cs['estimatedRangeLow'] != null) {
+      handoffSection += `\n### AI Cost Estimate\n`;
+      handoffSection += `Range: $${Number(cs['estimatedRangeLow']).toLocaleString()} – $${Number(cs['estimatedRangeHigh']).toLocaleString()} + HST\n`;
+      const hints = cs['breakdownHints'] as string[] | undefined;
+      if (hints?.length) handoffSection += `Breakdown: ${hints.join('; ')}\n`;
+    }
+
+    // Quote assistance mode — controls how Marcus discusses pricing
+    const qaMode = hc['quoteAssistanceMode'] as string | undefined;
+    if (qaMode) {
+      handoffSection += `\n### Pricing Discussion Mode: ${qaMode.toUpperCase()}\n`;
+      switch (qaMode) {
+        case 'none':
+          handoffSection += `The contractor prefers NOT to show pricing. Do NOT discuss specific dollar amounts. Say "Your contractor will follow up with specific pricing after reviewing the details."\n`;
+          break;
+        case 'range':
+          handoffSection += `Provide cost ranges aligned with estimates above. Use "typically runs between $X and $Y" with appropriate disclaimers.\n`;
+          break;
+        case 'estimate':
+          handoffSection += `Provide the most accurate estimate possible based on the data above, with clear disclaimers that it's preliminary and subject to site inspection.\n`;
+          break;
+      }
+    }
+
     prompt += `\n\n---\n\n${handoffSection}`;
   }
 

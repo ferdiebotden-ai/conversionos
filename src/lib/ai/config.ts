@@ -20,7 +20,7 @@ export const AI_CONFIG = {
   pipeline: {
     enableDepthEstimation: false,  // Disabled: REPLICATE_API_TOKEN not configured
     enableEdgeDetection: true,     // Local sharp processing, zero cost
-    enableIterativeRefinement: false, // Disabled: adds 2-3 extra API calls, causes timeouts on free tier
+    enableIterativeRefinement: false, // Disabled globally — enabled per-request for Accelerate+ tiers
   },
   parameters: {
     chat: {
@@ -39,7 +39,7 @@ export const AI_CONFIG = {
       structureReferenceStrength: 0.90, // Preserve room geometry
       styleStrength: 0.4,               // Apply style without overwhelming
       outputCount: 4,                   // Generate 4 variations
-      timeout: 120000,                  // 120 second timeout
+      timeout: 75000,                   // 75s — matches VISUALIZATION_CONFIG.timeout
     },
   },
 } as const;

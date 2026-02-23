@@ -4,8 +4,31 @@
  */
 
 import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { QuoteAssistanceMode } from '@/lib/quote-assistance';
 
 const HANDOFF_KEY = 'demo_handoff_context';
+
+/** Photo analysis data included in handoff (subset of RoomAnalysis) */
+export interface HandoffPhotoAnalysis {
+  roomType: string;
+  layoutType: string;
+  currentCondition: string;
+  structuralElements: string[];
+  identifiedFixtures: string[];
+  estimatedDimensions?: string | null;
+  estimatedCeilingHeight?: string | null;
+  wallCount?: number | null;
+  wallDimensions?: { wall: string; estimatedLength: string; hasWindow: boolean; hasDoor: boolean }[] | null;
+  spatialZones?: { name: string; description: string; approximateLocation: string }[] | null;
+}
+
+/** Cost signals for quote handoff (populated when quote_assistance.mode !== 'none') */
+export interface HandoffCostSignals {
+  estimatedRangeLow?: number;
+  estimatedRangeHigh?: number;
+  breakdownHints?: string[];
+  selectedMaterials?: string[];
+}
 
 export interface HandoffContext {
   fromPersona: PersonaKey;
@@ -31,6 +54,18 @@ export interface HandoffContext {
     customStyle?: string;
     textPreferences: string;
     voicePreferencesSummary?: string;
+  } | undefined;
+  /** Photo analysis from GPT Vision — structural, spatial, and fixture data */
+  photoAnalysis?: HandoffPhotoAnalysis | undefined;
+  /** Cost signals — only populated when contractor's quote_assistance.mode !== 'none' */
+  costSignals?: HandoffCostSignals | undefined;
+  /** Contractor's quote assistance mode — tells Marcus how to discuss pricing */
+  quoteAssistanceMode?: QuoteAssistanceMode | undefined;
+  /** Voice-extracted structured preferences (changes, materials, preservation) */
+  voiceExtractedPreferences?: {
+    desiredChanges: string[];
+    materialPreferences: string[];
+    preservationNotes: string[];
   } | undefined;
   timestamp: number;
 }
@@ -157,6 +192,66 @@ ${context.summary}`;
   if (context.visualizationData) {
     const vd = context.visualizationData;
     prefix += `\nVisualization: ${vd.concepts.length} concepts generated (ID: ${vd.id})`;
+  }
+
+  // Structural and spatial data from photo analysis
+  if (context.photoAnalysis) {
+    const pa = context.photoAnalysis;
+    prefix += `\n\n## Room Analysis (from photo)`;
+    prefix += `\nLayout: ${pa.layoutType} | Condition: ${pa.currentCondition}`;
+    if (pa.estimatedDimensions) prefix += `\nDimensions: ${pa.estimatedDimensions}`;
+    if (pa.estimatedCeilingHeight) prefix += `\nCeiling height: ${pa.estimatedCeilingHeight}`;
+    if (pa.structuralElements.length > 0) {
+      prefix += `\nStructural elements: ${pa.structuralElements.join(', ')}`;
+    }
+    if (pa.identifiedFixtures.length > 0) {
+      prefix += `\nFixtures: ${pa.identifiedFixtures.join(', ')}`;
+    }
+    if (pa.wallCount != null && pa.wallDimensions?.length) {
+      prefix += `\nWalls (${pa.wallCount} visible): ${pa.wallDimensions.map(w => `${w.wall} ~${w.estimatedLength}`).join(', ')}`;
+    }
+  }
+
+  // Voice-extracted structured preferences
+  if (context.voiceExtractedPreferences) {
+    const vep = context.voiceExtractedPreferences;
+    if (vep.desiredChanges.length > 0) {
+      prefix += `\nDesired changes: ${vep.desiredChanges.join('; ')}`;
+    }
+    if (vep.materialPreferences.length > 0) {
+      prefix += `\nMaterial preferences: ${vep.materialPreferences.join('; ')}`;
+    }
+    if (vep.preservationNotes.length > 0) {
+      prefix += `\nPreserve: ${vep.preservationNotes.join('; ')}`;
+    }
+  }
+
+  // Cost signals (only when contractor has pricing enabled)
+  if (context.costSignals) {
+    const cs = context.costSignals;
+    if (cs.estimatedRangeLow != null && cs.estimatedRangeHigh != null) {
+      prefix += `\n\n## AI Cost Estimate`;
+      prefix += `\nRange: $${cs.estimatedRangeLow.toLocaleString()} – $${cs.estimatedRangeHigh.toLocaleString()} + HST`;
+    }
+    if (cs.breakdownHints?.length) {
+      prefix += `\nBreakdown hints: ${cs.breakdownHints.join('; ')}`;
+    }
+  }
+
+  // Quote assistance mode — instructs Marcus on how to discuss pricing
+  if (context.quoteAssistanceMode) {
+    prefix += `\n\n## Pricing Discussion Mode: ${context.quoteAssistanceMode.toUpperCase()}`;
+    switch (context.quoteAssistanceMode) {
+      case 'none':
+        prefix += `\nThe contractor prefers NOT to show pricing to homeowners. Do NOT discuss specific dollar amounts. Instead say something like "Your contractor will follow up with specific pricing after reviewing the details."`;
+        break;
+      case 'range':
+        prefix += `\nProvide cost ranges aligned with the estimates above. Use language like "typically runs between $X and $Y" with appropriate disclaimers.`;
+        break;
+      case 'estimate':
+        prefix += `\nProvide the most accurate estimate you can based on the data above, with clear disclaimers that this is preliminary and subject to site inspection.`;
+        break;
+    }
   }
 
   prefix += '\n\nGreet them warmly and acknowledge you know what they were discussing. Don\'t repeat everything — just show awareness and pick up where they left off.';

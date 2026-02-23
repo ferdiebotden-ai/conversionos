@@ -11,7 +11,11 @@
 
 **What you provide:** A URL, a site-id, and a tier. That's it.
 
-### From Claude Code (recommended)
+### From Mission Control (primary — Feb 2026)
+
+Click **"Build Demo"** on any candidate card in the Pipeline page (`/pipeline`). The button spawns `onboard.mjs` via Claude Code Bridge WebSocket with real-time streaming output in the BuildProgressPanel. Args are derived automatically from the CRM target (website, slug, score → tier).
+
+### From Claude Code
 
 ```
 /onboard-tenant {site-id} {url} {tier}
