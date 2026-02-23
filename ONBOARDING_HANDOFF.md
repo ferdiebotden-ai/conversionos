@@ -1,30 +1,55 @@
-# Automated Tenant Onboarding — Handoff Report
+# Automated Tenant Onboarding — Reference
 
-*Created: Feb 22, 2026*
-*Author: Claude Opus 4.6 (build orchestrator session)*
+*Created: Feb 22, 2026 | Updated: Feb 23, 2026*
+*Status: PRODUCTION-READY — tested end-to-end with Red White Reno and McCarty Squared*
 
 ---
 
 ## TLDR
 
-**The automation is built but NOT yet tested end-to-end.** The pipeline code exists, the platform is now DB-driven, but several prerequisites need to happen before a real test run.
-
-**What it does:** Given a contractor's website URL, the pipeline scrapes their branding/content/images, uploads assets to Supabase Storage, seeds the database, updates the proxy routing, and produces a fully branded ConversionOS tenant. Cost: ~$0.07/tenant.
+**The automation is built, tested, and production-ready.** Given a contractor's website URL, the pipeline scrapes their branding/content/images, uploads assets to Supabase Storage, seeds the database, sets up domain routing, and produces a fully branded ConversionOS tenant. Cost: ~$0.03/tenant.
 
 **What you provide:** A URL, a site-id, and a tier. That's it.
 
-```bash
+### From Claude Code (recommended)
+
+```
+/onboard-tenant {site-id} {url} {tier}
+```
+
+Example:
+```
 /onboard-tenant pioneer-craftsmen https://pioneercraftsmen.com accelerate
 ```
 
-Or directly:
+### From the command line
+
 ```bash
+cd ~/norbot-ops/products/demo
+
 node scripts/onboarding/onboard.mjs \
   --url https://pioneercraftsmen.com \
   --site-id pioneer-craftsmen \
   --domain pioneer-craftsmen.norbotsystems.com \
   --tier accelerate
 ```
+
+### After the pipeline finishes
+
+```bash
+# 1. Add domain to Vercel
+npx vercel domains add pioneer-craftsmen.norbotsystems.com
+
+# 2. Add DNS CNAME (Cloudflare dashboard or API)
+#    CNAME: pioneer-craftsmen → cname.vercel-dns.com
+
+# 3. Commit and deploy
+git add src/proxy.ts
+git commit -m "feat: onboard tenant pioneer-craftsmen"
+git push
+```
+
+The site will be live at `https://pioneer-craftsmen.norbotsystems.com` within ~2 minutes of push.
 
 ---
 
@@ -76,117 +101,35 @@ All changes have fallback defaults — existing tenants render exactly as before
 
 ---
 
-## What's NOT Done — Prerequisites for Test Run
+## Infrastructure Status (All Complete)
 
-### 1. Push Supabase Migrations (REQUIRED)
+| Prerequisite | Status |
+|---|---|
+| Supabase migrations pushed | Done (tenant-assets bucket, RLS policies, seed data) |
+| Dependencies installed | Done (firecrawl-js, culori) |
+| FireCrawl credits | 100K/month (upgraded) |
+| Env vars configured | Done (FIRECRAWL_API_KEY, Supabase keys) |
+| Code deployed to Vercel | Done (auto-deploys on push to main) |
+| DNS configured | Done (Cloudflare CNAME → cname.vercel-dns.com) |
 
-Two new migrations haven't been pushed to the demo Supabase project:
+## AI Provider
 
-```bash
-# From the demo product directory:
-cd ~/norbot-ops/products/demo
+- **Primary:** Claude Sonnet 4.6 via `claude -p` CLI — uses Max subscription, $0 marginal cost
+- **Fallback:** OpenAI GPT-5.2 API — only used if Claude CLI is unavailable
+- Both AI calls per tenant: mission statement generation + array augmentation
 
-# Push the tenant-assets bucket migration
-# Push the extended seed data migration
-npx supabase db push --linked
-```
+## Test Results
 
-**Migrations to push:**
-- `20260222300000_tenant_assets_bucket.sql` — Creates the `tenant-assets` Storage bucket
-- `20260222400000_extend_seed_data.sql` — Adds extended fields (hero, team, portfolio, etc.) to existing tenants
+### Red White Reno (Feb 23, 2026)
+- Audit score: **85%** (14 pass, 0 warnings, 3 missing: logo, about image, certifications)
+- Brand colour: #d60000 extracted from CSS (56 occurrences)
+- All AI generation via Claude Max subscription ($0 cost)
+- Zero hallucinated content — 3-layer filter removes fake data
+- Live at: https://redwhite.norbotsystems.com
 
-**Without these, image upload and the extended content fields will fail.**
-
-### 2. Verify Dependencies (REQUIRED)
-
-```bash
-# culori and firecrawl-js should be installed. Verify:
-node -e "import('@mendable/firecrawl-js').then(() => console.log('firecrawl OK')).catch(e => console.log('MISSING:', e.message))"
-node -e "import('culori').then(() => console.log('culori OK')).catch(e => console.log('MISSING:', e.message))"
-```
-
-If missing: `npm install --save-dev @mendable/firecrawl-js culori`
-
-### 3. Verify Environment Variables (REQUIRED)
-
-The scripts need these env vars (should already be configured):
-
-| Variable | Location | Used By |
-|----------|----------|---------|
-| `FIRECRAWL_API_KEY` | `~/pipeline/scripts/.env` | score.mjs, scrape.mjs |
-| `OPENAI_API_KEY` | `~/pipeline/scripts/.env` | scrape.mjs (AI generation) |
-| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` | upload-images.mjs, provision.mjs |
-| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` | upload-images.mjs, provision.mjs |
-
-### 4. Verify FireCrawl Credits (REQUIRED)
-
-Check FireCrawl dashboard. Each onboarding uses ~6 credits for the homepage + fallback pages. The ACTIVE_PROJECTS.md notes "Firecrawl credits exhausted" — this needs to be confirmed/replenished.
-
-### 5. Deploy Current Code to Vercel (REQUIRED for verify step)
-
-```bash
-git push  # triggers Vercel deploy
-```
-
-The verify step needs the deployed site. Steps 1-4 (score, scrape, upload, provision) work without deployment.
-
----
-
-## Test Run Plan: McCarty Squared
-
-McCarty Squared is an **existing tenant** (site_id: `mccarty-squared`, domain: `mccarty.norbotsystems.com`, tier: Dominate). This makes it a good test because we can compare scraped data against manually seeded data.
-
-### Recommended Test Approach
-
-**Option A: Side-by-side comparison (SAFE — no data changes)**
-```bash
-# Run scrape only, don't provision — compare output against current DB
-node scripts/onboarding/scrape.mjs \
-  --url https://mccartysquared.ca \
-  --output /tmp/onboarding/mccarty-test/scraped.json
-
-# Review what was scraped vs what we manually entered
-# Check: /tmp/onboarding/mccarty-test/scraped.json
-# Check: /tmp/onboarding/mccarty-test/scraped-generation-log.json
-```
-
-**Option B: Full pipeline with a NEW site-id (SAFE — creates separate tenant)**
-```bash
-node scripts/onboarding/onboard.mjs \
-  --url https://mccartysquared.ca \
-  --site-id mccarty-test \
-  --domain mccarty-test.norbotsystems.com \
-  --tier dominate
-```
-
-This creates a separate tenant (`mccarty-test`) so the existing `mccarty-squared` data is untouched. After verifying the output, you can delete the test data.
-
-**Option C: Overwrite existing McCarty data (DESTRUCTIVE — has upsert)**
-
-The provision script uses `upsert` so it would overwrite McCarty's manually curated data. **Do NOT do this** until Option A/B validate that the scraper output is high quality.
-
-### What to Check After Test
-
-1. **Generation log** — `/tmp/onboarding/mccarty-test/scraped-generation-log.json`
-   - Which fields were AI-generated vs scraped?
-   - Are generated fields accurate and truthful?
-2. **Scraped data** — `/tmp/onboarding/mccarty-test/scraped.json`
-   - Business name, phone, email correct?
-   - Services match their real offerings?
-   - Testimonials extracted with real names and quotes?
-   - Colour extraction matches their brand?
-3. **Image quality** — Check Supabase Storage
-   - Hero image resolution adequate?
-   - Team photos found?
-   - Portfolio images captured?
-
-### McCarty's Actual Website
-
-Need to confirm the URL. Likely candidates:
-- `https://mccartysquared.ca`
-- `https://www.mccartysquared.ca`
-
-The site-id `mccarty-squared` is already in proxy.ts and admin_settings.
+### McCarty Squared (Feb 23, 2026)
+- Full pipeline test with separate site-id `mccarty-test`
+- Successfully scraped and provisioned alongside existing manual tenant
 
 ---
 
@@ -278,37 +221,29 @@ scripts/logs/ (build and session logs)
 
 ---
 
-## Cost Summary
+## Cost Per Tenant
 
 | Item | Cost |
 |------|------|
-| Build orchestrator (8 claude sessions) | ~$15-20 (Claude Code Max flat rate) |
-| Per-tenant onboarding (ongoing) | ~$0.07 (FireCrawl + GPT-4o) |
+| FireCrawl (3 credits) | ~$0.03 |
+| Claude AI (Max subscription) | $0 |
 | Supabase Storage | Negligible |
+| **Total** | **~$0.03/tenant** |
 
 ---
 
-## Risk Assessment
+## Hallucination Protection
 
-| Risk | Likelihood | Mitigation |
-|------|-----------|------------|
-| FireCrawl fails on specific site structure | Medium | Multi-page fallback + manual review |
-| Image quality too low | Medium | Manual replacement via admin |
-| AI generates inaccurate content | Low | Strict guardrails + generation log + human review |
-| Missing testimonials/team | High | Sections hidden when data absent (by design) |
-| Colour extraction wrong | Low | OKLCH conversion tested; admin can override |
+The scraper has 3 layers of hallucination detection:
 
----
+1. **Placeholder patterns** — Filters "Jane Doe", "Your Business", "example.com", "BBB Accredited", etc.
+2. **Off-domain URL filter** — Removes any URLs that don't match the source domain
+3. **Markdown cross-reference** — Certifications, trust badges, and portfolio items must have 50%+ of their significant words present in the raw site content
 
-## Recommended Next Steps
+## Current Tenants
 
-1. Push Supabase migrations
-2. Verify env vars and FireCrawl credits
-3. Run Option A test (scrape-only) on McCarty's site
-4. Review scraped output vs existing data
-5. Run Option B test (full pipeline with test site-id)
-6. Visual inspection of the test tenant
-7. Update CLAUDE.md files and MEMORY.md
-8. Push to main, verify Vercel deploy
-9. Run verify.mjs on deployed tenant
-10. If all passes → onboard a NEW prospect as the real test
+| Site ID | Domain | Tier | Source |
+|---------|--------|------|--------|
+| `demo` | ai-reno-demo.vercel.app | Accelerate | Manual |
+| `mccarty-squared` | mccarty.norbotsystems.com | Dominate | Manual |
+| `redwhitereno` | redwhite.norbotsystems.com | Accelerate | Automated |

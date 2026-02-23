@@ -93,9 +93,10 @@ Pass threshold: 7/8
 
 After the pipeline completes:
 1. Review the generation log at `/tmp/onboarding/{site-id}/scraped-generation-log.json`
-2. Add the domain to the Vercel project
-3. Commit and push: `git add -A && git commit -m "feat: onboard tenant {site-id}" && git push`
-4. Wait for Vercel deploy, then run Step 5 verification
+2. Add the domain to Vercel: `npx vercel domains add {site-id}.norbotsystems.com`
+3. Add DNS CNAME on Cloudflare: `{site-id}` → `cname.vercel-dns.com` (use Cloudflare API or dashboard)
+4. Commit and push: `git add src/proxy.ts && git commit -m "feat: onboard tenant {site-id}" && git push`
+5. Wait for Vercel deploy (~1-2 min), then run Step 5 verification
 
 ## Resuming After Failure
 
@@ -110,13 +111,18 @@ rm -rf /tmp/onboarding/{site-id}
 
 These must be set (already configured in the NorBot environment):
 - `FIRECRAWL_API_KEY` — in `~/pipeline/scripts/.env`
-- `OPENAI_API_KEY` — in `~/pipeline/scripts/.env`
 - `NEXT_PUBLIC_SUPABASE_URL` — in `.env.local`
 - `SUPABASE_SERVICE_ROLE_KEY` — in `.env.local`
+- `OPENAI_API_KEY` (optional fallback) — in `~/pipeline/scripts/.env`
+
+## AI Provider
+
+- **Primary:** Claude Sonnet 4.6 via `claude -p` CLI (Max subscription, $0 marginal cost)
+- **Fallback:** OpenAI GPT-5.2 API (used only if Claude CLI is unavailable)
 
 ## Cost Per Tenant
 
-- FireCrawl: ~6 credits ($0.05)
-- GPT-4o (content generation): ~$0.02
+- FireCrawl: ~3 credits ($0.03)
+- Claude AI: $0 (Max subscription)
 - Supabase Storage: negligible
-- **Total: ~$0.07/tenant**
+- **Total: ~$0.03/tenant**
