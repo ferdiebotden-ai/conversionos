@@ -6,7 +6,7 @@ VALUES (
   'tenant-assets',
   'tenant-assets',
   true,
-  104857600,  -- 100MB per file
+  10485760,  -- 10MB per file
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']::text[]
 )
 ON CONFLICT (id) DO NOTHING;

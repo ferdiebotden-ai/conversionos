@@ -21,6 +21,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   // Demo / preview domains
   'ai-reno-demo.vercel.app': 'demo',
   'leadquoteenginev2.vercel.app': 'redwhitereno',
+  'mccarty-test.norbotsystems.com': 'mccarty-test',
 };
 
 export async function proxy(request: NextRequest) {

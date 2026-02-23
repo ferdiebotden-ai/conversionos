@@ -17,13 +17,32 @@ This repo: The platform. One `main` branch serves ALL tenants. Feature gating vi
 - **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
 - **Deploy:** Single Vercel project with proxy routing (or legacy per-tenant projects)
 
-## Adding a New Tenant (Bespoke Demo)
+## Adding a New Tenant
+
+### Automated (preferred)
+Use the `/onboard-tenant` skill or run the pipeline directly:
+```bash
+/onboard-tenant {site-id} {url} {tier}
+# or
+node scripts/onboarding/onboard.mjs --url {url} --site-id {site-id} --domain {site-id}.norbotsystems.com --tier {tier}
+```
+Pipeline: score → scrape → upload images → provision DB → verify. Checkpoints in `/tmp/onboarding/{site-id}/`. See `ONBOARDING_HANDOFF.md` for full details and prerequisites.
+
+### Manual (fallback)
 1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
 3. Add domain to Vercel project (or create new project with `NEXT_PUBLIC_SITE_ID`)
 4. Insert into `tenants` table with domain and plan tier
 5. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
 6. Push to `main` → deploy
+
+## Onboarding Pipeline
+- **Scripts:** `scripts/onboarding/` — 9 scripts (score, scrape, schema, convert-color, upload-images, provision, onboard, verify, README)
+- **Skill:** `.claude/skills/onboard-tenant/SKILL.md` — invokable as `/onboard-tenant`
+- **Dependencies:** `@mendable/firecrawl-js`, `culori` (devDeps)
+- **Env vars needed:** `FIRECRAWL_API_KEY`, `OPENAI_API_KEY` (in `~/pipeline/scripts/.env`), `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (in `.env.local`)
+- **Cost:** ~$0.07/tenant
+- **Handoff report:** `ONBOARDING_HANDOFF.md` (prerequisites, test plan, file inventory)
 
 ## ElevenLabs Voice Agents
 - 3 personas: Emma (receptionist), Marcus (quote specialist), Mia (design consultant)

@@ -26,6 +26,14 @@ function loadEnv() {
 
 loadEnv();
 
+const requiredVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingVars = requiredVars.filter(v => !process.env[v] && !process.env[v === 'NEXT_PUBLIC_SUPABASE_URL' ? 'SUPABASE_URL' : 'SUPABASE_SERVICE_KEY']);
+if (missingVars.length > 0) {
+  console.error(`Missing required env vars: ${missingVars.join(', ')}`);
+  console.error('Add to .env.local or ~/pipeline/scripts/.env');
+  process.exit(1);
+}
+
 const { values: args } = parseArgs({
   options: {
     'site-id': { type: 'string' },

@@ -43,7 +43,7 @@ if (args.help || !args.url) {
   process.exit(args.help ? 0 : 1);
 }
 
-const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY }).v1;
 
 console.log(`Scoring: ${args.url}`);
 console.log('Scraping homepage (1 credit)...');
