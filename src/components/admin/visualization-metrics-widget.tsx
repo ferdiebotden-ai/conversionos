@@ -28,6 +28,8 @@ interface VisualizationMetrics {
   conversation_mode_rate: number;
 }
 
+type FeasibilityDistribution = Record<string, number>;
+
 interface VisualizationMetricsWidgetProps {
   className?: string;
 }
@@ -36,6 +38,7 @@ export function VisualizationMetricsWidget({
   className,
 }: VisualizationMetricsWidgetProps) {
   const [metrics, setMetrics] = useState<VisualizationMetrics | null>(null);
+  const [feasibility, setFeasibility] = useState<FeasibilityDistribution | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +49,9 @@ export function VisualizationMetricsWidget({
         if (!response.ok) throw new Error('Failed to fetch metrics');
         const data = await response.json();
         setMetrics(data.summary);
+        if (data.feasibilityDistribution) {
+          setFeasibility(data.feasibilityDistribution);
+        }
       } catch (err) {
         console.error('Error fetching visualization metrics:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -191,6 +197,44 @@ export function VisualizationMetricsWidget({
             </div>
           </div>
         )}
+
+        {/* Feasibility Distribution */}
+        {feasibility && Object.keys(feasibility).length > 0 && (() => {
+          const maxCount = Math.max(...Object.values(feasibility));
+          const SCORE_COLORS: Record<number, string> = {
+            1: 'bg-red-500',
+            2: 'bg-red-400',
+            3: 'bg-yellow-500',
+            4: 'bg-green-400',
+            5: 'bg-green-500',
+          };
+          return (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="text-sm text-muted-foreground mb-2">Feasibility Scores</div>
+              <div className="flex items-end gap-1.5 h-[48px]">
+                {[1, 2, 3, 4, 5].map((score) => {
+                  const count = feasibility[String(score)] || 0;
+                  const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                  return (
+                    <div key={score} className="flex-1 flex flex-col items-center gap-0.5">
+                      <div className="w-full flex items-end" style={{ height: '36px' }}>
+                        <div
+                          className={cn(
+                            'w-full rounded-t-sm transition-all',
+                            SCORE_COLORS[score]
+                          )}
+                          style={{ height: `${Math.max(heightPct, count > 0 ? 8 : 0)}%` }}
+                          title={`Score ${score}: ${count}`}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{score}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="mt-4 pt-4 border-t border-border text-sm text-muted-foreground">
           Retry rate:{' '}

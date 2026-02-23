@@ -60,15 +60,19 @@ npm run test:e2e     # playwright E2E tests
 ```
 src/app/              — 50+ routes (public pages, admin dashboard, 30+ API endpoints)
   app/admin/          — Admin dashboard (gated: Accelerate+)
+  app/admin/analytics/ — Analytics dashboard (Dominate only, Recharts)
   app/api/            — API routes (ai/, admin/, quotes, contact, export, voice)
+  app/api/ai/visualize/stream/ — SSE streaming visualization endpoint
   app/visualizer/     — AI renovation visualizer
   app/estimate/       — Estimate request flow
 src/components/       — React components
-  components/admin/   — Admin UI (dashboard, leads, settings)
+  components/admin/   — Admin UI (dashboard, leads, settings, analytics)
   components/chat/    — AI chat widget
   components/visualizer/ — Renovation visualizer UI
   components/voice/   — Voice agent UI (Dominate only)
-  components/ui/      — shadcn/ui primitives
+  components/ui/      — shadcn/ui primitives + chart wrapper
+src/hooks/            — Custom React hooks
+  hooks/use-visualization-stream.ts — SSE streaming hook
 src/lib/              — Shared utilities
   lib/entitlements.ts — Feature gating by tier
   lib/db/site.ts      — Tenant resolution (env var + proxy header)
@@ -96,6 +100,11 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 | `redwhitereno` | `redwhite.norbotsystems.com` | Accelerate | Red White Reno demo |
 
 ## Adding a New Tenant
+
+### From Mission Control (primary)
+Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard.mjs` via Claude Code Bridge with real-time output streaming.
+
+### Manual Steps
 1. Seed `admin_settings` rows in Supabase: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
 3. Add domain to Vercel project (or create new Vercel project with `NEXT_PUBLIC_SITE_ID`)
@@ -110,6 +119,28 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 - Never hardcode tenant-specific values
 - Never create per-tenant branches
 - Validate all AI outputs with Zod before rendering or storing
+
+## SSE Streaming Visualization (Session 4)
+- **Streaming endpoint:** `/api/ai/visualize/stream` — returns SSE events (status, concept, complete, error)
+- **Non-streaming endpoint:** `/api/ai/visualize` — left untouched for backward compatibility
+- **Hook:** `useVisualizationStream()` in `src/hooks/use-visualization-stream.ts` — parses SSE via `ReadableStream.getReader()`
+- **Progressive reveal:** `GenerationLoading` shows 4 skeleton slots, cross-fades to real images as concepts arrive
+- **Parallel generation:** All 4 concepts fire via `Promise.allSettled()` (not batched 2+2)
+- **Heartbeat:** `:\n\n` every 15s to keep connection alive
+- **Timeout:** 110s server-side emits whatever is ready; 150s client-side abort
+
+## Analytics Dashboard (Session 4)
+- **Dominate tier only** — gated by `analytics_dashboard` entitlement
+- **Charts:** Recharts with shadcn/ui wrapper (`src/components/ui/chart.tsx`)
+- **API:** `/api/admin/visualizations/trends?days=30` — aggregates daily metrics, room types, modes
+- **Page:** `src/app/admin/analytics/` — server component (tier check) + client component (charts)
+- **Sidebar:** Auto-hidden for non-Dominate via existing `visibleNavItems` filter
+
+## Mobile Camera Capture (Session 4)
+- **Detection:** `useEffect` + `useState(false)` to avoid hydration mismatch
+- **Mobile UI:** "Take a Photo" (capture=environment) + "Choose from Gallery" buttons
+- **Desktop UI:** Existing drag-and-drop zone unchanged
+- **Quality check:** Min 640x640 pixels after compression
 
 ## Business Constants
 HST: 13% • Deposit: 50%

@@ -87,8 +87,9 @@ function formatRelativeTime(date: string): string {
   }
 }
 
-// Define columns
-const columns: ColumnDef<Lead>[] = [
+// Define columns factory (needs feasibility map for dot indicators)
+function createColumns(feasibilityMap: Record<string, number>): ColumnDef<Lead>[] {
+  return [
   {
     accessorKey: 'name',
     header: ({ column }) => {
@@ -112,7 +113,10 @@ const columns: ColumnDef<Lead>[] = [
       );
     },
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
+      <div className="font-medium flex items-center gap-2">
+        <FeasibilityDot score={feasibilityMap[row.original.id]} />
+        {row.getValue('name')}
+      </div>
     ),
   },
   {
@@ -186,6 +190,31 @@ const columns: ColumnDef<Lead>[] = [
     ),
   },
 ];
+}
+
+// Feasibility score dot colours
+function FeasibilityDot({ score }: { score?: number | undefined }) {
+  if (score == null) {
+    return (
+      <span
+        className="inline-block w-2 h-2 rounded-full bg-gray-300 shrink-0"
+        title="No feasibility score"
+      />
+    );
+  }
+  const colorClass =
+    score >= 4
+      ? 'bg-green-500'
+      : score === 3
+        ? 'bg-yellow-500'
+        : 'bg-red-500';
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full ${colorClass} shrink-0`}
+      title={`Feasibility: ${score}/5`}
+    />
+  );
+}
 
 interface LeadsTableProps {
   initialLeads: Lead[];
@@ -195,9 +224,10 @@ interface LeadsTableProps {
     total: number;
     totalPages: number;
   };
+  initialFeasibilityMap?: Record<string, number>;
 }
 
-export function LeadsTable({ initialLeads, initialPagination }: LeadsTableProps) {
+export function LeadsTable({ initialLeads, initialPagination, initialFeasibilityMap }: LeadsTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -205,6 +235,7 @@ export function LeadsTable({ initialLeads, initialPagination }: LeadsTableProps)
   // State
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [pagination, setPagination] = useState(initialPagination);
+  const [feasibilityMap] = useState<Record<string, number>>(initialFeasibilityMap || {});
   const [isLoading, setIsLoading] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_at', desc: true },
@@ -289,6 +320,8 @@ export function LeadsTable({ initialLeads, initialPagination }: LeadsTableProps)
 
     fetchLeads();
   }, [currentSearch, currentStatus, currentProjectType, currentPage, currentLimit, sorting]);
+
+  const columns = createColumns(feasibilityMap);
 
   const table = useReactTable({
     data: leads,

@@ -32,6 +32,7 @@ export async function GET(
             generation_time_ms,
             photo_analysis,
             conversation_context,
+            concept_pricing,
             admin_notes,
             selected_concept_index,
             contractor_feasibility_score,

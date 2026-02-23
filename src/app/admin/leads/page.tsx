@@ -58,7 +58,34 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
     return {
       leads: [],
       pagination: { page, limit, total: 0, totalPages: 0 },
+      feasibilityMap: {} as Record<string, number>,
     };
+  }
+
+  // Fetch feasibility scores for these leads from linked visualizations
+  // contractor_feasibility_score may not be in generated types yet
+  const leadIds = (leads || []).map((l) => l.id);
+  let feasibilityMap: Record<string, number> = {};
+
+  if (leadIds.length > 0) {
+    const { data: vizData } = await (supabase
+      .from('visualizations') as ReturnType<typeof supabase.from>)
+      .select('lead_id, contractor_feasibility_score')
+      .in('lead_id', leadIds)
+      .not('contractor_feasibility_score', 'is', null) as { data: Array<{ lead_id: string | null; contractor_feasibility_score: number | null }> | null };
+
+    if (vizData) {
+      // Use the highest score per lead (if multiple visualizations)
+      for (const v of vizData) {
+        if (v.lead_id && v.contractor_feasibility_score != null) {
+          const score = v.contractor_feasibility_score;
+          const existing = feasibilityMap[v.lead_id];
+          if (existing === undefined || score > existing) {
+            feasibilityMap[v.lead_id] = score;
+          }
+        }
+      }
+    }
   }
 
   return {
@@ -69,6 +96,7 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
       total: count || 0,
       totalPages: Math.ceil((count || 0) / limit),
     },
+    feasibilityMap,
   };
 }
 
@@ -100,7 +128,7 @@ function LeadsTableSkeleton() {
 }
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const { leads, pagination } = await getLeads(searchParams);
+  const { leads, pagination, feasibilityMap } = await getLeads(searchParams);
 
   return (
     <div className="space-y-6">
@@ -109,7 +137,11 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       </p>
 
       <Suspense fallback={<LeadsTableSkeleton />}>
-        <LeadsTable initialLeads={leads} initialPagination={pagination} />
+        <LeadsTable
+          initialLeads={leads}
+          initialPagination={pagination}
+          initialFeasibilityMap={feasibilityMap}
+        />
       </Suspense>
     </div>
   );

@@ -5,7 +5,7 @@
  * Drag & drop zone with preview and tips
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +27,14 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+  }, []);
 
   const processFile = useCallback(
     async (file: File) => {
@@ -48,6 +55,17 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
         // Compress and convert
         const compressed = await compressImage(file);
         const base64 = await fileToBase64(compressed);
+
+        // Resolution check
+        const img = new window.Image();
+        img.src = base64;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load image'));
+        });
+        if (img.naturalWidth < 640 || img.naturalHeight < 640) {
+          throw new Error('Photo resolution too low. Try stepping back or using landscape mode.');
+        }
 
         onChange(base64, compressed);
       } catch (err) {
@@ -132,8 +150,50 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
             </Button>
           </div>
         </div>
+      ) : isMobile ? (
+        // Mobile upload — camera + gallery buttons
+        <div className="flex flex-col gap-3">
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="sr-only"
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="sr-only"
+          />
+          <Button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-full h-14 text-base gap-3"
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-5 h-5" />
+            )}
+            {isProcessing ? 'Processing...' : 'Take a Photo'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => galleryInputRef.current?.click()}
+            className="w-full h-14 text-base gap-3"
+            disabled={isProcessing}
+          >
+            <ImageIcon className="w-5 h-5" />
+            Choose from Gallery
+          </Button>
+        </div>
       ) : (
-        // Upload state — hidden input + clickable zone (most reliable pattern)
+        // Desktop upload — hidden input + clickable drop zone
         <>
           <input
             ref={fileInputRef}
@@ -203,22 +263,35 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
       )}
 
       {/* Tips section */}
-      <div className="bg-muted/50 rounded-lg p-4 border border-border">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Lightbulb className="w-4 h-4 text-amber-600" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Tips for best results</p>
-            <ul className="text-sm text-muted-foreground mt-1 space-y-1">
-              <li>Take a wide shot from a corner of the room</li>
-              <li>Ensure good lighting (natural light works best)</li>
-              <li>Clear clutter for cleaner visualizations</li>
-              <li>Include key features you want to transform</li>
-            </ul>
+      {isMobile ? (
+        <div className="bg-muted/50 rounded-lg p-4 border border-border">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <Lightbulb className="w-4 h-4 text-amber-600" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Tip: Hold your phone in landscape from a corner of the room
+            </p>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-muted/50 rounded-lg p-4 border border-border">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <Lightbulb className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">Tips for best results</p>
+              <ul className="text-sm text-muted-foreground mt-1 space-y-1">
+                <li>Take a wide shot from a corner of the room</li>
+                <li>Ensure good lighting (natural light works best)</li>
+                <li>Clear clutter for cleaner visualizations</li>
+                <li>Include key features you want to transform</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

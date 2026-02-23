@@ -37,7 +37,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  DollarSign,
 } from 'lucide-react';
+import { formatCAD } from '@/lib/ai/knowledge/pricing-data';
 
 interface GeneratedConcept {
   id: string;
@@ -68,6 +70,23 @@ interface ConversationContext {
   turnCount?: number;
 }
 
+interface ConceptPricing {
+  identifiedMaterials: {
+    name: string;
+    category: string;
+    estimatedQuantity: string;
+    priceRange: { low: number; high: number };
+    unit: string;
+    confidence: number;
+  }[];
+  inferredFinishLevel: 'economy' | 'standard' | 'premium';
+  materialCostRange: { low: number; high: number };
+  labourCostRange: { low: number; high: number };
+  totalEstimate: { low: number; high: number };
+  visibleChanges: string[];
+  overallConfidence: number;
+}
+
 interface Visualization {
   id: string;
   original_photo_url: string;
@@ -78,6 +97,7 @@ interface Visualization {
   generation_time_ms: number;
   photo_analysis?: PhotoAnalysis;
   conversation_context?: ConversationContext;
+  concept_pricing?: ConceptPricing;
   admin_notes?: string;
   selected_concept_index?: number;
   contractor_feasibility_score?: number;
@@ -105,6 +125,7 @@ export function LeadVisualizationPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showConversation, setShowConversation] = useState(false);
+  const [showCostAnalysis, setShowCostAnalysis] = useState(false);
 
   // Local state for editable fields
   const [adminNotes, setAdminNotes] = useState('');
@@ -549,6 +570,124 @@ export function LeadVisualizationPanel({
                           )}
                         </div>
                       )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            )}
+
+            {/* AI Cost Analysis (collapsible) */}
+            {currentViz.concept_pricing && (
+              <Collapsible open={showCostAnalysis} onOpenChange={setShowCostAnalysis}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="py-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
+                          AI Cost Analysis
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              'text-xs capitalize',
+                              currentViz.concept_pricing.inferredFinishLevel === 'economy' && 'bg-gray-100 text-gray-700',
+                              currentViz.concept_pricing.inferredFinishLevel === 'standard' && 'bg-blue-100 text-blue-700',
+                              currentViz.concept_pricing.inferredFinishLevel === 'premium' && 'bg-purple-100 text-purple-700',
+                            )}
+                          >
+                            {currentViz.concept_pricing.inferredFinishLevel}
+                          </Badge>
+                        </span>
+                        {showCostAnalysis ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 text-sm space-y-4">
+                      {/* Identified Materials */}
+                      {currentViz.concept_pricing.identifiedMaterials.length > 0 && (
+                        <div>
+                          <span className="font-medium">Identified Materials</span>
+                          <div className="mt-2 overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b text-left text-muted-foreground">
+                                  <th className="pb-1 pr-3">Material</th>
+                                  <th className="pb-1 pr-3">Category</th>
+                                  <th className="pb-1 text-right">Price Range</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {currentViz.concept_pricing.identifiedMaterials.map((mat, i) => (
+                                  <tr key={i} className="border-b border-border/50">
+                                    <td className="py-1.5 pr-3">{mat.name}</td>
+                                    <td className="py-1.5 pr-3 capitalize text-muted-foreground">
+                                      {mat.category}
+                                    </td>
+                                    <td className="py-1.5 text-right whitespace-nowrap">
+                                      {formatCAD(mat.priceRange.low)} – {formatCAD(mat.priceRange.high)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cost Summary */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Materials</div>
+                          <div className="font-medium mt-0.5">
+                            {formatCAD(currentViz.concept_pricing.materialCostRange.low)} – {formatCAD(currentViz.concept_pricing.materialCostRange.high)}
+                          </div>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Labour</div>
+                          <div className="font-medium mt-0.5">
+                            {formatCAD(currentViz.concept_pricing.labourCostRange.low)} – {formatCAD(currentViz.concept_pricing.labourCostRange.high)}
+                          </div>
+                        </div>
+                        <div className="bg-primary/5 rounded-lg p-2.5 text-center border border-primary/20">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+                          <div className="font-semibold mt-0.5">
+                            {formatCAD(currentViz.concept_pricing.totalEstimate.low)} – {formatCAD(currentViz.concept_pricing.totalEstimate.high)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Visible Changes */}
+                      {currentViz.concept_pricing.visibleChanges.length > 0 && (
+                        <div>
+                          <span className="font-medium">Visible Changes</span>
+                          <ul className="list-disc list-inside mt-1 text-muted-foreground">
+                            {currentViz.concept_pricing.visibleChanges.map((change, i) => (
+                              <li key={i}>{change}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Confidence */}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Confidence:</span>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-xs',
+                            currentViz.concept_pricing.overallConfidence >= 0.7 && 'bg-green-100 text-green-700',
+                            currentViz.concept_pricing.overallConfidence >= 0.5 && currentViz.concept_pricing.overallConfidence < 0.7 && 'bg-yellow-100 text-yellow-700',
+                            currentViz.concept_pricing.overallConfidence < 0.5 && 'bg-red-100 text-red-700',
+                          )}
+                        >
+                          {Math.round(currentViz.concept_pricing.overallConfidence * 100)}%
+                        </Badge>
+                      </div>
                     </CardContent>
                   </CollapsibleContent>
                 </Card>

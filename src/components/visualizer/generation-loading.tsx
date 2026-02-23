@@ -3,19 +3,27 @@
 /**
  * Generation Loading
  * Engaging loading experience during AI visualization generation
+ * Supports progressive concept previews via SSE streaming
  */
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sparkles, X, Lightbulb } from 'lucide-react';
+import type { GeneratedConcept } from '@/lib/schemas/visualization';
 
 interface GenerationLoadingProps {
   style: string;
   roomType: string;
   progress: number;
-  onCancel?: () => void;
-  className?: string;
+  onCancel?: (() => void) | undefined;
+  className?: string | undefined;
+  /** Real stage text from SSE streaming (replaces default heading when provided) */
+  stage?: string | undefined;
+  /** Progressively populated concept previews from SSE streaming */
+  concepts?: GeneratedConcept[] | undefined;
+  /** Original image for context */
+  originalImage?: string | undefined;
 }
 
 // Tips to display while generating
@@ -36,6 +44,9 @@ export function GenerationLoading({
   progress,
   onCancel,
   className,
+  stage,
+  concepts,
+  originalImage,
 }: GenerationLoadingProps) {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [tipFading, setTipFading] = useState(false);
@@ -90,7 +101,9 @@ export function GenerationLoading({
       </div>
 
       {/* Main heading */}
-      <h2 className="text-2xl font-bold text-center">Creating Your Vision</h2>
+      <h2 className="text-2xl font-bold text-center">
+        {stage || 'Creating Your Vision'}
+      </h2>
       <p className="text-muted-foreground mt-2 text-center max-w-md">
         Reimagining your {formatRoomType(roomType)} in the{' '}
         <span className="font-medium capitalize">{style}</span> style
@@ -109,6 +122,35 @@ export function GenerationLoading({
           />
         </div>
       </div>
+
+      {/* Progressive concept preview grid (SSE streaming) */}
+      {stage && (
+        <div className="w-full max-w-lg mt-8 grid grid-cols-4 gap-3">
+          {Array.from({ length: 4 }, (_, i) => {
+            const concept = concepts?.[i];
+            return (
+              <div
+                key={i}
+                className="relative aspect-square rounded-lg overflow-hidden border border-border"
+              >
+                {concept ? (
+                  <img
+                    src={concept.imageUrl}
+                    alt={concept.description || `Concept ${i + 1}`}
+                    className="w-full h-full object-cover transition-opacity duration-500 opacity-0 animate-fade-in"
+                    style={{ animationFillMode: 'forwards' }}
+                    onLoad={(e) => {
+                      (e.target as HTMLImageElement).style.opacity = '1';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full animate-pulse bg-muted" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Tips carousel */}
       <div className="mt-8 w-full max-w-md">

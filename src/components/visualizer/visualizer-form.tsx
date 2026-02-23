@@ -21,7 +21,7 @@ import { PhotoSummaryBar } from './photo-summary-bar';
 import { ResultDisplay } from './result-display';
 import { GenerationLoading } from './generation-loading';
 import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
-import { serializeHandoffContext } from '@/lib/chat/handoff';
+import { useVisualizationStream } from '@/hooks/use-visualization-stream';
 import { mergeDesignIntent, type DesignPreferences, type VoiceExtractedPreferences } from '@/lib/schemas/design-preferences';
 import type {
   VisualizationResponse,
@@ -29,6 +29,7 @@ import type {
 } from '@/lib/schemas/visualization';
 import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
+import { useTier } from '@/components/tier-provider';
 import {
   AlertCircle,
   Sparkles,
@@ -53,6 +54,7 @@ interface FormData {
 
 function VisualizerFormInner() {
   const router = useRouter();
+  const { canAccess } = useTier();
   const [currentStep, setCurrentStep] = useState<Step>('photo');
   const [formData, setFormData] = useState<FormData>({
     photo: null,
@@ -66,8 +68,10 @@ function VisualizerFormInner() {
   });
   const [visualization, setVisualization] = useState<VisualizationResponse | null>(null);
   const [error, setError] = useState<VisualizationError | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+
+  // SSE streaming hook for real-time generation progress
+  const stream = useVisualizationStream();
 
   // Refs for auto-scroll behavior
   const styleSectionRef = useRef<HTMLDivElement>(null);
@@ -99,18 +103,33 @@ function VisualizerFormInner() {
     setTimeout(() => scrollToWithOffset(preferencesSectionRef.current), 150);
   }, [scrollToWithOffset]);
 
-  // Run photo analysis async after upload
+  // Run photo analysis async after upload — pre-detects room type
   const runPhotoAnalysis = useCallback(async (imageBase64: string) => {
-    if (!process.env['NEXT_PUBLIC_DEMO_MODE']) {
-      setIsAnalyzingPhoto(true);
-      try {
-        // We don't need to call the analysis endpoint separately — it runs server-side
-        // during the /api/ai/visualize call. But if we wanted pre-analysis for
-        // room type detection, we could add it here. For now, just mark as done.
-        setIsAnalyzingPhoto(false);
-      } catch {
-        setIsAnalyzingPhoto(false);
+    setIsAnalyzingPhoto(true);
+    try {
+      const res = await fetch('/api/ai/analyze-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageBase64 }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.analysis) {
+          setFormData(prev => ({
+            ...prev,
+            photoAnalysis: data.analysis,
+            // Pre-fill room type if user hasn't selected one yet
+            ...(prev.roomType === null && data.analysis.roomType
+              ? { roomType: data.analysis.roomType }
+              : {}),
+          }));
+        }
       }
+    } catch {
+      // Non-fatal — analysis will run again server-side during generation
+    } finally {
+      setIsAnalyzingPhoto(false);
     }
   }, []);
 
@@ -139,7 +158,7 @@ function VisualizerFormInner() {
     }));
   }, []);
 
-  // Build design preferences and generate
+  // Build design preferences and generate via SSE streaming
   const handleGenerate = useCallback(async () => {
     if (!formData.photo || !formData.roomType || !formData.style) return;
 
@@ -149,108 +168,64 @@ function VisualizerFormInner() {
     }
 
     setCurrentStep('generating');
-    setGenerationProgress(0);
     setError(null);
 
-    // Simulate progress — tuned for ~60-90s generation time
-    // Slower increments to avoid stalling at a visible threshold
-    const progressInterval = setInterval(() => {
-      setGenerationProgress(prev => {
-        if (prev < 20) return prev + 2;       // 0→20% in ~5s (uploading + analysis)
-        if (prev < 50) return prev + 1.5;     // 20→50% in ~10s (structural conditioning)
-        if (prev < 75) return prev + 0.5;     // 50→75% in ~25s (generating concepts batch 1)
-        if (prev < 92) return prev + 0.2;     // 75→92% in ~42s (generating concepts batch 2)
-        if (prev < 97) return prev + 0.05;    // 92→97% in ~50s (uploading + saving)
-        return prev;                           // stalls at 97%
+    // Build full design preferences
+    const prefs: DesignPreferences = {
+      roomType: formData.roomType,
+      customRoomType: formData.roomType === 'other' ? formData.customRoomType : undefined,
+      style: formData.style,
+      customStyle: formData.style === 'other' ? formData.customStyle : undefined,
+      textPreferences: formData.textPreferences,
+      voiceTranscript: formData.voiceTranscript.map(t => ({
+        role: t.role,
+        content: t.content,
+        timestamp: t.timestamp,
+      })),
+      voicePreferencesSummary: formData.voicePreferencesSummary,
+      voiceExtractedPreferences: formData.voiceExtractedPreferences,
+      photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
+    };
+
+    // Merge all preference sources into a unified design intent
+    const designIntent = mergeDesignIntent(prefs);
+
+    stream.startGeneration({
+      image: formData.photo,
+      roomType: formData.roomType,
+      style: formData.style,
+      customRoomType: formData.customRoomType || undefined,
+      customStyle: formData.customStyle || undefined,
+      constraints: formData.textPreferences || undefined,
+      count: 4,
+      mode: 'streamlined',
+      designIntent,
+      voicePreferencesSummary: formData.voicePreferencesSummary,
+      voiceTranscript: formData.voiceTranscript.length > 0
+        ? formData.voiceTranscript.map(t => ({
+            role: t.role,
+            content: t.content,
+            timestamp: t.timestamp,
+          }))
+        : undefined,
+      photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
+    });
+  }, [formData, endVoice, voiceStatus, stream]);
+
+  // Watch stream status and transition steps accordingly
+  useEffect(() => {
+    if (stream.status === 'complete' && stream.visualization) {
+      setVisualization(stream.visualization);
+      setTimeout(() => setCurrentStep('result'), 500);
+    } else if (stream.status === 'error') {
+      setError({
+        error: stream.error || 'Generation failed',
+        code: 'UNKNOWN',
+        details: stream.error || 'An unexpected error occurred.',
       });
-    }, 500);
-
-    try {
-      // Build full design preferences
-      const prefs: DesignPreferences = {
-        roomType: formData.roomType,
-        customRoomType: formData.roomType === 'other' ? formData.customRoomType : undefined,
-        style: formData.style,
-        customStyle: formData.style === 'other' ? formData.customStyle : undefined,
-        textPreferences: formData.textPreferences,
-        voiceTranscript: formData.voiceTranscript.map(t => ({
-          role: t.role,
-          content: t.content,
-          timestamp: t.timestamp,
-        })),
-        voicePreferencesSummary: formData.voicePreferencesSummary,
-        voiceExtractedPreferences: formData.voiceExtractedPreferences,
-        photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
-      };
-
-      // Merge all preference sources into a unified design intent
-      const designIntent = mergeDesignIntent(prefs);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 150000); // 150s — matches server maxDuration + headroom
-
-      const response = await fetch('/api/ai/visualize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: formData.photo,
-          roomType: formData.roomType,
-          style: formData.style,
-          customRoomType: formData.customRoomType || undefined,
-          customStyle: formData.customStyle || undefined,
-          constraints: formData.textPreferences || undefined,
-          count: 4,
-          mode: 'streamlined',
-          designIntent,
-          voicePreferencesSummary: formData.voicePreferencesSummary,
-          voiceTranscript: formData.voiceTranscript.length > 0
-            ? formData.voiceTranscript.map(t => ({
-                role: t.role,
-                content: t.content,
-                timestamp: t.timestamp,
-              }))
-            : undefined,
-          photoAnalysis: formData.photoAnalysis,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      clearInterval(progressInterval);
-
-      if (!response.ok) {
-        const errorData: VisualizationError = await response.json();
-        setError(errorData);
-        setCurrentStep('error');
-        return;
-      }
-
-      const data: VisualizationResponse = await response.json();
-      setVisualization(data);
-      setGenerationProgress(100);
-
-      setTimeout(() => {
-        setCurrentStep('result');
-      }, 500);
-    } catch (err) {
-      clearInterval(progressInterval);
-
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError({
-          error: 'Generation timed out',
-          code: 'TIMEOUT',
-          details: 'The visualization took too long. Please try again with a smaller image or simpler settings.',
-        });
-      } else {
-        setError({
-          error: 'Failed to connect to visualization service',
-          code: 'UNKNOWN',
-          details: err instanceof Error ? err.message : 'Unknown error',
-        });
-      }
       setCurrentStep('error');
     }
-  }, [formData, endVoice, voiceStatus]);
+  }, [stream.status, stream.visualization, stream.error]);
 
   const handleStartOver = useCallback(() => {
     setFormData({
@@ -268,8 +243,39 @@ function VisualizerFormInner() {
     setCurrentStep('photo');
   }, []);
 
+  // Try another style — keeps photo + room type, resets style and preferences
+  const handleTryAnotherStyle = useCallback(() => {
+    setFormData(prev => {
+      const {
+        voicePreferencesSummary: _vs,
+        voiceExtractedPreferences: _ve,
+        ...rest
+      } = prev;
+      return {
+        ...rest,
+        style: null,
+        customStyle: '',
+        textPreferences: '',
+        voiceTranscript: [],
+      };
+    });
+    setVisualization(null);
+    setCurrentStep('form');
+  }, []);
+
   const handleGetQuote = useCallback(() => {
-    // Serialize full context for Marcus handoff
+    // Elevate tier: redirect to contact page (no Marcus handoff)
+    if (!canAccess('ai_quote_engine')) {
+      const params = new URLSearchParams();
+      params.set('from', 'visualizer');
+      if (visualization?.id) {
+        params.set('visualization', visualization.id);
+      }
+      router.push(`/contact?${params.toString()}`);
+      return;
+    }
+
+    // Accelerate+: Serialize full context for Marcus handoff — include ALL captured data
     const messages = formData.voiceTranscript.map(t => ({
       role: t.role as 'user' | 'assistant',
       content: t.content,
@@ -282,16 +288,30 @@ function VisualizerFormInner() {
       ? formData.customStyle
       : formData.style || '';
 
-    serializeHandoffContext(
-      'design-consultant',
-      'quote-specialist',
-      messages,
-      undefined,
-    );
-
-    // Also store rich context in sessionStorage for the estimate page
+    // Store rich handoff context in sessionStorage
     if (typeof window !== 'undefined') {
       try {
+        // Build photo analysis subset for handoff (avoid serializing full blob)
+        const photoAnalysisHandoff = formData.photoAnalysis ? {
+          roomType: formData.photoAnalysis.roomType,
+          layoutType: formData.photoAnalysis.layoutType,
+          currentCondition: formData.photoAnalysis.currentCondition,
+          structuralElements: formData.photoAnalysis.structuralElements,
+          identifiedFixtures: formData.photoAnalysis.identifiedFixtures,
+          estimatedDimensions: formData.photoAnalysis.estimatedDimensions,
+          estimatedCeilingHeight: formData.photoAnalysis.estimatedCeilingHeight,
+          wallCount: formData.photoAnalysis.wallCount,
+          wallDimensions: formData.photoAnalysis.wallDimensions,
+          spatialZones: formData.photoAnalysis.spatialZones,
+        } : undefined;
+
+        // Build voice-extracted structured preferences
+        const voiceExtracted = formData.voiceExtractedPreferences ? {
+          desiredChanges: formData.voiceExtractedPreferences.desiredChanges,
+          materialPreferences: formData.voiceExtractedPreferences.materialPreferences,
+          preservationNotes: formData.voiceExtractedPreferences.preservationNotes,
+        } : undefined;
+
         const handoffData = {
           fromPersona: 'design-consultant' as const,
           toPersona: 'quote-specialist' as const,
@@ -312,6 +332,10 @@ function VisualizerFormInner() {
             roomType: visualization.roomType,
             style: visualization.style,
           } : undefined,
+          photoAnalysis: photoAnalysisHandoff,
+          voiceExtractedPreferences: voiceExtracted,
+          // quoteAssistanceMode and costSignals will be injected server-side
+          // by the estimate page API based on tenant config
           timestamp: Date.now(),
         };
         sessionStorage.setItem('demo_handoff_context', JSON.stringify(handoffData));
@@ -325,7 +349,7 @@ function VisualizerFormInner() {
       params.set('visualization', visualization.id);
     }
     router.push(`/estimate?${params.toString()}`);
-  }, [formData, visualization, router]);
+  }, [formData, visualization, router, canAccess]);
 
   const handleRetry = useCallback(() => {
     handleGenerate();
@@ -379,8 +403,11 @@ function VisualizerFormInner() {
         <GenerationLoading
           style={effectiveStyle || 'modern'}
           roomType={effectiveRoomType || 'kitchen'}
-          progress={generationProgress}
-          onCancel={handleStartOver}
+          progress={stream.progress}
+          stage={stream.stage}
+          concepts={stream.concepts}
+          originalImage={formData.photo || undefined}
+          onCancel={() => { stream.cancel(); handleStartOver(); }}
         />
       </div>
     );
@@ -394,6 +421,7 @@ function VisualizerFormInner() {
         originalImage={formData.photo}
         onStartOver={handleStartOver}
         onGetQuote={handleGetQuote}
+        onTryAnotherStyle={handleTryAnotherStyle}
       />
     );
   }
@@ -417,6 +445,7 @@ function VisualizerFormInner() {
       <PhotoSummaryBar
         photoSrc={formData.photo!}
         detectedRoomType={formData.photoAnalysis?.roomType}
+        isAnalyzing={isAnalyzingPhoto}
         onChangePhoto={handleChangePhoto}
       />
 

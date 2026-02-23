@@ -15,6 +15,7 @@ import {
   FileText,
   DollarSign,
   Pencil,
+  BarChart3,
   Settings,
   Sparkles,
   LogOut,
@@ -35,6 +36,7 @@ const NAV_ITEMS: {
   { href: '/admin/quotes', label: 'Quotes', icon: FileText, feature: 'ai_quote_engine' },
   { href: '/admin/invoices', label: 'Invoices', icon: DollarSign, feature: 'invoicing' },
   { href: '/admin/drawings', label: 'Drawings', icon: Pencil, feature: 'drawings' },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, feature: 'analytics_dashboard' },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
