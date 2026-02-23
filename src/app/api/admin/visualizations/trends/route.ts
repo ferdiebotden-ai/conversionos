@@ -26,10 +26,9 @@ export async function GET(request: NextRequest) {
     since.setDate(since.getDate() - days);
 
     // Query visualizations for the period
-    // contractor_feasibility_score and concepts_count may not be in generated types
     const { data: visualizations, error } = await (supabase
       .from('visualizations') as ReturnType<typeof supabase.from>)
-      .select('id, created_at, room_type, generation_time_ms, source, contractor_feasibility_score, concepts_count')
+      .select('id, created_at, room_type, generation_time_ms, source, generated_concepts')
       .eq('site_id', siteId)
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: true }) as {
@@ -39,8 +38,7 @@ export async function GET(request: NextRequest) {
           room_type: string;
           generation_time_ms: number | null;
           source: string | null;
-          contractor_feasibility_score: number | null;
-          concepts_count: number | null;
+          generated_concepts: unknown[] | null;
         }> | null;
         error: { message: string } | null;
       };
@@ -62,14 +60,14 @@ export async function GET(request: NextRequest) {
 
     const { data: previousVisualizations } = await (supabase
       .from('visualizations') as ReturnType<typeof supabase.from>)
-      .select('id, generation_time_ms, concepts_count')
+      .select('id, generation_time_ms, generated_concepts')
       .eq('site_id', siteId)
       .gte('created_at', previousSince.toISOString())
       .lt('created_at', since.toISOString()) as {
         data: Array<{
           id: string;
           generation_time_ms: number | null;
-          concepts_count: number | null;
+          generated_concepts: unknown[] | null;
         }> | null;
       };
 
@@ -104,8 +102,9 @@ export async function GET(request: NextRequest) {
       const mode = v.source?.includes('conversation') ? 'conversation' : 'quick';
       modeCounts[mode] = (modeCounts[mode] || 0) + 1;
 
-      if (v.concepts_count != null && v.concepts_count > 0) {
-        totalConcepts += v.concepts_count;
+      const conceptCount = Array.isArray(v.generated_concepts) ? v.generated_concepts.length : 0;
+      if (conceptCount > 0) {
+        totalConcepts += conceptCount;
         conceptsWithData++;
       }
     }

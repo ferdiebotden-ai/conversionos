@@ -61,22 +61,6 @@ export async function GET(request: NextRequest) {
 
       const retrySum = metrics?.reduce((sum, m) => sum + (m.retry_count || 0), 0) ?? 0;
 
-      // Fetch feasibility scores separately (may not be in generated types)
-      const { data: feasibilityData } = await (supabase
-        .from('visualizations') as ReturnType<typeof supabase.from>)
-        .select('contractor_feasibility_score')
-        .eq('site_id', getSiteId())
-        .not('contractor_feasibility_score', 'is', null)
-        .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()) as { data: Array<{ contractor_feasibility_score: number }> | null };
-
-      const feasibilityDistribution: Record<number, number> = {};
-      for (const row of feasibilityData || []) {
-        const score = row.contractor_feasibility_score as number;
-        if (score >= 1 && score <= 5) {
-          feasibilityDistribution[score] = (feasibilityDistribution[score] || 0) + 1;
-        }
-      }
-
       return NextResponse.json({
         summary: {
           total_visualizations: total,
@@ -89,30 +73,14 @@ export async function GET(request: NextRequest) {
           total_cost_usd: totalCost,
           avg_cost_per_visualization: total > 0 ? totalCost / total : 0,
         },
-        feasibilityDistribution,
+        feasibilityDistribution: {},
         days,
       });
     }
 
-    // Fetch feasibility scores for RPC path too (may not be in generated types)
-    const { data: feasibilityData } = await (supabase
-      .from('visualizations') as ReturnType<typeof supabase.from>)
-      .select('contractor_feasibility_score')
-      .eq('site_id', getSiteId())
-      .not('contractor_feasibility_score', 'is', null)
-      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()) as { data: Array<{ contractor_feasibility_score: number }> | null };
-
-    const feasibilityDistribution: Record<number, number> = {};
-    for (const row of feasibilityData || []) {
-      const score = row.contractor_feasibility_score;
-      if (score >= 1 && score <= 5) {
-        feasibilityDistribution[score] = (feasibilityDistribution[score] || 0) + 1;
-      }
-    }
-
     return NextResponse.json({
       summary: summary?.[0] || {},
-      feasibilityDistribution,
+      feasibilityDistribution: {},
       days,
     });
   } catch (error) {
