@@ -23,15 +23,15 @@ export function getSiteId(): string {
 }
 
 /**
- * Async site_id resolution with middleware header support.
- * Use in new server components and API routes for single-project deployments.
+ * Async site_id resolution with proxy header support.
+ * Checks proxy-set header FIRST (enables single-project multi-tenancy),
+ * then falls back to env var (for per-tenant Vercel projects).
+ *
+ * Calling headers() forces Next.js dynamic rendering — use this in pages
+ * that need per-tenant content via proxy routing.
  */
 export async function getSiteIdAsync(): Promise<string> {
-  // 1. Env var takes precedence (works in both deployment patterns)
-  const fromEnv = process.env['NEXT_PUBLIC_SITE_ID'];
-  if (fromEnv) return fromEnv;
-
-  // 2. Middleware-set header (single Vercel project pattern)
+  // 1. Proxy-set header (single Vercel project pattern)
   try {
     const h = await headers();
     const fromHeader = h.get('x-site-id');
@@ -40,7 +40,11 @@ export async function getSiteIdAsync(): Promise<string> {
     // headers() throws outside request context (build time, scripts)
   }
 
-  throw new Error('Could not resolve site_id — set NEXT_PUBLIC_SITE_ID or configure middleware');
+  // 2. Env var fallback (per-tenant Vercel projects, or default tenant)
+  const fromEnv = process.env['NEXT_PUBLIC_SITE_ID'];
+  if (fromEnv) return fromEnv;
+
+  throw new Error('Could not resolve site_id — set NEXT_PUBLIC_SITE_ID or configure proxy');
 }
 
 export function withSiteId<T extends Record<string, unknown>>(data: T): T & { site_id: string } {

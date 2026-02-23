@@ -9,7 +9,7 @@
  */
 
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 
 export interface CompanyConfig {
   name: string;
@@ -67,7 +67,7 @@ export interface CompanyConfig {
 export async function getCompanyConfig(): Promise<CompanyConfig> {
   try {
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     const { data } = await supabase
       .from('admin_settings')

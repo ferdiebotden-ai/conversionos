@@ -4,7 +4,7 @@
  */
 
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import type { PlanTier } from '@/lib/entitlements';
 
 const DEFAULT_TIER: PlanTier = 'accelerate';
@@ -16,7 +16,7 @@ const DEFAULT_TIER: PlanTier = 'accelerate';
 export async function getTier(): Promise<PlanTier> {
   try {
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     const { data } = await supabase
       .from('admin_settings')

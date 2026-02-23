@@ -5,7 +5,7 @@
  */
 
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 
 export interface Branding {
   name: string;
@@ -50,7 +50,7 @@ const DEMO_BRANDING: Branding = {
 export async function getBranding(): Promise<Branding> {
   try {
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     const { data } = await supabase
       .from('admin_settings')
