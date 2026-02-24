@@ -2,6 +2,9 @@
 
 White-label AI quoting platform for Ontario renovation contractors. Single codebase, three pricing tiers, environment + domain-driven multi-tenancy.
 
+## Living Product Reference — IMPORTANT
+After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. The document must always match what's actually in the codebase. Use the `/update-product-reference` skill for detailed instructions. Do not treat this as a changelog — rewrite the affected sections to describe the product as it exists now.
+
 ## Stack
 Next.js 16.1.6 (App Router) • React 19 • TypeScript 5 (strict) • Supabase (PostgreSQL) • Vercel AI SDK v6 • Tailwind v4 • shadcn/ui • Vitest • Playwright
 
