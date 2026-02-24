@@ -2,45 +2,59 @@
 
 /**
  * Estimate Page Client Component
- * Handles visualization context from query parameters
+ * Loads visualization context from DB (survives tab/refresh)
+ * with sessionStorage fallback for same-tab handoffs.
  */
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ChatInterface } from '@/components/chat/chat-interface';
-import type { Visualization } from '@/types/database';
+import { buildHandoffFromVisualization, readHandoffContext, type HandoffContext } from '@/lib/chat/handoff';
 
 export function EstimatePageClient() {
   const searchParams = useSearchParams();
   const visualizationId = searchParams.get('visualization');
+  const [handoffContext, setHandoffContext] = useState<HandoffContext | null>(null);
   const [visualizationContext, setVisualizationContext] = useState<VisualizationContext | null>(null);
   const [isLoading, setIsLoading] = useState(!!visualizationId);
 
   useEffect(() => {
-    if (visualizationId) {
-      fetchVisualization(visualizationId);
-    }
-  }, [visualizationId]);
-
-  const fetchVisualization = async (id: string) => {
-    try {
-      const response = await fetch(`/api/visualizations/${id}`);
-      if (response.ok) {
-        const data: Visualization = await response.json();
-        setVisualizationContext({
-          id: data.id,
-          roomType: data.room_type,
-          style: data.style,
-          originalPhotoUrl: data.original_photo_url,
-          constraints: data.constraints || undefined,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch visualization:', err);
-    } finally {
+    if (!visualizationId) {
       setIsLoading(false);
+      return;
     }
-  };
+
+    async function loadContext(id: string) {
+      try {
+        const response = await fetch(`/api/visualizations/${id}`);
+        if (response.ok) {
+          const data = await response.json() as Record<string, unknown>;
+
+          // Build rich handoff from DB record
+          const dbHandoff = buildHandoffFromVisualization(data);
+          setHandoffContext(dbHandoff);
+
+          // Also set legacy visualization context for backward compat
+          setVisualizationContext({
+            id: data['id'] as string,
+            roomType: data['room_type'] as string,
+            style: data['style'] as string,
+            originalPhotoUrl: data['original_photo_url'] as string,
+            constraints: (data['constraints'] as string) || undefined,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch visualization:', err);
+        // Fall back to sessionStorage
+        const ssContext = readHandoffContext();
+        if (ssContext) setHandoffContext(ssContext);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadContext(visualizationId);
+  }, [visualizationId]);
 
   if (isLoading) {
     return (
@@ -58,6 +72,7 @@ export function EstimatePageClient() {
       <h1 className="sr-only">Get an Instant Renovation Estimate</h1>
       <ChatInterface
         visualizationContext={visualizationContext ?? undefined}
+        handoffContext={handoffContext ?? undefined}
       />
     </>
   );

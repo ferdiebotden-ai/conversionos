@@ -1,22 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ReceptionistWidgetLoader } from "@/components/receptionist/receptionist-widget-loader";
+import { MobileCTABar } from "@/components/mobile-cta-bar";
 import { BrandingProvider } from "@/components/branding-provider";
 import { TierProvider } from "@/components/tier-provider";
 import { getBranding } from "@/lib/branding";
 import { getTier } from "@/lib/entitlements.server";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -62,7 +71,7 @@ export default async function RootLayout({
         )}
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${plusJakartaSans.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
         data-site-id={process.env['NEXT_PUBLIC_SITE_ID'] || ''}
       >
         <BrandingProvider initial={branding}>
@@ -71,6 +80,7 @@ export default async function RootLayout({
             <main className="min-h-[calc(100vh-4rem)]">{children}</main>
             <Footer />
             <ReceptionistWidgetLoader />
+            <MobileCTABar />
           </TierProvider>
         </BrandingProvider>
       </body>

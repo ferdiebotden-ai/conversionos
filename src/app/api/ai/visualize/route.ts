@@ -341,8 +341,7 @@ export async function POST(request: NextRequest) {
     const hasConversationData = designIntent || voicePreferencesSummary || (voiceTranscript && voiceTranscript.length > 0);
 
     // Save visualization to database with enhanced fields
-    // Map 'exterior'/'other' to 'living_room' for DB compatibility (DB enum doesn't include them)
-    const dbRoomType = (roomType === 'exterior' || roomType === 'other') ? 'living_room' : roomType;
+    const dbRoomType = roomType;
     // Map 'other' style to 'contemporary' for DB compatibility
     const dbStyle = style === 'other' ? 'contemporary' : style;
     const { data: visualization, error: dbError } = await supabase

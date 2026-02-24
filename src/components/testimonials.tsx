@@ -1,9 +1,8 @@
 'use client';
 
-import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { StaggerContainer, StaggerItem } from "@/components/motion"
-import { Star } from "lucide-react"
+import { Star, Quote } from "lucide-react"
 
 interface Testimonial {
   id: number;
@@ -14,22 +13,20 @@ interface Testimonial {
   image?: string;
 }
 
-// Fallback testimonials when none are configured in admin_settings
-const DEFAULT_TESTIMONIALS: Testimonial[] = []
-
 interface TestimonialsProps {
   items?: Testimonial[];
 }
 
 export function Testimonials({ items }: TestimonialsProps) {
-  const displayTestimonials = items && items.length > 0 ? items : DEFAULT_TESTIMONIALS
+  const displayTestimonials = items && items.length > 0 ? items : []
 
-  if (displayTestimonials.length === 0) {
+  // Only render when 2+ testimonials
+  if (displayTestimonials.length < 2) {
     return null
   }
 
   return (
-    <StaggerContainer className="grid gap-6 md:grid-cols-2">
+    <StaggerContainer className={`grid gap-6 ${displayTestimonials.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
       {displayTestimonials.map((testimonial) => (
         <StaggerItem key={testimonial.id}>
           <TestimonialCard testimonial={testimonial} />
@@ -45,41 +42,30 @@ function TestimonialCard({
   testimonial: Testimonial
 }) {
   return (
-    <Card className="h-full overflow-hidden">
-      <div className="relative h-32">
-        {testimonial.image ? (
-          <>
-            <Image
-              src={testimonial.image}
-              alt={testimonial.projectType}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
-        )}
-        <div className="absolute bottom-3 left-4 flex gap-1">
-          {Array.from({ length: testimonial.rating }).map((_, i) => (
-            <Star
-              key={i}
-              className="size-4 fill-yellow-400 text-yellow-400 drop-shadow"
-            />
-          ))}
-        </div>
-      </div>
+    <Card className="h-full">
       <CardContent className="flex h-full flex-col p-6">
+        {/* Stars + Quote icon */}
+        <div className="flex items-center justify-between">
+          <div className="flex gap-0.5">
+            {Array.from({ length: testimonial.rating }).map((_, i) => (
+              <Star
+                key={i}
+                className="size-4 fill-yellow-400 text-yellow-400"
+              />
+            ))}
+          </div>
+          <Quote className="size-5 text-primary/30" />
+        </div>
+
         {/* Quote */}
-        <blockquote className="flex-1 text-muted-foreground">
+        <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
           &ldquo;{testimonial.quote}&rdquo;
         </blockquote>
 
         {/* Author */}
         <div className="mt-4 border-t border-border pt-4">
-          <p className="font-semibold text-foreground">{testimonial.author}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-semibold text-foreground text-sm">{testimonial.author}</p>
+          <p className="text-xs text-muted-foreground">
             {testimonial.projectType}
           </p>
         </div>

@@ -58,6 +58,7 @@ export interface CompanyConfig {
   processSteps: { title: string; description: string }[];
   teamMembers: { name: string; role: string; photoUrl: string; bio?: string }[];
   portfolio: { title: string; description: string; imageUrl: string; serviceType: string; location: string }[];
+  trustMetrics: { google_rating?: string; projects_completed?: string; years_in_business?: string; licensed_insured?: boolean };
 }
 
 /**
@@ -126,6 +127,7 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       processSteps: (profile['processSteps'] as CompanyConfig['processSteps']) || FALLBACK_CONFIG.processSteps,
       teamMembers: (profile['teamMembers'] as CompanyConfig['teamMembers']) || FALLBACK_CONFIG.teamMembers,
       portfolio: (profile['portfolio'] as CompanyConfig['portfolio']) || FALLBACK_CONFIG.portfolio,
+      trustMetrics: (profile['trust_metrics'] as CompanyConfig['trustMetrics']) || FALLBACK_CONFIG.trustMetrics,
     };
   } catch {
     return FALLBACK_CONFIG;
@@ -133,47 +135,75 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
 }
 
 const FALLBACK_CONFIG: CompanyConfig = {
-  name: 'AI Reno Demo',
-  location: 'London, ON, Canada',
-  phone: '(555) 000-0000',
-  email: 'demo@example.com',
-  website: 'ai-reno-demo.vercel.app',
-  principals: 'the team',
-  tagline: 'Smart Renovations',
-  founded: '2024',
+  name: 'ConversionOS Demo',
+  location: 'Stratford, ON, Canada',
+  phone: '(519) 378-8973',
+  email: 'demo@norbotsystems.com',
+  website: 'conversionos-demo.norbotsystems.com',
+  principals: 'NorBot Systems',
+  tagline: 'AI-Powered Renovation Platform',
+  founded: '2025',
   booking: '',
-  serviceArea: 'London, ON and surrounding communities',
+  serviceArea: 'Ontario — all regions',
   certifications: [],
-  socials: [],
-  paymentEmail: 'payments@example.com',
-  quotesEmail: 'quotes@example.com',
-  address: '123 Demo Street',
-  city: 'London',
-  province: 'ON',
-  postal: 'N6A 1A1',
-  hours: 'Mon-Fri 9am-5pm',
-  primaryColor: '#1565C0',
-  primaryOklch: '0.45 0.18 250',
-  testimonials: [],
-  aboutCopy: [],
-  mission: '',
-  services: [
-    { name: 'Kitchen Renovation', slug: 'kitchen-renovation', description: 'Custom kitchen design and renovation' },
-    { name: 'Bathroom Renovation', slug: 'bathroom-renovation', description: 'Full bathroom remodels' },
-    { name: 'Basement Finishing', slug: 'basement-finishing', description: 'Unfinished to entertainment-ready' },
-    { name: 'Flooring', slug: 'flooring', description: 'Hardwood, vinyl plank, tile installation' },
+  socials: [
+    { platform: 'LinkedIn', url: 'https://www.linkedin.com/company/norbot-systems' },
+    { platform: 'GitHub', url: 'https://github.com/norbot-systems' },
   ],
-  heroHeadline: '',
-  heroSubheadline: '',
+  paymentEmail: 'demo@norbotsystems.com',
+  quotesEmail: 'demo@norbotsystems.com',
+  address: '1 Ontario Street',
+  city: 'Stratford',
+  province: 'ON',
+  postal: 'N5A 3H1',
+  hours: 'Mon-Fri 9am-5pm',
+  primaryColor: '#0D9488',
+  primaryOklch: '0.588 0.108 180',
+  testimonials: [
+    { author: 'Sarah M., Kitchener', quote: 'I uploaded a photo of my dated kitchen and within minutes had four stunning design concepts. The cost estimate was spot-on with the quotes I later received. This is the future of renovation planning.', projectType: 'Kitchen Renovation' },
+    { author: 'James & Linda R., London', quote: 'We could not decide between modern and farmhouse for our basement. The AI visualizer showed us both styles in our actual space. Saved us weeks of back-and-forth with designers.', projectType: 'Basement Finishing' },
+    { author: 'Priya K., Hamilton', quote: 'As a first-time homeowner, I had no idea what a bathroom reno would cost. The AI estimate gave me a realistic range before I even called a contractor. Incredibly helpful.', projectType: 'Bathroom Renovation' },
+  ],
+  aboutCopy: [
+    'ConversionOS is an AI-powered platform that gives Ontario homeowners instant renovation visualizations and cost estimates. Upload a photo of your space, choose a style, and see your transformation in minutes — not days.',
+    'Built by NorBot Systems in Stratford, Ontario, ConversionOS connects homeowners with qualified local contractors through intelligent matching, transparent pricing, and AI-generated design concepts that make the renovation journey easier from first idea to final build.',
+  ],
+  mission: 'Make renovation planning faster, more transparent, and more accessible for every Ontario homeowner.',
+  services: [
+    { name: 'Kitchen Renovation', slug: 'kitchen-renovation', description: 'From layout redesign to finish selection, visualize your dream kitchen with AI-generated concepts and get a ballpark estimate before calling a contractor.', iconHint: 'chef-hat' },
+    { name: 'Bathroom Renovation', slug: 'bathroom-renovation', description: 'See spa-inspired, modern, or classic bathroom transformations applied to your actual space. Compare styles side-by-side with cost ranges.', iconHint: 'bath' },
+    { name: 'Basement Finishing', slug: 'basement-finishing', description: 'Turn your unfinished basement into an entertainment hub, home office, or rental suite. AI shows you the possibilities with real cost data.', iconHint: 'layers' },
+    { name: 'Whole-Home Renovation', slug: 'whole-home-renovation', description: 'Planning a major transformation? Get room-by-room AI visualizations and a comprehensive cost overview for your entire project.', iconHint: 'home' },
+  ],
+  heroHeadline: 'See Your Renovation Before It Begins',
+  heroSubheadline: 'Upload a photo. Choose a style. Get AI-generated design concepts and a ballpark estimate — in minutes, not days.',
   heroImageUrl: '',
   aboutImageUrl: '',
-  logoUrl: '',
-  trustBadges: [],
-  whyChooseUs: [],
+  logoUrl: '/brand/logo-full/norbot-full-teal.svg',
+  trustBadges: [
+    { label: 'Ontario-Based', iconHint: 'map-pin' },
+    { label: 'AI-Powered', iconHint: 'sparkles' },
+    { label: 'Privacy-First', iconHint: 'shield' },
+  ],
+  whyChooseUs: [
+    { title: 'AI-Powered Instant Estimates', description: 'Get a realistic cost range for your renovation in minutes. Our AI analyses your photos, room dimensions, and material choices against real Ontario pricing data.' },
+    { title: 'See Before You Build', description: 'Upload a photo of your space and watch AI transform it into four unique design concepts. Compare styles side-by-side before committing to a single dollar.' },
+    { title: 'Trusted Ontario Platform', description: 'Built in Stratford for Ontario homeowners. Local pricing data, regional building knowledge, and connections to qualified contractors in your area.' },
+  ],
   values: [],
-  processSteps: [],
+  processSteps: [
+    { title: 'Upload a Photo', description: 'Snap a picture of your room with your phone or upload an existing photo. Our AI analyses the space automatically.' },
+    { title: 'Get AI Design Concepts', description: 'Choose a style and receive four unique AI-generated visualizations of your transformed space in under a minute.' },
+    { title: 'Receive Your Estimate', description: 'Get a detailed cost range based on Ontario pricing data, then connect with a qualified local contractor to bring it to life.' },
+  ],
   teamMembers: [],
   portfolio: [],
+  trustMetrics: {
+    google_rating: '4.9',
+    projects_completed: '50+',
+    years_in_business: '1',
+    licensed_insured: true,
+  },
 };
 
 /**

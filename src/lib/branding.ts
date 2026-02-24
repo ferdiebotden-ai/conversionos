@@ -22,24 +22,29 @@ export interface Branding {
   quotesEmail: string;
   primaryColor: string;
   primaryOklch: string;
+  logoUrl?: string | undefined;
   services: { name: string; slug: string }[];
 }
 
 const DEMO_BRANDING: Branding = {
-  name: 'AI Reno Demo',
-  tagline: 'Smart Renovations',
-  phone: '(555) 000-0000',
-  email: 'demo@example.com',
-  website: 'ai-reno-demo.vercel.app',
-  address: '123 Demo Street',
-  city: 'London',
+  name: 'ConversionOS Demo',
+  tagline: 'AI-Powered Renovation Platform',
+  phone: '(519) 378-8973',
+  email: 'demo@norbotsystems.com',
+  website: 'conversionos-demo.norbotsystems.com',
+  address: '1 Ontario Street',
+  city: 'Stratford',
   province: 'ON',
-  postal: 'N6A 1A1',
-  socials: [],
-  paymentEmail: 'payments@example.com',
-  quotesEmail: 'quotes@example.com',
-  primaryColor: '#1565C0',
-  primaryOklch: '0.45 0.18 250',
+  postal: 'N5A 3H1',
+  socials: [
+    { label: 'LinkedIn', href: 'https://www.linkedin.com/company/norbot-systems' },
+    { label: 'GitHub', href: 'https://github.com/norbot-systems' },
+  ],
+  paymentEmail: 'demo@norbotsystems.com',
+  quotesEmail: 'demo@norbotsystems.com',
+  primaryColor: '#0D9488',
+  primaryOklch: '0.588 0.108 180',
+  logoUrl: '/brand/logo-full/norbot-full-teal.svg',
   services: [],
 };
 
@@ -84,6 +89,7 @@ export async function getBranding(): Promise<Branding> {
       quotesEmail: (info['quotes_email'] as string) || DEMO_BRANDING.quotesEmail,
       primaryColor: colors['primary_hex'] || DEMO_BRANDING.primaryColor,
       primaryOklch: colors['primary_oklch'] || DEMO_BRANDING.primaryOklch,
+      logoUrl: (profile['logoUrl'] as string) || (brand['logoUrl'] as string) || undefined,
       services: rawServices.map(s => ({
         name: s.name,
         slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),

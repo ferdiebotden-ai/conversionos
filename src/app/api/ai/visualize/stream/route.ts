@@ -569,7 +569,7 @@ export async function POST(request: NextRequest) {
         };
         const hasConversationData = designIntent || voicePreferencesSummary || (voiceTranscript && voiceTranscript.length > 0);
 
-        const dbRoomType = (roomType === 'exterior' || roomType === 'other') ? 'living_room' : roomType;
+        const dbRoomType = roomType;
         const dbStyle = style === 'other' ? 'contemporary' : style;
 
         const { data: visualization, error: dbError } = await supabase

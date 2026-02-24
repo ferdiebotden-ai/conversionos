@@ -59,6 +59,7 @@ interface ChatInterfaceProps {
   initialMessages?: ChatMessage[] | undefined;
   sessionId?: string | undefined;
   visualizationContext?: VisualizationContext | undefined;
+  handoffContext?: HandoffContext | undefined;
 }
 
 function getWelcomeMessage(companyName: string, city: string, province: string) {
@@ -102,7 +103,7 @@ function getVisualizationWelcomeMessage(context: VisualizationContext, companyNa
 /**
  * Inner component that uses VoiceProvider context
  */
-function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visualizationContext }: ChatInterfaceProps) {
+function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visualizationContext, handoffContext: propHandoffContext }: ChatInterfaceProps) {
   const branding = useBranding();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId);
@@ -110,16 +111,17 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [voiceTranscriptMessages, setVoiceTranscriptMessages] = useState<ChatMessage[]>([]);
-  const [handoffContext, setHandoffContext] = useState<HandoffContext | null>(null);
+  const [handoffContext, setHandoffContext] = useState<HandoffContext | null>(propHandoffContext ?? null);
 
-  // Read handoff context on mount (from persona navigation)
+  // Read handoff context from sessionStorage if not provided via prop
   useEffect(() => {
+    if (propHandoffContext) return; // DB-backed context takes priority
     const ctx = readHandoffContext();
     if (ctx && ctx.toPersona === 'quote-specialist') {
       setHandoffContext(ctx);
       clearHandoffContext();
     }
-  }, []);
+  }, [propHandoffContext]);
 
   // Subscribe to voice transcript from VoiceProvider
   const { transcript: voiceTranscript } = useVoice();
@@ -145,21 +147,29 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
 
   // Determine starting messages based on context
   const getHandoffWelcome = (ctx: HandoffContext): string => {
+    // Rich welcome when coming from visualizer (DB-backed or session-based)
+    if (ctx.visualizationData || ctx.designPreferences) {
+      const dp = ctx.designPreferences;
+      const roomLabel = dp?.customRoomType || dp?.roomType?.replace(/_/g, ' ') || ctx.visualizationData?.roomType?.replace(/_/g, ' ') || 'room';
+      const styleLabel = dp?.customStyle || dp?.style || ctx.visualizationData?.style || '';
+      const conceptCount = ctx.visualizationData?.concepts.length || 0;
+      const conceptNote = conceptCount > 0 ? ` I can see you generated ${conceptCount} design concepts — they look great!` : '';
+      const styleNote = styleLabel ? ` in a ${styleLabel} style` : '';
+
+      let followUp = `\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
+      // Skip redundant questions if we already have photo analysis
+      if (ctx.photoAnalysis?.estimatedDimensions) {
+        followUp = `\n\nI can see from the analysis that the space is approximately ${ctx.photoAnalysis.estimatedDimensions}. When are you hoping to start this project, and do you have a budget range in mind?`;
+      }
+
+      return `Hey there! I see you've been exploring a ${roomLabel} renovation${styleNote}.${conceptNote}\n\nI'm Marcus, the budget and cost specialist here at ${branding.name}. Let's turn that vision into real numbers.${followUp}`;
+    }
+
     const personaNames: Record<string, string> = {
       receptionist: 'Emma',
       'design-consultant': 'Mia',
     };
     const fromName = personaNames[ctx.fromPersona] || 'our team';
-
-    // Rich welcome when coming from visualizer with design preferences
-    if (ctx.fromPersona === 'design-consultant' && ctx.designPreferences) {
-      const dp = ctx.designPreferences;
-      const roomLabel = dp.customRoomType || dp.roomType.replace(/_/g, ' ');
-      const styleLabel = dp.customStyle || dp.style;
-      const conceptCount = ctx.visualizationData?.concepts.length || 0;
-      const conceptNote = conceptCount > 0 ? ` I can see you generated ${conceptCount} design concepts — they look great!` : '';
-      return `Hey there! I see you've been designing a ${roomLabel} renovation in a ${styleLabel} style with ${fromName}.${conceptNote}\n\nI'm Marcus, the budget and cost specialist here at ${branding.name}. Let's turn that vision into real numbers.\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
-    }
 
     return `Hey! ${fromName} filled me in on what you've been discussing. I'm Marcus, the budget and cost specialist here at ${branding.name}.\n\nLet's pick up where you left off and get you some solid numbers. What would you like to focus on first?`;
   };

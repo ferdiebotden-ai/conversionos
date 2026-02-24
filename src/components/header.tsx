@@ -3,6 +3,7 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,7 +53,7 @@ export function Header() {
             <SheetContent side="left" className="w-72">
               <SheetHeader className="border-b pb-4">
                 <SheetTitle>
-                  <Logo name={branding.name} tagline={branding.tagline} />
+                  <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} />
                 </SheetTitle>
                 <SheetDescription className="sr-only">
                   Navigation menu
@@ -96,7 +97,7 @@ export function Header() {
           href="/"
           className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
         >
-          <Logo name={branding.name} tagline={branding.tagline} />
+          <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} />
         </Link>
 
         {/* Desktop navigation */}
@@ -138,8 +139,21 @@ export function Header() {
   )
 }
 
-function Logo({ name, tagline }: { name: string; tagline: string }) {
-  // Split name into words: first word normal, rest primary-colored
+function Logo({ name, tagline, logoUrl }: { name: string; tagline: string; logoUrl?: string | undefined }) {
+  if (logoUrl) {
+    return (
+      <Image
+        src={logoUrl}
+        alt={name}
+        width={160}
+        height={40}
+        className="h-8 w-auto"
+        priority
+      />
+    )
+  }
+
+  // Fallback: text-based logo
   const words = name.split(" ")
   const first = words[0]
   const rest = words.slice(1).join(" ")

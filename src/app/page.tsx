@@ -1,7 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { ServicesGrid } from "@/components/services-grid"
 import { Testimonials } from "@/components/testimonials"
 import {
@@ -10,20 +9,17 @@ import {
   StaggerItem,
 } from "@/components/motion"
 import {
-  MessageSquare,
-  Sparkles,
+  Award,
   Clock,
   Shield,
-  Award,
-  ClipboardList,
-  FileCheck,
-  Hammer,
-  CheckCircle,
+  MapPin,
+  Sparkles,
+  Phone,
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
-import { ProjectSelector } from "@/components/home/project-selector"
 import { VisualizerTeaser } from "@/components/home/visualizer-teaser"
+import { SocialProofBar } from "@/components/home/social-proof-bar"
 
 export default async function Home() {
   const branding = await getBranding()
@@ -36,55 +32,61 @@ export default async function Home() {
     author: t.author,
     projectType: t.projectType,
     rating: 5,
-    image: `/images/demo/${['kitchen-modern', 'bathroom-spa', 'basement-entertainment'][i % 3]}.png`,
   }))
+
+  // Map trust badge icon hints to components
+  const badgeIcons: Record<string, React.ReactNode> = {
+    'map-pin': <MapPin className="size-5 text-primary" />,
+    'sparkles': <Sparkles className="size-5 text-primary" />,
+    'shield': <Shield className="size-5 text-primary" />,
+    'award': <Award className="size-5 text-primary" />,
+  }
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="relative h-[500px] md:h-[600px] lg:h-[650px]">
-          <Image
-            src={config.heroImageUrl || "/images/demo/hero-kitchen.png"}
-            alt={`${branding.name} — ${config.heroHeadline || branding.tagline}`}
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-          />
+          {config.heroImageUrl ? (
+            <Image
+              src={config.heroImageUrl}
+              alt={`${branding.name} — ${config.heroHeadline || branding.tagline}`}
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+          )}
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative z-10 flex h-full items-center">
             <div className="container mx-auto px-4">
               <StaggerContainer className="mx-auto max-w-3xl text-center">
                 <StaggerItem>
-                  {config.heroHeadline ? (
-                    <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                      {config.heroHeadline}
-                    </h1>
-                  ) : (
-                    <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                      Dream. Plan.{" "}
-                      <span className="text-primary">Build.</span>
-                    </h1>
-                  )}
+                  <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                    {config.heroHeadline || (
+                      <>Dream. Plan. <span className="text-primary">Build.</span></>
+                    )}
+                  </h1>
                 </StaggerItem>
                 <StaggerItem>
                   <p className="mt-6 text-lg leading-8 text-white/85 md:text-xl">
-                    {config.heroSubheadline || `With a focus on quality craftsmanship and integrity, ${branding.name} provides superior construction and renovation services in ${branding.city}, ${branding.province} and surrounding areas, dedicated to bringing your dream projects to fruition.`}
+                    {config.heroSubheadline || `With a focus on quality craftsmanship and integrity, ${branding.name} provides superior construction and renovation services in ${branding.city}, ${branding.province} and surrounding areas.`}
                   </p>
                 </StaggerItem>
                 <StaggerItem>
                   <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                    <Button asChild size="lg" className="h-14 w-full px-8 text-lg sm:w-auto">
-                      <Link href="/estimate">Get Your Estimate in Minutes</Link>
+                    <Button asChild size="lg" className="h-14 w-full rounded-full px-8 text-lg sm:w-auto">
+                      <Link href="/visualizer">See Your Renovation</Link>
                     </Button>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="h-14 w-full border-white/30 bg-transparent px-8 text-lg text-white hover:bg-white/10 sm:w-auto"
+                    <a
+                      href={`tel:${branding.phone.replace(/\D/g, '')}`}
+                      className="flex items-center gap-2 text-white/80 transition-colors hover:text-white"
                     >
-                      <Link href="/visualizer">Visualize Your Space</Link>
-                    </Button>
+                      <Phone className="size-4" />
+                      <span className="text-base">{branding.phone}</span>
+                    </a>
                   </div>
                 </StaggerItem>
                 {(() => {
@@ -97,7 +99,7 @@ export default async function Home() {
                       <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-white/80">
                         {badges.slice(0, 3).map((badge, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <Award className="size-5 text-primary" />
+                            {badgeIcons[badge.iconHint] || <Award className="size-5 text-primary" />}
                             <span>{badge.label}</span>
                           </div>
                         ))}
@@ -111,72 +113,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Project Type Quick Selector */}
-      <section className="px-4 py-12 md:py-16">
-        <div className="container mx-auto">
-          <FadeInUp>
-            <ProjectSelector />
-          </FadeInUp>
-        </div>
-      </section>
-
-      {/* AI Features Section */}
-      <section className="border-y border-border bg-muted/30 px-4 py-16 md:py-20">
-        <div className="container mx-auto">
-          <FadeInUp className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              AI-Powered Renovation Experience
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Get instant estimates and visualize your renovation before the
-              first hammer swings.
-            </p>
-          </FadeInUp>
-
-          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-2 lg:gap-8">
-            <StaggerItem>
-              <Card className="relative h-full overflow-hidden border-2 border-transparent transition-colors hover:border-primary/20">
-                <CardContent className="p-6 md:p-8">
-                  <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
-                    <MessageSquare className="size-6 text-primary" />
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-foreground">
-                    Get Instant Estimates
-                  </h3>
-                  <p className="mt-2 text-muted-foreground">
-                    Chat with our AI assistant to describe your project. Get
-                    ballpark estimates in minutes instead of waiting days for a
-                    callback.
-                  </p>
-                  <Button asChild variant="link" className="mt-4 h-auto p-0">
-                    <Link href="/estimate">Start a conversation →</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </StaggerItem>
-
-            <StaggerItem>
-              <Card className="relative h-full overflow-hidden border-2 border-transparent transition-colors hover:border-primary/20">
-                <CardContent className="p-6 md:p-8">
-                  <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Sparkles className="size-6 text-primary" />
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-foreground">
-                    See Your Renovation First
-                  </h3>
-                  <p className="mt-2 text-muted-foreground">
-                    Upload a photo of your space and watch AI transform it with
-                    your chosen finishes and fixtures. Make confident decisions.
-                  </p>
-                  <Button asChild variant="link" className="mt-4 h-auto p-0">
-                    <Link href="/visualizer">Try the visualizer →</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </StaggerItem>
-          </StaggerContainer>
-        </div>
-      </section>
+      {/* Social Proof Bar */}
+      <SocialProofBar metrics={config.trustMetrics} />
 
       {/* Visualizer Teaser */}
       <section className="px-4 py-16 md:py-20">
@@ -195,8 +133,8 @@ export default async function Home() {
               Our Services
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              From kitchens to net-zero homes, {branding.name} handles every aspect
-              of your renovation with expertise and care.
+              From kitchens to whole-home transformations, {branding.name} handles every aspect
+              of your renovation with AI-powered precision.
             </p>
           </FadeInUp>
 
@@ -205,104 +143,37 @@ export default async function Home() {
           </div>
 
           <FadeInUp className="mt-10 text-center">
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline" size="lg" className="rounded-full">
               <Link href="/services">View All Services</Link>
             </Button>
           </FadeInUp>
         </div>
       </section>
 
-      {/* Why Choose Us Section */}
+      {/* How It Works */}
       <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">
-        <div className="container mx-auto">
-          <div className="grid gap-12 md:grid-cols-2 md:items-center">
-            <FadeInUp>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <Image
-                  src={config.aboutImageUrl || "/images/demo/craftsmanship-detail.png"}
-                  alt={`${branding.name} expert craftsmanship`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            </FadeInUp>
-            <div>
-              <FadeInUp>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                  Why Choose {branding.name}?
-                </h2>
-                <p className="mt-4 text-lg text-muted-foreground">
-                  We combine traditional craftsmanship with modern technology to
-                  deliver exceptional results.
-                </p>
-              </FadeInUp>
-
-              {(() => {
-                const defaultWhyUs = [
-                  { title: 'Quality Guaranteed', description: 'Written contracts on every project with strict quality standards and comprehensive warranty coverage.' },
-                  { title: 'Expert Team', description: 'Skilled professionals with years of experience delivering exceptional renovation results.' },
-                  { title: 'Fast Response', description: 'Quick answers and clear communication throughout your entire renovation project.' },
-                ];
-                const items = config.whyChooseUs.length > 0 ? config.whyChooseUs : defaultWhyUs;
-                const icons = [
-                  <Award key="0" className="size-6" />,
-                  <Shield key="1" className="size-6" />,
-                  <Clock key="2" className="size-6" />,
-                ];
-                return (
-                  <StaggerContainer className="mt-8 space-y-6">
-                    {items.map((item, i) => (
-                      <StaggerItem key={i}>
-                        <WhyUsCard
-                          icon={icons[i % icons.length]}
-                          title={item.title}
-                          description={item.description}
-                        />
-                      </StaggerItem>
-                    ))}
-                  </StaggerContainer>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Our Process Section */}
-      <section className="px-4 py-16 md:py-20">
         <div className="container mx-auto">
           <FadeInUp className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Our Process
+              How It Works
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              From first conversation to final walkthrough, we keep things clear
-              and organized.
+              From photo to estimate in three simple steps.
             </p>
           </FadeInUp>
 
           {(() => {
-            const defaultSteps = [
-              { title: 'Design Consultation', description: 'Collaborate with experts to refine your vision' },
-              { title: 'Planning & Approval', description: 'Finalize detailed plans and obtain necessary permits' },
-              { title: 'Construction Phase', description: 'Skilled crew executes with precision and quality materials' },
-              { title: 'Final Inspection', description: 'Review completed project for quality assurance' },
-            ];
-            const steps = config.processSteps.length > 0 ? config.processSteps : defaultSteps;
-            const icons = [
-              <ClipboardList key="0" className="size-6" />,
-              <FileCheck key="1" className="size-6" />,
-              <Hammer key="2" className="size-6" />,
-              <CheckCircle key="3" className="size-6" />,
+            const steps = config.processSteps.length > 0 ? config.processSteps : [
+              { title: 'Upload a Photo', description: 'Snap a picture of your room with your phone or upload an existing photo.' },
+              { title: 'Get AI Design Concepts', description: 'Choose a style and receive four unique AI-generated visualizations.' },
+              { title: 'Receive Your Estimate', description: 'Get a detailed cost range based on Ontario pricing data.' },
             ];
             return (
-              <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-3">
                 {steps.map((step, i) => (
                   <StaggerItem key={i}>
                     <ProcessStep
                       step={i + 1}
-                      icon={icons[i % icons.length]}
                       title={step.title}
                       description={step.description}
                     />
@@ -314,52 +185,108 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">
-        <div className="container mx-auto">
-          <FadeInUp className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              What Our Clients Say
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Don&apos;t just take our word for it. Here&apos;s what local
-              homeowners have to say.
-            </p>
-          </FadeInUp>
+      {/* Why Choose Us */}
+      {config.whyChooseUs.length > 0 && (
+        <section className="border-t border-border px-4 py-16 md:py-20">
+          <div className="container mx-auto">
+            <div className="grid gap-12 md:grid-cols-2 md:items-center">
+              <FadeInUp>
+                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+                  {config.aboutImageUrl ? (
+                    <Image
+                      src={config.aboutImageUrl}
+                      alt={`${branding.name} expert craftsmanship`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-muted" />
+                  )}
+                </div>
+              </FadeInUp>
+              <div>
+                <FadeInUp>
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                    Why Choose {branding.name}?
+                  </h2>
+                  <p className="mt-4 text-lg text-muted-foreground">
+                    We combine AI technology with real Ontario renovation data to
+                    deliver exceptional results.
+                  </p>
+                </FadeInUp>
 
-          <div className="mt-12">
-            <Testimonials items={testimonials} />
+                {(() => {
+                  const icons = [
+                    <Award key="0" className="size-6" />,
+                    <Shield key="1" className="size-6" />,
+                    <Clock key="2" className="size-6" />,
+                  ];
+                  return (
+                    <StaggerContainer className="mt-8 space-y-6">
+                      {config.whyChooseUs.map((item, i) => (
+                        <StaggerItem key={i}>
+                          <WhyUsCard
+                            icon={icons[i % icons.length]}
+                            title={item.title}
+                            description={item.description}
+                          />
+                        </StaggerItem>
+                      ))}
+                    </StaggerContainer>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* CTA Section */}
+      {/* Testimonials Section */}
+      {testimonials.length >= 2 && (
+        <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">
+          <div className="container mx-auto">
+            <FadeInUp className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                What Our Users Say
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Ontario homeowners who have used ConversionOS to plan their renovations.
+              </p>
+            </FadeInUp>
+
+            <div className="mt-12">
+              <Testimonials items={testimonials} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Final CTA Section */}
       <section className="border-t border-border bg-primary px-4 py-16 md:py-20">
         <FadeInUp className="container mx-auto text-center">
           <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
-            Ready to Transform Your Home?
+            Ready to See Your Renovation?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/80">
-            Get started with a free estimate today. No pressure, no obligation —
-            just honest advice and transparent pricing.
+            Upload a photo. Get AI design concepts. Receive a ballpark estimate.
+            All in minutes, all free.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button
               asChild
               size="lg"
               variant="secondary"
-              className="h-14 w-full px-8 text-lg sm:w-auto"
+              className="h-14 w-full rounded-full px-8 text-lg sm:w-auto"
             >
-              <Link href="/estimate">Get Your Free Quote</Link>
+              <Link href="/visualizer">Try the AI Visualizer</Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-14 w-full border-primary-foreground/20 bg-transparent px-8 text-lg text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto"
+            <Link
+              href="/estimate"
+              className="text-primary-foreground/80 underline underline-offset-4 transition-colors hover:text-primary-foreground"
             >
-              <Link href="/contact">Contact Us</Link>
-            </Button>
+              Or get a free estimate
+            </Link>
           </div>
         </FadeInUp>
       </section>
@@ -369,25 +296,20 @@ export default async function Home() {
 
 function ProcessStep({
   step,
-  icon,
   title,
   description,
 }: {
   step: number
-  icon: React.ReactNode
   title: string
   description: string
 }) {
   return (
     <div className="text-center">
       <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-        {icon}
+        <span className="text-xl font-bold">{step}</span>
       </div>
-      <div className="mt-2 text-xs font-semibold uppercase tracking-wider text-primary">
-        Step {step}
-      </div>
-      <h3 className="mt-2 text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }

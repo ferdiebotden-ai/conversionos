@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 24, 2026 | **Updated by:** Claude Code (Session 5)
+**Last updated:** February 24, 2026 | **Updated by:** Claude Code (ConversionOS Rebrand)
 
 ---
 
@@ -75,6 +75,7 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | UI | React | 19.2.3 | Server + client components |
 | Language | TypeScript | 5 | Strict mode enabled |
 | Styling | Tailwind CSS | 4 | OKLCH colour system, CSS variables for theming |
+| Typography | Plus Jakarta Sans, DM Sans, JetBrains Mono | next/font/google | Display, body, code fonts respectively |
 | Component library | shadcn/ui + Radix UI | Latest | 10+ primitive libraries |
 | Charts | Recharts | 3.7.0 | Dominate-tier analytics only |
 | State management | Zustand | 5.0.11 | Client-side state |
@@ -111,13 +112,13 @@ Every database table includes a `site_id` column. Every query filters by it. Row
 
 ### Branding
 
-The `admin_settings` table stores per-tenant JSONB configuration under keys like `business_info`, `branding`, `company_profile`, and `plan`. Server-side rendering reads this via `getBranding()`. Client components receive it through `BrandingProvider` + `useBranding()` context. CSS variables (including the primary colour in OKLCH) are injected in the root layout.
+The `admin_settings` table stores per-tenant JSONB configuration under keys like `business_info`, `branding`, `company_profile`, and `plan`. Server-side rendering reads this via `getBranding()`. Client components receive it through `BrandingProvider` + `useBranding()` context. CSS variables (including the primary colour in OKLCH) are injected in the root layout. Tenants with a `logoUrl` in their branding config render an SVG logo in the header and footer; tenants without fall back to styled text.
 
 ### Current Tenants
 
 | Site ID | Domain | Tier | Contractor |
 |---------|--------|------|------------|
-| `demo` | ai-reno-demo.vercel.app | Accelerate | AI Reno Demo (base demo) |
+| `demo` | conversionos-demo.norbotsystems.com | Accelerate | ConversionOS Demo (NorBot Systems base template) |
 | `mccarty-squared` | mccarty.norbotsystems.com | Dominate | McCarty Squared (real client demo) |
 | `redwhitereno` | redwhite.norbotsystems.com | Accelerate | Red White Reno (first paying customer) |
 
@@ -127,7 +128,7 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 ### Homeowner Journey
 
-1. **Landing** (`/`) — Branded homepage with hero, "Get Your Estimate in Minutes" CTA, project-type quick selector ("What are you planning?" — 6 options), interactive before/after visualizer teaser, services, testimonials, trust badges. All content driven by database.
+1. **Landing** (`/`) — Branded homepage optimised for conversion. Section order: Hero (outcome headline, primary CTA, phone link, trust badges) → Social Proof Bar (Google rating, years in business, projects completed, licensed status — 2x2 grid on mobile, flex row on desktop) → Visualizer Teaser (real before/after kitchen photos in 3 styles with auto-animation on scroll via IntersectionObserver) → Services → How It Works (3 steps) → Why Choose Us → Testimonials → Final CTA. Sticky mobile CTA bar ("Call" + "Get Estimate") fixed at bottom on viewports < 768px, hidden on /estimate, /visualizer, /admin routes. All content driven by database.
 
 2. **Visualizer** (`/visualizer`) — Upload a photo of their room (drag-and-drop on desktop, "Take a Photo" or "Choose from Gallery" on mobile). Photo pre-analysis fires immediately via GPT Vision — detects room type, layout, dimensions, fixtures, condition. Room type selector auto-fills from analysis.
 
@@ -135,9 +136,9 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 4. **Generation** — SSE streaming endpoint generates 4 concepts in parallel via Gemini 3 Pro Image. Progressive reveal: skeleton cards cross-fade to real images as concepts arrive (~15-20s per concept, ~41s total). Real-time progress stages shown during generation.
 
-5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Try Another Style" preserves photo and room type, resets style. "Get a Personalised Estimate" hands off to Marcus (Accelerate+) or "Request a Callback" (Elevate).
+5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. "Get a Personalised Estimate" hands off to Marcus (Accelerate+) or "Request a Callback from [Contractor]" (Elevate). Sticky CTA bar animates in after 3 seconds.
 
-6. **Quote** (`/estimate`) — Marcus receives the full handoff context: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Marcus skips discovery questions and goes straight to refinement.
+6. **Quote** (`/estimate`) — Marcus receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. Marcus receives: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Marcus skips discovery questions and goes straight to refinement.
 
 7. **Lead capture** — Contact information collected. Lead created in database with full visualization context, chat transcript, and AI-generated scope. Contractor notified by email.
 
@@ -320,7 +321,7 @@ The mode flows through the entire pipeline: cost range indicator in the visualiz
 | `admin_settings` | Per-tenant config (branding, pricing, plan) | `site_id`, `key`, `value` (JSONB) |
 | `leads` | CRM — homeowner inquiries | Contact info, project details, AI transcripts, Ontario-specific fields |
 | `quote_drafts` | AI-generated quotes | Line items, tiered pricing (good/better/best), totals with HST |
-| `visualizations` | AI design concepts | Photo analysis, concepts (JSONB), generation metrics, admin review fields |
+| `visualizations` | AI design concepts | Photo analysis, concepts (JSONB), generation metrics, admin review fields. Room type CHECK: kitchen, bathroom, living_room, bedroom, basement, dining_room, exterior, other. Style CHECK: modern, traditional, farmhouse, industrial, minimalist, contemporary, other. |
 | `lead_visualizations` | Junction: leads ↔ visualizations | `is_primary`, `admin_selected` |
 | `invoices` | Billing | Line items, payment tracking, auto-numbering (INV-YYYY-NNN) |
 | `payments` | Payment log | Amount, method, reference number |
@@ -407,7 +408,7 @@ The mode flows through the entire pipeline: cost range indicator in the visualiz
 ### Public (accessible to all visitors)
 | Route | Purpose |
 |-------|---------|
-| `/` | Homepage — hero, project selector, visualizer teaser, services, testimonials |
+| `/` | Homepage — hero, social proof bar, visualizer teaser, services, how it works, why us, testimonials |
 | `/about` | Company information |
 | `/services` | Services listing |
 | `/services/[slug]` | Dynamic service detail (kitchen, bathroom, etc.) |
@@ -472,7 +473,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Parameter | Storage | UI |
 |-----------|---------|------|
 | Company name, tagline, phone, email, address | `admin_settings` → `business_info` | Settings page |
-| Logo, primary colour (OKLCH), secondary colour | `admin_settings` → `branding` | Settings page |
+| Logo (SVG/PNG URL), primary colour (OKLCH), secondary colour | `admin_settings` → `branding` or `company_profile` → `logoUrl` | Settings page |
 | Hero headline, subheadline, hero image | `admin_settings` → `company_profile` | Settings page |
 | Services list with descriptions, features, packages | `admin_settings` → services keys | Settings page |
 | Testimonials, trust badges, certifications | `admin_settings` → `company_profile` | Settings page |
@@ -480,6 +481,8 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Quote assistance mode + range band | `admin_settings` → `quote_assistance` | Settings → Quoting tab |
 | Notification email addresses | `admin_settings` → `notification_emails` | Settings page |
 | Custom domain | `src/proxy.ts` → `DOMAIN_TO_SITE` | Manual (or onboarding script) |
+| "Powered by ConversionOS" footer | Tier-dependent visibility | Elevate: shown (60% opacity), Accelerate: shown (40% opacity), Dominate: hidden |
+| Social proof metrics (Google rating, years, projects, licensed) | `admin_settings` → `company_profile` → `trust_metrics` | Settings page |
 
 ---
 
@@ -487,8 +490,6 @@ Every aspect of the contractor's experience is configurable per tenant:
 
 | Item | Impact | Location |
 |------|--------|----------|
-| Room type DB CHECK constraint allows only 6 of 8 UI types | "exterior" and "other" silently map to "living_room" | `visualizations.room_type` |
-| Handoff uses sessionStorage with 15-min TTL | Context lost if user refreshes, opens new tab, or returns later | `src/lib/chat/handoff.ts` |
 | Depth estimation disabled | `REPLICATE_API_TOKEN` not configured; edge detection via Sharp works as fallback | `src/lib/ai/config.ts` |
 | Iterative refinement disabled globally | Enabled per-request for Accelerate+ but the route doesn't use `generateWithRefinement()` | `src/lib/ai/config.ts` |
 | Stripe payment gateway not integrated | Payments recorded manually (cash, cheque, e-transfer, credit card) | Invoice payment flow |
@@ -523,7 +524,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | `npm run test` | 139 passing | 6 test files (pricing, schemas, visualizer, etc.) |
 | `npm run lint` | Passing | 24 pre-existing errors, 123 warnings (none from recent work) |
 | SSE streaming | Verified | 4 concepts in ~41s, progressive reveal |
-| Multi-tenant isolation | Verified | McCarty Squared vs AI Reno Demo — different everything |
+| Multi-tenant isolation | Verified | McCarty Squared vs ConversionOS Demo vs Red White Reno — no brand leakage |
 | Tier gating | Verified | Analytics hidden for Accelerate, visible for Dominate |
 | Mobile layout | Verified | 375x812 renders correctly |
 

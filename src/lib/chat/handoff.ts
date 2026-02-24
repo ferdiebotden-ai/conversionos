@@ -155,6 +155,87 @@ export function clearHandoffContext(): void {
 }
 
 /**
+ * Build a HandoffContext from a visualization DB record.
+ * Used when the user navigates to /estimate?visualization=<id> (potentially
+ * in a new tab or after a page refresh, where sessionStorage may be empty).
+ */
+export function buildHandoffFromVisualization(
+  viz: Record<string, unknown>,
+): HandoffContext {
+  const concepts = Array.isArray(viz['generated_concepts'])
+    ? (viz['generated_concepts'] as { id?: string; imageUrl?: string; image_url?: string; description?: string }[])
+    : [];
+
+  const conversationCtx = (viz['conversation_context'] as Record<string, unknown>) ?? {};
+  const photoAnalysisRaw = (viz['photo_analysis'] as Record<string, unknown>) ?? null;
+  const conceptPricing = (viz['concept_pricing'] as Record<string, unknown>) ?? null;
+
+  // Reconstruct photo analysis
+  let photoAnalysis: HandoffPhotoAnalysis | undefined;
+  if (photoAnalysisRaw) {
+    photoAnalysis = {
+      roomType: (photoAnalysisRaw['roomType'] as string) ?? (viz['room_type'] as string) ?? '',
+      layoutType: (photoAnalysisRaw['layoutType'] as string) ?? '',
+      currentCondition: (photoAnalysisRaw['currentCondition'] as string) ?? '',
+      structuralElements: (photoAnalysisRaw['structuralElements'] as string[]) ?? [],
+      identifiedFixtures: (photoAnalysisRaw['identifiedFixtures'] as string[]) ?? [],
+      estimatedDimensions: (photoAnalysisRaw['estimatedDimensions'] as string) ?? null,
+      estimatedCeilingHeight: (photoAnalysisRaw['estimatedCeilingHeight'] as string) ?? null,
+      wallCount: (photoAnalysisRaw['wallCount'] as number) ?? null,
+      wallDimensions: (photoAnalysisRaw['wallDimensions'] as HandoffPhotoAnalysis['wallDimensions']) ?? null,
+      spatialZones: (photoAnalysisRaw['spatialZones'] as HandoffPhotoAnalysis['spatialZones']) ?? null,
+    };
+  }
+
+  // Reconstruct cost signals from concept pricing
+  let costSignals: HandoffCostSignals | undefined;
+  if (conceptPricing) {
+    const low = conceptPricing['estimatedRangeLow'] as number | undefined;
+    const high = conceptPricing['estimatedRangeHigh'] as number | undefined;
+    if (low != null && high != null) {
+      costSignals = {
+        estimatedRangeLow: low,
+        estimatedRangeHigh: high,
+        breakdownHints: (conceptPricing['breakdownHints'] as string[]) ?? [],
+        selectedMaterials: (conceptPricing['selectedMaterials'] as string[]) ?? [],
+      };
+    }
+  }
+
+  // Extract voice preferences from conversation context
+  const voiceExtractedPreferences = conversationCtx['voiceExtractedPreferences'] as HandoffContext['voiceExtractedPreferences'] | undefined;
+  const designIntent = conversationCtx['designIntent'] as Record<string, unknown> | undefined;
+
+  return {
+    fromPersona: 'receptionist',
+    toPersona: 'quote-specialist',
+    summary: `The user used the AI visualizer to explore ${(viz['room_type'] as string)?.replace(/_/g, ' ') ?? 'a room'} renovation in ${(viz['style'] as string) ?? 'their chosen'} style. ${concepts.length} design concepts were generated.`,
+    recentMessages: [],
+    visualizationData: {
+      id: (viz['id'] as string) ?? '',
+      concepts: concepts.map((c, i) => ({
+        id: c.id ?? `concept-${i}`,
+        imageUrl: c.imageUrl ?? c.image_url ?? '',
+        ...(c.description ? { description: c.description } : {}),
+      })),
+      originalImageUrl: (viz['original_photo_url'] as string) ?? '',
+      roomType: (viz['room_type'] as string) ?? '',
+      style: (viz['style'] as string) ?? '',
+    },
+    designPreferences: {
+      roomType: (viz['room_type'] as string) ?? '',
+      style: (viz['style'] as string) ?? '',
+      textPreferences: (designIntent?.['textPreferences'] as string) ?? (viz['constraints'] as string) ?? '',
+    },
+    photoAnalysis,
+    costSignals,
+    voiceExtractedPreferences,
+    quoteAssistanceMode: (conversationCtx['quoteAssistanceMode'] as QuoteAssistanceMode) ?? undefined,
+    timestamp: Date.now(),
+  };
+}
+
+/**
  * Build a system prompt prefix from handoff context
  */
 export function buildHandoffPromptPrefix(context: HandoffContext): string {

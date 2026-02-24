@@ -19,6 +19,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'mccarty.norbotsystems.com': 'mccarty-squared',
   'redwhite.norbotsystems.com': 'redwhitereno',
   // Demo / preview domains
+  'conversionos-demo.norbotsystems.com': 'demo',
   'ai-reno-demo.vercel.app': 'demo',
   'leadquoteenginev2.vercel.app': 'redwhitereno',
   'mccarty-test.norbotsystems.com': 'mccarty-test',

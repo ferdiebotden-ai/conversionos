@@ -27,6 +27,7 @@ import {
   Sparkles,
   Phone,
   Palette,
+  Mail,
 } from 'lucide-react';
 
 interface ResultDisplayProps {
@@ -209,8 +210,18 @@ export function ResultDisplay({
         </StaggerItem>
       </StaggerContainer>
 
-      {/* Try another style / Start over */}
-      <FadeInUp className="flex flex-col items-center gap-2 pt-4 border-t border-border">
+      {/* Email capture + Try another style / Start over */}
+      <FadeInUp className="flex flex-col items-center gap-3 pt-4 border-t border-border">
+        {!hasProvidedEmail && (
+          <Button
+            variant="outline"
+            onClick={() => setEmailCaptureOpen(true)}
+            className="gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            Email Me These Designs
+          </Button>
+        )}
         {onTryAnotherStyle && (
           <Button variant="outline" onClick={onTryAnotherStyle}>
             <Palette className="w-4 h-4 mr-2" />

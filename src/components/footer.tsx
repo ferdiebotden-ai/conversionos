@@ -2,8 +2,10 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Mail, MapPin, Phone } from "lucide-react"
 import { useBranding } from "@/components/branding-provider"
+import { useTier } from "@/components/tier-provider"
 
 const quickLinks = [
   { href: "/services", label: "Our Services" },
@@ -15,6 +17,7 @@ const quickLinks = [
 export function Footer() {
   const pathname = usePathname()
   const branding = useBranding()
+  const { tier } = useTier()
   const currentYear = new Date().getFullYear()
 
   const serviceLinks = branding.services.length > 0
@@ -37,15 +40,25 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex flex-col leading-tight">
-              <span className="text-xl font-bold tracking-tight text-foreground">
-                {branding.name.split(" ")[0]}{" "}
-                <span className="text-primary">{branding.name.split(" ").slice(1).join(" ")}</span>
-              </span>
-              <span className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
-                {branding.tagline}
-              </span>
-            </div>
+            {branding.logoUrl ? (
+              <Image
+                src={branding.logoUrl}
+                alt={branding.name}
+                width={160}
+                height={40}
+                className="h-8 w-auto"
+              />
+            ) : (
+              <div className="flex flex-col leading-tight">
+                <span className="text-xl font-bold tracking-tight text-foreground">
+                  {branding.name.split(" ")[0]}{" "}
+                  <span className="text-primary">{branding.name.split(" ").slice(1).join(" ")}</span>
+                </span>
+                <span className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
+                  {branding.tagline}
+                </span>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               Professional renovation services for homes and businesses in {branding.city}, {branding.province} and surrounding communities.
             </p>
@@ -64,9 +77,14 @@ export function Footer() {
                 ))}
               </div>
             )}
-            <p className="text-xs text-muted-foreground/40">
-              Powered by <span className="font-semibold">ConversionOS</span>
-            </p>
+            {tier !== 'dominate' && (
+              <p className={tier === 'elevate' ? 'text-xs text-muted-foreground/60' : 'text-xs text-muted-foreground/40'}>
+                Powered by{' '}
+                <a href="https://www.norbotsystems.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-primary transition-colors">
+                  ConversionOS
+                </a>
+              </p>
+            )}
           </div>
 
           {/* Quick Links */}
