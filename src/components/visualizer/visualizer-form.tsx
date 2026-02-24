@@ -264,7 +264,7 @@ function VisualizerFormInner() {
   }, []);
 
   const handleGetQuote = useCallback(() => {
-    // Elevate tier: redirect to contact page (no Marcus handoff)
+    // Elevate tier: redirect to contact page (no estimate handoff)
     if (!canAccess('ai_quote_engine')) {
       const params = new URLSearchParams();
       params.set('from', 'visualizer');
@@ -275,7 +275,7 @@ function VisualizerFormInner() {
       return;
     }
 
-    // Accelerate+: Serialize full context for Marcus handoff — include ALL captured data
+    // Accelerate+: Serialize full context for estimate handoff — include ALL captured data
     const messages = formData.voiceTranscript.map(t => ({
       role: t.role as 'user' | 'assistant',
       content: t.content,

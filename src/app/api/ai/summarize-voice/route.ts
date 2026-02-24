@@ -1,6 +1,6 @@
 /**
  * Voice Transcript Summary API
- * Called when a voice consultation with Mia ends.
+ * Called when a voice consultation with Emma ends.
  * Extracts structured design preferences from the conversation transcript.
  */
 
@@ -20,7 +20,7 @@ const requestSchema = z.object({
   })).min(1),
 });
 
-const SYSTEM_PROMPT = `You are an AI assistant that analyzes voice consultation transcripts between a homeowner and a design consultant (Mia) at a renovation company. Extract the homeowner's design preferences, desired changes, material preferences, and any elements they want to preserve.
+const SYSTEM_PROMPT = `You are an AI assistant that analyzes voice consultation transcripts between a homeowner and a renovation assistant (Emma) at a renovation company. Extract the homeowner's design preferences, desired changes, material preferences, and any elements they want to preserve.
 
 Instructions:
 - "summary" should be a concise 2-4 sentence paragraph summarizing what the homeowner discussed and wants.
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
     // Format transcript as a readable conversation string
     const conversationText = transcript
-      .map((entry) => `${entry.role === 'user' ? 'User' : 'Mia'}: ${entry.content}`)
+      .map((entry) => `${entry.role === 'user' ? 'User' : 'Emma'}: ${entry.content}`)
       .join('\n');
 
     const result = await generateObject({

@@ -17,7 +17,7 @@ import { ReceptionistCTAButtons, stripCTAs } from './receptionist-cta-buttons';
 import { VoiceIndicator } from '@/components/voice/voice-indicator';
 import { VoiceTranscriptMessage } from '@/components/voice/voice-transcript-message';
 import { useVoice } from '@/components/voice/voice-provider';
-import { RECEPTIONIST_PERSONA } from '@/lib/ai/personas/receptionist';
+import { EMMA_PERSONA } from '@/lib/ai/personas';
 import { cn } from '@/lib/utils';
 import { MessageCircle, AudioLines, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export function ReceptionistChat() {
   const initialMessages = useMemo<UIMessage[]>(() => [{
     id: 'emma-greeting',
     role: 'assistant' as const,
-    parts: [{ type: 'text' as const, text: RECEPTIONIST_PERSONA.greeting }],
+    parts: [{ type: 'text' as const, text: EMMA_PERSONA.greeting }],
   }], []);
 
   const { messages, sendMessage, status: chatStatus } = useChat({
@@ -74,7 +74,7 @@ export function ReceptionistChat() {
 
     if (newMode === 'talk') {
       if (isApiConfigured && status === 'disconnected') {
-        startVoice('receptionist');
+        startVoice('general');
       }
     } else {
       if (isVoiceActive) {
@@ -201,7 +201,7 @@ export function ReceptionistChat() {
         <>
           {/* Voice Indicator — shown inline when voice is active */}
           {isVoiceActive && (
-            <VoiceIndicator persona="receptionist" />
+            <VoiceIndicator context="general" />
           )}
 
           {/* Connecting indicator */}
@@ -216,7 +216,7 @@ export function ReceptionistChat() {
           {status === 'disconnected' && (
             <div className="p-4 border-t border-border flex flex-col items-center gap-2">
               <Button
-                onClick={() => startVoice('receptionist')}
+                onClick={() => startVoice('general')}
                 disabled={isApiConfigured === false}
                 className="w-full bg-primary"
                 size="lg"
@@ -237,7 +237,7 @@ export function ReceptionistChat() {
         <ReceptionistInput
           onSend={handleSend}
           disabled={isLoading}
-          persona="receptionist"
+          context="general"
         />
       )}
     </div>

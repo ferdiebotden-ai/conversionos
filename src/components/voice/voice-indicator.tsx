@@ -12,31 +12,23 @@ import { MicOff, Mic, PhoneOff } from 'lucide-react';
 import { PersonaAvatar } from './persona-avatar';
 import { useVoice } from './voice-provider';
 import { formatDuration } from '@/lib/voice/config';
-import type { PersonaKey } from '@/lib/ai/personas/types';
-
-const PERSONA_NAMES: Record<PersonaKey, string> = {
-  receptionist: 'Emma',
-  'quote-specialist': 'Marcus',
-  'design-consultant': 'Mia',
-};
+import type { PageContext } from '@/lib/ai/personas/types';
 
 interface VoiceIndicatorProps {
-  persona: PersonaKey;
+  context: PageContext;
   className?: string;
 }
 
-export function VoiceIndicator({ persona, className }: VoiceIndicatorProps) {
+export function VoiceIndicator({ context, className }: VoiceIndicatorProps) {
   const { status, mode, isMuted, outputVolume, durationMs, toggleMute, endVoice } = useVoice();
 
   if (status !== 'connected') return null;
-
-  const name = PERSONA_NAMES[persona];
 
   const avatarState = mode === 'speaking' ? 'speaking' : mode === 'listening' ? 'listening' : 'static';
 
   const statusText =
     mode === 'speaking'
-      ? `${name} is speaking...`
+      ? 'Emma is speaking...'
       : mode === 'listening'
         ? 'Listening...'
         : 'Speak when ready';
@@ -51,7 +43,7 @@ export function VoiceIndicator({ persona, className }: VoiceIndicatorProps) {
     >
       {/* Left: avatar + status */}
       <PersonaAvatar
-        persona={persona}
+        context={context}
         size="sm"
         state={avatarState}
         outputVolume={outputVolume}

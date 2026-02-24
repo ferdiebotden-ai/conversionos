@@ -62,7 +62,7 @@ const enhancedVisualizationRequestSchema = visualizationRequestSchema
       constraintsToPreserve: z.array(z.string()),
       materialPreferences: z.array(z.string()).optional(),
     }).optional(),
-    /** Voice transcript from Mia consultation */
+    /** Voice transcript from Emma consultation */
     voiceTranscript: z.array(z.object({
       role: z.enum(['user', 'assistant']),
       content: z.string(),

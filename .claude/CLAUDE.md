@@ -50,11 +50,12 @@ Pipeline: score → scrape → upload images → provision DB → verify. Checkp
 - **Cost:** ~$0.07/tenant
 - **Handoff report:** `ONBOARDING_HANDOFF.md` (prerequisites, test plan, file inventory)
 
-## ElevenLabs Voice Agents
-- 3 personas: Emma (receptionist), Marcus (quote specialist), Mia (design consultant)
+## ElevenLabs Voice Agent
+- **Single persona: Emma** — one ElevenLabs agent per tenant, context-aware via PageContext
 - **Dominate tier only** — voice toggle hidden on Elevate/Accelerate, API returns 403
+- Dynamic prompts: `buildVoiceSystemPrompt(context)` server-side, passed as session override via ElevenLabs SDK
 - Each tenant can have duplicated agents via `POST /v1/convai/agents/{id}/duplicate`
-- Agent IDs stored in env vars per Vercel project (zero code changes)
+- Single env var: `ELEVENLABS_AGENT_EMMA` per Vercel project
 
 ## Gemini Image Generation
 - Model: `gemini-3-pro-image-preview` (configured in `src/lib/ai/gemini.ts`)
@@ -75,11 +76,11 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - **Accelerate/Dominate default:** `{ mode: 'range', rangeBand: 10000 }`
 - **Helper:** `getQuoteAssistanceConfig(tier?)` in `src/lib/quote-assistance.ts`
 - **Admin UI:** "Quoting" tab in Settings page (mode dropdown + range band selector)
-- **Marcus awareness:** Handoff context includes `quoteAssistanceMode` — Marcus adapts pricing discussion accordingly
+- **Emma awareness:** Handoff context includes `quoteAssistanceMode` — Emma adapts pricing discussion accordingly
 
 ## Context Pipeline (New — Session 1)
 - `HandoffContext` now includes `photoAnalysis`, `costSignals`, `quoteAssistanceMode`, `voiceExtractedPreferences`
-- `buildHandoffPromptPrefix()` injects structural data, voice preferences, cost signals, and pricing mode into Marcus's prompt
+- `buildHandoffPromptPrefix()` injects structural data, voice preferences, cost signals, and pricing mode into Emma's estimate context prompt
 - `visualizer-form.tsx` serialises full photo analysis + voice extracted preferences in handoff
 - `visualize/route.ts` writes `conversation_context` JSONB with designIntent + voice data for ALL tiers (silent capture)
 - Photo analysis cached by image hash (FNV-1a, 10min TTL)
@@ -98,8 +99,8 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - Uses `(supabase.from() as any)` pattern since `concept_pricing` column may not be in generated types
 
 ## Tier-Aware Visualizer CTAs (New — Session 3)
-- **Elevate:** "Request a Callback from [Contractor Name]" → `/contact?from=visualizer` (no Marcus handoff)
-- **Accelerate+:** "Get a Personalised Estimate" → Marcus handoff with full context
+- **Elevate:** "Request a Callback from [Contractor Name]" → `/contact?from=visualizer` (no estimate handoff)
+- **Accelerate+:** "Get a Personalised Estimate" → estimate page handoff with full context
 - Gated by `canAccess('ai_quote_engine')` — Elevate doesn't have this entitlement
 - Sticky CTA bar also adapts per tier
 - "Try Another Style" button keeps photo + room type, resets style/preferences

@@ -109,7 +109,7 @@ function VisualizerChatInner({
   const initialMessages = useMemo<UIMessage[]>(() => {
     if (!initialGreeting) return [];
     return [{
-      id: 'mia-greeting',
+      id: 'emma-greeting',
       role: 'assistant' as const,
       parts: [{ type: 'text' as const, text: initialGreeting }],
     }];
@@ -325,9 +325,9 @@ function VisualizerChatInner({
             Back
           </Button>
           <div>
-            <h2 className="font-semibold">Chat with Mia</h2>
+            <h2 className="font-semibold">Chat with Emma</h2>
             <p className="text-xs text-muted-foreground">
-              Your design consultant
+              Your renovation assistant
             </p>
           </div>
         </div>
@@ -489,13 +489,13 @@ function VisualizerChatInner({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Tell Mia about your dream space..."
+            placeholder="Tell Emma about your dream space..."
             disabled={isLoading || isAnalyzing}
             className="flex-1"
-            aria-label="Message to Mia"
+            aria-label="Message to Emma"
           />
           <TalkButton
-            persona="design-consultant"
+            context="visualizer"
             variant="inline"
             disabled={isLoading || isAnalyzing}
           />
@@ -710,5 +710,5 @@ function VisualizerVoiceIndicator({
   const isVoiceActive = status === 'connected' || status === 'connecting';
   if (!isVoiceActive) return null;
 
-  return <VoiceIndicator persona="design-consultant" />;
+  return <VoiceIndicator context="visualizer" />;
 }

@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     const lastUserMessage = formattedMessages.filter((m: { role: string }) => m.role === 'user').pop();
     const visualizerBase = buildVisualizerSystemPrompt(context);
     const dynamicAdditions = lastUserMessage
-      ? buildDynamicSystemPrompt('design-consultant', lastUserMessage.content)
+      ? buildDynamicSystemPrompt('visualizer', lastUserMessage.content)
       : '';
     const systemPrompt = dynamicAdditions
       ? `${visualizerBase}\n\n---\n\n${dynamicAdditions}`

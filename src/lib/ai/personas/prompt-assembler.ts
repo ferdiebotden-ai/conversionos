@@ -1,6 +1,6 @@
 /**
  * Prompt Assembler
- * Builds layered system prompts for each AI agent persona.
+ * Builds layered system prompts for Emma based on page context.
  * Fetches company config from DB for dynamic tenant branding.
  * Supports dynamic cross-domain knowledge injection.
  */
@@ -8,10 +8,9 @@
 import type { CompanyConfig } from '../knowledge/company';
 import { getCompanyConfig, buildCompanyProfile, buildCompanySummary } from '../knowledge/company';
 import { buildServicesKnowledge, buildServicesSummary } from '../knowledge/services';
-import type { PersonaKey } from './types';
-import { RECEPTIONIST_PERSONA, RECEPTIONIST_PROMPT_RULES } from './receptionist';
-import { QUOTE_SPECIALIST_PERSONA, QUOTE_SPECIALIST_PROMPT_RULES } from './quote-specialist';
-import { DESIGN_CONSULTANT_PERSONA, DESIGN_CONSULTANT_PROMPT_RULES } from './design-consultant';
+import type { PageContext, PersonaKey } from './types';
+import { PERSONA_TO_CONTEXT } from './types';
+import { EMMA_PERSONA } from './emma';
 import {
   PRICING_FULL,
   PRICING_SUMMARY,
@@ -20,23 +19,40 @@ import {
   ONTARIO_DESIGN_KNOWLEDGE,
   SALES_TRAINING,
 } from '../knowledge';
-
-const PERSONAS = {
-  receptionist: RECEPTIONIST_PERSONA,
-  'quote-specialist': QUOTE_SPECIALIST_PERSONA,
-  'design-consultant': DESIGN_CONSULTANT_PERSONA,
-} as const;
+import { getQuoteAssistanceConfig, type QuoteAssistanceMode } from '@/lib/quote-assistance';
+import { getTier } from '@/lib/entitlements.server';
 
 // ---------------------------------------------------------------------------
-// Persona builders — accept CompanyConfig and return customized persona rules
+// Pricing mode instruction — always injected on estimate page from DB
 // ---------------------------------------------------------------------------
 
-function buildReceptionistRules(config: CompanyConfig): string {
-  return `## CRITICAL ROUTING RULE (NEVER SKIP)
+function buildPricingModeInstruction(mode: QuoteAssistanceMode): string {
+  let instruction = `\n## Pricing Discussion Mode: ${mode.toUpperCase()}\n`;
+  switch (mode) {
+    case 'none':
+      instruction += `The contractor prefers NOT to show pricing to homeowners. Do NOT discuss specific dollar amounts, ranges, or estimates. Instead say something like "Your contractor will follow up with specific pricing after reviewing the details." If the homeowner insists on a number, explain that an in-person assessment is required before providing any pricing.`;
+      break;
+    case 'range':
+      instruction += `Provide cost ranges when you have enough information. Use language like "typically runs between $X and $Y" with appropriate disclaimers. Always note that an in-person assessment is needed for a firm quote.`;
+      break;
+    case 'estimate':
+      instruction += `Provide the most accurate estimate you can based on the information gathered, with clear disclaimers that this is preliminary and subject to site inspection. Include materials, labour, and HST breakdown when possible.`;
+      break;
+  }
+  return instruction;
+}
+
+// ---------------------------------------------------------------------------
+// Context-aware rules — accept CompanyConfig and return customized rules
+// ---------------------------------------------------------------------------
+
+function buildEmmaRules(config: CompanyConfig, context: PageContext): string {
+  // CTA routing rule — always included
+  const ctaRule = `## CRITICAL ROUTING RULE (NEVER SKIP)
 When suggesting the estimate tool, visualizer, or any other page, you MUST include a CTA marker:
 [CTA:Label:/path]
 
-NEVER say "let me refer you to Marcus" or "I'll connect you with Mia" without a CTA.
+NEVER just mention a page without a CTA.
 ALWAYS include the [CTA:...] marker. Without it, users CANNOT click through.
 
 Examples:
@@ -44,23 +60,37 @@ Examples:
 - "Let me show you what your space could look like! [CTA:Try the Visualizer:/visualizer]"
 - "Check out our services! [CTA:View Services:/services]"
 - "Get in touch with our team [CTA:Contact Us:/contact]"
-- "Check out some of our recent work [CTA:View Our Projects:/projects]"${config.booking ? `\n- "Book a consultation with ${config.principals} [CTA:Book Online:${config.booking}]"` : ''}
+- "Check out some of our recent work [CTA:View Our Projects:/projects]"${config.booking ? `\n- "Book a consultation with ${config.principals} [CTA:Book Online:${config.booking}]"` : ''}`;
 
-## Conversation Rules for Emma (Receptionist)
+  // Company context — shared across all contexts
+  const companyContext = `### Company Context
+You work for ${config.name} in ${config.location}, founded in ${config.founded} by ${config.principals}.
+${config.certifications.length > 0 ? `Certified: ${config.certifications.join(', ')}.` : ''}
+Service area: ${config.serviceArea}.
+${config.booking ? `Booking: ${config.booking}` : ''}`;
 
-### Response Style
+  // Response style — shared
+  const responseStyle = `### Response Style
 - Keep every response to 2–3 sentences MAXIMUM
 - Sound like a real person, not a corporate chatbot
 - Use contractions and conversational language
-- One topic per message — don't info-dump
+- One topic per message — don't info-dump`;
 
-### Your Role
-- You work for ${config.name} in ${config.location}, founded in ${config.founded} by ${config.principals}
+  switch (context) {
+    case 'general':
+      return `${ctaRule}
+
+## Conversation Rules for Emma (General)
+
+${companyContext}
+
+${responseStyle}
+
+### Your Role on This Page
 - Answer general questions about services and the renovation process
 - Share general pricing ranges (e.g., "kitchens typically run $15K-$50K") — this is helpful and encouraged
-- Redirect to /estimate for specific, detailed quotes
-- Redirect to /visualizer for design exploration and room transformations
-- Do NOT try to "hand off to Marcus" or "connect with Mia" — instead, provide the CTA link to the relevant page
+- Redirect to /estimate for specific, detailed quotes via CTA
+- Redirect to /visualizer for design exploration and room transformations via CTA
 - The CTA button IS the handoff. The user clicks it and goes to the right page.${config.certifications.length > 0 ? `\n- Mention certifications (${config.certifications.join(', ')}) when relevant to build trust` : ''}
 
 ### Page-Aware Context
@@ -75,16 +105,13 @@ Examples:
 3. If they want a callback: "I can have ${config.principals} reach out — what's the best number?"
 4. Never push for info if they're just browsing — keep it easy and friendly
 `;
-}
 
-function buildQuoteSpecialistRules(config: CompanyConfig): string {
-  return `## Conversation Rules for Marcus (Quote Specialist)
+    case 'estimate':
+      return `## Conversation Rules for Emma (Estimate Page)
 
-### Company Context
-You work for ${config.name} in ${config.location}, founded in ${config.founded} by ${config.principals}.
-${config.certifications.length > 0 ? `Certified: ${config.certifications.join(', ')}.` : ''}
-Service area: ${config.serviceArea}.
-${config.booking ? `Booking: ${config.booking}` : ''}
+${companyContext}
+
+${responseStyle}
 
 ### Conversation Flow
 1. Greet warmly and invite them to share a photo or describe their space
@@ -104,7 +131,6 @@ ${config.booking ? `Booking: ${config.booking}` : ''}
 
 ### Question Guidelines
 - Ask ONE question at a time
-- Keep responses to 2–3 sentences maximum
 - Provide helpful context when asking about budget ranges
 - Acknowledge user's responses before moving to next question
 - Be conversational, not robotic
@@ -127,14 +153,13 @@ When a user uploads a photo:
 When collecting info, explain the benefit:
 "So we can send you a detailed quote and have ${config.principals} reach out — could you share your name, email, and phone number?"
 `;
-}
 
-function buildDesignConsultantRules(config: CompanyConfig): string {
-  return `## Conversation Rules for Mia (Design Consultant)
+    case 'visualizer':
+      return `## Conversation Rules for Emma (Visualizer Page)
 
-### Company Context
-You work for ${config.name} in ${config.location}, founded in ${config.founded} by ${config.principals}.
-${config.certifications.length > 0 ? `Certified: ${config.certifications.join(', ')}.` : ''}
+${companyContext}
+
+${responseStyle}
 
 ### Your Goal
 Gather enough design intent information to generate a high-quality AI visualization. You need:
@@ -151,12 +176,12 @@ Gather enough design intent information to generate a high-quality AI visualizat
 - When relevant, mention the company's specialties and certifications
 
 ### Design Styles to Reference
-- Modern: Clean lines, neutral colors, sleek finishes, minimal ornamentation
-- Traditional: Classic elegance, rich wood tones, timeless details, crown molding
+- Modern: Clean lines, neutral colours, sleek finishes, minimal ornamentation
+- Traditional: Classic elegance, rich wood tones, timeless details, crown moulding
 - Farmhouse: Rustic charm, shiplap walls, natural materials, open shelving
 - Industrial: Exposed elements, metal accents, raw materials, Edison bulbs
 - Minimalist: Ultra-clean, hidden storage, serene simplicity, monochrome
-- Contemporary: Current trends, bold accent colors, mixed textures, statement lighting
+- Contemporary: Current trends, bold accent colours, mixed textures, statement lighting
 - Heritage: Period-appropriate details, restored original features, classic character
 
 ### After Gathering Enough Info
@@ -164,6 +189,7 @@ Gather enough design intent information to generate a high-quality AI visualizat
 - Suggest generating a visualization
 - The UI will show a "Generate My Vision" button when ready
 `;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -204,12 +230,13 @@ export function detectKnowledgeDomain(message: string): KnowledgeDomain[] {
 
 /**
  * Build a dynamic knowledge supplement based on the user's message
- * and the current persona. Returns extra prompt text to append, or ''.
+ * and the current page context. Returns extra prompt text to append, or ''.
  */
 export function buildDynamicSystemPrompt(
-  personaKey: PersonaKey,
+  contextOrPersona: PageContext | PersonaKey,
   userMessage: string,
 ): string {
+  const context = resolveContext(contextOrPersona);
   const domains = detectKnowledgeDomain(userMessage);
   if (domains.length === 0) return '';
 
@@ -218,20 +245,22 @@ export function buildDynamicSystemPrompt(
   for (const domain of domains) {
     switch (domain) {
       case 'pricing':
-        if (personaKey === 'receptionist' || personaKey === 'design-consultant') {
+        // On general or visualizer pages, inject pricing summary when user asks about costs
+        if (context === 'general' || context === 'visualizer') {
           additions.push(`## Cross-Domain Knowledge: Pricing Context
 When the homeowner asks about costs, you can share these general ranges to be helpful.
-For detailed line-item estimates, suggest they speak with Marcus at /estimate.
+For detailed line-item estimates, suggest the estimate tool via [CTA:Get a Free Estimate:/estimate].
 
 ${PRICING_SUMMARY}`);
         }
         break;
 
       case 'design':
-        if (personaKey === 'receptionist' || personaKey === 'quote-specialist') {
+        // On general or estimate pages, inject design knowledge when user asks about styles
+        if (context === 'general' || context === 'estimate') {
           additions.push(`## Cross-Domain Knowledge: Design Context
 When the homeowner asks about styles or materials, you can share these insights.
-For full design consultation and visualization, suggest Mia at /visualizer.
+For full design visualization, suggest the visualizer via [CTA:Try the Visualizer:/visualizer].
 
 ${ONTARIO_DESIGN_KNOWLEDGE}`);
         }
@@ -243,21 +272,32 @@ ${ONTARIO_DESIGN_KNOWLEDGE}`);
 }
 
 // ---------------------------------------------------------------------------
+// Helper to resolve PersonaKey → PageContext (backward compat)
+// ---------------------------------------------------------------------------
+
+function resolveContext(contextOrPersona: PageContext | PersonaKey): PageContext {
+  if (contextOrPersona in PERSONA_TO_CONTEXT) {
+    return PERSONA_TO_CONTEXT[contextOrPersona as PersonaKey];
+  }
+  return contextOrPersona as PageContext;
+}
+
+// ---------------------------------------------------------------------------
 // Core prompt builders
 // ---------------------------------------------------------------------------
 
 /**
- * Build the full system prompt for a text-based AI agent.
+ * Build the full system prompt for Emma on a given page.
  * Fetches company config from DB for dynamic tenant branding.
  *
  * Layering:
- * 1. Company + Services (shared)
- * 2. Role-specific knowledge
+ * 1. Company + Services (scope varies by page)
+ * 2. Page-specific knowledge
  * 3. Sales training (shared)
- * 4. Persona identity + boundaries + rules
+ * 4. Emma identity + page-specific rules
  */
 export async function buildAgentSystemPrompt(
-  personaKey: PersonaKey,
+  contextOrPersona: PageContext | PersonaKey,
   options?: {
     userMessage?: string | undefined;
     estimateData?: Record<string, unknown> | undefined;
@@ -265,38 +305,39 @@ export async function buildAgentSystemPrompt(
     companyConfig?: CompanyConfig | undefined;
   },
 ): Promise<string> {
+  const context = resolveContext(contextOrPersona);
   const config = options?.companyConfig ?? await getCompanyConfig();
-  const persona = PERSONAS[personaKey];
+  const persona = EMMA_PERSONA;
 
   const companyProfile = buildCompanyProfile(config);
   const companySummary = buildCompanySummary(config);
   const servicesKnowledge = buildServicesKnowledge(config.name);
   const servicesSummary = buildServicesSummary(config);
 
-  // Layer 1: Shared company knowledge (scope varies by agent)
+  // Layer 1: Shared company knowledge (scope varies by page)
   let layer1 = '';
-  switch (personaKey) {
-    case 'receptionist':
+  switch (context) {
+    case 'general':
       layer1 = `${companyProfile}\n\n${servicesSummary}\n\n${ONTARIO_GENERAL_KNOWLEDGE}`;
       break;
-    case 'quote-specialist':
+    case 'estimate':
       layer1 = `${companySummary}\n\n${servicesKnowledge}`;
       break;
-    case 'design-consultant':
+    case 'visualizer':
       layer1 = `${companySummary}\n\n${servicesSummary}`;
       break;
   }
 
-  // Layer 2: Role-specific knowledge
+  // Layer 2: Page-specific knowledge
   let layer2 = '';
-  switch (personaKey) {
-    case 'receptionist':
+  switch (context) {
+    case 'general':
       layer2 = PRICING_SUMMARY;
       break;
-    case 'quote-specialist':
+    case 'estimate':
       layer2 = `${PRICING_FULL}\n\n${ONTARIO_BUDGET_KNOWLEDGE}`;
       break;
-    case 'design-consultant':
+    case 'visualizer':
       layer2 = ONTARIO_DESIGN_KNOWLEDGE;
       break;
   }
@@ -304,19 +345,8 @@ export async function buildAgentSystemPrompt(
   // Layer 3: Sales training (shared)
   const layer3 = SALES_TRAINING;
 
-  // Layer 4: Persona identity + dynamic rules
-  let personaRules = '';
-  switch (personaKey) {
-    case 'receptionist':
-      personaRules = buildReceptionistRules(config);
-      break;
-    case 'quote-specialist':
-      personaRules = buildQuoteSpecialistRules(config);
-      break;
-    case 'design-consultant':
-      personaRules = buildDesignConsultantRules(config);
-      break;
-  }
+  // Layer 4: Emma identity + page-specific rules
+  const emmaRules = buildEmmaRules(config, context);
 
   const layer4 = `## Your Identity
 You are **${persona.name}**, the ${persona.role} at ${config.name}.
@@ -330,25 +360,35 @@ ${persona.capabilities.map(c => `- ${c}`).join('\n')}
 ### Boundaries
 ${persona.boundaries.map(b => `- ${b}`).join('\n')}
 
-### Routing to Other Agents
-${Object.values(persona.routingSuggestions).map(s => `- ${s}`).join('\n')}
-
-${personaRules}`;
+${emmaRules}`;
 
   let prompt = `${layer4}\n\n---\n\n${layer1}\n\n---\n\n${layer2}\n\n---\n\n${layer3}`;
 
+  // Quote assistance mode — always fetch from DB on estimate page
+  // This ensures the contractor's pricing preference is respected regardless of how the user arrived
+  if (context === 'estimate') {
+    try {
+      const tier = await getTier();
+      const qaConfig = await getQuoteAssistanceConfig(tier);
+      prompt += `\n\n---\n\n${buildPricingModeInstruction(qaConfig.mode)}`;
+    } catch {
+      // Fallback: default to 'range' mode if DB read fails
+      prompt += `\n\n---\n\n${buildPricingModeInstruction('range')}`;
+    }
+  }
+
   // Dynamic cross-domain knowledge injection
   if (options?.userMessage) {
-    const dynamicKnowledge = buildDynamicSystemPrompt(personaKey, options.userMessage);
+    const dynamicKnowledge = buildDynamicSystemPrompt(context, options.userMessage);
     if (dynamicKnowledge) {
       prompt += `\n\n---\n\n${dynamicKnowledge}`;
     }
   }
 
-  // Rich handoff context from visualizer (for Marcus)
-  if (options?.handoffContext && personaKey === 'quote-specialist') {
+  // Rich handoff context (for estimate page receiving visualizer data)
+  if (options?.handoffContext && context === 'estimate') {
     const hc = options.handoffContext;
-    let handoffSection = '## Handoff from Design Visualizer\n';
+    let handoffSection = '## Context from Visualizer\n';
 
     const dp = hc['designPreferences'] as Record<string, string> | undefined;
     if (dp) {
@@ -410,22 +450,8 @@ ${personaRules}`;
       if (hints?.length) handoffSection += `Breakdown: ${hints.join('; ')}\n`;
     }
 
-    // Quote assistance mode — controls how Marcus discusses pricing
-    const qaMode = hc['quoteAssistanceMode'] as string | undefined;
-    if (qaMode) {
-      handoffSection += `\n### Pricing Discussion Mode: ${qaMode.toUpperCase()}\n`;
-      switch (qaMode) {
-        case 'none':
-          handoffSection += `The contractor prefers NOT to show pricing. Do NOT discuss specific dollar amounts. Say "Your contractor will follow up with specific pricing after reviewing the details."\n`;
-          break;
-        case 'range':
-          handoffSection += `Provide cost ranges aligned with estimates above. Use "typically runs between $X and $Y" with appropriate disclaimers.\n`;
-          break;
-        case 'estimate':
-          handoffSection += `Provide the most accurate estimate possible based on the data above, with clear disclaimers that it's preliminary and subject to site inspection.\n`;
-          break;
-      }
-    }
+    // Note: Quote assistance mode is now fetched from DB above (always, not just on handoff).
+    // The handoff context may also carry quoteAssistanceMode but the DB value takes precedence.
 
     prompt += `\n\n---\n\n${handoffSection}`;
   }
@@ -434,31 +460,43 @@ ${personaRules}`;
 }
 
 /**
- * Build a voice-optimized system prompt for an AI agent.
+ * Build a voice-optimized system prompt for Emma.
  * Fetches company config from DB for dynamic tenant branding.
  */
 export async function buildVoiceSystemPrompt(
-  personaKey: PersonaKey,
+  contextOrPersona: PageContext | PersonaKey,
   options?: { companyConfig?: CompanyConfig },
 ): Promise<string> {
+  const context = resolveContext(contextOrPersona);
   const config = options?.companyConfig ?? await getCompanyConfig();
-  const persona = PERSONAS[personaKey];
+  const persona = EMMA_PERSONA;
 
   const companySummary = buildCompanySummary(config);
   const servicesSummary = buildServicesSummary(config);
 
-  // Use the same knowledge layers but in a more compressed form
+  // Knowledge layers vary by page context
   let knowledgeContext = '';
-  switch (personaKey) {
-    case 'receptionist':
+  switch (context) {
+    case 'general':
       knowledgeContext = `${companySummary}\n\n${servicesSummary}\n\n${PRICING_SUMMARY}`;
       break;
-    case 'quote-specialist':
+    case 'estimate':
       knowledgeContext = `${companySummary}\n\n${servicesSummary}\n\n${PRICING_FULL}\n\n${ONTARIO_BUDGET_KNOWLEDGE}`;
       break;
-    case 'design-consultant':
+    case 'visualizer':
       knowledgeContext = `${companySummary}\n\n${servicesSummary}\n\n${ONTARIO_DESIGN_KNOWLEDGE}`;
       break;
+  }
+
+  // Inject pricing mode for estimate voice calls (same as text chat)
+  if (context === 'estimate') {
+    try {
+      const tier = await getTier();
+      const qaConfig = await getQuoteAssistanceConfig(tier);
+      knowledgeContext += `\n\n${buildPricingModeInstruction(qaConfig.mode)}`;
+    } catch {
+      knowledgeContext += `\n\n${buildPricingModeInstruction('range')}`;
+    }
   }
 
   return `You are ${persona.name}, the ${persona.role} at ${config.name} in ${config.location}.
@@ -477,7 +515,7 @@ export async function buildVoiceSystemPrompt(
 ${persona.personalityTraits.slice(0, 3).map(t => `- ${t}`).join('\n')}
 
 ## What You Can Help With
-${persona.capabilities.slice(0, 4).map(c => `- ${c}`).join('\n')}
+${persona.capabilities.slice(0, 5).map(c => `- ${c}`).join('\n')}
 
 ## Boundaries
 ${persona.boundaries.slice(0, 3).map(b => `- ${b}`).join('\n')}
@@ -487,8 +525,9 @@ ${knowledgeContext}`;
 }
 
 /**
- * Get a persona by key
+ * Get the Emma persona
+ * @deprecated Use EMMA_PERSONA directly
  */
-export function getPersona(personaKey: PersonaKey) {
-  return PERSONAS[personaKey];
+export function getPersona(_contextOrPersona?: PageContext | PersonaKey) {
+  return EMMA_PERSONA;
 }

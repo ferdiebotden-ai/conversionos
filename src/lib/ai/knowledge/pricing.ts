@@ -159,7 +159,7 @@ function buildBusinessConstants(): string {
 
 /**
  * Full pricing reference for AI agents — comprehensive pricing data.
- * Used by Marcus (quote specialist) and detailed pricing discussions.
+ * Used by Emma (estimate context) and detailed pricing discussions.
  */
 export const PRICING_FULL = `## Ontario Renovation Pricing Database (INTERNAL — Never share raw numbers directly)
 ${buildPerSqftSection()}

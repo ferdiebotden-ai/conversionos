@@ -15,8 +15,8 @@ import type { PersonaKey } from '@/lib/ai/personas/types';
 
 const CTA_REGEX = /\[CTA:([^:]+):([^\]]+)\]/g;
 
-/** Routes that trigger persona handoff cards */
-const PERSONA_ROUTES: Record<string, PersonaKey> = {
+/** Routes that trigger handoff cards (uses legacy PersonaKey for backward compat with serialized data) */
+const HANDOFF_ROUTES: Record<string, PersonaKey> = {
   '/estimate': 'quote-specialist',
   '/visualizer': 'design-consultant',
 };
@@ -69,10 +69,10 @@ export function ReceptionistCTAButtons({
   const isGreeting = !messages || messages.filter(m => m.role === 'assistant').length <= 1;
 
   if (ctas.length === 0 && !isGreeting) {
-    if (/marcus|estimate|cost|price|quote|budget/i.test(text)) {
+    if (/estimate|cost|price|quote|budget|pricing/i.test(text)) {
       ctas.push({ label: 'Get a Free Estimate', path: '/estimate' });
     }
-    if (/mia|visualiz|design|transform|see what/i.test(text)) {
+    if (/visualiz|design|transform|see what|see your/i.test(text)) {
       ctas.push({ label: 'Try the Visualizer', path: '/visualizer' });
     }
     if (/contact|reach out|call|phone/i.test(text) && !/callback|call back/i.test(text)) {
@@ -88,7 +88,7 @@ export function ReceptionistCTAButtons({
   return (
     <div className="flex flex-col gap-2 mt-2">
       {ctas.map((cta, index) => {
-        const toPersona = PERSONA_ROUTES[cta.path];
+        const toPersona = HANDOFF_ROUTES[cta.path];
 
         if (toPersona && messages) {
           return (

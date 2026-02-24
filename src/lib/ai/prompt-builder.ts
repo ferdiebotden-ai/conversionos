@@ -37,7 +37,7 @@ export interface RenovationPromptData {
   customRoomType?: string;
   /** Custom style description when user selected 'other' */
   customStyle?: string;
-  /** AI-generated summary of voice consultation with Mia */
+  /** AI-generated summary of voice consultation with Emma */
   voicePreferencesSummary?: string;
 }
 
@@ -405,7 +405,7 @@ ${designIntent.constraintsToPreserve.map(c => `- ${c}`).join('\n')}`;
   // Add voice consultation context if available
   if (data.voicePreferencesSummary) {
     promptParts.push(`=== VOICE CONSULTATION CONTEXT ===
-The homeowner had a voice consultation with a design consultant. Here is a summary of their preferences:
+The homeowner had a voice consultation with Emma. Here is a summary of their preferences:
 ${data.voicePreferencesSummary}
 
 Incorporate these voiced preferences into the design, giving them equal weight to any text-based preferences above.`);

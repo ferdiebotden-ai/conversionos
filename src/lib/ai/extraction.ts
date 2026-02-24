@@ -6,7 +6,36 @@
 import { generateObject } from 'ai';
 import { openai } from './providers';
 import { AI_CONFIG } from './config';
-import { LEAD_EXTRACTION_PROMPT } from './prompts';
+const LEAD_EXTRACTION_PROMPT = `Based on this conversation, extract the following lead information. Only include fields where information was explicitly provided.
+
+Required output format (JSON):
+{
+  "projectType": "kitchen|bathroom|basement|flooring|painting|exterior|other",
+  "scopeDescription": "Detailed description of what the customer wants",
+  "areaSqft": number or null,
+  "finishLevel": "economy|standard|premium" or null,
+  "timeline": "asap|1_3_months|3_6_months|6_plus_months|just_exploring" or null,
+  "budgetBand": "under_15k|15k_25k|25k_40k|40k_60k|60k_plus|not_sure" or null,
+  "specialRequirements": ["array of special requests"],
+  "concernsOrQuestions": ["array of customer concerns"],
+  "estimatedCostRange": {
+    "low": number,
+    "high": number,
+    "confidence": number (0-1),
+    "breakdown": {
+      "materials": number,
+      "labor": number,
+      "hst": number
+    }
+  },
+  "uncertainties": ["things we're unsure about"],
+  "contact": {
+    "name": "string or null",
+    "email": "string or null",
+    "phone": "string or null",
+    "address": "string or null"
+  }
+}`;
 import {
   LeadExtractionSchema,
   PartialLeadExtractionSchema,

@@ -1,6 +1,6 @@
 /**
  * Receptionist AI Chat API Route
- * Streaming chat endpoint for Emma (the virtual receptionist widget)
+ * Streaming chat endpoint for Emma in the general context (homepage widget)
  */
 
 import { streamText } from 'ai';
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const lastUserMsg = formattedMessages.filter((m: { role: string }) => m.role === 'user').pop();
     const userMessage = lastUserMsg?.content as string | undefined;
 
-    const system = await buildAgentSystemPrompt('receptionist', { userMessage });
+    const system = await buildAgentSystemPrompt('general', { userMessage });
 
     const result = streamText({
       model: openai(AI_CONFIG.openai.chat),

@@ -19,18 +19,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { PersonaAvatar } from './persona-avatar';
 import { Mic, Settings } from 'lucide-react';
-import type { PersonaKey } from '@/lib/ai/personas/types';
-
-const PERSONA_NAMES: Record<PersonaKey, string> = {
-  receptionist: 'Emma',
-  'quote-specialist': 'Marcus',
-  'design-consultant': 'Mia',
-};
+import type { PageContext } from '@/lib/ai/personas/types';
 
 interface MicrophonePermissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  persona: PersonaKey;
+  context: PageContext;
   permissionState: 'prompt' | 'denied';
   onAllow: () => void;
 }
@@ -38,11 +32,11 @@ interface MicrophonePermissionDialogProps {
 export function MicrophonePermissionDialog({
   open,
   onOpenChange,
-  persona,
+  context,
   permissionState,
   onAllow,
 }: MicrophonePermissionDialogProps) {
-  const name = PERSONA_NAMES[persona];
+  const name = 'Emma';
 
   if (permissionState === 'denied') {
     return (
@@ -82,7 +76,7 @@ export function MicrophonePermissionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="items-center sm:items-start">
-          <PersonaAvatar persona={persona} size="lg" state="static" />
+          <PersonaAvatar context={context} size="lg" state="static" />
           <DialogTitle>{name} needs your microphone</DialogTitle>
           <DialogDescription>
             To have a voice conversation, we need access to your microphone.

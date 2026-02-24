@@ -3,12 +3,12 @@
 /**
  * Voice Chat Bubble
  * Animated chat bubble for voice transcript entries
- * User messages on right (primary), Mia on left (purple avatar)
+ * User messages on right (primary), Emma on left (primary avatar)
  */
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { User, Palette } from 'lucide-react';
+import { User, MessageCircle } from 'lucide-react';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 
 interface VoiceChatBubbleProps {
@@ -35,13 +35,13 @@ export function VoiceChatBubble({ entry, compact = false }: VoiceChatBubbleProps
         className={cn(
           'shrink-0 rounded-full flex items-center justify-center',
           compact ? 'h-6 w-6' : 'h-7 w-7',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-purple-600 text-white'
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground'
         )}
       >
         {isUser ? (
           <User className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
         ) : (
-          <Palette className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+          <MessageCircle className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
         )}
       </div>
 

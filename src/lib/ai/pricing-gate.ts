@@ -82,7 +82,7 @@ export function assessPricingConfidence(data: EstimateContext): PricingConfidenc
 
 /**
  * Build a system prompt instruction based on pricing readiness
- * Returns text to inject into Marcus's prompt
+ * Returns text to inject into Emma's estimate context prompt
  */
 export function buildPricingGateInstruction(data: EstimateContext): string {
   const { isReady, missing } = assessPricingConfidence(data);

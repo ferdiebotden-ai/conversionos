@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 24, 2026 | **Updated by:** Claude Code (ConversionOS Rebrand)
+**Last updated:** February 24, 2026 | **Updated by:** Claude Code (Single Persona Consolidation + Quote Assistance Mode Fix)
 
 ---
 
@@ -22,9 +22,9 @@ The core thesis: **visualize, capture context, quote with context, contractor se
 Ontario renovation contractors lose leads because their websites are static brochures. A homeowner visits, sees a phone number, and bounces. The industry standard is a 2-3% visitor-to-lead conversion rate. Contractors who respond to inquiries take 24-48 hours on average. Quote preparation takes 2-3 hours of manual work.
 
 ConversionOS changes this by putting AI at every step:
-- **Emma** (receptionist chat widget) engages visitors instantly on every page
+- **Emma** (AI assistant) engages visitors instantly on every page — with page-context-aware knowledge that makes her a receptionist on the homepage, a quote specialist on the estimate page, and a design consultant on the visualizer page
 - **The AI Visualizer** lets homeowners upload a photo of their room and see it transformed in 4 design styles — in under a minute
-- **Marcus** (quote specialist) receives the full context from the visualizer — room dimensions, fixtures, materials, preferences — and produces a ballpark estimate without re-asking questions the homeowner already answered
+- **The Estimate Page** receives the full context from the visualizer — room dimensions, fixtures, materials, preferences — and Emma produces a ballpark estimate without re-asking questions the homeowner already answered
 - **The Admin Dashboard** gives contractors a real-time view of leads, quotes, invoices, and analytics
 
 The result: faster response times, higher conversion rates, and a sales tool that no competitor in the renovation space offers.
@@ -51,13 +51,13 @@ The result: faster response times, higher conversion rates, and a sales tool tha
 | Photo pre-analysis (GPT Vision at upload) | Yes | Yes | Yes |
 | Mobile camera capture | Yes | Yes | Yes |
 | Admin Dashboard | — | Yes | Yes |
-| AI Quote Engine (Marcus) | — | Yes | Yes |
+| AI Quote Engine | — | Yes | Yes |
 | PDF quote generation + email sending | — | Yes | Yes |
 | Invoicing + payment tracking | — | Yes | Yes |
 | Architecture drawings management | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
 | Quote assistance (admin-configurable) | — | Yes | Yes |
-| Voice agents (Emma, Marcus, Mia via ElevenLabs) | — | — | Yes |
+| Voice agent (Emma via ElevenLabs) | — | — | Yes |
 | Analytics dashboard (Recharts) | — | — | Yes |
 | Concept pricing analysis (GPT Vision + Ontario DB) | — | — | Yes |
 | Custom integrations | — | — | Yes |
@@ -82,7 +82,7 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Animation | Framer Motion | Latest | UI transitions |
 | Chat/Vision AI | OpenAI GPT-5.2 | via Vercel AI SDK v6 | Chat, photo analysis, quote generation, extraction |
 | Image generation | Google Gemini 3 Pro Image | gemini-3-pro-image-preview | 4 renovation concepts per generation |
-| Voice agents | ElevenLabs Conversational AI | @elevenlabs/react 0.14.0 | Dominate tier only |
+| Voice agent | ElevenLabs Conversational AI | @elevenlabs/react 0.14.0 | Dominate tier only, single agent per tenant with session prompt overrides |
 | Content moderation | OpenAI omni-moderation-latest | — | All user inputs |
 | Database | Supabase (PostgreSQL) | @supabase/supabase-js 2.93.3 | ca-central-1 region, RLS enabled |
 | File storage | Supabase Storage | — | Photos, concepts, PDFs, tenant assets |
@@ -132,13 +132,13 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 2. **Visualizer** (`/visualizer`) — Upload a photo of their room (drag-and-drop on desktop, "Take a Photo" or "Choose from Gallery" on mobile). Photo pre-analysis fires immediately via GPT Vision — detects room type, layout, dimensions, fixtures, condition. Room type selector auto-fills from analysis.
 
-3. **Style selection** — Choose from 8 room types and 6 design styles (Modern, Traditional, Farmhouse, Industrial, Minimalist, Contemporary). Add text preferences. Optionally speak to Mia (voice design consultant, Dominate only) for richer preference capture.
+3. **Style selection** — Choose from 8 room types and 6 design styles (Modern, Traditional, Farmhouse, Industrial, Minimalist, Contemporary). Add text preferences. Optionally speak to Emma via voice (Dominate only) for richer preference capture — Emma has design knowledge injected on the visualizer page.
 
 4. **Generation** — SSE streaming endpoint generates 4 concepts in parallel via Gemini 3 Pro Image. Progressive reveal: skeleton cards cross-fade to real images as concepts arrive (~15-20s per concept, ~41s total). Real-time progress stages shown during generation.
 
-5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. "Get a Personalised Estimate" hands off to Marcus (Accelerate+) or "Request a Callback from [Contractor]" (Elevate). Sticky CTA bar animates in after 3 seconds.
+5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. "Get a Personalised Estimate" navigates to `/estimate` with full context (Accelerate+) or "Request a Callback from [Contractor]" (Elevate). Sticky CTA bar animates in after 3 seconds.
 
-6. **Quote** (`/estimate`) — Marcus receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. Marcus receives: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Marcus skips discovery questions and goes straight to refinement.
+6. **Quote** (`/estimate`) — Emma receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. On this page, Emma has full pricing knowledge injected: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Emma skips discovery questions and goes straight to refinement.
 
 7. **Lead capture** — Contact information collected. Lead created in database with full visualization context, chat transcript, and AI-generated scope. Contractor notified by email.
 
@@ -162,68 +162,55 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 ---
 
-## AI Agents
+## AI Agent — Emma
 
-### Emma — The Receptionist
+### Single Persona, Page-Context Architecture
 
-**Role:** Smart chat widget on all public pages. Available to all tiers (text only for Elevate/Accelerate, text + voice for Dominate).
+ConversionOS uses a single AI persona — **Emma** — across all pages. Emma adapts her expertise based on which page the homeowner is browsing. A `PageContext` value (`'general'` | `'estimate'` | `'visualizer'`) determines which knowledge layers are injected into her system prompt.
 
-**Powered by:** GPT-5.2 via Vercel AI SDK streaming.
+**Powered by:** GPT-5.2 via Vercel AI SDK streaming (text). ElevenLabs Conversational AI (voice, Dominate tier only).
 
-**Personality:** Warm, concise (2-3 sentences max), conversational. Uses contractions and casual language. Never info-dumps.
+**Personality:** Warm, concise (2-3 sentences max), conversational. Uses contractions and casual language. Never info-dumps. On the estimate page, she is more structured and confident about pricing. On the visualizer page, she is more creative and enthusiastic about design.
 
-**Capabilities:**
-- Answers questions about the contractor's services, process, and general pricing ranges
-- Routes to the visualizer (`/visualizer`) for design exploration
-- Routes to the estimate page (`/estimate`) for detailed quotes
-- Captures lead information when the homeowner is ready
-- Page-aware — adapts context based on which page the homeowner is browsing
+**Available to:** All tiers (text only for Elevate/Accelerate, text + voice for Dominate).
 
-**Routing mechanism:** CTA markers `[CTA:Label:/path]` rendered as clickable buttons in the chat widget. Emma never says "let me connect you to Marcus" without providing a CTA link.
+### Page-Context Knowledge Injection
 
-**Knowledge layers:** Company profile → services summary → Ontario general knowledge → pricing summary → sales training → persona rules. Knowledge is dynamically injected based on keyword detection in the user's message.
+| Page | PageContext | Knowledge Injected | Emma's Role |
+|------|------------|-------------------|-------------|
+| Homepage, About, Services, Contact | `general` | Company profile, services summary, Ontario general knowledge, pricing summary | Receptionist — answers questions, routes to visualizer or estimate page |
+| `/estimate` | `estimate` | Full Ontario pricing database (14 trades, 50+ materials, 9 regional multipliers), budget knowledge, handoff context from visualizer | Quote specialist — produces ballpark estimates, skips discovery when context is available |
+| `/visualizer` | `visualizer` | Design knowledge, style descriptions, material options, renovation trends | Design consultant — guides style exploration, extracts structured preferences |
 
-### Marcus — The Quote Specialist
+### Context Pipeline (the core moat)
 
-**Role:** Conversational quote intake. Available to Accelerate and Dominate tiers.
-
-**Powered by:** GPT-5.2 via Vercel AI SDK streaming.
-
-**Personality:** Professional, structured, confident. Asks one question at a time. Provides helpful context about budget ranges. Acknowledges responses before moving on.
-
-**Context pipeline (the core moat):**
-When a homeowner arrives from the visualizer, Marcus receives:
+When a homeowner navigates from the visualizer to the estimate page, Emma receives:
 - **Photo analysis:** Room layout, estimated dimensions, ceiling height, wall count + dimensions, identified fixtures, structural elements, current condition — from GPT Vision
 - **Design preferences:** Selected style, text preferences, voice-extracted preferences (desired changes, material preferences, preservation notes)
 - **Cost signals:** AI-estimated cost range, material breakdown hints — from Ontario pricing database
 - **Quote assistance mode:** Whether the contractor wants no pricing, ranges, or point estimates shown to homeowners
 
-This means Marcus can skip the typical 5-7 discovery questions and go straight to refinement: "I can see you have an L-shaped kitchen, roughly 12 by 14 feet. Based on the Modern style you chose with marble counters, here's what I'm estimating..."
+This means Emma can skip the typical 5-7 discovery questions and go straight to refinement: "I can see you have an L-shaped kitchen, roughly 12 by 14 feet. Based on the Modern style you chose with marble counters, here's what I'm estimating..."
 
-**Knowledge layers:** Company summary → full services → Ontario pricing database (14 trades, 50+ materials, 9 regional multipliers) → Ontario budget knowledge → sales training → persona rules → handoff context.
+Context flows between pages via `sessionStorage`. When a `visualization` URL parameter is present, context is reconstructed from the database via `buildHandoffFromVisualization()`, ensuring it survives tab switches, page refreshes, and new sessions. This is page navigation with context preservation — not a persona handoff.
 
-### Mia — The Design Consultant
+### Routing Mechanism
 
-**Role:** Voice-based design consultation during the visualizer flow. Dominate tier only.
+CTA markers `[CTA:Label:/path]` are rendered as clickable buttons in the chat widget. Emma routes homeowners between pages naturally: to the visualizer for design exploration, to the estimate page for pricing discussions.
 
-**Powered by:** ElevenLabs Conversational AI (voice) + GPT-5.2 (text fallback).
+### Voice (Dominate Tier Only)
 
-**Personality:** Creative, enthusiastic, visually descriptive. Gets excited about design ideas. Offers concrete options when the homeowner is unsure.
+A single ElevenLabs agent per tenant powers voice interactions. Dynamic prompts are injected via session overrides at connection time based on the current page context, so the same voice agent adapts its expertise just as the text chat does. Voice-extracted preferences (desired changes, material preferences, preservation notes) are captured via `VoiceExtractedPreferences` and feed into the generation prompt and estimate context.
 
-**Capabilities:**
-- Guides homeowners through style exploration
-- Extracts structured preferences (desired changes, material preferences, preservation notes) via `VoiceExtractedPreferences`
-- Preferences feed directly into the generation prompt and Marcus handoff
+### Prompt Architecture
 
-### Persona Architecture
-
-All three agents use a layered prompt system:
+Emma uses a layered prompt system:
 1. **Persona identity** — Name, role, personality traits, capabilities, boundaries
 2. **Company knowledge** — Dynamically loaded from `admin_settings` per tenant
-3. **Domain knowledge** — Ontario pricing, design styles, general renovation knowledge
+3. **Page-context knowledge** — Domain knowledge injected based on `PageContext` (pricing DB for estimate, design knowledge for visualizer, general knowledge for other pages)
 4. **Sales training** — Shared conversion techniques
-5. **Dynamic injection** — Cross-domain knowledge added based on keyword detection
-6. **Handoff context** — Rich structured data from previous interactions
+5. **Dynamic injection** — Cross-domain knowledge added based on keyword detection in the user's message
+6. **Handoff context** — Rich structured data from previous page interactions (visualizer → estimate)
 
 ---
 
@@ -287,7 +274,7 @@ A typed, client-safe pricing database in `src/lib/ai/knowledge/pricing-data.ts`:
 - `formatCAD(amount)` — Formats as Canadian dollars
 - `getMaterialsForRoom(roomType)` — Returns applicable materials
 
-**AI prompt integration:** `PRICING_FULL` and `PRICING_SUMMARY` constants are auto-generated from the typed data, injected into Marcus's and Emma's system prompts. This ensures AI pricing advice matches the database exactly.
+**AI prompt integration:** `PRICING_FULL` and `PRICING_SUMMARY` constants are auto-generated from the typed data, injected into Emma's system prompt when the page context is `estimate` or when keyword detection triggers pricing knowledge on other pages. This ensures AI pricing advice matches the database exactly.
 
 ---
 
@@ -297,16 +284,16 @@ Per-tenant configuration controlling how pricing is displayed to homeowners:
 
 | Mode | Behaviour | Example |
 |------|-----------|---------|
-| `none` | No pricing shown. Marcus tells homeowners the contractor will follow up. | — |
-| `range` | Cost ranges displayed. Marcus uses "typically runs between $X and $Y." | $30,000 - $60,000 + HST |
-| `estimate` | Point estimates with disclaimers. Marcus provides specific numbers. | ~$45,000 + HST (subject to site inspection) |
+| `none` | No pricing shown. Emma tells homeowners the contractor will follow up. | — |
+| `range` | Cost ranges displayed. Emma uses "typically runs between $X and $Y." | $30,000 - $60,000 + HST |
+| `estimate` | Point estimates with disclaimers. Emma provides specific numbers. | ~$45,000 + HST (subject to site inspection) |
 
 - **Elevate:** Always `none` (no admin dashboard to configure)
 - **Accelerate/Dominate default:** `{ mode: 'range', rangeBand: 10000 }`
 - **Admin UI:** Settings page → "Quoting" tab → mode dropdown + range band selector + live preview
 - **Storage:** `quote_assistance` key in `admin_settings` JSONB
 
-The mode flows through the entire pipeline: cost range indicator in the visualizer → handoff context → Marcus's prompt instructions.
+The mode is read fresh from the database on every estimate-page chat message (both text and voice). `buildAgentSystemPrompt('estimate')` calls `getQuoteAssistanceConfig(tier)` which queries `admin_settings` for the current value. This means if the contractor changes the mode mid-conversation, the very next message respects the new setting. The mode also flows through the cost range indicator in the visualizer UI and the page navigation handoff context.
 
 ---
 
@@ -442,7 +429,7 @@ The mode flows through the entire pipeline: cost range indicator in the visualiz
 |---------|---------|------------|
 | **OpenAI** (GPT-5.2) | Chat, vision analysis, quote generation, moderation | Per-token |
 | **Google Generative AI** (Gemini 3 Pro Image) | Renovation concept generation | Per-request |
-| **ElevenLabs** | Voice agents: Emma, Marcus, Mia (Dominate only) | Per-minute |
+| **ElevenLabs** | Voice agent: Emma (Dominate only), single agent per tenant with session prompt overrides | Per-minute |
 | **Supabase** | PostgreSQL database + file storage + RLS | Free tier / Pro |
 | **Resend** | Email delivery (lead notifications, quotes, invoices) | Per-email |
 | **Vercel** | Hosting, CDN, serverless functions, domain routing | Pro plan |
@@ -509,7 +496,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Intake completion rate | N/A | 70%+ |
 | Time-to-initial response | 24-48 hours | < 2 hours (instant via AI) |
 | Quote preparation time | 2-3 hours manual | < 10 minutes |
-| Marcus discovery questions before first estimate | 5-7 | 1-2 (context pipeline) |
+| Emma discovery questions before first estimate | 5-7 | 1-2 (context pipeline) |
 | Time from "Get a Quote" to first estimate | ~8 minutes | ~3 minutes |
 | Styles explored per session | 1.0 | 1.8+ |
 | Generation perceived wait | ~90 seconds (progress bar) | ~41 seconds (SSE streaming) |

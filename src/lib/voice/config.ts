@@ -3,20 +3,17 @@
  * Connection config, shared types, and utilities for ElevenLabs Conversational AI
  */
 
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PageContext, PersonaKey } from '@/lib/ai/personas/types';
 
-// Agent ID env var mapping
-const AGENT_ENV_MAP: Record<PersonaKey, string> = {
-  receptionist: 'ELEVENLABS_AGENT_EMMA',
-  'quote-specialist': 'ELEVENLABS_AGENT_MARCUS',
-  'design-consultant': 'ELEVENLABS_AGENT_MIA',
-};
+// Single ElevenLabs agent env var — all page contexts use Emma
+export const ELEVENLABS_AGENT_ENV_KEY = 'ELEVENLABS_AGENT_EMMA';
 
 /**
- * Resolve the ElevenLabs agent env var key for a persona
+ * Resolve the ElevenLabs agent env var key.
+ * Always returns the single Emma agent key regardless of context or legacy persona.
  */
-export function getAgentEnvKey(persona: PersonaKey): string {
-  return AGENT_ENV_MAP[persona];
+export function getAgentEnvKey(_context: PageContext | PersonaKey): string {
+  return ELEVENLABS_AGENT_ENV_KEY;
 }
 
 // Voice connection statuses

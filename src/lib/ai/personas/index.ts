@@ -3,10 +3,9 @@
  * Re-exports all persona modules
  */
 
-export type { PersonaKey, AgentPersona } from './types';
-export { RECEPTIONIST_PERSONA } from './receptionist';
-export { QUOTE_SPECIALIST_PERSONA } from './quote-specialist';
-export { DESIGN_CONSULTANT_PERSONA } from './design-consultant';
+export type { PageContext, PersonaKey, AgentPersona } from './types';
+export { PERSONA_TO_CONTEXT } from './types';
+export { EMMA_PERSONA } from './emma';
 export {
   buildAgentSystemPrompt,
   buildVoiceSystemPrompt,

@@ -162,15 +162,15 @@ export function PreferencesSection({
             onClick={() => setInputMode('voice')}
             className={cn(
               'flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border',
-              'bg-muted/30 hover:border-purple-500/50 hover:bg-muted/50 transition-all',
+              'bg-muted/30 hover:border-primary/50 hover:bg-muted/50 transition-all',
               'text-center cursor-pointer'
             )}
           >
-            <div className="w-12 h-12 rounded-full bg-purple-600/10 flex items-center justify-center">
-              <Mic className="h-6 w-6 text-purple-600" />
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Mic className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Talk to Mia</p>
+              <p className="font-medium text-sm">Talk to Emma</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Describe your vision by voice
               </p>
@@ -212,7 +212,7 @@ export function PreferencesSection({
             onClick={() => setInputMode('voice')}
           >
             <Mic className="h-3.5 w-3.5" />
-            Or talk to Mia instead
+            Or talk to Emma instead
           </button>
         </div>
       )}
@@ -221,17 +221,17 @@ export function PreferencesSection({
       {inputMode === 'voice' && !isVoiceActive && !isPostCall && (
         <div className="space-y-3">
           <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-muted/30">
-            <PersonaAvatar persona="design-consultant" size="md" state="static" />
+            <PersonaAvatar context="visualizer" size="md" state="static" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">
-                Consult with Mia, your design consultant
+                Consult with Emma, your renovation assistant
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Tell her what you&apos;re envisioning and she&apos;ll capture your preferences
               </p>
             </div>
             <TalkButton
-              persona="design-consultant"
+              context="visualizer"
               variant="standalone"
               className="shrink-0"
             />
@@ -251,7 +251,7 @@ export function PreferencesSection({
       {isVoiceActive && (
         <div className="space-y-2">
           <VoiceIndicator
-            persona="design-consultant"
+            context="visualizer"
             className="rounded-lg"
           />
           {hasTranscript && (
@@ -270,9 +270,9 @@ export function PreferencesSection({
           {/* Summarizing state */}
           {isSummarizing && (
             <div className="flex items-center gap-3 p-4">
-              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                Mia is summarizing your preferences...
+                Emma is summarizing your preferences...
               </p>
             </div>
           )}
@@ -296,13 +296,13 @@ export function PreferencesSection({
             <div className="p-4 space-y-3">
               <div className="flex items-start gap-3">
                 <PersonaAvatar
-                  persona="design-consultant"
+                  context="visualizer"
                   size="sm"
                   state="static"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">
-                    Mia captured your preferences:
+                    Emma captured your preferences:
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {voiceSummary}

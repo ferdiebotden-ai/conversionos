@@ -1,23 +1,41 @@
 /**
  * ElevenLabs Voice - Signed URL Route
- * Generates signed WebSocket URLs for ElevenLabs Conversational AI agents
- * Maps persona key → env var → agent ID, then fetches a signed URL
+ * Generates signed WebSocket URLs for ElevenLabs Conversational AI.
+ * Single Emma agent — page context controls which knowledge layers she receives.
+ * Accepts ?context= (preferred) or legacy ?persona= (mapped via PERSONA_TO_CONTEXT).
  */
 
 import { NextResponse } from 'next/server';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PageContext, PersonaKey } from '@/lib/ai/personas/types';
+import { PERSONA_TO_CONTEXT } from '@/lib/ai/personas/types';
+import { ELEVENLABS_AGENT_ENV_KEY } from '@/lib/voice/config';
+import { buildVoiceSystemPrompt } from '@/lib/ai/personas/prompt-assembler';
 
 const ELEVENLABS_API_KEY = process.env['ELEVENLABS_API_KEY']?.trim();
 
+const VALID_CONTEXTS: PageContext[] = ['general', 'estimate', 'visualizer'];
 const VALID_PERSONAS: PersonaKey[] = ['receptionist', 'quote-specialist', 'design-consultant'];
 
-const AGENT_ENV_MAP: Record<PersonaKey, string> = {
-  receptionist: 'ELEVENLABS_AGENT_EMMA',
-  'quote-specialist': 'ELEVENLABS_AGENT_MARCUS',
-  'design-consultant': 'ELEVENLABS_AGENT_MIA',
-};
+/**
+ * Resolve page context from query params.
+ * Prefers ?context=, falls back to legacy ?persona= (mapped via PERSONA_TO_CONTEXT).
+ */
+function resolvePageContext(url: URL): PageContext | null {
+  const contextParam = url.searchParams.get('context') as PageContext | null;
+  if (contextParam && VALID_CONTEXTS.includes(contextParam)) {
+    return contextParam;
+  }
+
+  // Legacy backward compat: ?persona= mapped to PageContext
+  const personaParam = url.searchParams.get('persona') as PersonaKey | null;
+  if (personaParam && VALID_PERSONAS.includes(personaParam)) {
+    return PERSONA_TO_CONTEXT[personaParam];
+  }
+
+  return null;
+}
 
 export async function POST(request: Request) {
   // Gate voice behind Dominate tier
@@ -38,24 +56,26 @@ export async function POST(request: Request) {
 
   try {
     const url = new URL(request.url);
-    const personaParam = url.searchParams.get('persona') as PersonaKey | null;
+    const context = resolvePageContext(url);
 
-    if (!personaParam || !VALID_PERSONAS.includes(personaParam)) {
+    if (!context) {
       return NextResponse.json(
-        { error: 'Invalid persona parameter' },
+        { error: 'Invalid or missing context parameter. Use ?context=general|estimate|visualizer' },
         { status: 400 }
       );
     }
 
-    const envKey = AGENT_ENV_MAP[personaParam];
-    const agentId = process.env[envKey]?.trim();
+    const agentId = process.env[ELEVENLABS_AGENT_ENV_KEY]?.trim();
 
     if (!agentId) {
       return NextResponse.json(
-        { error: `Agent not configured for ${personaParam}` },
+        { error: 'Voice agent not configured' },
         { status: 503 }
       );
     }
+
+    // Build context-aware voice prompt for session override
+    const voicePrompt = await buildVoiceSystemPrompt(context);
 
     // Fetch signed URL from ElevenLabs
     const response = await fetch(
@@ -78,7 +98,7 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    return NextResponse.json({ signedUrl: data.signed_url });
+    return NextResponse.json({ signedUrl: data.signed_url, voicePrompt });
   } catch (error) {
     console.error('Error generating signed URL:', error);
     return NextResponse.json(

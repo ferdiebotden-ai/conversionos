@@ -2,8 +2,9 @@
 
 /**
  * Persona Avatar
- * Animated circle with persona icon for voice interactions
+ * Animated circle with page-context icon for voice interactions
  * Static, listening (pulse), speaking (ripple) states
+ * Always represents Emma — icon varies by page context
  */
 
 import { cn } from '@/lib/utils';
@@ -12,25 +13,25 @@ import {
   Calculator,
   Palette,
 } from 'lucide-react';
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PageContext } from '@/lib/ai/personas/types';
 
-const PERSONA_CONFIG: Record<
-  PersonaKey,
+const CONTEXT_CONFIG: Record<
+  PageContext,
   { icon: typeof MessageCircle; color: string; bgColor: string; ringColor: string }
 > = {
-  receptionist: {
+  general: {
     icon: MessageCircle,
     color: 'text-white',
     bgColor: 'bg-[#1565C0]',
     ringColor: 'ring-[#1565C0]/30',
   },
-  'quote-specialist': {
+  estimate: {
     icon: Calculator,
     color: 'text-white',
     bgColor: 'bg-blue-600',
     ringColor: 'ring-blue-600/30',
   },
-  'design-consultant': {
+  visualizer: {
     icon: Palette,
     color: 'text-white',
     bgColor: 'bg-purple-600',
@@ -45,7 +46,7 @@ const SIZES = {
 } as const;
 
 interface PersonaAvatarProps {
-  persona: PersonaKey;
+  context: PageContext;
   size?: keyof typeof SIZES;
   state?: 'static' | 'listening' | 'speaking';
   outputVolume?: number;
@@ -53,13 +54,13 @@ interface PersonaAvatarProps {
 }
 
 export function PersonaAvatar({
-  persona,
+  context,
   size = 'md',
   state = 'static',
   outputVolume = 0,
   className,
 }: PersonaAvatarProps) {
-  const config = PERSONA_CONFIG[persona];
+  const config = CONTEXT_CONFIG[context];
   const sizeConfig = SIZES[size];
   const Icon = config.icon;
 

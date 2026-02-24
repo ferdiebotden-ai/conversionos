@@ -3,7 +3,23 @@
  * Shared type definitions for AI agent personas
  */
 
+/**
+ * Page context determines which knowledge layers Emma receives.
+ * Replaces the old multi-persona model (Emma/Marcus/Mia).
+ */
+export type PageContext = 'general' | 'estimate' | 'visualizer';
+
+/**
+ * @deprecated Use PageContext instead. Kept for backward compatibility during migration.
+ */
 export type PersonaKey = 'receptionist' | 'quote-specialist' | 'design-consultant';
+
+/** Maps old PersonaKey values to new PageContext values */
+export const PERSONA_TO_CONTEXT: Record<PersonaKey, PageContext> = {
+  receptionist: 'general',
+  'quote-specialist': 'estimate',
+  'design-consultant': 'visualizer',
+};
 
 export interface AgentPersona {
   /** Agent's display name */
@@ -20,12 +36,10 @@ export interface AgentPersona {
   capabilities: string[];
   /** What this agent should NOT do */
   boundaries: string[];
-  /** Suggestions for routing to other agents */
-  routingSuggestions: Record<string, string>;
   /** Lucide icon name for avatar */
   avatarIcon: string;
   /** Tailwind color class for avatar */
   avatarColor: string;
-  /** ElevenLabs agent env var key (e.g., 'ELEVENLABS_AGENT_EMMA') */
+  /** ElevenLabs agent env var key */
   elevenlabsAgentEnvKey: string;
 }

@@ -16,7 +16,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useConversation } from '@elevenlabs/react';
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PageContext } from '@/lib/ai/personas/types';
 import {
   isVoiceSupported,
   getMicrophonePermission,
@@ -47,7 +47,7 @@ interface VoiceContextValue {
   durationMs: number;
 
   // Actions
-  startVoice: (personaKey: PersonaKey) => Promise<void>;
+  startVoice: (context: PageContext) => Promise<void>;
   endVoice: () => Promise<void>;
   toggleMute: () => void;
 
@@ -84,7 +84,7 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
   // Permission dialog state
   const [permDialogOpen, setPermDialogOpen] = useState(false);
   const [permDialogState, setPermDialogState] = useState<'prompt' | 'denied'>('prompt');
-  const pendingPersonaRef = useRef<PersonaKey | null>(null);
+  const pendingContextRef = useRef<PageContext | null>(null);
 
   const durationRef = useRef<NodeJS.Timeout | null>(null);
   const connectingRef = useRef(false);
@@ -179,7 +179,7 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
 
   // Core connect logic (called after permission is confirmed)
   const connectVoice = useCallback(
-    async (personaKey: PersonaKey) => {
+    async (context: PageContext) => {
       connectingRef.current = true;
       setError(null);
       setTranscript([]);
@@ -187,7 +187,7 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
       setMode('idle');
 
       try {
-        const res = await fetch(`/api/voice/signed-url?persona=${personaKey}`, {
+        const res = await fetch(`/api/voice/signed-url?context=${context}`, {
           method: 'POST',
         });
 
@@ -196,11 +196,19 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
           throw new Error(data.error || 'Failed to get voice session');
         }
 
-        const { signedUrl } = await res.json();
+        const { signedUrl, voicePrompt } = await res.json();
 
-        await conversation.startSession({
+        // Pass context-aware prompt as session override if available
+        const sessionOpts: Parameters<typeof conversation.startSession>[0] = {
           signedUrl,
-        });
+        };
+        if (voicePrompt) {
+          sessionOpts.overrides = {
+            agent: { prompt: { prompt: voicePrompt } },
+          };
+        }
+
+        await conversation.startSession(sessionOpts);
       } catch (err) {
         console.error('Voice start error:', err);
         if (err instanceof DOMException && err.name === 'NotAllowedError') {
@@ -219,7 +227,7 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
 
   // Permission-aware start: check mic permission first
   const startVoice = useCallback(
-    async (personaKey: PersonaKey) => {
+    async (context: PageContext) => {
       if (connectingRef.current) return;
 
       if (!supported) {
@@ -236,15 +244,15 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
 
       if (permState === 'granted' || permState === 'unknown') {
         // Already granted or can't check — connect directly
-        await connectVoice(personaKey);
+        await connectVoice(context);
       } else if (permState === 'prompt') {
         // Show pre-permission dialog
-        pendingPersonaRef.current = personaKey;
+        pendingContextRef.current = context;
         setPermDialogState('prompt');
         setPermDialogOpen(true);
       } else {
         // denied
-        pendingPersonaRef.current = personaKey;
+        pendingContextRef.current = context;
         setPermDialogState('denied');
         setPermDialogOpen(true);
       }
@@ -255,10 +263,10 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
   // Called when user clicks "Allow & Connect" in permission dialog
   const handlePermissionAllow = useCallback(async () => {
     setPermDialogOpen(false);
-    const persona = pendingPersonaRef.current;
-    if (persona) {
-      pendingPersonaRef.current = null;
-      await connectVoice(persona);
+    const ctx = pendingContextRef.current;
+    if (ctx) {
+      pendingContextRef.current = null;
+      await connectVoice(ctx);
     }
   }, [connectVoice]);
 
@@ -304,7 +312,7 @@ export function VoiceProvider({ children, onMessage }: VoiceProviderProps) {
       <MicrophonePermissionDialog
         open={permDialogOpen}
         onOpenChange={setPermDialogOpen}
-        persona={pendingPersonaRef.current ?? 'design-consultant'}
+        context={pendingContextRef.current ?? 'general'}
         permissionState={permDialogState}
         onAllow={handlePermissionAllow}
       />

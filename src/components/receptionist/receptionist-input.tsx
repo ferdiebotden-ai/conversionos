@@ -10,19 +10,19 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Send } from 'lucide-react';
 import { TalkButton } from '@/components/voice/talk-button';
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PageContext } from '@/lib/ai/personas/types';
 
 interface ReceptionistInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
-  persona: PersonaKey;
+  context: PageContext;
   className?: string;
 }
 
 export function ReceptionistInput({
   onSend,
   disabled,
-  persona,
+  context,
   className,
 }: ReceptionistInputProps) {
   const [value, setValue] = useState('');
@@ -70,7 +70,7 @@ export function ReceptionistInput({
       />
       <div className="flex items-center gap-1 shrink-0">
         <TalkButton
-          persona={persona}
+          context={context}
           variant="inline"
           disabled={disabled}
         />

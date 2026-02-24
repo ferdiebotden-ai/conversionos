@@ -1,10 +1,18 @@
 /**
- * Persona Handoff Utilities
+ * Page Handoff Utilities
  * Serializes conversation context to sessionStorage for cross-page handoffs
  */
 
-import type { PersonaKey } from '@/lib/ai/personas/types';
+import type { PersonaKey, PageContext } from '@/lib/ai/personas/types';
+import { PERSONA_TO_CONTEXT } from '@/lib/ai/personas/types';
 import type { QuoteAssistanceMode } from '@/lib/quote-assistance';
+
+/** Reverse map: PageContext → legacy PersonaKey (for backward compat serialisation) */
+const CONTEXT_TO_PERSONA: Record<PageContext, PersonaKey> = {
+  general: 'receptionist',
+  estimate: 'quote-specialist',
+  visualizer: 'design-consultant',
+};
 
 const HANDOFF_KEY = 'demo_handoff_context';
 
@@ -31,8 +39,14 @@ export interface HandoffCostSignals {
 }
 
 export interface HandoffContext {
+  /** @deprecated Use fromPage instead */
   fromPersona: PersonaKey;
+  /** @deprecated Use toPage instead */
   toPersona: PersonaKey;
+  /** New: page context the user is coming from */
+  fromPage?: PageContext | undefined;
+  /** New: page context the user is going to */
+  toPage?: PageContext | undefined;
   summary: string;
   /** Last N messages serialized for context */
   recentMessages: { role: 'user' | 'assistant'; content: string }[];
@@ -59,7 +73,7 @@ export interface HandoffContext {
   photoAnalysis?: HandoffPhotoAnalysis | undefined;
   /** Cost signals — only populated when contractor's quote_assistance.mode !== 'none' */
   costSignals?: HandoffCostSignals | undefined;
-  /** Contractor's quote assistance mode — tells Marcus how to discuss pricing */
+  /** Contractor's quote assistance mode — tells Emma how to discuss pricing in estimate context */
   quoteAssistanceMode?: QuoteAssistanceMode | undefined;
   /** Voice-extracted structured preferences (changes, materials, preservation) */
   voiceExtractedPreferences?: {
@@ -91,17 +105,32 @@ export function buildHandoffSummary(
 }
 
 /**
- * Serialize handoff context to sessionStorage before navigation
+ * Serialize handoff context to sessionStorage before navigation.
+ * Accepts either PageContext (new) or PersonaKey (legacy) values.
+ * Always writes both PageContext and legacy PersonaKey fields for backward compatibility.
  */
 export function serializeHandoffContext(
-  fromPersona: PersonaKey,
-  toPersona: PersonaKey,
+  from: PageContext | PersonaKey,
+  to: PageContext | PersonaKey,
   messages: { role: 'user' | 'assistant'; content: string }[],
   extractedData?: Record<string, unknown>,
 ): void {
   if (typeof window === 'undefined') return;
 
+  // Resolve to PageContext (new) and PersonaKey (legacy) regardless of input type
+  const isPersonaKey = (v: string): v is PersonaKey =>
+    v === 'receptionist' || v === 'quote-specialist' || v === 'design-consultant';
+
+  const fromPage: PageContext = isPersonaKey(from) ? PERSONA_TO_CONTEXT[from] : from;
+  const toPage: PageContext = isPersonaKey(to) ? PERSONA_TO_CONTEXT[to] : to;
+  const fromPersona: PersonaKey = isPersonaKey(from) ? from : CONTEXT_TO_PERSONA[from];
+  const toPersona: PersonaKey = isPersonaKey(to) ? to : CONTEXT_TO_PERSONA[to];
+
   const context: HandoffContext = {
+    // New fields
+    fromPage,
+    toPage,
+    // Legacy fields (backward compat — old consumers read PersonaKey values)
     fromPersona,
     toPersona,
     summary: buildHandoffSummary(messages),
@@ -207,6 +236,10 @@ export function buildHandoffFromVisualization(
   const designIntent = conversationCtx['designIntent'] as Record<string, unknown> | undefined;
 
   return {
+    // New PageContext fields
+    fromPage: 'visualizer',
+    toPage: 'estimate',
+    // Legacy PersonaKey fields (backward compat — kept as original values)
     fromPersona: 'receptionist',
     toPersona: 'quote-specialist',
     summary: `The user used the AI visualizer to explore ${(viz['room_type'] as string)?.replace(/_/g, ' ') ?? 'a room'} renovation in ${(viz['style'] as string) ?? 'their chosen'} style. ${concepts.length} design concepts were generated.`,
@@ -239,16 +272,19 @@ export function buildHandoffFromVisualization(
  * Build a system prompt prefix from handoff context
  */
 export function buildHandoffPromptPrefix(context: HandoffContext): string {
-  const personaNames: Record<PersonaKey, string> = {
-    receptionist: 'Emma (the receptionist)',
-    'quote-specialist': 'Marcus (the cost specialist)',
-    'design-consultant': 'Mia (the design consultant)',
+  // Resolve the source page context — prefer new field, fall back to legacy mapping
+  const sourcePage: PageContext = context.fromPage ?? PERSONA_TO_CONTEXT[context.fromPersona];
+
+  const pageDescriptions: Record<PageContext, string> = {
+    general: 'the homepage',
+    estimate: 'the estimate page',
+    visualizer: 'the visualizer',
   };
 
-  const fromName = personaNames[context.fromPersona];
+  const fromDesc = pageDescriptions[sourcePage];
 
   let prefix = `## Handoff Context
-The user was just speaking with ${fromName}. Here's what was discussed:
+Based on the user's previous conversation on ${fromDesc}, here's what was discussed:
 ${context.summary}`;
 
   if (context.extractedData && Object.keys(context.extractedData).length > 0) {
@@ -319,7 +355,7 @@ ${context.summary}`;
     }
   }
 
-  // Quote assistance mode — instructs Marcus on how to discuss pricing
+  // Quote assistance mode — instructs Emma on how to discuss pricing in estimate context
   if (context.quoteAssistanceMode) {
     prefix += `\n\n## Pricing Discussion Mode: ${context.quoteAssistanceMode.toUpperCase()}`;
     switch (context.quoteAssistanceMode) {

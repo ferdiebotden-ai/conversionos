@@ -11,38 +11,32 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Mic, PhoneOff } from 'lucide-react';
 import { useVoice } from './voice-provider';
-import type { PersonaKey } from '@/lib/ai/personas/types';
-
-const PERSONA_NAMES: Record<PersonaKey, string> = {
-  receptionist: 'Emma',
-  'quote-specialist': 'Marcus',
-  'design-consultant': 'Mia',
-};
+import type { PageContext } from '@/lib/ai/personas/types';
 
 interface TalkButtonProps {
-  persona: PersonaKey;
+  context: PageContext;
   variant?: 'inline' | 'standalone';
   className?: string;
   disabled?: boolean | undefined;
 }
 
 export function TalkButton({
-  persona,
+  context,
   variant = 'inline',
   className,
   disabled,
 }: TalkButtonProps) {
   const { status, startVoice, endVoice, error } = useVoice();
-  const name = PERSONA_NAMES[persona];
+  const name = 'Emma';
   const isActive = status === 'connected' || status === 'connecting';
 
   const handleClick = useCallback(async () => {
     if (isActive) {
       await endVoice();
     } else {
-      await startVoice(persona);
+      await startVoice(context);
     }
-  }, [isActive, endVoice, startVoice, persona]);
+  }, [isActive, endVoice, startVoice, context]);
 
   if (variant === 'standalone') {
     return (

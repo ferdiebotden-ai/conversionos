@@ -154,9 +154,9 @@ export function ChatInput({
           data-testid="chat-input"
         />
 
-        {/* Talk to Marcus button */}
+        {/* Talk to Emma button */}
         <TalkButton
-          persona="quote-specialist"
+          context="estimate"
           variant="inline"
           disabled={disabled}
         />
