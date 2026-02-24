@@ -79,7 +79,7 @@ const settings = [
       logoUrl: '/brand/logo-full/norbot-full-teal.svg',
       heroHeadline: 'See Your Renovation Before It Begins',
       heroSubheadline: 'Upload a photo. Choose a style. Get AI-generated design concepts and a ballpark estimate — in minutes, not days.',
-      heroImageUrl: '',
+      heroImageUrl: '/images/demo/hero-conversionos.png',
       aboutImageUrl: '',
       aboutCopy: [
         'ConversionOS is an AI-powered platform that gives Ontario homeowners instant renovation visualizations and cost estimates. Upload a photo of your space, choose a style, and see your transformation in minutes — not days.',
