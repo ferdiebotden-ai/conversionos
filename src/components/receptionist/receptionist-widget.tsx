@@ -16,6 +16,7 @@ import { ReceptionistChat } from './receptionist-chat';
 import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
 import { panelSpring } from '@/lib/animations';
 import { useBranding } from '@/components/branding-provider';
+import { useTier } from '@/components/tier-provider';
 
 /** Pages where the widget is hidden (these have their own AI chat) */
 const HIDDEN_PATHS = ['/estimate', '/visualizer'];
@@ -38,6 +39,7 @@ const DEFAULT_TEASER = 'Hi! I\'m Emma. Need help with a renovation project?';
 
 export function ReceptionistWidget() {
   const branding = useBranding();
+  const { canAccess } = useTier();
   const pathname = usePathname();
   const shouldReduce = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
@@ -82,7 +84,12 @@ export function ReceptionistWidget() {
 
   if (isHidden) return null;
 
-  const teaserMessage = PAGE_TEASERS[pathname] || DEFAULT_TEASER;
+  const hasQuoteEngine = canAccess('ai_quote_engine');
+  const rawTeaser = PAGE_TEASERS[pathname] || DEFAULT_TEASER;
+  // Elevate tier: replace estimate-related teasers with generic helpful message
+  const teaserMessage = !hasQuoteEngine && pathname === '/'
+    ? 'Planning a renovation? I can help you get started!'
+    : rawTeaser;
 
   return (
     <>

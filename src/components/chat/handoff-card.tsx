@@ -7,8 +7,9 @@
  */
 
 import { useCallback } from 'react';
-import { ArrowRight, Calculator, Palette } from 'lucide-react';
+import { ArrowRight, Calculator, Palette, Phone } from 'lucide-react';
 import { serializeHandoffContext } from '@/lib/chat/handoff';
+import { useTier } from '@/components/tier-provider';
 import type { PersonaKey } from '@/lib/ai/personas/types';
 
 interface HandoffCardProps {
@@ -53,21 +54,38 @@ const ROUTE_INFO: Record<PersonaKey, {
   },
 };
 
+/** Fallback route info for Elevate tier when quote-specialist is requested */
+const CONTACT_FALLBACK = {
+  label: 'Request a Callback',
+  description: 'Get connected with our team for pricing',
+  path: '/contact',
+  icon: Phone,
+  color: 'bg-primary',
+};
+
 export function HandoffCard({
   fromPersona,
   toPersona,
   messages,
   extractedData,
 }: HandoffCardProps) {
-  const target = ROUTE_INFO[toPersona];
+  const { canAccess } = useTier();
+
+  // Safety net: if quote-specialist is requested but tier lacks ai_quote_engine, route to /contact
+  const shouldDeflect = toPersona === 'quote-specialist' && !canAccess('ai_quote_engine');
+  const target = shouldDeflect ? CONTACT_FALLBACK : ROUTE_INFO[toPersona];
   const Icon = target.icon;
 
   const handleClick = useCallback(() => {
+    if (shouldDeflect) {
+      window.location.href = '/contact?from=estimate';
+      return;
+    }
     // Serialize context to sessionStorage before navigating (uses legacy PersonaKey for compat)
     serializeHandoffContext(fromPersona, toPersona, messages, extractedData);
     // Full page navigation to reliably exit the widget overlay context
     window.location.href = `${target.path}?handoff=${fromPersona}`;
-  }, [fromPersona, toPersona, messages, extractedData, target.path]);
+  }, [fromPersona, toPersona, messages, extractedData, target.path, shouldDeflect]);
 
   return (
     <div className="my-2 mx-1">

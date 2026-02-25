@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const tier = await getTier();
   if (!canAccess(tier, 'voice_web')) {
     return NextResponse.json(
-      { error: 'Voice agents require the Dominate plan' },
+      { error: 'Voice is not available on your current plan' },
       { status: 403 }
     );
   }

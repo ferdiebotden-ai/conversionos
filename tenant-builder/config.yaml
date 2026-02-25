@@ -1,0 +1,106 @@
+# Tenant Builder Configuration
+# All settings for the automated tenant onboarding pipeline.
+
+# ICP Scoring — weights for demo-fitness assessment (total 100)
+icp_scoring:
+  weights:
+    template_fit: 20        # How well their content maps to our template
+    sophistication_gap: 20  # Basic site = high score (inverted)
+    years_in_business: 15   # Newer businesses benefit more (inverted)
+    google_reviews: 15      # Social proof indicates active business
+    geography: 15           # Ontario proximity to Stratford
+    company_size: 15        # Smaller = higher (inverted)
+  thresholds:
+    auto_proceed: 70        # Score >= 70: auto-build
+    manual_review: 50       # 50-69: flag for review
+    reject: 50              # Score < 50: skip
+
+# Scraping configuration
+scraping:
+  firecrawl:
+    formats:
+      - markdown
+      - links
+    timeout_ms: 30000
+    max_pages_per_site: 6   # Homepage + about + services + contact + gallery + testimonials
+    fallback_pages:
+      - /about
+      - /about-us
+      - /services
+      - /contact
+      - /gallery
+      - /portfolio
+      - /testimonials
+      - /reviews
+  # AI enrichment model for content extraction from markdown
+  enrichment_model: sonnet
+  # Max turns for claude CLI calls
+  max_turns: 3
+
+# Logo extraction
+logo:
+  min_width: 100            # Minimum logo width in pixels
+  max_width: 800            # Maximum logo width in pixels
+  preferred_formats:        # Priority order for logo format
+    - svg
+    - png
+    - webp
+    - jpg
+  storage_path_template: "{site_id}/logo"
+
+# Provisioning
+provisioning:
+  default_tier: accelerate
+  domain_template: "{slug}.norbotsystems.com"
+  proxy_ts_path: src/proxy.ts
+
+# Quality Assurance
+qa:
+  thresholds:
+    average_min: 4.0        # Minimum average across 5 dimensions
+    dimension_min: 3.0      # No single dimension below this
+  dimensions:
+    - logo_fidelity
+    - colour_match
+    - copy_accuracy
+    - layout_integrity
+    - brand_cohesion
+  max_refinement_iterations: 5
+  screenshot:
+    desktop_viewport:
+      width: 1280
+      height: 720
+    mobile_viewport:
+      width: 375
+      height: 812
+    storage_path_template: "{site_id}/qa"
+
+# Concurrency
+concurrency:
+  default: 4
+  max: 8
+
+# Discovery — Firecrawl search settings
+discovery:
+  search_template: "renovation contractor {city} Ontario"
+  max_results_per_city: 10
+  active_cities:
+    - London
+    - Kitchener
+    - Waterloo
+    - Cambridge
+    - Guelph
+    - Ingersoll
+    - Woodstock
+    - Brantford
+    - Hamilton
+    - St. Thomas
+    - Tillsonburg
+    - Oakville
+    - Burlington
+
+# Nightly schedule
+nightly:
+  limit: 10
+  concurrency: 4
+  skip_provisioned: true    # Skip targets that already have a demo tenant

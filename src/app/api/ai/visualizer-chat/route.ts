@@ -26,6 +26,7 @@ import {
   buildVisualizerSystemPrompt,
 } from '@/lib/ai/visualizer-conversation';
 import { buildDynamicSystemPrompt } from '@/lib/ai/personas/prompt-assembler';
+import { getTier } from '@/lib/entitlements.server';
 
 export const maxDuration = 60;
 
@@ -126,10 +127,11 @@ export async function POST(request: Request) {
       : createInitialContext();
 
     // Build system prompt — uses dynamic knowledge injection from Phase 3
+    const tier = await getTier();
     const lastUserMessage = formattedMessages.filter((m: { role: string }) => m.role === 'user').pop();
     const visualizerBase = buildVisualizerSystemPrompt(context);
     const dynamicAdditions = lastUserMessage
-      ? buildDynamicSystemPrompt('visualizer', lastUserMessage.content)
+      ? buildDynamicSystemPrompt('visualizer', lastUserMessage.content, tier)
       : '';
     const systemPrompt = dynamicAdditions
       ? `${visualizerBase}\n\n---\n\n${dynamicAdditions}`

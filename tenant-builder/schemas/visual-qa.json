@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "logo_fidelity": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "How well the logo is displayed. 5=perfect, 1=missing/broken."
+    },
+    "colour_match": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "How well brand colours match the original site. 5=exact match, 1=completely wrong."
+    },
+    "copy_accuracy": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "How accurate business copy is (name, services, about). 5=perfect, 1=placeholder/wrong."
+    },
+    "layout_integrity": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Page layout quality, no broken sections or overlaps. 5=perfect, 1=broken layout."
+    },
+    "brand_cohesion": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Overall feeling of brand consistency. 5=feels like real site, 1=generic template."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Brief assessment of quality issues or strengths (2-3 sentences)."
+    }
+  },
+  "required": ["logo_fidelity", "colour_match", "copy_accuracy", "layout_integrity", "brand_cohesion", "notes"],
+  "additionalProperties": false
+}

@@ -28,6 +28,7 @@ const TIER_FEATURES: Record<PlanTier, Set<Feature>> = {
     'ai_visualizer',
     'lead_capture',
     'emma_text_chat',
+    'voice_web',
   ]),
   accelerate: new Set([
     'branded_website',
@@ -39,6 +40,7 @@ const TIER_FEATURES: Record<PlanTier, Set<Feature>> = {
     'pdf_quotes',
     'invoicing',
     'drawings',
+    'voice_web',
     'pricing_display',
   ]),
   dominate: new Set([

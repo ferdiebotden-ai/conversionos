@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "properties": {
+    "logos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "description": "Logo image URL" },
+          "type": { "type": "string", "enum": ["primary", "header", "footer", "favicon", "other"] },
+          "format": { "type": "string", "enum": ["svg", "png", "jpg", "webp", "ico", "unknown"] }
+        },
+        "required": ["url", "type"]
+      },
+      "description": "Detected logo images in priority order"
+    },
+    "colors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hex": { "type": "string", "description": "Hex colour code (e.g., #D60000)" },
+          "role": { "type": "string", "enum": ["primary", "secondary", "accent", "background", "text", "other"] },
+          "confidence": { "type": "number", "description": "Confidence 0-1 that this is a brand colour" }
+        },
+        "required": ["hex", "role"]
+      },
+      "description": "Detected brand colours"
+    },
+    "fonts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "family": { "type": "string", "description": "Font family name" },
+          "role": { "type": "string", "enum": ["heading", "body", "accent", "other"] },
+          "source": { "type": "string", "description": "Where the font was detected (CSS, Google Fonts link, etc.)" }
+        },
+        "required": ["family", "role"]
+      },
+      "description": "Detected fonts"
+    },
+    "personality": {
+      "type": "object",
+      "properties": {
+        "tone": { "type": "string", "description": "Brand tone (e.g., professional, casual, luxurious)" },
+        "values": { "type": "array", "items": { "type": "string" }, "description": "Inferred brand values" },
+        "target_audience": { "type": "string", "description": "Inferred target audience" }
+      },
+      "description": "Brand personality assessment"
+    }
+  },
+  "required": ["logos", "colors", "fonts"],
+  "additionalProperties": false
+}

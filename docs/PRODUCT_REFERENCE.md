@@ -57,7 +57,8 @@ The result: faster response times, higher conversion rates, and a sales tool tha
 | Architecture drawings management | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
 | Quote assistance (admin-configurable) | — | Yes | Yes |
-| Voice agent (Emma via ElevenLabs) | — | — | Yes |
+| Voice agent (Emma via ElevenLabs, web) | Yes | Yes | Yes |
+| Voice agent (phone/Twilio) | — | — | Yes |
 | Analytics dashboard (Recharts) | — | — | Yes |
 | Concept pricing analysis (GPT Vision + Ontario DB) | — | — | Yes |
 | Custom integrations | — | — | Yes |
@@ -82,7 +83,7 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Animation | Framer Motion | Latest | UI transitions |
 | Chat/Vision AI | OpenAI GPT-5.2 | via Vercel AI SDK v6 | Chat, photo analysis, quote generation, extraction |
 | Image generation | Google Gemini 3 Pro Image | gemini-3-pro-image-preview | 4 renovation concepts per generation |
-| Voice agent | ElevenLabs Conversational AI | @elevenlabs/react 0.14.0 | Dominate tier only, single agent per tenant with session prompt overrides |
+| Voice agent | ElevenLabs Conversational AI | @elevenlabs/react 0.14.0 | All tiers (web), single agent per tenant with session prompt overrides |
 | Content moderation | OpenAI omni-moderation-latest | — | All user inputs |
 | Database | Supabase (PostgreSQL) | @supabase/supabase-js 2.93.3 | ca-central-1 region, RLS enabled |
 | File storage | Supabase Storage | — | Photos, concepts, PDFs, tenant assets |
@@ -168,17 +169,17 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 ConversionOS uses a single AI persona — **Emma** — across all pages. Emma adapts her expertise based on which page the homeowner is browsing. A `PageContext` value (`'general'` | `'estimate'` | `'visualizer'`) determines which knowledge layers are injected into her system prompt.
 
-**Powered by:** GPT-5.2 via Vercel AI SDK streaming (text). ElevenLabs Conversational AI (voice, Dominate tier only).
+**Powered by:** GPT-5.2 via Vercel AI SDK streaming (text). ElevenLabs Conversational AI (voice, all tiers).
 
 **Personality:** Warm, concise (2-3 sentences max), conversational. Uses contractions and casual language. Never info-dumps. On the estimate page, she is more structured and confident about pricing. On the visualizer page, she is more creative and enthusiastic about design.
 
-**Available to:** All tiers (text only for Elevate/Accelerate, text + voice for Dominate).
+**Available to:** All tiers (text + voice). Elevate tier has pricing deflection — Emma never discusses dollar amounts and routes pricing questions to `/contact` for a callback. Phone/Twilio voice is Dominate only (future feature).
 
 ### Page-Context Knowledge Injection
 
 | Page | PageContext | Knowledge Injected | Emma's Role |
 |------|------------|-------------------|-------------|
-| Homepage, About, Services, Contact | `general` | Company profile, services summary, Ontario general knowledge, pricing summary | Receptionist — answers questions, routes to visualizer or estimate page |
+| Homepage, About, Services, Contact | `general` | Company profile, services summary, Ontario general knowledge, pricing summary (Accelerate+; suppressed for Elevate) | Receptionist — answers questions, routes to visualizer or estimate page (Elevate: routes to /contact instead of /estimate) |
 | `/estimate` | `estimate` | Full Ontario pricing database (14 trades, 50+ materials, 9 regional multipliers), budget knowledge, handoff context from visualizer | Quote specialist — produces ballpark estimates, skips discovery when context is available |
 | `/visualizer` | `visualizer` | Design knowledge, style descriptions, material options, renovation trends | Design consultant — guides style exploration, extracts structured preferences |
 
@@ -198,9 +199,11 @@ Context flows between pages via `sessionStorage`. When a `visualization` URL par
 
 CTA markers `[CTA:Label:/path]` are rendered as clickable buttons in the chat widget. Emma routes homeowners between pages naturally: to the visualizer for design exploration, to the estimate page for pricing discussions.
 
-### Voice (Dominate Tier Only)
+### Voice (All Tiers — Web)
 
-A single ElevenLabs agent per tenant powers voice interactions. Dynamic prompts are injected via session overrides at connection time based on the current page context, so the same voice agent adapts its expertise just as the text chat does. Voice-extracted preferences (desired changes, material preferences, preservation notes) are captured via `VoiceExtractedPreferences` and feed into the generation prompt and estimate context.
+A single ElevenLabs agent per tenant powers voice interactions on all tiers. Dynamic prompts are injected via session overrides at connection time based on the current page context, so the same voice agent adapts its expertise just as the text chat does. Voice-extracted preferences (desired changes, material preferences, preservation notes) are captured via `VoiceExtractedPreferences` and feed into the generation prompt and estimate context.
+
+For Elevate tier, the voice prompt includes a mandatory pricing deflection — Emma will never mention dollar amounts over voice, instead warmly offering to connect the homeowner with the contractor. Phone/Twilio voice integration is Dominate only (future feature, gated by `voice_phone` entitlement).
 
 ### Prompt Architecture
 
@@ -209,8 +212,9 @@ Emma uses a layered prompt system:
 2. **Company knowledge** — Dynamically loaded from `admin_settings` per tenant
 3. **Page-context knowledge** — Domain knowledge injected based on `PageContext` (pricing DB for estimate, design knowledge for visualizer, general knowledge for other pages)
 4. **Sales training** — Shared conversion techniques
-5. **Dynamic injection** — Cross-domain knowledge added based on keyword detection in the user's message
-6. **Handoff context** — Rich structured data from previous page interactions (visualizer → estimate)
+5. **Dynamic injection** — Cross-domain knowledge added based on keyword detection in the user's message (pricing knowledge suppressed for Elevate)
+6. **Elevate pricing deflection** — Mandatory layer for Elevate tier on general and visualizer pages. Instructs Emma to never mention dollar amounts and route pricing questions to `/contact`
+7. **Handoff context** — Rich structured data from previous page interactions (visualizer → estimate)
 
 ---
 

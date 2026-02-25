@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "found": {
+      "type": "boolean",
+      "description": "Whether a logo was detected in the screenshot"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the logo (e.g., 'Red text logo with wrench icon')"
+    },
+    "location": {
+      "type": "string",
+      "enum": ["top-left", "top-center", "top-right", "center", "other"],
+      "description": "Where in the screenshot the logo appears"
+    },
+    "bounding_box": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number", "description": "X offset from left in pixels" },
+        "y": { "type": "number", "description": "Y offset from top in pixels" },
+        "width": { "type": "number", "description": "Width in pixels" },
+        "height": { "type": "number", "description": "Height in pixels" }
+      },
+      "required": ["x", "y", "width", "height"],
+      "description": "Approximate bounding box of the logo"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Confidence score 0-1 that this is the correct logo"
+    }
+  },
+  "required": ["found", "confidence"],
+  "additionalProperties": false
+}

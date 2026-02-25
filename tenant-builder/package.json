@@ -1,0 +1,24 @@
+{
+  "name": "tenant-builder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ConversionOS Tenant Builder — automated discovery, scoring, scraping, provisioning, and QA",
+  "scripts": {
+    "orchestrate": "node orchestrate.mjs",
+    "discover": "node discover.mjs",
+    "icp-score": "node icp-score.mjs",
+    "scrape-tenant": "node scrape-tenant.mjs",
+    "provision-tenant": "node provision-tenant.mjs",
+    "visual-qa": "node visual-qa.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.0",
+    "@mendable/firecrawl-js": "^4.13.0",
+    "@supabase/supabase-js": "^2.93.3",
+    "playwright": "^1.58.1",
+    "sharp": "^0.34.5",
+    "yaml": "^2.7.1",
+    "zod": "^4.3.6"
+  }
+}

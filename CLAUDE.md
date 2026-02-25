@@ -36,7 +36,8 @@ npm run test:e2e     # playwright E2E tests
 | PDF quotes + email sending | — | Yes | Yes |
 | Invoicing + payment tracking | — | Yes | Yes |
 | Drawings management | — | Yes | Yes |
-| Voice agents (web + phone) | — | — | Yes |
+| Voice agents (web) | Yes | Yes | Yes |
+| Voice agents (phone/Twilio) | — | — | Yes |
 | Custom integrations | — | — | Yes |
 | Location exclusivity | — | — | Yes |
 

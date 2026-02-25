@@ -11,6 +11,8 @@ import { buildServicesKnowledge, buildServicesSummary } from '../knowledge/servi
 import type { PageContext, PersonaKey } from './types';
 import { PERSONA_TO_CONTEXT } from './types';
 import { EMMA_PERSONA } from './emma';
+import type { PlanTier } from '@/lib/entitlements';
+import { canAccess } from '@/lib/entitlements';
 import {
   PRICING_FULL,
   PRICING_SUMMARY,
@@ -43,10 +45,42 @@ function buildPricingModeInstruction(mode: QuoteAssistanceMode): string {
 }
 
 // ---------------------------------------------------------------------------
+// Elevate pricing deflection — never discuss dollar amounts
+// ---------------------------------------------------------------------------
+
+function buildElevatePricingDeflection(config: CompanyConfig): string {
+  return `## PRICING DEFLECTION (MANDATORY — ELEVATE TIER)
+You must NEVER discuss specific dollar amounts, price ranges, cost estimates, or budgets.
+This includes phrases like "typically runs $X-$Y", "you might expect to pay", "ballpark of", etc.
+
+When a homeowner asks about pricing, costs, or budget:
+1. Acknowledge their question warmly
+2. Explain that every project is unique and requires a proper assessment
+3. Offer to connect them with ${config.principals} for accurate pricing
+4. Always include: [CTA:Request a Callback:/contact]
+
+Example responses:
+- "Great question! Every renovation is different, so ${config.principals} would love to chat about your specific project. [CTA:Request a Callback:/contact]"
+- "I want to make sure you get accurate numbers, not guesses. Let me connect you with our team! [CTA:Request a Callback:/contact]"
+
+NEVER say "I can't discuss pricing" or "I'm not allowed to" — that sounds robotic. Instead, frame it as wanting to give them the BEST, most accurate information through a personal consultation.`;
+}
+
+function buildElevatePricingDeflectionVoice(config: CompanyConfig): string {
+  return `## PRICING DEFLECTION (MANDATORY — ELEVATE TIER)
+You must NEVER discuss specific dollar amounts, price ranges, cost estimates, or budgets.
+When a homeowner asks about pricing, costs, or budget:
+- Acknowledge warmly and explain every project is unique
+- Offer to connect them with ${config.principals} for accurate pricing
+- Say something like: "I'd love to get you connected with ${config.principals} who can give you exact numbers for your project. Want me to set that up?"
+- NEVER say "I can't" or "I'm not allowed to" — frame it as wanting to give them the best information`;
+}
+
+// ---------------------------------------------------------------------------
 // Context-aware rules — accept CompanyConfig and return customized rules
 // ---------------------------------------------------------------------------
 
-function buildEmmaRules(config: CompanyConfig, context: PageContext): string {
+function buildEmmaRules(config: CompanyConfig, context: PageContext, tier?: PlanTier): string {
   // CTA routing rule — always included
   const ctaRule = `## CRITICAL ROUTING RULE (NEVER SKIP)
 When suggesting the estimate tool, visualizer, or any other page, you MUST include a CTA marker:
@@ -77,7 +111,29 @@ ${config.booking ? `Booking: ${config.booking}` : ''}`;
 - One topic per message — don't info-dump`;
 
   switch (context) {
-    case 'general':
+    case 'general': {
+      const isElevate = tier === 'elevate';
+      const pricingRole = isElevate
+        ? `- Do NOT share pricing ranges, dollar amounts, or cost estimates
+- For any pricing questions, warmly redirect to a callback: [CTA:Request a Callback:/contact]
+- Suggest the visualizer for design exploration via CTA`
+        : `- Share general pricing ranges (e.g., "kitchens typically run $15K-$50K") — this is helpful and encouraged
+- Redirect to /estimate for specific, detailed quotes via CTA
+- Redirect to /visualizer for design exploration and room transformations via CTA`;
+
+      const leadFlow = isElevate
+        ? `### Lead Capture Flow
+1. First 2–3 messages: Answer questions, show value, build rapport
+2. At the "value moment": Suggest the visualizer or a callback with a CTA
+3. If they want a callback: "I can have ${config.principals} reach out — what's the best number?"
+4. For pricing questions: "Every project is unique — let me connect you with our team for accurate numbers. [CTA:Request a Callback:/contact]"
+5. Never push for info if they're just browsing — keep it easy and friendly`
+        : `### Lead Capture Flow
+1. First 2–3 messages: Answer questions, show value, build rapport
+2. At the "value moment": Suggest the estimate tool or visualizer with a CTA
+3. If they want a callback: "I can have ${config.principals} reach out — what's the best number?"
+4. Never push for info if they're just browsing — keep it easy and friendly`;
+
       return `${ctaRule}
 
 ## Conversation Rules for Emma (General)
@@ -88,9 +144,7 @@ ${responseStyle}
 
 ### Your Role on This Page
 - Answer general questions about services and the renovation process
-- Share general pricing ranges (e.g., "kitchens typically run $15K-$50K") — this is helpful and encouraged
-- Redirect to /estimate for specific, detailed quotes via CTA
-- Redirect to /visualizer for design exploration and room transformations via CTA
+${pricingRole}
 - The CTA button IS the handoff. The user clicks it and goes to the right page.${config.certifications.length > 0 ? `\n- Mention certifications (${config.certifications.join(', ')}) when relevant to build trust` : ''}
 
 ### Page-Aware Context
@@ -99,12 +153,9 @@ ${responseStyle}
 - If on /projects, tie in what they're viewing to how we can help
 - If on /about, reinforce trust and offer next steps
 
-### Lead Capture Flow
-1. First 2–3 messages: Answer questions, show value, build rapport
-2. At the "value moment": Suggest the estimate tool or visualizer with a CTA
-3. If they want a callback: "I can have ${config.principals} reach out — what's the best number?"
-4. Never push for info if they're just browsing — keep it easy and friendly
+${leadFlow}
 `;
+    }
 
     case 'estimate':
       return `## Conversation Rules for Emma (Estimate Page)
@@ -235,6 +286,7 @@ export function detectKnowledgeDomain(message: string): KnowledgeDomain[] {
 export function buildDynamicSystemPrompt(
   contextOrPersona: PageContext | PersonaKey,
   userMessage: string,
+  tier?: PlanTier,
 ): string {
   const context = resolveContext(contextOrPersona);
   const domains = detectKnowledgeDomain(userMessage);
@@ -246,7 +298,8 @@ export function buildDynamicSystemPrompt(
     switch (domain) {
       case 'pricing':
         // On general or visualizer pages, inject pricing summary when user asks about costs
-        if (context === 'general' || context === 'visualizer') {
+        // BUT suppress for Elevate tier — pricing deflection already handles this
+        if ((context === 'general' || context === 'visualizer') && tier !== 'elevate') {
           additions.push(`## Cross-Domain Knowledge: Pricing Context
 When the homeowner asks about costs, you can share these general ranges to be helpful.
 For detailed line-item estimates, suggest the estimate tool via [CTA:Get a Free Estimate:/estimate].
@@ -303,11 +356,24 @@ export async function buildAgentSystemPrompt(
     estimateData?: Record<string, unknown> | undefined;
     handoffContext?: Record<string, unknown> | undefined;
     companyConfig?: CompanyConfig | undefined;
+    tier?: PlanTier | undefined;
   },
 ): Promise<string> {
   const context = resolveContext(contextOrPersona);
   const config = options?.companyConfig ?? await getCompanyConfig();
   const persona = EMMA_PERSONA;
+
+  // Resolve tier — use provided value, fetch from DB, or default to 'accelerate'
+  let tier: PlanTier;
+  if (options?.tier) {
+    tier = options.tier;
+  } else {
+    try {
+      tier = await getTier();
+    } catch {
+      tier = 'accelerate';
+    }
+  }
 
   const companyProfile = buildCompanyProfile(config);
   const companySummary = buildCompanySummary(config);
@@ -332,7 +398,8 @@ export async function buildAgentSystemPrompt(
   let layer2 = '';
   switch (context) {
     case 'general':
-      layer2 = PRICING_SUMMARY;
+      // Suppress pricing knowledge for Elevate tier — they must never discuss dollar amounts
+      layer2 = tier === 'elevate' ? '' : PRICING_SUMMARY;
       break;
     case 'estimate':
       layer2 = `${PRICING_FULL}\n\n${ONTARIO_BUDGET_KNOWLEDGE}`;
@@ -346,7 +413,7 @@ export async function buildAgentSystemPrompt(
   const layer3 = SALES_TRAINING;
 
   // Layer 4: Emma identity + page-specific rules
-  const emmaRules = buildEmmaRules(config, context);
+  const emmaRules = buildEmmaRules(config, context, tier);
 
   const layer4 = `## Your Identity
 You are **${persona.name}**, the ${persona.role} at ${config.name}.
@@ -368,7 +435,6 @@ ${emmaRules}`;
   // This ensures the contractor's pricing preference is respected regardless of how the user arrived
   if (context === 'estimate') {
     try {
-      const tier = await getTier();
       const qaConfig = await getQuoteAssistanceConfig(tier);
       prompt += `\n\n---\n\n${buildPricingModeInstruction(qaConfig.mode)}`;
     } catch {
@@ -377,9 +443,14 @@ ${emmaRules}`;
     }
   }
 
+  // Elevate pricing deflection — mandatory on general and visualizer pages
+  if (tier === 'elevate' && (context === 'general' || context === 'visualizer')) {
+    prompt += `\n\n---\n\n${buildElevatePricingDeflection(config)}`;
+  }
+
   // Dynamic cross-domain knowledge injection
   if (options?.userMessage) {
-    const dynamicKnowledge = buildDynamicSystemPrompt(context, options.userMessage);
+    const dynamicKnowledge = buildDynamicSystemPrompt(context, options.userMessage, tier);
     if (dynamicKnowledge) {
       prompt += `\n\n---\n\n${dynamicKnowledge}`;
     }
@@ -465,11 +536,23 @@ ${emmaRules}`;
  */
 export async function buildVoiceSystemPrompt(
   contextOrPersona: PageContext | PersonaKey,
-  options?: { companyConfig?: CompanyConfig },
+  options?: { companyConfig?: CompanyConfig; tier?: PlanTier },
 ): Promise<string> {
   const context = resolveContext(contextOrPersona);
   const config = options?.companyConfig ?? await getCompanyConfig();
   const persona = EMMA_PERSONA;
+
+  // Resolve tier
+  let tier: PlanTier;
+  if (options?.tier) {
+    tier = options.tier;
+  } else {
+    try {
+      tier = await getTier();
+    } catch {
+      tier = 'accelerate';
+    }
+  }
 
   const companySummary = buildCompanySummary(config);
   const servicesSummary = buildServicesSummary(config);
@@ -478,7 +561,10 @@ export async function buildVoiceSystemPrompt(
   let knowledgeContext = '';
   switch (context) {
     case 'general':
-      knowledgeContext = `${companySummary}\n\n${servicesSummary}\n\n${PRICING_SUMMARY}`;
+      // Suppress pricing knowledge for Elevate tier
+      knowledgeContext = tier === 'elevate'
+        ? `${companySummary}\n\n${servicesSummary}`
+        : `${companySummary}\n\n${servicesSummary}\n\n${PRICING_SUMMARY}`;
       break;
     case 'estimate':
       knowledgeContext = `${companySummary}\n\n${servicesSummary}\n\n${PRICING_FULL}\n\n${ONTARIO_BUDGET_KNOWLEDGE}`;
@@ -491,12 +577,16 @@ export async function buildVoiceSystemPrompt(
   // Inject pricing mode for estimate voice calls (same as text chat)
   if (context === 'estimate') {
     try {
-      const tier = await getTier();
       const qaConfig = await getQuoteAssistanceConfig(tier);
       knowledgeContext += `\n\n${buildPricingModeInstruction(qaConfig.mode)}`;
     } catch {
       knowledgeContext += `\n\n${buildPricingModeInstruction('range')}`;
     }
+  }
+
+  // Elevate pricing deflection for voice — mandatory on general and visualizer pages
+  if (tier === 'elevate' && (context === 'general' || context === 'visualizer')) {
+    knowledgeContext += `\n\n${buildElevatePricingDeflectionVoice(config)}`;
   }
 
   return `You are ${persona.name}, the ${persona.role} at ${config.name} in ${config.location}.

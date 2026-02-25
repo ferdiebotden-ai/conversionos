@@ -1,6 +1,9 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { EstimatePageClient } from './estimate-client';
 import { getBranding } from '@/lib/branding';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 
 export async function generateMetadata() {
   const branding = await getBranding();
@@ -21,7 +24,12 @@ function EstimateLoading() {
   );
 }
 
-export default function EstimatePage() {
+export default async function EstimatePage() {
+  const tier = await getTier();
+  if (!canAccess(tier, 'ai_quote_engine')) {
+    redirect('/contact?from=estimate');
+  }
+
   return (
     <Suspense fallback={<EstimateLoading />}>
       <EstimatePageClient />

@@ -52,7 +52,8 @@ Pipeline: score → scrape → upload images → provision DB → verify. Checkp
 
 ## ElevenLabs Voice Agent
 - **Single persona: Emma** — one ElevenLabs agent per tenant, context-aware via PageContext
-- **Dominate tier only** — voice toggle hidden on Elevate/Accelerate, API returns 403
+- **Voice (web) on ALL tiers** — voice toggle visible on Elevate/Accelerate/Dominate. Elevate has mandatory pricing deflection.
+- **Voice (phone/Twilio) Dominate only** — `voice_phone` entitlement
 - Dynamic prompts: `buildVoiceSystemPrompt(context)` server-side, passed as session override via ElevenLabs SDK
 - Each tenant can have duplicated agents via `POST /v1/convai/agents/{id}/duplicate`
 - Single env var: `ELEVENLABS_AGENT_EMMA` per Vercel project

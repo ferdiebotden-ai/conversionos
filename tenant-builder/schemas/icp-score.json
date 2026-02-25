@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "sophistication_level": {
+      "type": "string",
+      "enum": ["basic", "template", "professional", "custom", "stunning"],
+      "description": "Website sophistication level. basic/template = DIY or Wix/Squarespace. professional = clean agency site. custom = high-end custom build. stunning = best-in-class design."
+    },
+    "team_size_estimate": {
+      "type": "string",
+      "enum": ["solo", "small", "medium", "large"],
+      "description": "Estimated team size. solo = 1 person. small = 2-5. medium = 6-15. large = 16+."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Brief explanation of the assessment (1-2 sentences)."
+    }
+  },
+  "required": ["sophistication_level", "team_size_estimate", "reasoning"],
+  "additionalProperties": false
+}
