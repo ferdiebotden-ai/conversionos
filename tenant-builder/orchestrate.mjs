@@ -34,6 +34,7 @@ const { values: args } = parseArgs({
   options: {
     batch: { type: 'boolean', default: false },
     'target-id': { type: 'string' },
+    'target-ids': { type: 'string' },
     url: { type: 'string' },
     'site-id': { type: 'string' },
     tier: { type: 'string', default: 'accelerate' },
@@ -55,6 +56,7 @@ if (args.help) {
 Modes:
   --batch --limit 10                  Pipeline targets (Turso DB)
   --target-id 42                      Single target by ID
+  --target-ids "42,55,78"             Multiple targets by IDs
   --url URL --site-id ID --tier TIER  Direct URL (bypass pipeline)
   --discover --cities "A,B" --limit N Firecrawl search + build
   --nightly                           Nightly run (batch, limit 10)
@@ -90,6 +92,19 @@ if (args.nightly) {
     process.exit(1);
   }
   targets = rows;
+} else if (args['target-ids']) {
+  const ids = args['target-ids'].split(',').map(s => parseInt(s.trim(), 10)).filter(Boolean);
+  if (ids.length === 0) {
+    logger.error('No valid target IDs provided');
+    process.exit(1);
+  }
+  const placeholders = ids.map(() => '?').join(',');
+  targets = await query(`SELECT * FROM targets WHERE id IN (${placeholders})`, ids);
+  if (targets.length === 0) {
+    logger.error(`No targets found for IDs: ${ids.join(', ')}`);
+    process.exit(1);
+  }
+  logger.info(`Selected ${targets.length} target(s) by ID: ${ids.join(', ')}`);
 } else if (args.url && args['site-id']) {
   targets = [{
     id: null,

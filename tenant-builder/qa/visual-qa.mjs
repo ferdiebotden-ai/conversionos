@@ -69,20 +69,24 @@ function findClaude() {
 
 const CLAUDE_BIN = findClaude();
 
-// Build prompt
+// Build prompt with explicit file paths so the model reads the screenshots
 let prompt = `You are reviewing a ConversionOS demo website generated for a renovation contractor. Score the site on 5 dimensions (1-5 each).
 
 Site ID: ${siteId}
 
-I am showing you screenshot(s) of the generated demo site.`;
+IMPORTANT: First, use the Read tool to view the desktop screenshot at: ${desktopPath}`;
+
+if (existsSync(mobilePath)) {
+  prompt += `\nAlso read the mobile screenshot at: ${mobilePath}`;
+}
 
 if (args.original && existsSync(resolve(args.original))) {
-  prompt += `\n\nI am also showing you the original contractor website for comparison.`;
+  prompt += `\nAlso read the original contractor website screenshot for comparison at: ${resolve(args.original)}`;
 }
 
 prompt += `
 
-Score each dimension:
+After viewing the screenshot(s), score each dimension:
 1. **Logo Fidelity** — Is the logo displayed correctly? (5=perfect rendering, 1=missing/broken/placeholder)
 2. **Colour Match** — Do brand colours feel right for this business? (5=professional palette, 1=clashing/default colours)
 3. **Copy Accuracy** — Is the business name, services, and about text correct? (5=all accurate, 1=placeholders/wrong info)
@@ -91,23 +95,14 @@ Score each dimension:
 
 Be critical — only score 5 if truly excellent.`;
 
-// Build claude args with images
+// Build claude args — no positional image paths, model reads them via Read tool
 const claudeArgs = [
   '-p', prompt,
   '--output-format', 'json',
-  '--max-turns', '3',
+  '--max-turns', '10',
   '--model', 'sonnet',
   '--json-schema', readFileSync(SCHEMA_PATH, 'utf-8'),
-  desktopPath,
 ];
-
-if (existsSync(mobilePath)) {
-  claudeArgs.push(mobilePath);
-}
-
-if (args.original && existsSync(resolve(args.original))) {
-  claudeArgs.push(resolve(args.original));
-}
 
 const env = { ...process.env };
 delete env.CLAUDECODE;
@@ -125,6 +120,12 @@ try {
 
   const envelope = JSON.parse(stdout);
   const scores = envelope.structured_output || envelope.result;
+
+  if (!scores || typeof scores !== 'object' || !scores.logo_fidelity) {
+    logger.error(`Visual QA: unexpected response shape. Type: ${envelope.type}, subtype: ${envelope.subtype}`);
+    logger.error(`Envelope keys: ${Object.keys(envelope).join(', ')}`);
+    process.exit(1);
+  }
 
   // Calculate average
   const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion'];

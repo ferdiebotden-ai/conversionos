@@ -79,9 +79,18 @@ export function callClaude(prompt, options = {}) {
 
   const envelope = JSON.parse(stdout);
 
+  // Check for errors (max_turns, etc.)
+  if (envelope.subtype === 'error_max_turns' || envelope.is_error) {
+    throw new Error(`Claude CLI error: ${envelope.subtype || 'unknown'} (turns: ${envelope.num_turns})`);
+  }
+
   // --json-schema puts result in structured_output; plain text in result
   if (schemaPath && envelope.structured_output !== undefined) {
     return envelope.structured_output;
   }
-  return envelope.result;
+  if (envelope.result !== undefined) {
+    return envelope.result;
+  }
+
+  throw new Error(`Claude CLI returned no result or structured_output (type: ${envelope.type}, subtype: ${envelope.subtype})`);
 }

@@ -25,6 +25,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'mccarty-test.norbotsystems.com': 'mccarty-test',
   'eastview-homes.norbotsystems.com': 'eastview-homes',
   'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
+  'redwhitereno-test.norbotsystems.com': 'redwhitereno-test',
 };
 
 export async function proxy(request: NextRequest) {
