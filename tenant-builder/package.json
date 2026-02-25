@@ -10,7 +10,12 @@
     "icp-score": "node icp-score.mjs",
     "scrape-tenant": "node scrape-tenant.mjs",
     "provision-tenant": "node provision-tenant.mjs",
-    "visual-qa": "node visual-qa.mjs"
+    "visual-qa": "node visual-qa.mjs",
+    "test": "vitest run --config vitest.config.mjs",
+    "test:unit": "vitest run --config vitest.config.mjs tests/unit/",
+    "test:integration": "vitest run --config vitest.config.mjs tests/integration/",
+    "test:all": "vitest run --config vitest.config.mjs",
+    "cleanup": "node tests/cleanup.mjs --site-id redwhitereno-test"
   },
   "dependencies": {
     "@libsql/client": "^0.15.0",
@@ -20,5 +25,8 @@
     "sharp": "^0.34.5",
     "yaml": "^2.7.1",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

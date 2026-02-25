@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 25, 2026 | **Updated by:** Claude Code (Adaptive Copy System — full-site coverage + cache invalidation + mode-neutral fallbacks)
+**Last updated:** February 25, 2026 | **Updated by:** Claude Code (About page team placeholders, footer legal links, Why Choose image)
 
 ---
 
@@ -319,7 +319,7 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 |-----------|--------------|--------------|
 | Header (3 CTAs) | `getHeaderCTA()` | "Get Quote" → "Contact Us", `/estimate` → `/contact` |
 | Mobile CTA bar | `getMobileCTA()` | Same as header |
-| Receptionist widget teaser | `getHomepageTeaser()` | Removes "free estimate" reference |
+| Receptionist widget teaser | `getHomepageTeaser()` | "Chat with me for a free estimate!" → "I can help you get started!" |
 | Chat NLP fallback buttons | `getEstimateCTA()` | Routes pricing keywords to `/contact` |
 | Homepage subtitle | `getHowItWorksSubtitle()` | "estimate" → "consultation" |
 | Homepage step 3 | `getDefaultProcessStep3()` | "Receive Your Estimate" → "Connect with a Pro" |
@@ -443,8 +443,8 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 ### Public (accessible to all visitors)
 | Route | Purpose |
 |-------|---------|
-| `/` | Homepage — hero, social proof bar, visualizer teaser, services, how it works, why us, testimonials |
-| `/about` | Company information |
+| `/` | Homepage — hero, social proof bar, visualizer teaser, services, how it works, why us (with `aboutImageUrl` image or gradient fallback), testimonials |
+| `/about` | Company information — hero, what we do (with `aboutImageUrl` image), mission, values (icon-mapped), certifications (conditional), team cards (Lucide `User` icon placeholder when no `photoUrl`), service area, CTA |
 | `/services` | Services listing |
 | `/services/[slug]` | Dynamic service detail (kitchen, bathroom, etc.) |
 | `/visualizer` | AI renovation visualizer |
@@ -512,11 +512,14 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Hero headline, subheadline, hero image | `admin_settings` → `company_profile` | Settings page |
 | Services list with descriptions, features, packages | `admin_settings` → services keys | Settings page |
 | Testimonials, trust badges, certifications | `admin_settings` → `company_profile` | Settings page |
+| Team members (name, role, bio, photoUrl) | `admin_settings` → `company_profile` → `teamMembers` | Settings page. Cards show Lucide `User` icon when `photoUrl` is empty. Fallback: single card with company principals if no team members configured. |
+| About / Why Choose image | `admin_settings` → `company_profile` → `aboutImageUrl` | Settings page. Used in About page "What We Do" section and homepage "Why Choose Us" section. Falls back to `/images/demo/flooring-vinyl.png` on About; gradient placeholder on homepage. |
 | Pricing tier | `admin_settings` → `plan` | Provisioned at onboarding |
 | Quote assistance mode + range band | `admin_settings` → `quote_assistance` | Settings → Quoting tab |
 | Notification email addresses | `admin_settings` → `notification_emails` | Settings page |
 | Custom domain | `src/proxy.ts` → `DOMAIN_TO_SITE` | Manual (or onboarding script) |
 | "Powered by ConversionOS" footer | Tier-dependent visibility | Elevate: shown (60% opacity), Accelerate: shown (40% opacity), Dominate: hidden |
+| Footer legal links (Privacy Policy, Terms of Service) | Rendered as non-clickable `<span>` elements | Intentional for demo tenants. Production tenants will need actual policy pages and clickable links. |
 | Social proof metrics (Google rating, years, projects, licensed) | `admin_settings` → `company_profile` → `trust_metrics` | Settings page |
 
 ---
@@ -533,6 +536,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Quick Style Preview not built | No low-fidelity preview before committing to full generation | Visualizer |
 | 24 pre-existing ESLint errors | Non-blocking, all in legacy code | `npm run lint` |
 | `getSiteId()` is synchronous | 80+ call sites; cannot use async `headers()` from Next.js 16 | `src/lib/db/site.ts` |
+| Privacy Policy / Terms of Service pages not built | Footer renders these as non-clickable `<span>` text. Production tenants will need actual policy pages with clickable links. | `src/components/footer.tsx` |
 
 ---
 
