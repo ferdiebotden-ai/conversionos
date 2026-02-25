@@ -61,6 +61,25 @@ tenant-builder/
     branding-v2.json     # Branding extraction structured output
     logo-vision.json     # Logo identification structured output
     visual-qa.json       # Visual QA rubric structured output
+  tests/
+    setup.mjs              # Env loading, test constants, requireIntegrationEnv()
+    cleanup.mjs            # Remove all test artifacts (DB, Storage, proxy, local)
+    helpers/
+      assertions.mjs       # Reusable validators (ICP, scrape, provision, QA)
+      fixtures.mjs         # Mock data for unit tests
+    unit/                  # 35 tests, ~300ms, no API calls
+      logger.test.mjs
+      env-loader.test.mjs
+      concurrency.test.mjs
+      proxy-fragment.test.mjs
+      merge-proxy.test.mjs
+    integration/           # 18 tests, ~4 min, real APIs (~$0.50/run)
+      icp-score.test.mjs
+      scrape.test.mjs
+      provision.test.mjs
+      qa-pipeline.test.mjs
+      orchestrator-flags.test.mjs
+  vitest.config.mjs        # Vitest config (120s timeout, sequential)
   launchd/
     com.norbot.tenant-builder.plist  # macOS LaunchAgent (00:15 daily)
   results/               # Per-run output (gitignored)
@@ -114,6 +133,60 @@ Added columns on `targets` table:
 - `icp_breakdown TEXT` — JSON string of ICPBreakdown shape
 
 Existing columns used: `bespoke_status`, `bespoke_score`, `brand_assets`
+
+## Testing
+
+```bash
+cd ~/norbot-ops/products/demo/tenant-builder
+
+# All tests (unit + integration)
+npm test
+
+# Unit tests only (~300ms, no API calls)
+npm run test:unit
+
+# Integration tests only (~4 min, real APIs, ~$0.50/run)
+npm run test:integration
+
+# Cleanup test artifacts
+npm run cleanup
+```
+
+### Test Constants
+
+- **Test site_id:** `redwhitereno-test` (avoids clobbering production `redwhitereno`)
+- **Test target_id:** 22 (Red White Reno in Turso)
+- **Test URL:** `https://www.redwhitereno.com`
+- **Test tier:** `accelerate`
+
+### Unit Tests (35 tests, mocked)
+
+| File | Tests | What It Covers |
+|------|-------|----------------|
+| `logger.test.mjs` | 12 | Log levels, data logging, PROGRESS/SUMMARY JSON format |
+| `env-loader.test.mjs` | 7 | KEY=VALUE parsing, export prefix, quoted values, comments |
+| `concurrency.test.mjs` | 7 | Pool limits, result ordering, mixed success/failure |
+| `proxy-fragment.test.mjs` | 4 | File creation, directory creation, overwrite |
+| `merge-proxy.test.mjs` | 5 | Domain insertion, duplicate skipping, idempotency |
+
+### Integration Tests (18 tests, real APIs)
+
+| File | Tests | What It Covers |
+|------|-------|----------------|
+| `orchestrator-flags.test.mjs` | 4 | --help, no-mode error, bad target ID, missing --site-id |
+| `icp-score.test.mjs` | 3 | Score range, dry-run DB protection, PROGRESS/SUMMARY lines |
+| `scrape.test.mjs` | 4 | Valid output, branding-v2, known data, logo confidence |
+| `provision.test.mjs` | 4 | DB provisioning, valid state, idempotency, dry-run |
+| `qa-pipeline.test.mjs` | 3 | Screenshot creation, visual QA scoring, result file |
+
+Integration tests require all 5 env vars to be set. They skip gracefully via `requireIntegrationEnv()` if env vars are missing.
+
+### Reusable Assertion Helpers (`tests/helpers/assertions.mjs`)
+
+- `assertValidIcpScore(score, breakdown)` — range 0-100, 6 dimensions, sum check
+- `assertValidScrapedData(data, expectedName)` — all fields, anti-hallucination checks
+- `assertValidProvision(siteId, supabase)` — 4 admin_settings rows, 1 tenants row
+- `assertValidQaResult(result)` — 5 dimensions 1-5, average calculation, pass logic
 
 ## Key Patterns
 
