@@ -22,12 +22,7 @@ export function Footer() {
 
   const serviceLinks = branding.services.length > 0
     ? branding.services.map(s => ({ href: `/services/${s.slug}`, label: s.name }))
-    : [
-        { href: "/services/kitchen-renovation", label: "Kitchen Renovation" },
-        { href: "/services/bathroom-renovation", label: "Bathroom Renovation" },
-        { href: "/services/basement-finishing", label: "Basement Finishing" },
-        { href: "/services/flooring", label: "Flooring" },
-      ]
+    : []
 
   // Hide public footer on admin routes
   if (pathname.startsWith('/admin')) {
@@ -107,23 +102,25 @@ export function Footer() {
           </div>
 
           {/* Services */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
-              Services
-            </h3>
-            <ul className="space-y-3">
-              {serviceLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {serviceLinks.length > 0 && (
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+                Services
+              </h3>
+              <ul className="space-y-3">
+                {serviceLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Contact Info */}
           <div>

@@ -94,78 +94,79 @@ export default async function AboutPage() {
               </div>
             </div>
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-              <Image
-                src={config.aboutImageUrl || "/images/demo/flooring-vinyl.png"}
-                alt={`${branding.name} renovation work`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
+              {config.aboutImageUrl ? (
+                <Image
+                  src={config.aboutImageUrl}
+                  alt={`${branding.name} renovation work`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-muted" />
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* Mission Statement */}
-      <section className="border-y border-border bg-primary px-4 py-12 md:py-16">
-        <div className="container mx-auto text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
-            Our Mission
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/90">
-            {config.mission || "To transform houses into dream homes through exceptional craftsmanship, innovative technology, and an unwavering commitment to customer satisfaction. We believe every homeowner deserves a renovation experience that's as enjoyable as the final result."}
-          </p>
-        </div>
-      </section>
-
-      {/* Our Values */}
-      <section className="px-4 py-12 md:py-16">
-        <div className="container mx-auto">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Our Values
+      {config.mission && (
+        <section className="border-y border-border bg-primary px-4 py-12 md:py-16">
+          <div className="container mx-auto text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
+              Our Mission
             </h2>
-            <p className="mt-2 text-muted-foreground">
-              The principles that guide every project we undertake.
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/90">
+              {config.mission}
             </p>
           </div>
+        </section>
+      )}
 
-          {(() => {
-            const defaultValues = [
-              { title: 'Customer First', description: 'Your satisfaction drives everything we do. We listen, communicate, and deliver on our promises.', iconHint: 'heart' },
-              { title: 'Quality Craftsmanship', description: 'Every detail matters, from initial design to final walkthrough.', iconHint: 'target' },
-              { title: 'Integrity', description: 'Honest pricing, realistic timelines, and transparent communication throughout your project.', iconHint: 'shield' },
-            ];
-            const valueItems = config.values.length > 0 ? config.values : defaultValues;
+      {/* Our Values */}
+      {config.values.length > 0 && (
+        <section className="px-4 py-12 md:py-16">
+          <div className="container mx-auto">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Our Values
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                The principles that guide every project we undertake.
+              </p>
+            </div>
 
-            const iconMap: Record<string, typeof Heart> = {
-              heart: Heart, target: Target, shield: Shield,
-              award: Award, clock: Clock, check: CheckCircle,
-            };
+            {(() => {
+              const iconMap: Record<string, typeof Heart> = {
+                heart: Heart, target: Target, shield: Shield,
+                award: Award, clock: Clock, check: CheckCircle,
+              };
 
-            return (
-              <div className="mt-10 grid gap-8 md:grid-cols-3">
-                {valueItems.map((value) => {
-                  const Icon = iconMap[value.iconHint?.toLowerCase() || ''] || Heart;
-                  return (
-                    <div key={value.title} className="text-center">
-                      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Icon className="size-6" />
+              return (
+                <div className="mt-10 grid gap-8 md:grid-cols-3">
+                  {config.values.map((value) => {
+                    const Icon = iconMap[value.iconHint?.toLowerCase() || ''] || Heart;
+                    return (
+                      <div key={value.title} className="text-center">
+                        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Icon className="size-6" />
+                        </div>
+                        <h3 className="mt-4 text-lg font-semibold text-foreground">
+                          {value.title}
+                        </h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {value.description}
+                        </p>
                       </div>
-                      <h3 className="mt-4 text-lg font-semibold text-foreground">
-                        {value.title}
-                      </h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {value.description}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
-      </section>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </section>
+      )}
 
       {/* Certifications */}
       {config.certifications.length > 0 && (

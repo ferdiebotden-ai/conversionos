@@ -63,7 +63,7 @@ export default async function ProjectsPage() {
       {/* Project Gallery */}
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto">
-          <ProjectGallery {...(dbProjects.length > 0 ? { projects: dbProjects } : {})} />
+          <ProjectGallery projects={dbProjects} />
         </div>
       </section>
 

@@ -56,6 +56,7 @@ tenant-builder/
     structural-qa.mjs    # Wraps existing verify.mjs (8-check suite)
     visual-qa.mjs        # Claude Vision 5-dimension rubric
     refinement-loop.mjs  # Fix-and-recheck cycle (max 3 iterations)
+    content-integrity.mjs # Demo leakage + broken image + colour + section checks
   schemas/
     icp-score.json       # ICP scoring structured output
     branding-v2.json     # Branding extraction structured output
@@ -109,11 +110,12 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 
 1. **Select targets** — from Turso DB (pipeline mode) or Firecrawl search (discovery mode)
 2. **ICP score** — 6-criterion model (100 pts), threshold 50 for manual review, 70 for auto-proceed
-3. **Scrape** — branding v2 + existing 7-stage scrape.mjs + 4-level logo extraction
-4. **Provision** — upload images, create Supabase rows, write proxy fragment
-5. **Merge proxy** — combine all fragments into proxy.ts
-6. **Git + deploy** — commit, push, wait for Vercel
-7. **QA** — structural checks + visual scoring + refinement loop
+3. **Scrape** — branding v2 + existing 7-stage scrape.mjs + 4-level logo extraction + OKLCH recomputation + trust metrics from Turso
+4. **Quality gates** — filter testimonials (min 2 valid), portfolio (require images), services (require name+description), hero (reject generic)
+5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment
+6. **Merge proxy** — combine all fragments into proxy.ts
+7. **Git + deploy** — commit, push, wait for Vercel
+8. **QA** — structural checks + visual scoring + content integrity (demo leakage, broken images, colour, section integrity) + refinement loop
 
 ## ICP Scoring (6 Dimensions, 100 pts)
 
@@ -133,6 +135,28 @@ Added columns on `targets` table:
 - `icp_breakdown TEXT` — JSON string of ICPBreakdown shape
 
 Existing columns used: `bespoke_status`, `bespoke_score`, `brand_assets`
+
+## Quality Gates (in provision.mjs)
+
+| Gate | Logic | Result When Failed |
+|------|-------|--------------------|
+| Hero quality | Rejects < 10 chars, > 100 chars, generic ("Welcome", "Home"), business-name-only | Template defaults: "See Your Renovation Before It Begins" |
+| Testimonial authenticity | Requires author > 2 chars, quote > 20 chars, min 2 valid | Template hides testimonials section |
+| Portfolio reality | Requires valid image URL + non-empty title | Template shows "portfolio being updated" message |
+| Service completeness | Requires name > 3 chars, description > 10 chars, no placeholders | Template hides services section |
+
+## Content Integrity QA (qa/content-integrity.mjs)
+
+Post-provisioning Playwright check for 5 categories:
+1. **Demo leakage** — scans for NorBot phone/email/address/demo image paths on tenant pages
+2. **Broken images** — HEAD requests on all `<img>` sources + naturalWidth check
+3. **Demo images** — regex scan for `/images/demo/` in HTML source
+4. **Colour consistency** — verifies `--primary` CSS variable matches expected colour
+5. **Section integrity** — flags sections with headings but < 20 chars body text
+
+```bash
+node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example [--expected-color "#D60000"]
+```
 
 ## Testing
 

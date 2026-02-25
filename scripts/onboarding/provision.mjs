@@ -63,6 +63,78 @@ console.log(`Domain: ${domain}`);
 console.log(`Tier: ${tier}`);
 console.log('\u2500'.repeat(50));
 
+// Helper: infer icon hint for a service name
+function inferServiceIcon(serviceName) {
+  const name = serviceName.toLowerCase();
+  if (name.includes('kitchen')) return 'chef-hat';
+  if (name.includes('bathroom') || name.includes('bath')) return 'bath';
+  if (name.includes('basement')) return 'home';
+  if (name.includes('flooring') || name.includes('floor')) return 'layers';
+  if (name.includes('outdoor') || name.includes('deck') || name.includes('patio')) return 'trees';
+  if (name.includes('painting') || name.includes('paint')) return 'paintbrush';
+  if (name.includes('plumbing')) return 'droplets';
+  if (name.includes('electrical')) return 'zap';
+  if (name.includes('roofing') || name.includes('roof')) return 'warehouse';
+  if (name.includes('window') || name.includes('door')) return 'door-open';
+  if (name.includes('addition') || name.includes('extension')) return 'building';
+  if (name.includes('custom') || name.includes('renovation') || name.includes('remodel')) return 'hammer';
+  return 'wrench';
+}
+
+// Helper: infer icon hint for a trust badge label
+function inferBadgeIcon(label) {
+  const l = label.toLowerCase();
+  if (l.includes('licensed') || l.includes('insured') || l.includes('bonded')) return 'shield-check';
+  if (l.includes('bbb') || l.includes('accredit')) return 'badge-check';
+  if (l.includes('wsib') || l.includes('safety')) return 'hard-hat';
+  if (l.includes('ontario') || l.includes('local') || l.includes('based')) return 'map-pin';
+  if (l.includes('guarantee') || l.includes('warranty')) return 'shield';
+  if (l.includes('renomark') || l.includes('certified')) return 'award';
+  if (l.includes('member') || l.includes('association')) return 'users';
+  if (l.includes('eco') || l.includes('green') || l.includes('energy')) return 'leaf';
+  if (l.includes('year') || l.includes('experience')) return 'calendar';
+  return 'award';
+}
+
+// Helper: quality gate for hero headlines
+function isStrongHero(headline) {
+  if (!headline || headline.length < 10 || headline.length > 100) return false;
+  const generic = ['welcome', 'home page', 'about us', 'home', 'our company', 'main page'];
+  const lower = headline.toLowerCase().trim();
+  if (generic.some(g => lower === g || lower.startsWith(g + ' '))) return false;
+  // If it's just the business name with no additional context
+  const bizName = (data.business_name || '').toLowerCase();
+  if (bizName && lower === bizName) return false;
+  return true;
+}
+
+// Quality gates — filter out low-quality content
+// Gate 2: Testimonial authenticity
+const rawTestimonials = data.testimonials || [];
+const validTestimonials = rawTestimonials.filter(t =>
+  t.author && t.author.length > 2 &&
+  t.quote && t.quote.length > 20
+);
+// If fewer than 2 valid testimonials, don't provision any (template hides when < 2)
+const testimonials = validTestimonials.length >= 2 ? validTestimonials : [];
+
+// Gate 3: Portfolio reality check — only items with valid image URLs
+const rawPortfolio = data.portfolio || [];
+const validPortfolio = rawPortfolio.filter(p =>
+  p.image_url && (p.image_url.startsWith('http') || p.image_url.startsWith('/'))
+  && p.title && p.title.length > 0
+);
+
+// Gate 4: Service completeness — must have name and description
+const rawServices = data.services || [];
+const validServices = rawServices.filter(s => {
+  if (!s.name || s.name.length < 3) return false;
+  if (!s.description || s.description.length < 10) return false;
+  const placeholder = ['service 1', 'service 2', 'tbd', 'placeholder', 'coming soon'];
+  if (placeholder.includes(s.name.toLowerCase().trim())) return false;
+  return true;
+});
+
 // Build admin_settings rows
 const businessInfo = {
   name: data.business_name || siteId,
@@ -98,14 +170,14 @@ const companyProfile = {
   serviceArea: data.service_area || `${data.city || ''}, ${data.province || 'ON'} and surrounding areas`,
   hours: data.business_hours || 'Mon-Fri 9am-5pm',
   certifications: data.certifications || [],
-  testimonials: (data.testimonials || []).map(t => ({
+  testimonials: testimonials.map(t => ({
     author: t.author,
     quote: t.quote,
     projectType: t.project_type || 'Renovation',
   })),
   aboutCopy: data.about_copy || [],
   mission: data.mission || '',
-  services: (data.services || []).map(s => ({
+  services: validServices.map(s => ({
     name: s.name,
     slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     description: s.description || '',
@@ -115,13 +187,15 @@ const companyProfile = {
       startingPrice: p.starting_price,
       description: p.description,
     })),
+    iconHint: inferServiceIcon(s.name),
+    imageUrl: s.image_urls?.[0] || '',
   })),
-  heroHeadline: data.hero_headline || '',
-  heroSubheadline: '',
+  heroHeadline: isStrongHero(data.hero_headline) ? data.hero_headline : undefined,
+  heroSubheadline: data.hero_subheadline || undefined,
   heroImageUrl: data.hero_image_url || '',
   aboutImageUrl: data.about_image_url || '',
   logoUrl: data.logo_url || '',
-  trustBadges: (data.trust_badges || []).map(b => ({ label: b.label, iconHint: 'award' })),
+  trustBadges: (data.trust_badges || []).map(b => ({ label: b.label, iconHint: inferBadgeIcon(b.label) })),
   whyChooseUs: data.why_choose_us || [],
   values: (data.values || []).map(v => ({ ...v, iconHint: v.iconHint || 'heart' })),
   processSteps: data.process_steps || [],
@@ -131,13 +205,14 @@ const companyProfile = {
     photoUrl: m.photo_url || '',
     bio: m.bio,
   })),
-  portfolio: (data.portfolio || []).map(p => ({
+  portfolio: validPortfolio.map(p => ({
     title: p.title || '',
     description: p.description || '',
     imageUrl: p.image_url || '',
     serviceType: p.service_type || '',
     location: p.location || '',
   })),
+  trust_metrics: data._trust_metrics || undefined,
 };
 
 // Upsert admin_settings rows
@@ -146,6 +221,7 @@ const rows = [
   { key: 'branding', value: branding, description: `${siteId} branding` },
   { key: 'company_profile', value: companyProfile, description: `${siteId} company profile` },
   { key: 'plan', value: { tier }, description: `${siteId} plan tier` },
+  { key: 'quote_assistance', value: tier === 'elevate' ? { mode: 'none' } : { mode: 'range', rangeBand: 10000 }, description: `${siteId} quote assistance config` },
 ];
 
 for (const row of rows) {

@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ServicesGrid } from "@/components/services-grid"
+import { ServicesGrid, type ServiceItem } from "@/components/services-grid"
 import { Testimonials } from "@/components/testimonials"
 import {
   FadeInUp,
@@ -135,29 +135,31 @@ export default async function Home() {
       </section>
 
       {/* Services Section */}
-      <section className="border-t border-border px-4 py-16 md:py-20">
-        <div className="container mx-auto">
-          <FadeInUp className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Our Services
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              From kitchens to whole-home transformations, {branding.name} handles every aspect
-              of your renovation with AI-powered precision.
-            </p>
-          </FadeInUp>
+      {config.services.length > 0 && (
+        <section className="border-t border-border px-4 py-16 md:py-20">
+          <div className="container mx-auto">
+            <FadeInUp className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Our Services
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                From kitchens to whole-home transformations, {branding.name} handles every aspect
+                of your renovation with AI-powered precision.
+              </p>
+            </FadeInUp>
 
-          <div className="mt-12">
-            <ServicesGrid />
+            <div className="mt-12">
+              <ServicesGrid services={config.services as ServiceItem[]} />
+            </div>
+
+            <FadeInUp className="mt-10 text-center">
+              <Button asChild variant="outline" size="lg" className="rounded-full">
+                <Link href="/services">View All Services</Link>
+              </Button>
+            </FadeInUp>
           </div>
-
-          <FadeInUp className="mt-10 text-center">
-            <Button asChild variant="outline" size="lg" className="rounded-full">
-              <Link href="/services">View All Services</Link>
-            </Button>
-          </FadeInUp>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* How It Works */}
       <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">

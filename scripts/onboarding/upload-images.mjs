@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 function loadEnv() {
@@ -63,15 +64,30 @@ const urlMapping = {};
 async function downloadAndUpload(url, storagePath) {
   if (!url || url.trim() === '') return null;
   try {
-    console.log(`  Downloading: ${url.substring(0, 80)}...`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.log(`    Failed: HTTP ${response.status}`);
-      return null;
+    let buffer;
+    let contentType = 'image/jpeg';
+    if (url.startsWith('/') || url.startsWith('file://')) {
+      // Local file path (from logo extraction levels 3-4)
+      const filePath = url.startsWith('file://') ? url.slice(7) : url;
+      console.log(`  Reading local file: ${filePath}`);
+      try {
+        buffer = await readFile(filePath);
+      } catch (e) {
+        console.log(`    Failed to read local file: ${e.message}`);
+        return null;
+      }
+      const ext = filePath.match(/\.(svg|png|jpg|jpeg|webp)$/i)?.[1]?.toLowerCase() || 'png';
+      contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    } else {
+      console.log(`  Downloading: ${url.substring(0, 80)}...`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log(`    Failed: HTTP ${response.status}`);
+        return null;
+      }
+      contentType = response.headers.get('content-type') || 'image/jpeg';
+      buffer = Buffer.from(await response.arrayBuffer());
     }
-
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const buffer = Buffer.from(await response.arrayBuffer());
     const fullPath = `${siteId}/${storagePath}`;
 
     console.log(`  Uploading: ${fullPath} (${(buffer.length / 1024).toFixed(0)}KB)`);
@@ -137,6 +153,22 @@ if (data.portfolio?.length > 0) {
       const ext = project.image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
       const newUrl = await downloadAndUpload(project.image_url, `portfolio/${i}.${ext}`);
       if (newUrl) project.image_url = newUrl;
+    }
+  }
+}
+
+// Upload service images
+if (data.services?.length > 0) {
+  for (let i = 0; i < data.services.length; i++) {
+    const service = data.services[i];
+    const imgUrl = service.image_urls?.[0];
+    if (imgUrl) {
+      const slug = service.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `service-${i}`;
+      const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+      const newUrl = await downloadAndUpload(imgUrl, `services/${slug}.${ext}`);
+      if (newUrl) {
+        service.image_urls[0] = newUrl;
+      }
     }
   }
 }

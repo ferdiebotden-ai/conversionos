@@ -22,6 +22,8 @@ import { loadEnv, requireEnv } from '../lib/env-loader.mjs';
 import * as logger from '../lib/logger.mjs';
 import { extractBranding } from './branding-v2.mjs';
 import { extractLogo } from './logo-extract.mjs';
+import { hexToOklch } from '../../scripts/onboarding/convert-color.mjs';
+import { createClient } from '@libsql/client';
 
 loadEnv();
 requireEnv(['FIRECRAWL_API_KEY']);
@@ -136,6 +138,10 @@ if (branding.colors?.length > 0) {
   if (primary?.hex) {
     logger.info(`Overriding primary_color_hex: ${scraped.primary_color_hex || 'none'} -> ${primary.hex}`);
     merged.primary_color_hex = primary.hex;
+    // Recompute OKLCH when primary colour is overridden
+    if (!merged._meta) merged._meta = {};
+    merged._meta.primary_oklch = hexToOklch(primary.hex);
+    logger.info(`Recomputed OKLCH: ${merged._meta.primary_oklch}`);
   }
 }
 
@@ -156,6 +162,38 @@ merged._branding = {
     confidence: logoResult.confidence,
   } : null,
 };
+
+// Add trust metrics from pipeline target data (Turso DB)
+try {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+  if (tursoUrl && tursoToken) {
+    const turso = createClient({ url: tursoUrl, authToken: tursoToken });
+    // Look up target by URL match
+    const urlBase = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const { rows } = await turso.execute({
+      sql: `SELECT google_rating, google_review_count, years_in_business FROM targets WHERE website LIKE ? LIMIT 1`,
+      args: [`%${urlBase}%`],
+    });
+    if (rows.length > 0) {
+      const row = rows[0];
+      const trustMetrics = {};
+      if (row.google_rating) trustMetrics.google_rating = String(row.google_rating);
+      if (row.google_review_count) trustMetrics.projects_completed = `${row.google_review_count}+ Reviews`;
+      const yib = row.years_in_business || (merged.founded_year ? new Date().getFullYear() - Number(merged.founded_year) : null);
+      if (yib && yib > 0) trustMetrics.years_in_business = String(yib);
+      trustMetrics.licensed_insured = true; // Safe assumption for licensed contractors
+      merged._trust_metrics = trustMetrics;
+      logger.info(`Trust metrics: ${JSON.stringify(trustMetrics)}`);
+    } else {
+      logger.info('No Turso target found for trust metrics — skipping');
+    }
+  } else {
+    logger.info('Turso credentials not available — skipping trust metrics');
+  }
+} catch (e) {
+  logger.warn(`Trust metrics extraction failed: ${e.message}`);
+}
 
 // Write merged output
 writeFileSync(mergedOutputPath, JSON.stringify(merged, null, 2));

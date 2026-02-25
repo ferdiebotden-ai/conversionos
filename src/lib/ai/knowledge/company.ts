@@ -99,7 +99,10 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       booking: (profile['booking'] as string) || FALLBACK_CONFIG.booking,
       serviceArea: (profile['serviceArea'] as string) || FALLBACK_CONFIG.serviceArea,
       certifications: (profile['certifications'] as string[]) || FALLBACK_CONFIG.certifications,
-      socials: (brand['socials'] as CompanyConfig['socials']) || FALLBACK_CONFIG.socials,
+      socials: ((brand['socials'] || FALLBACK_CONFIG.socials) as Array<Record<string, string>>).map(s => ({
+        platform: s['platform'] || s['label'] || '',
+        url: s['url'] || s['href'] || '',
+      })),
       paymentEmail: (info['payment_email'] as string) || FALLBACK_CONFIG.paymentEmail,
       quotesEmail: (info['quotes_email'] as string) || FALLBACK_CONFIG.quotesEmail,
       address: (info['address'] as string) || FALLBACK_CONFIG.address,

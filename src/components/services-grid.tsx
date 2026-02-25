@@ -51,20 +51,12 @@ interface ServicesGridProps {
   services?: ServiceItem[];
 }
 
-// Hardcoded fallback (backward compat)
-const DEFAULT_SERVICES: ServiceItem[] = [
-  { slug: "kitchen-renovation", name: "Kitchen Renovation", description: "The heart of your home. Plumbing, electrical, lighting, flooring, cabinets, countertops, and more.", imageUrl: "/images/demo/kitchen-modern.png" },
-  { slug: "bathroom-renovation", name: "Bathroom Renovation", description: "Transform your functional space into something much more. Plumbing, tile, vanities, and complete renovations.", imageUrl: "/images/demo/bathroom-spa.png" },
-  { slug: "basement-finishing", name: "Basement Finishing", description: "Transform your perspective on an entire floor of your home. Insulation, drywall, flooring, and more.", imageUrl: "/images/demo/basement-entertainment.png" },
-  { slug: "outdoor-living", name: "Outdoor Living", description: "Increase your curb appeal. Decks, fences, porches, concrete driveways and sidewalks, painting.", imageUrl: "/images/demo/outdoor-deck.png" },
-];
-
 export function ServicesGrid({ showLinks = true, services }: ServicesGridProps) {
-  const displayServices = services && services.length > 0 ? services : DEFAULT_SERVICES;
+  if (!services || services.length === 0) return null;
 
   return (
     <StaggerContainer className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {displayServices.map((service) => (
+      {services.map((service) => (
         <StaggerItem key={service.slug}>
           <ServiceCard service={service} showLink={showLinks} />
         </StaggerItem>
@@ -125,4 +117,3 @@ function ServiceCard({
   return content
 }
 
-export { DEFAULT_SERVICES as services };
