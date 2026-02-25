@@ -641,7 +641,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         </div>
 
         {/* Messages */}
-        <ScrollArea ref={scrollRef} className="flex-1 min-h-0 p-4">
+        <ScrollArea ref={scrollRef} className="flex-1 min-h-0 p-4 bg-gradient-to-b from-muted/15 to-transparent">
           <div className="max-w-3xl mx-auto space-y-1">
             {allDisplayMessages.map((message) => {
               if (message.source === 'voice') {
@@ -704,7 +704,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
           <div className="px-4 py-3 pb-6 border-t border-border bg-muted/30 flex-shrink-0">
             <Button
               onClick={() => setShowSubmitModal(true)}
-              className="w-full bg-[#1565C0] hover:bg-[#B71C1C] text-white h-12 text-base font-semibold"
+              className="w-full h-12 text-base font-semibold"
               size="lg"
               data-testid="request-quote-button"
             >

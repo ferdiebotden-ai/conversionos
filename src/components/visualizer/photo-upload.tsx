@@ -218,33 +218,33 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             className={cn(
-              'group rounded-xl border-2 border-dashed cursor-pointer transition-colors',
-              'flex flex-col items-center justify-center py-12 px-6',
+              'group rounded-xl border-2 cursor-pointer transition-all duration-200',
+              'flex flex-col items-center justify-center py-14 px-6',
               isDragging
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50 active:border-primary active:bg-primary/5 active:ring-2 active:ring-primary/30',
+                ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
+                : 'border-border bg-gradient-to-b from-muted/40 to-muted/20 hover:border-primary/60 hover:shadow-md hover:shadow-primary/5 active:border-primary active:bg-primary/5',
               isProcessing && 'opacity-50 pointer-events-none'
             )}
           >
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-muted group-active:bg-primary/20">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-200 bg-primary/10 group-hover:bg-primary/15 group-active:bg-primary/20">
               {isProcessing ? (
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Upload className="w-8 h-8 transition-colors text-muted-foreground group-active:text-primary" />
+                <Upload className="w-8 h-8 transition-colors text-primary/70 group-hover:text-primary group-active:text-primary" />
               )}
             </div>
 
             <p className="text-center">
-              <span className="font-medium">
-                {isProcessing ? 'Processing...' : 'Drop your image here'}
+              <span className="text-base font-semibold">
+                {isProcessing ? 'Processing your photo...' : 'Your AI renovation starts here'}
               </span>
               <br />
-              <span className="text-sm text-muted-foreground">
-                or click to browse
+              <span className="text-sm text-muted-foreground mt-1">
+                Drop your image or click to browse
               </span>
             </p>
 
-            <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-4 mt-5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <ImageIcon className="w-3 h-3" />
                 JPG, PNG

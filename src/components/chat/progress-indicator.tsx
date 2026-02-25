@@ -200,8 +200,9 @@ export function ProgressIndicator({ currentStep, hasPhoto = false, className }: 
                 <span
                   className={cn(
                     'text-xs mt-1 whitespace-nowrap',
-                    isCurrent && 'font-medium text-foreground',
-                    !isCurrent && 'text-muted-foreground'
+                    isCurrent && 'font-semibold text-primary',
+                    isComplete && 'font-medium text-foreground',
+                    !isCurrent && !isComplete && 'text-muted-foreground'
                   )}
                 >
                   {step.shortLabel}
@@ -212,7 +213,7 @@ export function ProgressIndicator({ currentStep, hasPhoto = false, className }: 
               {index < displaySteps.length - 1 && (
                 <div
                   className={cn(
-                    'w-8 h-0.5 mx-1 mt-[-16px]',
+                    'w-8 h-[3px] mx-1 mt-[-16px] rounded-full',
                     index < currentIndex ? 'bg-primary' : 'bg-muted'
                   )}
                 />

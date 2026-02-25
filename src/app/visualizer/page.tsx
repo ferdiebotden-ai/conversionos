@@ -1,5 +1,11 @@
 import { VisualizerForm } from '@/components/visualizer/visualizer-form';
 import { getBranding } from '@/lib/branding';
+import {
+  FadeInUp,
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/motion';
+import { Shield, Zap, DollarSign } from 'lucide-react';
 
 export async function generateMetadata() {
   const branding = await getBranding();
@@ -14,17 +20,20 @@ export default function VisualizerPage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Hero section */}
-      <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Visualize Your{' '}
-            <span className="text-primary">Dream Space</span>
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Upload a photo of your room and our AI will show you what it could
-            look like with a professional renovation. Try different styles in
-            seconds.
-          </p>
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-primary/3 to-background">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
+        <div className="relative container mx-auto px-4 py-14 sm:py-16 text-center">
+          <FadeInUp>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              Visualize Your{' '}
+              <span className="text-primary">Dream Space</span>
+            </h1>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Upload a photo of your room and our AI will show you what it could
+              look like with a professional renovation. Try different styles in
+              seconds.
+            </p>
+          </FadeInUp>
         </div>
       </section>
 
@@ -34,22 +43,43 @@ export default function VisualizerPage() {
       </section>
 
       {/* Trust indicators */}
-      <section className="border-t border-border bg-muted/30 py-8">
+      <section className="border-t border-border bg-muted/30 py-10">
         <div className="container mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">100%</span>
-              Free to use
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">~30 sec</span>
-              Generation time
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">Private</span>
-              Your photos stay private
-            </div>
-          </div>
+          <StaggerContainer className="flex flex-wrap justify-center gap-10 sm:gap-16">
+            <StaggerItem>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                  <DollarSign className="size-5 text-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">100%</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">Free to use</p>
+                </div>
+              </div>
+            </StaggerItem>
+            <StaggerItem>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                  <Zap className="size-5 text-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">~30 sec</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">Generation time</p>
+                </div>
+              </div>
+            </StaggerItem>
+            <StaggerItem>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                  <Shield className="size-5 text-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Private</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">Your photos stay private</p>
+                </div>
+              </div>
+            </StaggerItem>
+          </StaggerContainer>
         </div>
       </section>
     </main>

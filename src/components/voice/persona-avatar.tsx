@@ -21,9 +21,9 @@ const CONTEXT_CONFIG: Record<
 > = {
   general: {
     icon: MessageCircle,
-    color: 'text-white',
-    bgColor: 'bg-[#1565C0]',
-    ringColor: 'ring-[#1565C0]/30',
+    color: 'text-primary-foreground',
+    bgColor: 'bg-primary',
+    ringColor: 'ring-primary/30',
   },
   estimate: {
     icon: Calculator,
