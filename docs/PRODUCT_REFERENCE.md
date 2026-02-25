@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 24, 2026 | **Updated by:** Claude Code (Single Persona Consolidation + Quote Assistance Mode Fix)
+**Last updated:** February 25, 2026 | **Updated by:** Claude Code (Tier + Quote-Mode Adaptive Copy System)
 
 ---
 
@@ -298,6 +298,42 @@ Per-tenant configuration controlling how pricing is displayed to homeowners:
 - **Storage:** `quote_assistance` key in `admin_settings` JSONB
 
 The mode is read fresh from the database on every estimate-page chat message (both text and voice). `buildAgentSystemPrompt('estimate')` calls `getQuoteAssistanceConfig(tier)` which queries `admin_settings` for the current value. This means if the contractor changes the mode mid-conversation, the very next message respects the new setting. The mode also flows through the cost range indicator in the visualizer UI and the page navigation handoff context.
+
+### Adaptive Website Copy
+
+All website copy dynamically adapts based on **tier + quote assistance mode**. The copy system treats feature-gated text like i18n — a centralized registry with typed variants consumed via pure functions.
+
+**Core logic:** `hasQuotes(ctx)` = tenant has `ai_quote_engine` AND `quoteMode !== 'none'`. When false, all estimate/quote copy becomes "Contact Us" / `/contact`.
+
+**Architecture:**
+- **`src/lib/copy/site-copy.ts`** — Pure copy registry (15 functions). No DB, no React. Importable from both server and client components.
+- **`src/lib/copy/use-site-copy.ts`** — Client hook `useCopyContext()` — builds `CopyContext` from `TierProvider`.
+- **`src/lib/copy/server.ts`** — Server helper `getCopyContext()` — fetches tier + quoteMode from DB.
+- **`src/components/tier-provider.tsx`** — Extended with `quoteMode` prop (default: `'range'`), exposed via `useTier()`.
+- **`src/app/layout.tsx`** — Fetches `getQuoteAssistanceConfig()` in parallel, passes resolved `quoteMode` to `TierProvider`.
+
+**Affected components (15):**
+| Component | Copy Function | What Changes |
+|-----------|--------------|--------------|
+| Header (3 CTAs) | `getHeaderCTA()` | "Get Quote" → "Contact Us", `/estimate` → `/contact` |
+| Mobile CTA bar | `getMobileCTA()` | Same as header |
+| Receptionist widget teaser | `getHomepageTeaser()` | Removes "free estimate" reference |
+| Chat NLP fallback buttons | `getEstimateCTA()` | Routes pricing keywords to `/contact` |
+| Homepage subtitle | `getHowItWorksSubtitle()` | "estimate" → "consultation" |
+| Homepage step 3 | `getDefaultProcessStep3()` | "Receive Your Estimate" → "Connect with a Pro" |
+| Homepage final CTA | `getHomepageFinalCTA()` | Estimate link → contact link |
+| Contact page meta | `getContactMetaDescription()` | Removes "quote" from SEO description |
+| Contact page alt CTA | `getContactAlternativeCTA()` | Returns `null` → section hidden |
+| Services page CTA | `getServicesCTA()` | Primary: estimate → contact |
+| Service detail CTA | `getServiceDetailCTA()` | Same, with service slug |
+| Projects page CTA | `getProjectsCTA()` | Primary: estimate → contact |
+| About page CTA | `getAboutCTA()` | Primary: estimate → contact |
+| 404 page CTA | `getNotFoundCTA()` | "Get a Quote" → "Contact Us" |
+| Admin settings description | — | Enhanced to explain cascading impact |
+
+**Admin UI feedback:** The Quoting tab description now explains: "This setting controls how pricing appears across your entire website — in navigation buttons, chat widget messages, and the AI estimate experience."
+
+**Test coverage:** `tests/unit/copy/site-copy.test.ts` — 46 tests across all 7 tier+mode combinations.
 
 ---
 

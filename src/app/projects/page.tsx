@@ -5,6 +5,8 @@ import { ProjectGallery } from "@/components/project-gallery"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 import type { Project } from "@/components/project-card"
+import { getCopyContext } from "@/lib/copy/server"
+import { getProjectsCTA } from "@/lib/copy/site-copy"
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
@@ -16,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProjectsPage() {
   const config = await getCompanyConfig()
+  const cta = getProjectsCTA(await getCopyContext())
 
   const dbProjects: Project[] = config.portfolio.map((p, i) => ({
     id: String(i + 1),
@@ -68,24 +71,25 @@ export default async function ProjectsPage() {
       <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Ready to Start Your Project?
+            {cta.heading}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Let&apos;s create something amazing together. Get a personalized quote
-            and see what your renovation could look like.
+            {cta.description}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
-              <Link href="/estimate">Get a Quote</Link>
+              <Link href={cta.primary.href}>{cta.primary.label}</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-12 w-full px-8 sm:w-auto"
-            >
-              <Link href="/visualizer">Try the Visualizer</Link>
-            </Button>
+            {cta.secondary && (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-12 w-full px-8 sm:w-auto"
+              >
+                <Link href={cta.secondary.href}>{cta.secondary.label}</Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>

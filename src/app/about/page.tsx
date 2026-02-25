@@ -14,6 +14,8 @@ import {
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import { getCopyContext } from "@/lib/copy/server"
+import { getAboutCTA } from "@/lib/copy/site-copy"
 
 export async function generateMetadata() {
   const branding = await getBranding()
@@ -26,6 +28,7 @@ export async function generateMetadata() {
 export default async function AboutPage() {
   const config = await getCompanyConfig()
   const branding = await getBranding()
+  const aboutCta = getAboutCTA(await getCopyContext())
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -296,24 +299,25 @@ export default async function AboutPage() {
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Let&apos;s Build Something Together
+            {aboutCta.heading}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Ready to start your renovation journey? We&apos;d love to hear about
-            your project and show you what&apos;s possible.
+            {aboutCta.description}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
-              <Link href="/estimate">Get a Free Quote</Link>
+              <Link href={aboutCta.primary.href}>{aboutCta.primary.label}</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-12 w-full px-8 sm:w-auto"
-            >
-              <Link href="/contact">Contact Us</Link>
-            </Button>
+            {aboutCta.secondary && (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-12 w-full px-8 sm:w-auto"
+              >
+                <Link href={aboutCta.secondary.href}>{aboutCta.secondary.label}</Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>

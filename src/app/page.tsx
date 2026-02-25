@@ -20,10 +20,19 @@ import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 import { VisualizerTeaser } from "@/components/home/visualizer-teaser"
 import { SocialProofBar } from "@/components/home/social-proof-bar"
+import { getCopyContext } from "@/lib/copy/server"
+import {
+  getHowItWorksSubtitle,
+  getDefaultProcessStep3,
+  getHomepageFinalCTA,
+} from "@/lib/copy/site-copy"
 
 export default async function Home() {
   const branding = await getBranding()
   const config = await getCompanyConfig()
+  const copyCtx = await getCopyContext()
+  const step3 = getDefaultProcessStep3(copyCtx)
+  const finalCTA = getHomepageFinalCTA(copyCtx)
 
   // Map testimonials for the component
   const testimonials = config.testimonials.map((t, i) => ({
@@ -158,7 +167,7 @@ export default async function Home() {
               How It Works
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              From photo to estimate in three simple steps.
+              {getHowItWorksSubtitle(copyCtx)}
             </p>
           </FadeInUp>
 
@@ -166,7 +175,7 @@ export default async function Home() {
             const steps = config.processSteps.length > 0 ? config.processSteps : [
               { title: 'Upload a Photo', description: 'Snap a picture of your room with your phone or upload an existing photo.' },
               { title: 'Get AI Design Concepts', description: 'Choose a style and receive four unique AI-generated visualizations.' },
-              { title: 'Receive Your Estimate', description: 'Get a detailed cost range based on Ontario pricing data.' },
+              step3,
             ];
             return (
               <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-3">
@@ -269,8 +278,7 @@ export default async function Home() {
             Ready to See Your Renovation?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/80">
-            Upload a photo. Get AI design concepts. Receive a ballpark estimate.
-            All in minutes, all free.
+            {finalCTA.description}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button
@@ -282,10 +290,10 @@ export default async function Home() {
               <Link href="/visualizer">Try the AI Visualizer</Link>
             </Button>
             <Link
-              href="/estimate"
+              href={finalCTA.secondaryHref}
               className="text-primary-foreground/80 underline underline-offset-4 transition-colors hover:text-primary-foreground"
             >
-              Or get a free estimate
+              {finalCTA.secondaryLabel}
             </Link>
           </div>
         </FadeInUp>

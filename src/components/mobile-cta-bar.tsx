@@ -12,12 +12,15 @@ import Link from 'next/link';
 import { Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBranding } from '@/components/branding-provider';
+import { useCopyContext } from '@/lib/copy/use-site-copy';
+import { getMobileCTA } from '@/lib/copy/site-copy';
 
 const HIDDEN_PATHS = ['/estimate', '/visualizer', '/admin', '/contact'];
 
 export function MobileCTABar() {
   const pathname = usePathname();
   const branding = useBranding();
+  const mobileCta = getMobileCTA(useCopyContext());
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function MobileCTABar() {
           asChild
           className="h-11 flex-1 rounded-full text-sm font-semibold"
         >
-          <Link href="/estimate">Get Estimate</Link>
+          <Link href={mobileCta.href}>{mobileCta.label}</Link>
         </Button>
       </div>
     </div>

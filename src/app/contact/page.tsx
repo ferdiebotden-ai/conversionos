@@ -5,19 +5,26 @@ import { Clock, Mail, MapPin, Phone } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 import { parseBusinessHours } from "@/lib/utils/hours"
+import { getCopyContext } from "@/lib/copy/server"
+import {
+  getContactMetaDescription,
+  getContactAlternativeCTA,
+} from "@/lib/copy/site-copy"
 
 export async function generateMetadata() {
-  const branding = await getBranding()
+  const [branding, copyCtx] = await Promise.all([getBranding(), getCopyContext()])
   return {
     title: "Contact Us",
-    description: `Get in touch with ${branding.name}. Request a free quote or ask questions about your renovation project in ${branding.city}, ${branding.province}.`,
+    description: getContactMetaDescription(copyCtx, branding),
   }
 }
 
 export default async function ContactPage() {
   const branding = await getBranding()
   const config = await getCompanyConfig()
+  const copyCtx = await getCopyContext()
   const businessHours = parseBusinessHours(config.hours)
+  const altCTA = getContactAlternativeCTA(copyCtx)
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -156,23 +163,25 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      {/* Alternative CTA */}
-      <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
-        <div className="container mx-auto text-center">
-          <h2 className="text-xl font-semibold text-foreground">
-            Prefer an Instant Quote?
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Use our AI-powered estimator for a quick ballpark estimate.
-          </p>
-          <Link
-            href="/estimate"
-            className="mt-4 inline-block text-primary underline-offset-4 hover:underline"
-          >
-            Get an instant quote →
-          </Link>
-        </div>
-      </section>
+      {/* Alternative CTA — hidden when quotes are off */}
+      {altCTA && (
+        <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
+          <div className="container mx-auto text-center">
+            <h2 className="text-xl font-semibold text-foreground">
+              {altCTA.heading}
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              {altCTA.description}
+            </p>
+            <Link
+              href={altCTA.linkHref}
+              className="mt-4 inline-block text-primary underline-offset-4 hover:underline"
+            >
+              {altCTA.linkLabel}
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

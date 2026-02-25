@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Check } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import { getCopyContext } from "@/lib/copy/server"
+import { getServiceDetailCTA } from "@/lib/copy/site-copy"
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -157,24 +159,33 @@ export default async function ServicePage({ params }: Props) {
       )}
 
       {/* CTA Section */}
-      <section className="border-t border-border px-4 py-12 md:py-16">
-        <div className="container mx-auto text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Ready to Start Your {service.name} Project?
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Get a personalized quote or visualize your space with our AI tools.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
-              <Link href={`/estimate?service=${slug}`}>Get a Quote</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="h-12 w-full px-8 sm:w-auto">
-              <Link href="/visualizer">Try Visualizer</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <ServiceDetailCTASection serviceName={service.name} slug={slug} />
     </div>
+  );
+}
+
+async function ServiceDetailCTASection({ serviceName, slug }: { serviceName: string; slug: string }) {
+  const cta = getServiceDetailCTA(await getCopyContext(), slug);
+  return (
+    <section className="border-t border-border px-4 py-12 md:py-16">
+      <div className="container mx-auto text-center">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Ready to Start Your {serviceName} Project?
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+          {cta.description}
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
+            <Link href={cta.primary.href}>{cta.primary.label}</Link>
+          </Button>
+          {cta.secondary && (
+            <Button asChild variant="outline" size="lg" className="h-12 w-full px-8 sm:w-auto">
+              <Link href={cta.secondary.href}>{cta.secondary.label}</Link>
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

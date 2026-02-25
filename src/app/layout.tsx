@@ -8,6 +8,7 @@ import { BrandingProvider } from "@/components/branding-provider";
 import { TierProvider } from "@/components/tier-provider";
 import { getBranding } from "@/lib/branding";
 import { getTier } from "@/lib/entitlements.server";
+import { getQuoteAssistanceConfig } from "@/lib/quote-assistance";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -59,7 +60,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [branding, tier] = await Promise.all([getBranding(), getTier()]);
+  const [branding, tier, qaConfig] = await Promise.all([
+    getBranding(), getTier(), getQuoteAssistanceConfig(),
+  ]);
+  const quoteMode = tier === 'elevate' ? 'none' : qaConfig.mode;
 
   return (
     <html lang="en">
@@ -75,7 +79,7 @@ export default async function RootLayout({
         data-site-id={process.env['NEXT_PUBLIC_SITE_ID'] || ''}
       >
         <BrandingProvider initial={branding}>
-          <TierProvider tier={tier}>
+          <TierProvider tier={tier} quoteMode={quoteMode}>
             <Header />
             <main className="min-h-[calc(100vh-4rem)]">{children}</main>
             <Footer />

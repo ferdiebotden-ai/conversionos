@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { HandoffCard } from '@/components/chat/handoff-card';
 import { useTier } from '@/components/tier-provider';
+import { useCopyContext } from '@/lib/copy/use-site-copy';
+import { getEstimateCTA } from '@/lib/copy/site-copy';
 import type { PersonaKey } from '@/lib/ai/personas/types';
 
 const CTA_REGEX = /\[CTA:([^:]+):([^\]]+)\]/g;
@@ -63,15 +65,17 @@ export function ReceptionistCTAButtons({
   messages?: { role: 'user' | 'assistant'; content: string }[];
 }) {
   const { canAccess } = useTier();
+  const copyCtx = useCopyContext();
+  const estimateCta = getEstimateCTA(copyCtx);
   const hasQuoteEngine = canAccess('ai_quote_engine');
   const ctas = extractCTAs(text);
 
-  // Rewrite /estimate CTAs to /contact for tiers without ai_quote_engine
-  if (!hasQuoteEngine) {
+  // Rewrite /estimate CTAs for tiers without quotes enabled
+  if (!hasQuoteEngine || copyCtx.quoteMode === 'none') {
     for (const cta of ctas) {
       if (cta.path === '/estimate') {
-        cta.path = '/contact';
-        cta.label = 'Request a Callback';
+        cta.path = estimateCta.href;
+        cta.label = estimateCta.label;
       }
     }
   }
@@ -83,11 +87,7 @@ export function ReceptionistCTAButtons({
 
   if (ctas.length === 0 && !isGreeting) {
     if (/estimate|cost|price|quote|budget|pricing/i.test(text)) {
-      // Route to /contact for tiers without quote engine
-      ctas.push(hasQuoteEngine
-        ? { label: 'Get a Free Estimate', path: '/estimate' }
-        : { label: 'Request a Callback', path: '/contact' }
-      );
+      ctas.push({ label: estimateCta.label, path: estimateCta.href });
     }
     if (/visualiz|design|transform|see what|see your/i.test(text)) {
       ctas.push({ label: 'Try the Visualizer', path: '/visualizer' });

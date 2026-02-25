@@ -3,6 +3,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ServicesGridServer } from "@/components/services-grid-server"
 import { getBranding } from "@/lib/branding"
+import { getCopyContext } from "@/lib/copy/server"
+import { getServicesCTA } from "@/lib/copy/site-copy"
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
@@ -14,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ServicesPage() {
   const branding = await getBranding()
+  const cta = getServicesCTA(await getCopyContext())
   return (
     <div className="flex flex-col">
       {/* Breadcrumb */}
@@ -91,24 +94,25 @@ export default async function ServicesPage() {
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Ready to Start Your Project?
+            {cta.heading}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Get a personalized quote in minutes with our AI-powered estimator,
-            or contact us directly to discuss your renovation needs.
+            {cta.description}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
-              <Link href="/estimate">Get Instant Quote</Link>
+              <Link href={cta.primary.href}>{cta.primary.label}</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-12 w-full px-8 sm:w-auto"
-            >
-              <Link href="/contact">Contact Us</Link>
-            </Button>
+            {cta.secondary && (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-12 w-full px-8 sm:w-auto"
+              >
+                <Link href={cta.secondary.href}>{cta.secondary.label}</Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>

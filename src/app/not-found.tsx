@@ -1,7 +1,13 @@
+'use client';
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { useCopyContext } from '@/lib/copy/use-site-copy'
+import { getNotFoundCTA } from '@/lib/copy/site-copy'
 
 export default function NotFound() {
+  const cta = getNotFoundCTA(useCopyContext())
+
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
       <h1 className="text-6xl font-bold text-primary">404</h1>
@@ -16,7 +22,7 @@ export default function NotFound() {
           <Link href="/">Go Home</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/estimate">Get a Quote</Link>
+          <Link href={cta.href}>{cta.label}</Link>
         </Button>
       </div>
     </div>

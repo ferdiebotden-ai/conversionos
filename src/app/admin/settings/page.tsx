@@ -471,7 +471,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Quote Assistance</CardTitle>
               <CardDescription>
-                Control how pricing information is shown to homeowners during the AI estimate experience.
+                This setting controls how pricing appears across your entire website — in navigation buttons, chat widget messages, and the AI estimate experience. When set to &ldquo;No Pricing&rdquo;, all quote-related buttons become &ldquo;Contact Us&rdquo; and the AI assistant avoids discussing dollar amounts.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

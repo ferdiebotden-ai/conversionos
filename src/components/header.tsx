@@ -16,6 +16,8 @@ import {
   SheetClose,
 } from "@/components/ui/sheet"
 import { useBranding } from "@/components/branding-provider"
+import { useCopyContext } from "@/lib/copy/use-site-copy"
+import { getHeaderCTA } from "@/lib/copy/site-copy"
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -28,6 +30,8 @@ export function Header() {
   const [isOpen, setIsOpen] = React.useState(false)
   const pathname = usePathname()
   const branding = useBranding()
+  const copyCtx = useCopyContext()
+  const cta = getHeaderCTA(copyCtx)
 
   // Hide public header on admin routes
   if (pathname.startsWith('/admin')) {
@@ -73,7 +77,7 @@ export function Header() {
                 <div className="mt-4 flex flex-col gap-3 border-t pt-4">
                   <SheetClose asChild>
                     <Button asChild size="lg" className="h-12 w-full">
-                      <Link href="/estimate">Get Quote</Link>
+                      <Link href={cta.href}>{cta.label}</Link>
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
@@ -117,7 +121,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           {/* Mobile: Only primary CTA */}
           <Button asChild size="sm" className="h-10 px-4 md:hidden">
-            <Link href="/estimate">Get Quote</Link>
+            <Link href={cta.href}>{cta.label}</Link>
           </Button>
 
           {/* Desktop: Both CTAs */}
@@ -130,7 +134,7 @@ export function Header() {
               <Link href="/visualizer">Visualize</Link>
             </Button>
             <Button asChild className="h-10">
-              <Link href="/estimate">Get Quote</Link>
+              <Link href={cta.href}>{cta.label}</Link>
             </Button>
           </div>
         </div>
