@@ -89,9 +89,9 @@ function inferBadgeIcon(label) {
   if (l.includes('wsib') || l.includes('safety')) return 'hard-hat';
   if (l.includes('ontario') || l.includes('local') || l.includes('based')) return 'map-pin';
   if (l.includes('guarantee') || l.includes('warranty')) return 'shield';
+  if (l.includes('eco') || l.includes('green') || l.includes('energy')) return 'leaf';
   if (l.includes('renomark') || l.includes('certified')) return 'award';
   if (l.includes('member') || l.includes('association')) return 'users';
-  if (l.includes('eco') || l.includes('green') || l.includes('energy')) return 'leaf';
   if (l.includes('year') || l.includes('experience')) return 'calendar';
   return 'award';
 }

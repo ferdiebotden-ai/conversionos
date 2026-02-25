@@ -102,10 +102,10 @@ export async function assertValidProvision(siteId, supabase) {
     .eq('site_id', siteId);
 
   expect(settingsErr).toBeNull();
-  expect(settings.length).toBe(4);
+  expect(settings.length).toBe(5);
 
   const keys = settings.map(s => s.key).sort();
-  expect(keys).toEqual(['branding', 'business_info', 'company_profile', 'plan']);
+  expect(keys).toEqual(['branding', 'business_info', 'company_profile', 'plan', 'quote_assistance']);
 
   const businessInfo = settings.find(s => s.key === 'business_info');
   expect(businessInfo.value.name).toBeDefined();
