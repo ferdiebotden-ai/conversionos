@@ -18,7 +18,9 @@ function getApp() {
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) throw new Error('Missing FIRECRAWL_API_KEY');
 
-  app = new FirecrawlApp({ apiKey });
+  const fc = new FirecrawlApp({ apiKey });
+  // v4.13.0+ requires .v1 accessor for scrape/search methods
+  app = fc.v1 || fc;
   return app;
 }
 

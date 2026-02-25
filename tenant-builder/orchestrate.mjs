@@ -143,13 +143,13 @@ if (!args.url) { // Skip scoring for direct URL mode
     }
   }
 
-  // Filter by threshold
+  // Filter by threshold — null scores (scoring failed) are excluded
   const threshold = CONFIG.icp_scoring.thresholds.manual_review;
   const before = targets.length;
-  targets = targets.filter(t => (t.icp_score || 0) >= threshold || t.icp_score == null);
+  targets = targets.filter(t => t.icp_score != null && t.icp_score >= threshold);
   const filtered = before - targets.length;
   if (filtered > 0) {
-    logger.info(`Filtered out ${filtered} target(s) below ICP threshold (${threshold})`);
+    logger.info(`Filtered out ${filtered} target(s) below ICP threshold (${threshold}) or unscored`);
   }
 }
 
@@ -316,7 +316,7 @@ if (!dryRun && !args['skip-qa']) {
         resolve(TB_ROOT, 'qa/refinement-loop.mjs'),
         '--site-id', siteId,
         '--url', siteUrl,
-        '--max-iterations', '3',
+        '--max-iterations', String(CONFIG.qa.max_refinement_iterations || 3),
       ];
       if (targetId) qaArgs.push('--target-id', String(targetId));
 
