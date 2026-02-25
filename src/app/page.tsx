@@ -172,11 +172,14 @@ export default async function Home() {
           </FadeInUp>
 
           {(() => {
-            const steps = config.processSteps.length > 0 ? config.processSteps : [
+            const dbSteps = config.processSteps.length > 0 ? config.processSteps : [
               { title: 'Upload a Photo', description: 'Snap a picture of your room with your phone or upload an existing photo.' },
               { title: 'Get AI Design Concepts', description: 'Choose a style and receive four unique AI-generated visualizations.' },
-              step3,
+              { title: '', description: '' },
             ];
+            // Always override step 3 with copy registry — it's inherently
+            // about the next action (estimate vs contact) so it must adapt to quoteMode
+            const steps = dbSteps.map((s, i) => i === dbSteps.length - 1 ? step3 : s);
             return (
               <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-3">
                 {steps.map((step, i) => (

@@ -28,6 +28,8 @@ import { readHandoffContext, clearHandoffContext, buildHandoffPromptPrefix, type
 import { Save, FileText, Send } from 'lucide-react';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 import { useBranding } from '@/components/branding-provider';
+import { useCopyContext } from '@/lib/copy/use-site-copy';
+import { getChatWelcome, getChatHandoffWelcome, getChatSkipText } from '@/lib/copy/site-copy';
 
 // Helper to extract text content from UIMessage parts
 function getMessageContent(message: UIMessage): string {
@@ -62,9 +64,8 @@ interface ChatInterfaceProps {
   handoffContext?: HandoffContext | undefined;
 }
 
-function getWelcomeMessage(companyName: string, city: string, province: string) {
-  return `Hey there! I'm Emma, your renovation assistant here at ${companyName}. I help homeowners in the ${city}, ${province} area understand what their renovation will cost — no surprises, no pressure.\n\nTell me about the space you're thinking of renovating, or snap a quick photo and I'll take a look!`;
-}
+// getWelcomeMessage is now generated via copy registry in ChatInterfaceInner
+// to account for quoteMode (see getChatWelcome in site-copy.ts)
 
 // Map frontend timeline values to API enum values
 function mapTimelineToApi(timeline: string | undefined): string | undefined {
@@ -92,19 +93,15 @@ function mapRoomTypeToProjectType(roomType: string): string {
   return mapping[roomType] || 'other';
 }
 
-// Generate a custom welcome message when coming from visualizer
-function getVisualizationWelcomeMessage(context: VisualizationContext, companyName: string): string {
-  const roomType = context.roomType.replace(/_/g, ' ');
-  const style = context.style.charAt(0).toUpperCase() + context.style.slice(1);
-
-  return `Hi! I see you've been exploring designs for your ${roomType} renovation in a ${style} style — it looks great! 🎨\n\nI'm Emma, your renovation assistant from ${companyName}. I can help turn that vision into a detailed estimate.\n\nTo get started, could you tell me a bit more about the space? For example:\n- What's the approximate size of the room?\n- When are you hoping to start the project?\n- Is there anything specific from your visualization you want to prioritize?`;
-}
+// getVisualizationWelcomeMessage is now generated via copy registry in ChatInterfaceInner
+// to account for quoteMode (see getChatHandoffWelcome in site-copy.ts)
 
 /**
  * Inner component that uses VoiceProvider context
  */
 function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visualizationContext, handoffContext: propHandoffContext }: ChatInterfaceProps) {
   const branding = useBranding();
+  const copyCtx = useCopyContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -156,23 +153,38 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       const conceptNote = conceptCount > 0 ? ` I can see you generated ${conceptCount} design concepts — they look great!` : '';
       const styleNote = styleLabel ? ` in a ${styleLabel} style` : '';
 
-      let followUp = `\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
-      // Skip redundant questions if we already have photo analysis
-      if (ctx.photoAnalysis?.estimatedDimensions) {
-        followUp = `\n\nI can see from the analysis that the space is approximately ${ctx.photoAnalysis.estimatedDimensions}. When are you hoping to start this project, and do you have a budget range in mind?`;
-      }
-
-      return `Hey there! I see you've been exploring a ${roomLabel} renovation${styleNote}.${conceptNote}\n\nI'm Emma, your renovation assistant here at ${branding.name}. Let's turn that vision into real numbers.${followUp}`;
+      return getChatHandoffWelcome(
+        copyCtx,
+        branding.name,
+        roomLabel,
+        styleNote,
+        conceptNote,
+        ctx.photoAnalysis?.estimatedDimensions ?? undefined,
+      );
     }
 
-    return `Hey! I see you've been chatting with us already. I'm Emma, your renovation assistant here at ${branding.name}.\n\nLet's pick up where you left off and get you some solid numbers. What would you like to focus on first?`;
+    return `Hey! I see you've been chatting with us already. I'm Emma, your renovation assistant here at ${branding.name}.\n\nLet's pick up where you left off. What would you like to focus on first?`;
+  };
+
+  // Generate visualization welcome using copy registry
+  const getVisualizationWelcome = (context: VisualizationContext): string => {
+    const roomType = context.roomType.replace(/_/g, ' ');
+    const style = context.style.charAt(0).toUpperCase() + context.style.slice(1);
+    return getChatHandoffWelcome(
+      copyCtx,
+      branding.name,
+      roomType,
+      ` in a ${style} style`,
+      '',
+      undefined,
+    );
   };
 
   const welcomeMessage = handoffContext
     ? getHandoffWelcome(handoffContext)
     : visualizationContext
-      ? getVisualizationWelcomeMessage(visualizationContext, branding.name)
-      : getWelcomeMessage(branding.name, branding.city, branding.province);
+      ? getVisualizationWelcome(visualizationContext)
+      : getChatWelcome(copyCtx, branding.name, branding.city, branding.province);
 
   const startingMessages: ChatMessage[] = initialMessages && initialMessages.length > 0
     ? initialMessages
@@ -700,7 +712,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
               Submit Request Now
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              In a hurry? Skip the chat and get your quote within 24 hours.
+              {getChatSkipText(copyCtx)}
             </p>
           </div>
         ) : (

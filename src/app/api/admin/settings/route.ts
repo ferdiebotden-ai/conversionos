@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
@@ -130,6 +131,9 @@ export async function PUT(request: NextRequest) {
         } as Json,
       }));
 
+      // Revalidate all pages so copy/branding changes take effect immediately
+      revalidatePath('/', 'layout');
+
       return NextResponse.json({
         success: true,
         data: updatedSetting,
@@ -161,6 +165,9 @@ export async function PUT(request: NextRequest) {
           value: JSON.stringify(value),
         } as Json,
       }));
+
+      // Revalidate all pages so copy/branding changes take effect immediately
+      revalidatePath('/', 'layout');
 
       return NextResponse.json({
         success: true,
@@ -242,6 +249,9 @@ export async function PATCH(request: NextRequest) {
         count: settings.length,
       },
     }));
+
+    // Revalidate all pages so copy/branding changes take effect immediately
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 25, 2026 | **Updated by:** Claude Code (Tier + Quote-Mode Adaptive Copy System)
+**Last updated:** February 25, 2026 | **Updated by:** Claude Code (Adaptive Copy System — full-site coverage + cache invalidation + mode-neutral fallbacks)
 
 ---
 
@@ -129,15 +129,15 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 ### Homeowner Journey
 
-1. **Landing** (`/`) — Branded homepage optimised for conversion. Section order: Hero (outcome headline, primary CTA, phone link, trust badges) → Social Proof Bar (Google rating, years in business, projects completed, licensed status — 2x2 grid on mobile, flex row on desktop) → Visualizer Teaser (real before/after kitchen photos in 3 styles with auto-animation on scroll via IntersectionObserver) → Services → How It Works (3 steps) → Why Choose Us → Testimonials → Final CTA. Sticky mobile CTA bar ("Call" + "Get Estimate") fixed at bottom on viewports < 768px, hidden on /estimate, /visualizer, /admin routes. All content driven by database.
+1. **Landing** (`/`) — Branded homepage optimised for conversion. Section order: Hero (outcome headline, primary CTA, phone link, trust badges) → Social Proof Bar (Google rating, years in business, projects completed, licensed status — 2x2 grid on mobile, flex row on desktop) → Visualizer Teaser (real before/after kitchen photos in 3 styles with auto-animation on scroll via IntersectionObserver) → Services → How It Works (3 steps) → Why Choose Us → Testimonials → Final CTA. Sticky mobile CTA bar fixed at bottom on viewports < 768px, hidden on /estimate, /visualizer, /admin routes. All CTAs (header, mobile bar, How It Works subtitle, process step 3, final CTA) adapt dynamically via the copy system based on tier + quote mode. All content driven by database.
 
 2. **Visualizer** (`/visualizer`) — Upload a photo of their room (drag-and-drop on desktop, "Take a Photo" or "Choose from Gallery" on mobile). Photo pre-analysis fires immediately via GPT Vision — detects room type, layout, dimensions, fixtures, condition. Room type selector auto-fills from analysis.
 
-3. **Style selection** — Choose from 8 room types and 6 design styles (Modern, Traditional, Farmhouse, Industrial, Minimalist, Contemporary). Add text preferences. Optionally speak to Emma via voice (Dominate only) for richer preference capture — Emma has design knowledge injected on the visualizer page.
+3. **Style selection** — Choose from 8 room types and 6 design styles (Modern, Traditional, Farmhouse, Industrial, Minimalist, Contemporary). Add text preferences. Optionally speak to Emma via voice (all tiers) for richer preference capture — Emma has design knowledge injected on the visualizer page.
 
 4. **Generation** — SSE streaming endpoint generates 4 concepts in parallel via Gemini 3 Pro Image. Progressive reveal: skeleton cards cross-fade to real images as concepts arrive (~15-20s per concept, ~41s total). Real-time progress stages shown during generation.
 
-5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. "Get a Personalised Estimate" navigates to `/estimate` with full context (Accelerate+) or "Request a Callback from [Contractor]" (Elevate). Sticky CTA bar animates in after 3 seconds.
+5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. Primary CTA adapts by tier + quote mode via `getVisualizerResultCTA()` — "Get a Personalised Estimate" (when quotes enabled) or "Request a Callback from [Contractor]" (when quotes disabled). Sticky CTA bar animates in after 3 seconds.
 
 6. **Quote** (`/estimate`) — Emma receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. On this page, Emma has full pricing knowledge injected: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Emma skips discovery questions and goes straight to refinement.
 
@@ -301,18 +301,20 @@ The mode is read fresh from the database on every estimate-page chat message (bo
 
 ### Adaptive Website Copy
 
-All website copy dynamically adapts based on **tier + quote assistance mode**. The copy system treats feature-gated text like i18n — a centralized registry with typed variants consumed via pure functions.
+All website copy dynamically adapts based on **tier + quote assistance mode**. The copy system treats feature-gated text like i18n — a centralized registry with typed variants consumed via pure functions. Every page on the platform — homepage, services, contact, about, projects, visualizer results, visualizer share, chat interface, and the receptionist widget — uses this system.
 
 **Core logic:** `hasQuotes(ctx)` = tenant has `ai_quote_engine` AND `quoteMode !== 'none'`. When false, all estimate/quote copy becomes "Contact Us" / `/contact`.
 
 **Architecture:**
-- **`src/lib/copy/site-copy.ts`** — Pure copy registry (15 functions). No DB, no React. Importable from both server and client components.
+- **`src/lib/copy/site-copy.ts`** — Pure copy registry (20 functions including `hasQuotes`). No DB, no React. Importable from both server and client components.
 - **`src/lib/copy/use-site-copy.ts`** — Client hook `useCopyContext()` — builds `CopyContext` from `TierProvider`.
 - **`src/lib/copy/server.ts`** — Server helper `getCopyContext()` — fetches tier + quoteMode from DB.
 - **`src/components/tier-provider.tsx`** — Extended with `quoteMode` prop (default: `'range'`), exposed via `useTier()`.
 - **`src/app/layout.tsx`** — Fetches `getQuoteAssistanceConfig()` in parallel, passes resolved `quoteMode` to `TierProvider`.
 
-**Affected components (15):**
+**Cache invalidation:** The admin settings API (`PUT` and `PATCH` handlers in `/api/admin/settings`) calls `revalidatePath('/', 'layout')` after every save. This purges the Next.js full-route cache so that copy, branding, and tier changes take effect immediately across all pages — no redeploy or manual cache bust required.
+
+**Affected components (19):**
 | Component | Copy Function | What Changes |
 |-----------|--------------|--------------|
 | Header (3 CTAs) | `getHeaderCTA()` | "Get Quote" → "Contact Us", `/estimate` → `/contact` |
@@ -329,11 +331,17 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 | Projects page CTA | `getProjectsCTA()` | Primary: estimate → contact |
 | About page CTA | `getAboutCTA()` | Primary: estimate → contact |
 | 404 page CTA | `getNotFoundCTA()` | "Get a Quote" → "Contact Us" |
-| Admin settings description | — | Enhanced to explain cascading impact |
+| Visualizer results CTA | `getVisualizerResultCTA()` | "Get a Personalised Estimate" → "Request a Callback from [Contractor]" |
+| Visualizer share page | `getVisualizerShareCTA()` | Header CTA, heading, description, and primary CTA all adapt |
+| Chat welcome (estimate page) | `getChatWelcome()` | "understand what... will cost" → "plan their renovation projects" |
+| Chat handoff welcome | `getChatHandoffWelcome()` | "real numbers" + budget question → "reality" + contractor connect |
+| Chat skip text | `getChatSkipText()` | "get your quote" → "team member will be in touch" |
 
-**Admin UI feedback:** The Quoting tab description now explains: "This setting controls how pricing appears across your entire website — in navigation buttons, chat widget messages, and the AI estimate experience."
+**Admin UI feedback:** The Quoting tab description explains: "This setting controls how pricing appears across your entire website — in navigation buttons, chat widget messages, and the AI estimate experience."
 
-**Test coverage:** `tests/unit/copy/site-copy.test.ts` — 46 tests across all 7 tier+mode combinations.
+**Mode-neutral fallback content:** The `FALLBACK_CONFIG` in `src/lib/ai/knowledge/company.ts` uses mode-neutral copy for all fields that render on public pages. The hero subheadline, process steps, why-choose-us items, testimonials, service descriptions, and about copy all avoid references to "estimates," "quotes," or "pricing" so they work correctly regardless of the tenant's quote assistance mode. Existing tenants with DB-stored `company_profile` content should also use mode-neutral language, since that content is static and does not change dynamically with the quote mode — the copy system handles the dynamic adaptation at the component level.
+
+**Test coverage:** `tests/unit/copy/site-copy.test.ts` — 35 test cases across all tier+mode combinations.
 
 ---
 
@@ -469,7 +477,7 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 |---------|---------|------------|
 | **OpenAI** (GPT-5.2) | Chat, vision analysis, quote generation, moderation | Per-token |
 | **Google Generative AI** (Gemini 3 Pro Image) | Renovation concept generation | Per-request |
-| **ElevenLabs** | Voice agent: Emma (Dominate only), single agent per tenant with session prompt overrides | Per-minute |
+| **ElevenLabs** | Voice agent: Emma (all tiers, web; Dominate only for phone/Twilio), single agent per tenant with session prompt overrides | Per-minute |
 | **Supabase** | PostgreSQL database + file storage + RLS | Free tier / Pro |
 | **Resend** | Email delivery (lead notifications, quotes, invoices) | Per-email |
 | **Vercel** | Hosting, CDN, serverless functions, domain routing | Pro plan |

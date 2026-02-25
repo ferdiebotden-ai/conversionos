@@ -24,9 +24,8 @@ import { getHomepageTeaser } from '@/lib/copy/site-copy';
 const HIDDEN_PATHS = ['/estimate', '/visualizer'];
 const HIDDEN_PREFIXES = ['/admin'];
 
-/** Page-specific teaser messages */
+/** Page-specific teaser messages (homepage handled by copy registry) */
 const PAGE_TEASERS: Record<string, string> = {
-  '/': 'Planning a renovation? Chat with me for a free estimate!',
   '/services': 'Questions about our services? I can help!',
   '/services/kitchen': 'Dreaming of a new kitchen? Let\'s talk about it!',
   '/services/bathroom': 'Bathroom reno on your mind? I\'ve got answers!',

@@ -15,6 +15,11 @@ import {
   getProjectsCTA,
   getAboutCTA,
   getNotFoundCTA,
+  getVisualizerResultCTA,
+  getVisualizerShareCTA,
+  getChatWelcome,
+  getChatHandoffWelcome,
+  getChatSkipText,
   type CopyContext,
 } from '@/lib/copy/site-copy';
 
@@ -180,5 +185,72 @@ describe('getNotFoundCTA', () => {
   });
   it('goes to /contact when quotes off', () => {
     expect(getNotFoundCTA({ tier: 'elevate', quoteMode: 'none' }).href).toBe('/contact');
+  });
+});
+
+describe('getVisualizerResultCTA', () => {
+  it('says Personalised Estimate when quotes on', () => {
+    const cta = getVisualizerResultCTA({ tier: 'accelerate', quoteMode: 'range' }, 'TestCo');
+    expect(cta.label).toContain('Estimate');
+    expect(cta.icon).toBe('message');
+  });
+  it('says Request a Callback when quotes off', () => {
+    const cta = getVisualizerResultCTA({ tier: 'accelerate', quoteMode: 'none' }, 'TestCo');
+    expect(cta.label).toContain('Callback');
+    expect(cta.label).toContain('TestCo');
+    expect(cta.icon).toBe('phone');
+  });
+});
+
+describe('getVisualizerShareCTA', () => {
+  const branding = { name: 'TestCo', city: 'Toronto', province: 'Ontario' };
+  it('links to /estimate when quotes on', () => {
+    const cta = getVisualizerShareCTA({ tier: 'dominate', quoteMode: 'range' }, branding);
+    expect(cta.headerCTA.href).toBe('/estimate');
+    expect(cta.primaryCTA.href).toBe('/estimate');
+    expect(cta.description).toContain('quote');
+  });
+  it('links to /contact when quotes off', () => {
+    const cta = getVisualizerShareCTA({ tier: 'dominate', quoteMode: 'none' }, branding);
+    expect(cta.headerCTA.href).toBe('/contact');
+    expect(cta.primaryCTA.href).toBe('/contact');
+    expect(cta.description).not.toContain('quote');
+  });
+});
+
+describe('getChatWelcome', () => {
+  it('mentions cost when quotes on', () => {
+    const msg = getChatWelcome({ tier: 'accelerate', quoteMode: 'range' }, 'TestCo', 'Toronto', 'Ontario');
+    expect(msg).toContain('cost');
+  });
+  it('does not mention cost when quotes off', () => {
+    const msg = getChatWelcome({ tier: 'accelerate', quoteMode: 'none' }, 'TestCo', 'Toronto', 'Ontario');
+    expect(msg).not.toContain('cost');
+  });
+});
+
+describe('getChatHandoffWelcome', () => {
+  it('mentions estimate when quotes on', () => {
+    const msg = getChatHandoffWelcome(
+      { tier: 'accelerate', quoteMode: 'range' },
+      'TestCo', 'kitchen', ' in a modern style', '', undefined,
+    );
+    expect(msg).toContain('estimate');
+  });
+  it('does not mention estimate when quotes off', () => {
+    const msg = getChatHandoffWelcome(
+      { tier: 'accelerate', quoteMode: 'none' },
+      'TestCo', 'kitchen', ' in a modern style', '', undefined,
+    );
+    expect(msg).not.toContain('estimate');
+  });
+});
+
+describe('getChatSkipText', () => {
+  it('mentions quote when quotes on', () => {
+    expect(getChatSkipText({ tier: 'accelerate', quoteMode: 'range' })).toContain('quote');
+  });
+  it('does not mention quote when quotes off', () => {
+    expect(getChatSkipText({ tier: 'accelerate', quoteMode: 'none' })).not.toContain('quote');
   });
 });

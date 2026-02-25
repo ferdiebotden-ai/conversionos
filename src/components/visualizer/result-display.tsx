@@ -17,6 +17,8 @@ import { EmailCaptureModal } from './email-capture-modal';
 import { FadeInUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
 import { useTier } from '@/components/tier-provider';
 import { useBranding } from '@/components/branding-provider';
+import { useCopyContext } from '@/lib/copy/use-site-copy';
+import { getVisualizerResultCTA } from '@/lib/copy/site-copy';
 import type { VisualizationResponse } from '@/lib/schemas/visualization';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -49,17 +51,19 @@ export function ResultDisplay({
 }: ResultDisplayProps) {
   const { canAccess } = useTier();
   const branding = useBranding();
+  const copyCtx = useCopyContext();
   const [selectedConceptIndex, setSelectedConceptIndex] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCaptureOpen, setEmailCaptureOpen] = useState(false);
   const [hasProvidedEmail, setHasProvidedEmail] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
 
-  // Tier-aware CTA configuration
-  const hasQuoteEngine = canAccess('ai_quote_engine');
-  const primaryCTA = hasQuoteEngine
-    ? { label: 'Get a Personalised Estimate', icon: MessageSquare }
-    : { label: `Request a Callback from ${branding.name}`, icon: Phone };
+  // Tier + quoteMode aware CTA configuration
+  const resultCTA = getVisualizerResultCTA(copyCtx, branding.name);
+  const primaryCTA = {
+    label: resultCTA.label,
+    icon: resultCTA.icon === 'message' ? MessageSquare : Phone,
+  };
 
   // Show sticky CTA after intro animation completes (~3s)
   useEffect(() => {

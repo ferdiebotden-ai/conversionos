@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { SharedVisualizationView } from './shared-view';
 import { Sparkles, MessageSquare, ArrowLeft } from 'lucide-react';
 import { getBranding } from '@/lib/branding';
+import { getCopyContext } from '@/lib/copy/server';
+import { getVisualizerShareCTA } from '@/lib/copy/site-copy';
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -19,7 +21,8 @@ interface PageProps {
 export default async function SharedVisualizationPage({ params }: PageProps) {
   const { token } = await params;
   const supabase = createServiceClient();
-  const branding = await getBranding();
+  const [branding, copyCtx] = await Promise.all([getBranding(), getCopyContext()]);
+  const shareCTA = getVisualizerShareCTA(copyCtx, branding);
 
   // Fetch the visualization by share token
   const { data: visualization, error } = await supabase
@@ -55,10 +58,10 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
               </div>
               <span className="font-bold text-lg">{branding.name}</span>
             </Link>
-            <Link href="/estimate">
+            <Link href={shareCTA.headerCTA.href}>
               <Button>
                 <MessageSquare className="w-4 h-4 mr-2" />
-                Get a Quote
+                {shareCTA.headerCTA.label}
               </Button>
             </Link>
           </div>
@@ -95,16 +98,15 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
 
           {/* CTA section */}
           <div className="mt-12 text-center bg-muted/50 rounded-xl p-8 border border-border">
-            <h2 className="text-2xl font-bold">Love This Design?</h2>
+            <h2 className="text-2xl font-bold">{shareCTA.heading}</h2>
             <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-              Get a personalized quote for your renovation project from the
-              experts at {branding.name} in {branding.city}, {branding.province}.
+              {shareCTA.description}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-              <Link href={`/estimate?visualization=${visualization.id}`}>
+              <Link href={`${shareCTA.primaryCTA.href}${shareCTA.primaryCTA.href === '/estimate' ? `?visualization=${visualization.id}` : ''}`}>
                 <Button size="lg" className="min-h-[52px]">
                   <MessageSquare className="w-5 h-5 mr-2" />
-                  Get a Quote for This Design
+                  {shareCTA.primaryCTA.label}
                 </Button>
               </Link>
               <Link href="/visualizer">

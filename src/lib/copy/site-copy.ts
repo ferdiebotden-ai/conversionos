@@ -61,7 +61,9 @@ export function getHowItWorksSubtitle(ctx: CopyContext): string {
 }
 
 // ---------------------------------------------------------------------------
-// Homepage — default process step 3 (used when DB has no custom steps)
+// Homepage — process step 3, always overrides DB/fallback step 3
+// Step 3 is inherently about the next action (estimate vs contact) so it
+// MUST adapt to quoteMode regardless of what the DB stores.
 // ---------------------------------------------------------------------------
 
 export function getDefaultProcessStep3(ctx: CopyContext): {
@@ -71,12 +73,12 @@ export function getDefaultProcessStep3(ctx: CopyContext): {
   if (hasQuotes(ctx)) {
     return {
       title: 'Receive Your Estimate',
-      description: 'Get a detailed cost range based on Ontario pricing data.',
+      description: 'Get a detailed cost range based on Ontario pricing data, then connect with a qualified local contractor to bring it to life.',
     };
   }
   return {
     title: 'Connect with a Pro',
-    description: 'Get in touch with us to discuss your project and next steps.',
+    description: 'Love what you see? Get in touch with a qualified local contractor to discuss your project and bring it to life.',
   };
 }
 
@@ -254,4 +256,95 @@ export function getAboutCTA(ctx: CopyContext): CTASectionCopy {
 export function getNotFoundCTA(ctx: CopyContext): CTACopy {
   if (hasQuotes(ctx)) return { label: 'Get a Quote', href: '/estimate' };
   return { label: 'Contact Us', href: '/contact' };
+}
+
+// ---------------------------------------------------------------------------
+// Visualizer result page — primary CTA button
+// ---------------------------------------------------------------------------
+
+export function getVisualizerResultCTA(
+  ctx: CopyContext,
+  companyName: string,
+): { label: string; icon: 'message' | 'phone' } {
+  if (hasQuotes(ctx)) return { label: 'Get a Personalised Estimate', icon: 'message' };
+  return { label: `Request a Callback from ${companyName}`, icon: 'phone' };
+}
+
+// ---------------------------------------------------------------------------
+// Visualizer share page — header + CTA section
+// ---------------------------------------------------------------------------
+
+export function getVisualizerShareCTA(ctx: CopyContext, branding: {
+  name: string;
+  city: string;
+  province: string;
+}): {
+  headerCTA: CTACopy;
+  heading: string;
+  description: string;
+  primaryCTA: CTACopy;
+} {
+  if (hasQuotes(ctx)) {
+    return {
+      headerCTA: { label: 'Get a Quote', href: '/estimate' },
+      heading: 'Love This Design?',
+      description: `Get a personalized quote for your renovation project from the experts at ${branding.name} in ${branding.city}, ${branding.province}.`,
+      primaryCTA: { label: 'Get a Quote for This Design', href: '/estimate' },
+    };
+  }
+  return {
+    headerCTA: { label: 'Contact Us', href: '/contact' },
+    heading: 'Love This Design?',
+    description: `Get in touch with the experts at ${branding.name} in ${branding.city}, ${branding.province} to discuss this renovation project.`,
+    primaryCTA: { label: 'Discuss This Design', href: '/contact' },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Chat interface — welcome message (estimate page)
+// ---------------------------------------------------------------------------
+
+export function getChatWelcome(
+  ctx: CopyContext,
+  companyName: string,
+  city: string,
+  province: string,
+): string {
+  if (hasQuotes(ctx)) {
+    return `Hey there! I'm Emma, your renovation assistant here at ${companyName}. I help homeowners in the ${city}, ${province} area understand what their renovation will cost — no surprises, no pressure.\n\nTell me about the space you're thinking of renovating, or snap a quick photo and I'll take a look!`;
+  }
+  return `Hey there! I'm Emma, your renovation assistant here at ${companyName}. I help homeowners in the ${city}, ${province} area plan their renovation projects — from design ideas to finding the right contractor.\n\nTell me about the space you're thinking of renovating, or snap a quick photo and I'll take a look!`;
+}
+
+// ---------------------------------------------------------------------------
+// Chat interface — visualizer handoff welcome
+// ---------------------------------------------------------------------------
+
+export function getChatHandoffWelcome(
+  ctx: CopyContext,
+  companyName: string,
+  roomLabel: string,
+  styleNote: string,
+  conceptNote: string,
+  dimensionsNote?: string | undefined,
+): string {
+  const greeting = `Hey there! I see you've been exploring a ${roomLabel} renovation${styleNote}.${conceptNote}\n\nI'm Emma, your renovation assistant here at ${companyName}.`;
+
+  if (hasQuotes(ctx)) {
+    const followUp = dimensionsNote
+      ? `\n\nI can see from the analysis that the space is approximately ${dimensionsNote}. When are you hoping to start this project, and do you have a budget range in mind?`
+      : `\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
+    return `${greeting} Let's turn that vision into real numbers.${followUp}`;
+  }
+  const followUp = `\n\nWhen are you hoping to start this project? I can help connect you with the right contractor.`;
+  return `${greeting} Let's turn that vision into reality.${followUp}`;
+}
+
+// ---------------------------------------------------------------------------
+// Chat — "skip the chat" helper text
+// ---------------------------------------------------------------------------
+
+export function getChatSkipText(ctx: CopyContext): string {
+  if (hasQuotes(ctx)) return 'In a hurry? Skip the chat and get your quote within 24 hours.';
+  return 'In a hurry? Skip the chat and a team member will be in touch within 24 hours.';
 }
