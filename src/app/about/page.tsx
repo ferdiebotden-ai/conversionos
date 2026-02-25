@@ -11,6 +11,7 @@ import {
   CheckCircle,
   FileText,
   Clock,
+  User,
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
@@ -246,7 +247,7 @@ export default async function AboutPage() {
           {(() => {
             const members = config.teamMembers.length > 0
               ? config.teamMembers
-              : [{ name: config.principals, role: 'Principals', photoUrl: '/images/demo/team-male.png' }];
+              : [{ name: config.principals, role: 'Principals', photoUrl: '' }];
 
             return (
               <div className={`mt-10 grid gap-6 ${members.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl' : 'sm:grid-cols-2 max-w-2xl'} mx-auto`}>
@@ -254,13 +255,19 @@ export default async function AboutPage() {
                   <Card key={i}>
                     <CardContent className="p-6 text-center">
                       <div className="relative mx-auto size-24 overflow-hidden rounded-full">
-                        <Image
-                          src={member.photoUrl || '/images/demo/team-male.png'}
-                          alt={member.name}
-                          fill
-                          className="object-cover"
-                          sizes="96px"
-                        />
+                        {member.photoUrl ? (
+                          <Image
+                            src={member.photoUrl}
+                            alt={member.name}
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center bg-primary/10">
+                            <User className="size-10 text-primary/40" />
+                          </div>
+                        )}
                       </div>
                       <p className="mt-4 font-semibold text-foreground">
                         {member.name}
