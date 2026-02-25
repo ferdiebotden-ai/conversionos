@@ -399,7 +399,7 @@ export function EstimateSidebar({
             <hr className="border-border" />
             <Button
               onClick={onSubmitRequest}
-              className="w-full bg-[#1565C0] hover:bg-[#B71C1C] text-white"
+              className="w-full"
               size="lg"
             >
               Submit Request

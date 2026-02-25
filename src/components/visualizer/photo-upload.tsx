@@ -63,8 +63,8 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
           img.onload = () => resolve();
           img.onerror = () => reject(new Error('Failed to load image'));
         });
-        if (img.naturalWidth < 640 || img.naturalHeight < 640) {
-          throw new Error('Photo resolution too low. Try stepping back or using landscape mode.');
+        if (img.naturalWidth < 320 || img.naturalHeight < 240) {
+          throw new Error('Image is too small for AI visualization. Please use a larger photo (minimum 320x240 pixels).');
         }
 
         onChange(base64, compressed);

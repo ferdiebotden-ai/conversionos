@@ -45,6 +45,7 @@ interface ContactInfo {
   name: string;
   email: string;
   phone?: string;
+  additionalNotes?: string;
   // Ontario-specific fields
   propertyType?: string;
   propertyAge?: string;
@@ -239,17 +240,33 @@ export function SubmitRequestModal({
                   <span className="line-clamp-2">{projectData.goals}</span>
                 </div>
               )}
+
+              {/* Additional notes */}
+              <div className="space-y-2">
+                <Label htmlFor="additional-notes" className="text-sm text-muted-foreground">
+                  Anything else we should know?
+                </Label>
+                <Textarea
+                  id="additional-notes"
+                  placeholder="Special requirements, accessibility needs, design inspiration..."
+                  value={contactInfo.additionalNotes || ''}
+                  onChange={(e) =>
+                    setContactInfo((prev) => ({ ...prev, additionalNotes: e.target.value }))
+                  }
+                  rows={3}
+                />
+              </div>
             </div>
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={handleClose} className="sm:flex-1">
-                Add More Details
+                Continue Conversation
               </Button>
               <Button
                 onClick={() => setStep('contact')}
-                className="sm:flex-1 bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="sm:flex-1"
               >
-                Continue
+                Continue to Submit
               </Button>
             </DialogFooter>
           </>
@@ -334,7 +351,7 @@ export function SubmitRequestModal({
                   setError(null);
                   setStep('details');
                 }}
-                className="sm:flex-1 bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="sm:flex-1"
               >
                 Continue
               </Button>
@@ -511,7 +528,7 @@ export function SubmitRequestModal({
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="sm:flex-1 bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="sm:flex-1"
                 data-testid="submit-form-button"
               >
                 Submit Request Now

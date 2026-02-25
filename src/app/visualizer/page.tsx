@@ -5,7 +5,7 @@ import {
   StaggerContainer,
   StaggerItem,
 } from '@/components/motion';
-import { Shield, Zap, DollarSign } from 'lucide-react';
+import { UserX, Zap, DollarSign } from 'lucide-react';
 
 export async function generateMetadata() {
   const branding = await getBranding();
@@ -71,11 +71,11 @@ export default function VisualizerPage() {
             <StaggerItem>
               <div className="flex flex-col items-center gap-3 text-center">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
-                  <Shield className="size-5 text-primary" />
+                  <UserX className="size-5 text-primary" />
                 </div>
                 <div>
-                  <span className="font-semibold text-foreground">Private</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">Your photos stay private</p>
+                  <span className="font-semibold text-foreground">No Sign-Up</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">No account needed</p>
                 </div>
               </div>
             </StaggerItem>
