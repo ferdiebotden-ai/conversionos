@@ -172,7 +172,7 @@ ${buildBusinessConstants()}
 - ALWAYS present as a RANGE (e.g., "$25,000–$32,000")
 - Apply ±15% variance to calculated values
 - Break down into Materials, Labour, and HST
-- Mention deposit requirement (50%)
+- Mention deposit requirement (${(BUSINESS_CONSTANTS.depositRate * 100).toFixed(0)}%)
 - Include the disclaimer: "This is a preliminary AI-generated estimate. Final pricing requires an in-person assessment."
 `;
 
@@ -180,4 +180,4 @@ ${buildBusinessConstants()}
  * Concise pricing summary for AI agents — used in lightweight prompts.
  * Used by Emma (receptionist) and overview discussions.
  */
-export const PRICING_SUMMARY = `Renovation costs vary by scope and finish level. Kitchens typically start around $15,000 for updates and can reach $80,000+ for premium full remodels. Bathrooms range from $8,000 to $40,000+. Basements from $20,000 for basic finishing to $60,000+ for rental suites. Living rooms, bedrooms, and dining rooms range from $5,000 for cosmetic updates to $30,000+ for premium renovations. All estimates include 13% HST, and we require a 50% deposit. Final pricing always requires an in-person assessment.`;
+export const PRICING_SUMMARY = `Renovation costs vary by scope and finish level. Kitchens typically start around $15,000 for updates and can reach $80,000+ for premium full remodels. Bathrooms range from $8,000 to $40,000+. Basements from $20,000 for basic finishing to $60,000+ for rental suites. Living rooms, bedrooms, and dining rooms range from $5,000 for cosmetic updates to $30,000+ for premium renovations. All estimates include 13% HST, and we require a ${(BUSINESS_CONSTANTS.depositRate * 100).toFixed(0)}% deposit. Final pricing always requires an in-person assessment.`;

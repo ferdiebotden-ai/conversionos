@@ -108,6 +108,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             initialEstimate={lead.quote_draft_json}
             customerEmail={lead.email}
             customerName={lead.name}
+            projectType={lead.project_type || undefined}
+            goalsText={lead.goals_text || undefined}
           />
         </TabsContent>
 

@@ -115,7 +115,7 @@ const RENOVATION_TIPS = [
   'Building permits in Ontario usually take 2-4 weeks to process',
   'Energy-efficient upgrades may qualify for Ontario rebate programs',
   'Choosing a local contractor means faster response times and material sourcing',
-  'A 50% deposit secures your spot in the project schedule',
+  'A 15% deposit secures your spot in the project schedule',
   'Photos help us provide a more accurate initial estimate',
   'Most kitchen renovations in Ontario take 4-8 weeks to complete',
   'Bathroom renovations are the second-highest ROI home improvement project',

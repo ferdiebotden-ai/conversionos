@@ -7,7 +7,7 @@ import { canAccess } from '@/lib/entitlements';
 import type { InvoiceStatus, Json } from '@/types/database';
 
 const HST_PERCENT = 13;
-const DEPOSIT_PERCENT = 50;
+const DEPOSIT_PERCENT = 15;
 
 /**
  * GET /api/invoices

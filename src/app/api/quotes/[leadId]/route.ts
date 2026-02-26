@@ -11,11 +11,18 @@ import type { QuoteDraftUpdate, Json } from '@/types/database';
  */
 const LineItemSchema = z.object({
   description: z.string().min(1),
-  category: z.enum(['materials', 'labor', 'contract', 'permit', 'other']),
+  category: z.enum(['materials', 'labor', 'contract', 'permit', 'equipment', 'allowances', 'other']),
   quantity: z.number().positive(),
   unit: z.string(),
   unit_price: z.number().nonnegative(),
   total: z.number().nonnegative(),
+  isFromAI: z.boolean().optional(),
+  isModified: z.boolean().optional(),
+  confidenceScore: z.number().min(0).max(1).optional(),
+  aiReasoning: z.string().optional(),
+  transparencyData: z.record(z.string(), z.unknown()).optional(),
+  costBeforeMarkup: z.number().nonnegative().optional(),
+  markupPercent: z.number().min(0).max(100).optional(),
 });
 
 /**
@@ -28,13 +35,17 @@ const QuoteUpdateSchema = z.object({
   special_notes: z.string().optional().nullable(),
   contingency_percent: z.number().min(0).max(50).optional(),
   validity_days: z.number().min(1).max(365).optional(),
+  tier_mode: z.enum(['single', 'tiered']).optional(),
+  tier_good: z.array(LineItemSchema).optional().nullable(),
+  tier_better: z.array(LineItemSchema).optional().nullable(),
+  tier_best: z.array(LineItemSchema).optional().nullable(),
 });
 
 type RouteContext = { params: Promise<{ leadId: string }> };
 
 // Business constants
 const HST_PERCENT = 13;
-const DEPOSIT_PERCENT = 50;
+const DEPOSIT_PERCENT = 15;
 
 /**
  * Calculate quote totals from line items
@@ -199,6 +210,10 @@ export async function PUT(
       special_notes,
       contingency_percent = 10,
       validity_days = 30,
+      tier_mode,
+      tier_good,
+      tier_better,
+      tier_best,
     } = validationResult.data;
 
     const supabase = createServiceClient();
@@ -243,7 +258,7 @@ export async function PUT(
 
     if (existingQuote) {
       // Update existing quote
-      const updateData: QuoteDraftUpdate = {
+      const updateData: QuoteDraftUpdate & Record<string, unknown> = {
         line_items: line_items as Json,
         assumptions: assumptions ?? null,
         exclusions: exclusions ?? null,
@@ -256,6 +271,13 @@ export async function PUT(
         updated_at: now.toISOString(),
         ...totals,
       };
+      // Tier data (JSONB columns — may not be in generated types)
+      if (tier_mode) {
+        updateData['tier_mode'] = tier_mode;
+        updateData['tier_good'] = (tier_good ?? null) as Json;
+        updateData['tier_better'] = (tier_better ?? null) as Json;
+        updateData['tier_best'] = (tier_best ?? null) as Json;
+      }
 
       const { data: updatedQuote, error: updateError } = await supabase
         .from('quote_drafts')
@@ -289,7 +311,7 @@ export async function PUT(
       });
     } else {
       // Create new quote
-      const insertData = {
+      const insertData: Record<string, unknown> = {
         lead_id: leadId,
         version: 1,
         line_items: line_items as Json,
@@ -303,10 +325,16 @@ export async function PUT(
         expires_at: expiresAt.toISOString(),
         ...totals,
       };
+      if (tier_mode) {
+        insertData['tier_mode'] = tier_mode;
+        insertData['tier_good'] = (tier_good ?? null) as Json;
+        insertData['tier_better'] = (tier_better ?? null) as Json;
+        insertData['tier_best'] = (tier_best ?? null) as Json;
+      }
 
-      const { data: newQuote, error: insertError } = await supabase
-        .from('quote_drafts')
-        .insert(withSiteId(insertData))
+      const { data: newQuote, error: insertError } = await (supabase
+        .from('quote_drafts') as ReturnType<typeof supabase.from>)
+        .insert(withSiteId(insertData) as never)
         .select('*')
         .single();
 

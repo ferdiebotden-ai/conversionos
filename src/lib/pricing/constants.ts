@@ -53,8 +53,8 @@ export const BUSINESS_CONSTANTS = {
   /** Ontario HST rate (13%) */
   hstRate: 0.13,
 
-  /** Required deposit percentage (50%) */
-  depositRate: 0.5,
+  /** Required deposit percentage (15%) */
+  depositRate: 0.15,
 
   /** Contingency rate (10%) */
   contingencyRate: 0.1,

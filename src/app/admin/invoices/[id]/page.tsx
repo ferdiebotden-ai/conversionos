@@ -458,7 +458,7 @@ export default function InvoiceDetailPage() {
               </div>
               {!invoice.deposit_received && Number(invoice.deposit_required) > 0 && (
                 <div className="text-sm text-muted-foreground pt-2">
-                  Deposit required: {formatCurrency(Number(invoice.deposit_required))} (50%)
+                  Deposit required: {formatCurrency(Number(invoice.deposit_required))} (15%)
                 </div>
               )}
               {invoice.deposit_received && (

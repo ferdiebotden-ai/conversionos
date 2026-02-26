@@ -125,12 +125,12 @@ export function AIQuoteSuggestions({
   }
 
   return (
-    <Card className="border-[#1565C0]/20 bg-gradient-to-br from-red-50/30 to-white">
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-white">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-[#1565C0]/10">
-              <Sparkles className="h-5 w-5 text-[#1565C0]" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-lg">AI-Generated Quote</CardTitle>
@@ -213,7 +213,7 @@ export function AIQuoteSuggestions({
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-lg font-semibold text-[#1565C0]">
+                        <span className="text-lg font-semibold text-primary">
                           {formatCurrency(item.total)}
                         </span>
                         <TooltipProvider>
@@ -347,7 +347,7 @@ export function AIQuoteSuggestions({
             <Button
               size="sm"
               onClick={onAcceptAll}
-              className="bg-[#1565C0] hover:bg-[#B71C1C]"
+              className="bg-primary hover:bg-primary/90"
             >
               <Check className="h-4 w-4 mr-1" />
               Accept All ({aiQuote.lineItems.length - acceptedItemIds.size} remaining)
@@ -396,7 +396,7 @@ export function AIQuoteSuggestions({
             <Button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="bg-[#1565C0] hover:bg-[#B71C1C]"
+              className="bg-primary hover:bg-primary/90"
             >
               {isRegenerating ? (
                 <>

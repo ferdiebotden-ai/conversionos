@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { TransparencyBreakdownSchema } from './transparency';
 
 /**
  * Categories for quote line items
@@ -14,6 +15,8 @@ export const LineItemCategorySchema = z.enum([
   'labor',
   'contract',
   'permit',
+  'equipment',
+  'allowances',
   'other',
 ]);
 
@@ -37,6 +40,9 @@ export const AIQuoteLineItemSchema = z.object({
 
   /** Confidence score 0-1 for this specific item */
   confidenceScore: z.number().min(0).max(1),
+
+  /** Transparency breakdown — "show the math" for this item */
+  transparencyData: TransparencyBreakdownSchema,
 });
 
 export type AIQuoteLineItem = z.infer<typeof AIQuoteLineItemSchema>;
@@ -143,3 +149,51 @@ export const LINE_ITEM_TEMPLATES = {
     { description: 'Labour', category: 'labor' as const },
   ],
 } as const;
+
+/**
+ * Single tier in a Good/Better/Best quote
+ */
+export const AITierSchema = z.object({
+  /** Tier display label (e.g., "Economy Finish") */
+  label: z.string().min(1).max(100),
+
+  /** Short description of what this tier includes */
+  description: z.string().min(1).max(300),
+
+  /** Finish level for this tier */
+  finishLevel: z.enum(['economy', 'standard', 'premium']),
+
+  /** Line items for this tier */
+  lineItems: z.array(AIQuoteLineItemSchema).min(1).max(25),
+});
+
+export type AITier = z.infer<typeof AITierSchema>;
+
+/**
+ * Tiered AI-generated quote — Good/Better/Best
+ * Single AI call produces all three tiers.
+ */
+export const AITieredQuoteSchema = z.object({
+  tiers: z.object({
+    good: AITierSchema,
+    better: AITierSchema,
+    best: AITierSchema,
+  }),
+
+  /** Assumptions the quote is based on */
+  assumptions: z.array(z.string().max(200)).max(10),
+
+  /** Items explicitly not included */
+  exclusions: z.array(z.string().max(200)).max(10),
+
+  /** Professional notes or recommendations */
+  professionalNotes: z.string().max(500),
+
+  /** Overall confidence in the quote (0-1) */
+  overallConfidence: z.number().min(0).max(1),
+
+  /** Summary of how the total was calculated */
+  calculationSummary: z.string().max(300),
+});
+
+export type AITieredQuote = z.infer<typeof AITieredQuoteSchema>;

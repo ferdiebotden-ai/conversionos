@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote } from 'lucide-react';
+import { CategoryMarkupSettings } from '@/components/admin/category-markup-settings';
+import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
 
 // Types for settings
 interface PricingRange {
@@ -66,6 +68,8 @@ interface Settings {
     mode: 'none' | 'range' | 'estimate';
     rangeBand: number;
   };
+  // Per-category markups
+  category_markups?: CategoryMarkupsConfig;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -77,7 +81,7 @@ const DEFAULT_SETTINGS: Settings = {
   contract_markup: { percent: 15 },
   contingency: { percent: 10 },
   hst_rate: { percent: 13 },
-  deposit_rate: { percent: 50 },
+  deposit_rate: { percent: 15 },
   quote_validity: { days: 30 },
   notifications: {
     email: '',
@@ -99,6 +103,7 @@ const DEFAULT_SETTINGS: Settings = {
     mode: 'range',
     rangeBand: 10000,
   },
+  category_markups: DEFAULT_CATEGORY_MARKUPS,
 };
 
 function PricingCard({
@@ -244,6 +249,7 @@ export default function SettingsPage() {
         { key: 'notifications', value: settings.notifications },
         { key: 'business_info', value: settings.business_info },
         { key: 'quote_assistance', value: settings.quote_assistance },
+        { key: 'category_markups', value: settings.category_markups },
       ];
 
       const response = await fetch('/api/admin/settings', {
@@ -372,31 +378,42 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="labor_rate">Internal Labor Rate ($/hr)</Label>
-                  <Input
-                    id="labor_rate"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={settings.labor_rate.hourly}
-                    onChange={(e) => handleValueChange('labor_rate', 'hourly', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="labor_rate">Internal Labour Rate ($/hr)</Label>
+                <Input
+                  id="labor_rate"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={settings.labor_rate.hourly}
+                  onChange={(e) => handleValueChange('labor_rate', 'hourly', parseFloat(e.target.value) || 0)}
+                  className="w-32"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="contract_markup">Contract Labor Markup (%)</Label>
-                  <Input
-                    id="contract_markup"
-                    type="number"
-                    min="0"
-                    max="50"
-                    step="1"
-                    value={settings.contract_markup.percent}
-                    onChange={(e) => handleValueChange('contract_markup', 'percent', parseFloat(e.target.value) || 0)}
-                  />
+              <Separator />
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium">Per-Category Markups</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure markups by category. These are applied to the AI&apos;s base cost estimates when generating quotes.
+                  </p>
                 </div>
+                <CategoryMarkupSettings
+                  markups={settings.category_markups || DEFAULT_CATEGORY_MARKUPS}
+                  onChange={(category, value) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      category_markups: {
+                        ...(prev.category_markups || DEFAULT_CATEGORY_MARKUPS),
+                        [category]: value,
+                      },
+                    }));
+                    setHasChanges(true);
+                    setSaveSuccess(false);
+                  }}
+                />
               </div>
             </CardContent>
           </Card>

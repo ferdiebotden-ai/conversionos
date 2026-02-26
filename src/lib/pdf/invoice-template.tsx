@@ -336,7 +336,7 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
           </View>
           <View style={styles.paymentSection}>
             <Text style={styles.sectionLabel}>Payment Terms</Text>
-            <Text style={styles.cellText}>50% Deposit Required</Text>
+            <Text style={styles.cellText}>15% Deposit Required</Text>
             <Text style={styles.cellText}>E-Transfer: {branding.paymentEmail}</Text>
           </View>
         </View>
@@ -400,7 +400,7 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
         {/* Terms and Total */}
         <View style={styles.bottomSection}>
           <View style={styles.termsSection}>
-            <Text style={styles.termsTitle}>Terms: 50% Deposit required to schedule work.</Text>
+            <Text style={styles.termsTitle}>Terms: 15% Deposit required to schedule work.</Text>
             <Text style={styles.termsText}>
               Invoices payable upon receipt. Please make cheques payable to {branding.name}.
               Finance Charges will be applied at a rate of 1.25% per month.

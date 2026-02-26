@@ -24,28 +24,39 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Trash2, Sparkles, Copy, GripVertical, Check, Pencil } from 'lucide-react';
+import { Trash2, Sparkles, Copy, GripVertical, Pencil, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { TransparencyBreakdown } from '@/lib/schemas/transparency';
+import { TransparencyCard } from './transparency-card';
+
+export type LineItemCategory = 'materials' | 'labor' | 'contract' | 'permit' | 'equipment' | 'allowances' | 'other';
 
 export interface LineItem {
   id: string;
   description: string;
-  category: 'materials' | 'labor' | 'contract' | 'permit' | 'other';
-  customCategory?: string;
+  category: LineItemCategory;
+  customCategory?: string | undefined;
   quantity: number;
   unit: string;
   unit_price: number;
   total: number;
-  isFromAI?: boolean;
-  isModified?: boolean;
-  isAccepted?: boolean;
+  isFromAI?: boolean | undefined;
+  isModified?: boolean | undefined;
+  isAccepted?: boolean | undefined;
+  confidenceScore?: number | undefined;
+  aiReasoning?: string | undefined;
+  transparencyData?: TransparencyBreakdown | undefined;
+  costBeforeMarkup?: number | undefined;
+  markupPercent?: number | undefined;
 }
 
 const CATEGORY_OPTIONS = [
   { value: 'materials', label: 'Materials' },
-  { value: 'labor', label: 'Labor' },
+  { value: 'labor', label: 'Labour' },
   { value: 'contract', label: 'Contract' },
   { value: 'permit', label: 'Permit' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'allowances', label: 'Allowances' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -65,6 +76,7 @@ export function QuoteLineItem({
   isDraggable = false,
 }: QuoteLineItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showTransparency, setShowTransparency] = useState(false);
 
   function handleFieldChange<K extends keyof LineItem>(
     field: K,
@@ -95,23 +107,27 @@ export function QuoteLineItem({
   // Determine the visual state
   const getItemState = () => {
     if (item.isFromAI && item.isModified) return 'modified';
-    if (item.isFromAI && item.isAccepted) return 'accepted';
-    if (item.isFromAI) return 'ai-suggested';
+    if (item.isFromAI) return 'ai';
     return 'manual';
   };
 
   const itemState = getItemState();
 
   const stateStyles = {
-    'ai-suggested': 'bg-purple-50/50 border-l-2 border-l-purple-400',
-    'accepted': 'bg-green-50/50 border-l-2 border-l-green-400',
+    'ai': 'bg-purple-50/50 border-l-2 border-l-purple-400',
     'modified': 'bg-amber-50/50 border-l-2 border-l-amber-400',
     'manual': '',
   };
 
+  function getConfidenceColor(score: number): string {
+    if (score >= 0.8) return 'bg-green-50 text-green-700 border-green-200';
+    if (score >= 0.6) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    return 'bg-orange-50 text-orange-700 border-orange-200';
+  }
+
   return (
     <TooltipProvider>
-      <tr className={cn('group transition-colors', stateStyles[itemState])}>
+      <><tr className={cn('group transition-colors', stateStyles[itemState])}>
         {/* Drag handle (if draggable) */}
         {isDraggable && (
           <td className="p-2 w-8">
@@ -137,13 +153,20 @@ export function QuoteLineItem({
                 <TooltipTrigger>
                   <Badge
                     variant="outline"
-                    className="shrink-0 text-xs bg-purple-50 text-purple-600 border-purple-200"
+                    className={cn(
+                      "shrink-0 text-xs",
+                      item.confidenceScore != null
+                        ? getConfidenceColor(item.confidenceScore)
+                        : "bg-purple-50 text-purple-600 border-purple-200"
+                    )}
                   >
                     <Sparkles className="h-3 w-3 mr-1" />
-                    AI
+                    AI{item.confidenceScore != null ? ` ${Math.round(item.confidenceScore * 100)}%` : ''}
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent>AI-suggested item</TooltipContent>
+                <TooltipContent className="max-w-xs">
+                  {item.aiReasoning || 'AI-generated item'}
+                </TooltipContent>
               </Tooltip>
             )}
             {item.isFromAI && item.isModified && (
@@ -157,21 +180,7 @@ export function QuoteLineItem({
                     Adjusted
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent>AI item modified by admin</TooltipContent>
-              </Tooltip>
-            )}
-            {item.isAccepted && !item.isModified && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 text-xs bg-green-50 text-green-600 border-green-200"
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Accepted
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>Accepted from AI suggestions</TooltipContent>
+                <TooltipContent>AI item modified by contractor</TooltipContent>
               </Tooltip>
             )}
           </div>
@@ -266,6 +275,29 @@ export function QuoteLineItem({
         {/* Actions */}
         <td className="p-2">
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Transparency info button */}
+            {item.isFromAI && item.transparencyData && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8",
+                      showTransparency
+                        ? "text-primary"
+                        : "text-primary/70 hover:text-primary"
+                    )}
+                    onClick={() => setShowTransparency(!showTransparency)}
+                    aria-label="Show price breakdown"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>How this price was calculated</TooltipContent>
+              </Tooltip>
+            )}
+
             {/* Duplicate button */}
             {onDuplicate && (
               <Tooltip>
@@ -302,6 +334,14 @@ export function QuoteLineItem({
           </div>
         </td>
       </tr>
+      {showTransparency && item.transparencyData && (
+        <tr>
+          <td colSpan={isDraggable ? 8 : 7} className="p-0">
+            <TransparencyCard data={item.transparencyData} />
+          </td>
+        </tr>
+      )}
+      </>
     </TooltipProvider>
   );
 }

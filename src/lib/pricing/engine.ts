@@ -154,7 +154,7 @@ export function generateEstimateSummary(
   summary += `- Labor: ${formatter.format(breakdown.labor)}\n`;
   summary += `- Contingency (10%): ${formatter.format(breakdown.contingency)}\n`;
   summary += `- HST (13%): ${formatter.format(breakdown.hst)}\n\n`;
-  summary += `Deposit required: ${formatter.format(depositRequired)} (50%)\n\n`;
+  summary += `Deposit required: ${formatter.format(depositRequired)} (${(BUSINESS_CONSTANTS.depositRate * 100).toFixed(0)}%)\n\n`;
 
   if (notes.length > 0) {
     summary += `Notes: ${notes.join('. ')}\n\n`;

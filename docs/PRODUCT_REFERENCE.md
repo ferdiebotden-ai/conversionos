@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 25, 2026 | **Updated by:** Claude Code (About page team placeholders, footer legal links, Why Choose image)
+**Last updated:** February 26, 2026 | **Updated by:** Claude Code (Quote Engine V2 Phase 2 — transparency cards, per-category markups, Good/Better/Best tiers, scope gap detection)
 
 ---
 
@@ -93,7 +93,7 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Mobile photos | heic2any | — | HEIC/HEIF conversion from iOS |
 | AI framework | Vercel AI SDK | 6.0.67 | Streaming, structured outputs, tool calling |
 | Validation | Zod | 4.3.6 | All AI outputs validated before render/store |
-| Testing | Vitest + Playwright | — | 139 unit tests, E2E browser automation |
+| Testing | Vitest + Playwright | — | 195 unit tests, E2E browser automation |
 
 ---
 
@@ -131,7 +131,7 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 1. **Landing** (`/`) — Branded homepage optimised for conversion. Section order: Hero (outcome headline, primary CTA, phone link, trust badges) → Social Proof Bar (Google rating, years in business, projects completed, licensed status — 2x2 grid on mobile, flex row on desktop) → Visualizer Teaser (real before/after kitchen photos in 3 styles with auto-animation on scroll via IntersectionObserver) → Services → How It Works (3 steps) → Why Choose Us → Testimonials → Final CTA. Sticky mobile CTA bar fixed at bottom on viewports < 768px, hidden on /estimate, /visualizer, /admin routes. All CTAs (header, mobile bar, How It Works subtitle, process step 3, final CTA) adapt dynamically via the copy system based on tier + quote mode. All content driven by database.
 
-2. **Visualizer** (`/visualizer`) — Upload a photo of their room (drag-and-drop on desktop, "Take a Photo" or "Choose from Gallery" on mobile). Photo pre-analysis fires immediately via GPT Vision — detects room type, layout, dimensions, fixtures, condition. Room type selector auto-fills from analysis.
+2. **Visualizer** (`/visualizer`) — Upload a photo of their room (drag-and-drop on desktop, "Take a Photo" or "Choose from Gallery" on mobile; minimum 320x240 pixels). Photo pre-analysis fires immediately via GPT Vision — detects room type, layout, dimensions, fixtures, condition. Room type selector auto-fills from analysis. Trust indicators below the form: "100% Free to use", "~30 sec Generation time", "No Sign-Up — No account needed". Photo tips shown as a responsive icon grid (Good Lighting, Wide Shot, Clear Clutter, Key Features).
 
 3. **Style selection** — Choose from 8 room types and 6 design styles (Modern, Traditional, Farmhouse, Industrial, Minimalist, Contemporary). Add text preferences. Optionally speak to Emma via voice (all tiers) for richer preference capture — Emma has design knowledge injected on the visualizer page.
 
@@ -139,9 +139,9 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 5. **Results** — Before/after slider comparison. Enriched AI-generated descriptions for each concept (not generic labels). Cost range indicator for Accelerate+ tenants ($30K-$60K + HST format). "Email Me These Designs" email capture button (creates lead with `source: visualizer_email`). "Try Another Style" preserves photo and room type, resets style. Primary CTA adapts by tier + quote mode via `getVisualizerResultCTA()` — "Get a Personalised Estimate" (when quotes enabled) or "Request a Callback from [Contractor]" (when quotes disabled). Sticky CTA bar animates in after 3 seconds.
 
-6. **Quote** (`/estimate`) — Emma receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. On this page, Emma has full pricing knowledge injected: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Emma skips discovery questions and goes straight to refinement.
+6. **Quote** (`/estimate`) — Emma receives the full handoff context via DB-backed reconstruction (survives tab switches, page refreshes, and new sessions). When a `visualization` URL parameter is present, the estimate page fetches the full visualization record from the database and reconstructs the `HandoffContext` via `buildHandoffFromVisualization()`. Falls back to sessionStorage if DB fetch fails. On this page, Emma has full pricing knowledge injected: photo analysis (dimensions, layout, fixtures, condition), selected concept, material preferences, voice-extracted preferences, cost signals, and the contractor's quote assistance mode. Emma skips discovery questions and goes straight to refinement. The project summary sidebar auto-populates from the conversation: project type, room size, timeline, finish level are extracted from both user and assistant messages, but **goals are only extracted from user messages** (not Emma's) to avoid capturing AI phrasing as homeowner intent.
 
-7. **Lead capture** — Contact information collected. Lead created in database with full visualization context, chat transcript, and AI-generated scope. Contractor notified by email.
+7. **Lead capture** — Multi-step submit modal: review project summary (with optional "Anything else we should know?" textarea for additional notes) → contact information → property details (Ontario-specific: property type, age, ownership, HOA, permits, preferred start date, access notes). "Continue Conversation" returns to chat; "Continue to Submit" advances. Additional notes are appended to the goals text in the lead record. Lead created in database with full visualization context, chat transcript, and AI-generated scope. Contractor notified by email.
 
 ### Contractor (Admin) Journey
 
@@ -151,13 +151,13 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 3. **Leads** (`/admin/leads`) — Searchable, filterable table of all leads. Feasibility badges (colour-coded dots: green 4-5, yellow 3, red 1-2). Click into lead detail for full context: contact info, visualization panel, chat transcript, cost analysis.
 
-4. **Quotes** (`/admin/quotes`) — AI-generated quotes with line items, tiered pricing (good/better/best), PDF generation, email sending.
+4. **Quotes** (`/admin/quotes`) — AI-generated quotes with transparency cards ("show the math"), per-category markup controls (7 categories), Good/Better/Best tier comparison, scope gap detection (20+ rules), PDF generation, email sending. See "Quote Engine V2" section below.
 
 5. **Invoices** (`/admin/invoices`) — Create from quotes, track payments (cash, cheque, e-transfer, credit card), auto-update status (draft → sent → partially paid → paid). PDF generation. Sage 50 CSV export.
 
 6. **Drawings** (`/admin/drawings`) — CAD-style drawing management for technical plans.
 
-7. **Settings** (`/admin/settings`) — Business info, branding, pricing parameters, quote assistance mode (none/range/estimate with configurable range band).
+7. **Settings** (`/admin/settings`) — Business info, branding, pricing parameters, quote assistance mode (none/range/estimate with configurable range band), per-category markup controls (Materials 15%, Labour 30%, Contract 15%, Equipment 10%, Permits 0%, Allowances 0%, Other 10%).
 
 8. **Analytics** (`/admin/analytics`, Dominate only) — Recharts dashboard: daily visualization trends, room type distribution, generation time tracking, conversion rates. KPI cards with period-over-period deltas.
 
@@ -342,6 +342,126 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 **Mode-neutral fallback content:** The `FALLBACK_CONFIG` in `src/lib/ai/knowledge/company.ts` uses mode-neutral copy for all fields that render on public pages. The hero subheadline, process steps, why-choose-us items, testimonials, service descriptions, and about copy all avoid references to "estimates," "quotes," or "pricing" so they work correctly regardless of the tenant's quote assistance mode. Existing tenants with DB-stored `company_profile` content should also use mode-neutral language, since that content is static and does not change dynamically with the quote mode — the copy system handles the dynamic adaptation at the component level.
 
 **Test coverage:** `tests/unit/copy/site-copy.test.ts` — 35 test cases across all tier+mode combinations.
+
+---
+
+## Quote Engine V2
+
+The AI quote engine generates structured, transparent quotes with full cost breakdowns. Four integrated subsystems work together: transparency cards, per-category markups, Good/Better/Best tiers, and scope gap detection.
+
+### Transparency Cards ("Show the Math")
+
+Every AI-generated line item includes a `transparencyData` object validated by `TransparencyBreakdownSchema` (`src/lib/schemas/transparency.ts`). Fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `roomAnalysis` | string | What room features informed this item ("L-shaped kitchen, ~120 sqft") |
+| `materialSelection` | string | Quality level and reasoning ("Mid-range Shaker maple cabinets") |
+| `costBreakdown` | CostLine[] | Itemised math: label, quantity, unit, unitCost, total, source |
+| `markupApplied` | MarkupApplied | Category markup: percent, amount, label |
+| `dataSource` | string | "Ontario Renovation Pricing Database" |
+| `totalBeforeMarkup` | number | Sum of cost breakdown |
+| `totalAfterMarkup` | number | After markup applied |
+
+**Cost sources:** `ontario_db` (Ontario pricing database), `contractor_uploaded` (tenant-specific rates), `ai_estimate` (AI-derived when no DB match).
+
+**UI component:** `TransparencyCard` (`src/components/admin/transparency-card.tsx`) — animated expand/collapse card below line item row. Sections: room analysis, material selection, cost breakdown table, markup badge, data source badge, total. Toggle via Info icon button on each AI line item. Mobile: full width with horizontal scroll on cost table.
+
+**AI prompt enrichment:** The system prompt in `quote-generation.ts` injects the full Ontario pricing database (`PRICING_FULL` from `src/lib/ai/knowledge/pricing.ts`) and material references filtered by project type via `getMaterialsForRoom()`. The AI references actual Ontario DB rates in every cost breakdown line. `maxOutputTokens` increased to 4096 for transparency data.
+
+### Per-Category Markup Controls
+
+Seven configurable markup categories replace the single contract markup field. Module: `src/lib/pricing/category-markups.ts`.
+
+| Category | Default Markup | Computed Margin |
+|----------|---------------|-----------------|
+| Materials | 15% | 13.0% |
+| Labour | 30% | 23.1% |
+| Contract Labour | 15% | 13.0% |
+| Equipment | 10% | 9.1% |
+| Permits | 0% | 0.0% |
+| Allowances | 0% | 0.0% |
+| Other | 10% | 9.1% |
+
+**Pure functions:** `markupToMargin(percent)` converts markup to margin. `applyMarkup(cost, percent)` applies markup. `getMarkupForCategory(category, config)` resolves category to markup percent.
+
+**Admin UI:** `CategoryMarkupSettings` component (`src/components/admin/category-markup-settings.tsx`) renders in the Rates & Defaults tab of Settings. Number inputs (0-100) per category with real-time margin calculation. Info tooltip explains markup vs margin.
+
+**Settings storage:** `category_markups` key in `admin_settings` table (JSONB). Loaded by `getTier()` flow and injected into AI prompt so the AI applies correct markups per category.
+
+**Line item enrichment:** Each `LineItem` now carries optional `costBeforeMarkup` and `markupPercent` fields, populated by the AI and shown in transparency cards.
+
+### Good/Better/Best Tiers
+
+Single AI call generates three pricing tiers with different materials, descriptions, and price points. Schema: `AITieredQuoteSchema` in `src/lib/schemas/ai-quote.ts`.
+
+**Tier definitions:**
+- **Good** — Economy finish, stock materials, builder-grade fixtures
+- **Better** — Standard mid-range (RECOMMENDED). 20-30% above Good.
+- **Best** — Premium, designer-grade, custom finishes. 40-60% above Good.
+
+Each tier includes: label, description, finishLevel, and full `AIQuoteLineItemSchema[]` with transparency data. Shared fields (assumptions, exclusions, professionalNotes, overallConfidence, calculationSummary) are at the top level.
+
+**AI generation:** `generateTieredAIQuote()` and `regenerateTieredAIQuote()` in `src/lib/ai/quote-generation.ts`. `maxOutputTokens: 6144` for three tiers with transparency data. API route: `POST /api/quotes/[leadId]/regenerate` with `tiered: true`.
+
+**Quote editor state:** `tierMode` (`'single' | 'tiered'`), `activeTier` (`'good' | 'better' | 'best'`), `tieredLineItems` (backing store for all three tiers). Toggle button group above the AI info banner. `lineItems` always reflects the currently active tier. Switching tiers saves current items before loading the new tier.
+
+**TierComparison component:** `src/components/admin/tier-comparison.tsx` — 3-column clickable bar showing each tier's label, item count, total, and percentage above Good. Better column has primary border and "Recommended" badge. Clicking a tier switches the active view.
+
+**Save logic:** When tiered, `tier_good`, `tier_better`, `tier_best` (JSONB) and `tier_mode` are saved to the `quote_drafts` table. `line_items` always holds Better tier items for backward compatibility with PDF/email flows.
+
+**Send wizard:** When tiered, the Review step shows all three tier totals (with HST) instead of a single total. Better marked as "Recommended".
+
+**PDF template:** When tiered, a "Pricing Options" comparison page is inserted after the main estimate page showing all three tiers with labels, totals (including HST), item summaries, and "RECOMMENDED" label on Better.
+
+### Scope Gap Detection
+
+Pure rules engine detects commonly missed items in renovation quotes. Module: `src/lib/ai/scope-gap-rules.ts`. Zero API cost, synchronous execution (microseconds).
+
+**20+ rules by project type:**
+
+| Rule ID | Trigger | Severity | Est. Cost |
+|---------|---------|----------|-----------|
+| `bath-waterproofing` | Tile/shower without membrane | warning | $200-$600 |
+| `bath-exhaust-fan` | Bathroom without exhaust fan | info | $150-$400 |
+| `bath-subfloor` | Tile floor without subfloor prep | info | $200-$500 |
+| `kitchen-backsplash-prep` | Backsplash without wall prep | info | $200-$400 |
+| `kitchen-plumbing-rough` | New sink without rough-in | warning | $500-$1,200 |
+| `kitchen-electrical` | Major reno without panel check | info | $1,500-$4,000 |
+| `kitchen-demolition` | Renovation without demo line | warning | $500-$2,000 |
+| `basement-egress` | Bedroom without egress window | warning | $3,000-$6,000 |
+| `basement-moisture` | Finishing without moisture barrier | warning | $500-$1,500 |
+| `basement-fire-sep` | Bedroom without fire separation | warning | $500-$1,200 |
+| `permit-missing` | Structural/elec/plumb without permit | warning | $200-$800 |
+| `dumpster-disposal` | Demolition without disposal | info | $400-$1,000 |
+| `protection-cleanup` | Renovation without protection allowance | info | $300-$800 |
+| `asbestos-testing` | Pre-1980 home + demolition | warning | $300-$600 |
+| `underlayment` | Flooring without underlayment | info | $100-$400 |
+| `paint-primer` | Painting without primer | info | $100-$300 |
+| `supply-lines` | Fixture replacement without supply lines | info | $200-$500 |
+| `heated-floor-electrical` | Heated floor without dedicated circuit | info | $400-$800 |
+| `transition-strips` | Multi-room flooring without transitions | info | $50-$200 |
+| `flooring-removal` | New flooring without old removal | info | $200-$600 |
+
+**UI component:** `ScopeGapRecommendations` (`src/components/admin/scope-gap-recommendations.tsx`) — collapsible section between line items table and totals card. Amber header with Lightbulb icon and count badge. Each gap shows severity icon (AlertTriangle for warnings, Info for informational), message, estimated cost range, and "Add" button. Added items dim and show "Added" state. Warnings sort before info items.
+
+**Integration:** `detectScopeGaps(lineItems, projectType, context?)` called via `useMemo` in the quote editor. Runs whenever line items or project type change. `handleAddScopeGapItem(gap)` creates a new manual line item from the gap's suggested item and estimated cost midpoint.
+
+### Files Summary
+
+| File | Purpose |
+|------|---------|
+| `src/lib/schemas/transparency.ts` | Zod schemas: CostLineSchema, MarkupAppliedSchema, TransparencyBreakdownSchema |
+| `src/components/admin/transparency-card.tsx` | Animated expand/collapse transparency card UI |
+| `src/lib/pricing/category-markups.ts` | 7-category markup config, markup/margin math, defaults |
+| `src/components/admin/category-markup-settings.tsx` | Admin UI for per-category markup editing |
+| `src/components/admin/tier-comparison.tsx` | 3-column tier comparison bar |
+| `src/lib/ai/scope-gap-rules.ts` | 20+ pure detection rules |
+| `src/components/admin/scope-gap-recommendations.tsx` | Collapsible scope gap UI with "Add" actions |
+| `tests/unit/transparency-schema.test.ts` | 35 tests for transparency schemas |
+| `tests/unit/category-markups.test.ts` | 16 tests for markup math |
+| `tests/unit/tiered-quote-schema.test.ts` | 17 tests for tiered quote schemas |
+| `tests/unit/scope-gap-rules.test.ts` | 95 tests for all 20+ rules |
 
 ---
 
@@ -560,7 +680,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Check | Status | Notes |
 |-------|--------|-------|
 | `npm run build` | Passing | TypeScript strict + Next.js build |
-| `npm run test` | 139 passing | 6 test files (pricing, schemas, visualizer, etc.) |
+| `npm run test` | 195 passing | 7 test files (pricing, schemas, visualizer, copy, etc.) |
 | `npm run lint` | Passing | 24 pre-existing errors, 123 warnings (none from recent work) |
 | SSE streaming | Verified | 4 concepts in ~41s, progressive reveal |
 | Multi-tenant isolation | Verified | McCarty Squared vs ConversionOS Demo vs Red White Reno — no brand leakage |

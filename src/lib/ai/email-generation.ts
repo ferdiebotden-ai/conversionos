@@ -67,7 +67,7 @@ function buildUserPrompt(input: EmailGenerationInput): string {
   parts.push(`- Customer Name: ${input.customerName}`);
   parts.push(`- Project Type: ${input.projectType}`);
   parts.push(`- Quote Total: $${input.quoteTotal.toLocaleString()}`);
-  parts.push(`- Deposit Required: $${input.depositRequired.toLocaleString()} (50%)`);
+  parts.push(`- Deposit Required: $${input.depositRequired.toLocaleString()} (15%)`);
   parts.push(`- Line Items: ${input.lineItemCount} items`);
 
   if (input.isResend) {

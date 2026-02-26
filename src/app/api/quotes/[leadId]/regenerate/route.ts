@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
-import { regenerateAIQuote, generateAIQuote } from '@/lib/ai/quote-generation';
+import { regenerateAIQuote, generateAIQuote, generateTieredAIQuote, regenerateTieredAIQuote } from '@/lib/ai/quote-generation';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import type { Json } from '@/types/database';
+import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
 
 /**
  * Schema for POST /api/quotes/[leadId]/regenerate
  */
 const RegenerateSchema = z.object({
   guidance: z.string().max(1000).optional(),
+  tiered: z.boolean().optional(),
 });
 
 type RouteContext = { params: Promise<{ leadId: string }> };
@@ -54,7 +56,7 @@ export async function POST(
       );
     }
 
-    const { guidance } = validationResult.data;
+    const { guidance, tiered } = validationResult.data;
 
     const supabase = createServiceClient();
 
@@ -99,12 +101,37 @@ export async function POST(
       province: lead.province ?? 'ON',
     };
 
-    // Generate new AI quote
+    // Fetch category markups from admin_settings
+    const { data: markupsRow } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'category_markups')
+      .eq('site_id', getSiteId())
+      .maybeSingle();
+    const markups: CategoryMarkupsConfig = (markupsRow?.value as unknown as CategoryMarkupsConfig) || DEFAULT_CATEGORY_MARKUPS;
+
+    // Generate new AI quote (single or tiered)
     let aiQuote;
-    if (guidance) {
-      aiQuote = await regenerateAIQuote(quoteInput, guidance);
+    let aiTieredQuote;
+    if (tiered) {
+      if (guidance) {
+        aiTieredQuote = await regenerateTieredAIQuote(quoteInput, guidance, markups);
+      } else {
+        aiTieredQuote = await generateTieredAIQuote(quoteInput, markups);
+      }
+      // Use the "better" tier as the primary quote for backward compat
+      aiQuote = {
+        lineItems: aiTieredQuote.tiers.better.lineItems,
+        assumptions: aiTieredQuote.assumptions,
+        exclusions: aiTieredQuote.exclusions,
+        professionalNotes: aiTieredQuote.professionalNotes,
+        overallConfidence: aiTieredQuote.overallConfidence,
+        calculationSummary: aiTieredQuote.calculationSummary,
+      };
+    } else if (guidance) {
+      aiQuote = await regenerateAIQuote(quoteInput, guidance, markups);
     } else {
-      aiQuote = await generateAIQuote(quoteInput);
+      aiQuote = await generateAIQuote(quoteInput, markups);
     }
 
     // Update the lead's quote_draft_json with the new AI quote
@@ -112,6 +139,7 @@ export async function POST(
     const updatedDraftJson = {
       ...existingDraftJson,
       aiQuote,
+      ...(aiTieredQuote ? { aiTieredQuote } : {}),
       regeneratedAt: new Date().toISOString(),
       regenerationGuidance: guidance || null,
     };
@@ -147,6 +175,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       aiQuote,
+      ...(aiTieredQuote ? { aiTieredQuote } : {}),
     });
   } catch (error) {
     console.error('Quote regeneration error:', error);

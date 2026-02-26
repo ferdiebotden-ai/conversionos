@@ -59,6 +59,9 @@ const SEND_STEPS = [
   { label: 'Delivering to customer...' },
 ];
 
+type TierMode = 'single' | 'tiered';
+type TierName = 'good' | 'better' | 'best';
+
 interface QuoteSendWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,6 +75,8 @@ interface QuoteSendWizardProps {
   goalsText?: string | undefined;
   sentAt?: Date | null | undefined;
   onSendComplete: () => void;
+  tierMode?: TierMode | undefined;
+  tierTotals?: Record<TierName, number> | undefined;
 }
 
 type WizardStep = 'review' | 'preview' | 'email' | 'confirm';
@@ -107,6 +112,8 @@ export function QuoteSendWizard({
   goalsText,
   sentAt,
   onSendComplete,
+  tierMode,
+  tierTotals,
 }: QuoteSendWizardProps) {
   const branding = useBranding();
   const [currentStep, setCurrentStep] = useState<WizardStep>('review');
@@ -311,7 +318,7 @@ The ${branding.name} Team`);
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Send className="h-5 w-5 text-[#1565C0]" />
+            <Send className="h-5 w-5 text-primary" />
             Send Quote to Customer
           </DialogTitle>
           <DialogDescription>
@@ -327,7 +334,7 @@ The ${branding.name} Team`);
                 onClick={() => goToStep(step)}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   index === currentStepIndex
-                    ? 'bg-[#1565C0] text-white'
+                    ? 'bg-primary text-white'
                     : index < currentStepIndex
                     ? 'bg-green-100 text-green-700'
                     : 'bg-gray-100 text-gray-500'
@@ -379,14 +386,39 @@ The ${branding.name} Team`);
                     </div>
                   </div>
                   <div className="pt-3 border-t space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="font-bold text-lg">{formatCurrency(quoteTotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-[#1565C0]">
-                      <span className="font-medium">Deposit Required (50%)</span>
-                      <span className="font-bold">{formatCurrency(depositRequired)}</span>
-                    </div>
+                    {tierMode === 'tiered' && tierTotals ? (
+                      <>
+                        <div className="text-xs font-medium text-muted-foreground mb-2">
+                          All three tiers will be included in the quote
+                        </div>
+                        {(['good', 'better', 'best'] as TierName[]).map((tier) => (
+                          <div key={tier} className="flex justify-between">
+                            <span className={tier === 'better' ? 'font-medium text-primary' : 'text-muted-foreground'}>
+                              {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                              {tier === 'better' && ' (Recommended)'}
+                            </span>
+                            <span className={tier === 'better' ? 'font-bold' : 'font-medium'}>
+                              {formatCurrency(tierTotals[tier])}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between text-primary pt-1 border-t">
+                          <span className="font-medium">Deposit Required (15%)</span>
+                          <span className="font-bold">{formatCurrency(depositRequired)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total</span>
+                          <span className="font-bold text-lg">{formatCurrency(quoteTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-primary">
+                          <span className="font-medium">Deposit Required (15%)</span>
+                          <span className="font-bold">{formatCurrency(depositRequired)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -615,7 +647,7 @@ The ${branding.name} Team`);
             {currentStep !== 'confirm' ? (
               <Button
                 onClick={goNext}
-                className="bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="bg-primary hover:bg-primary/90"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
@@ -623,7 +655,7 @@ The ${branding.name} Team`);
             ) : !sendSuccess && !isSending ? (
               <Button
                 onClick={handleSend}
-                className="bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="bg-primary hover:bg-primary/90"
               >
                 <Send className="h-4 w-4 mr-2" />
                 Send Quote

@@ -47,6 +47,14 @@ const PROJECT_TYPE_LABELS: Record<string, string> = {
   other: 'Renovation Work',
 };
 
+type TierName = 'good' | 'better' | 'best';
+
+interface TierData {
+  items: QuoteLineItem[];
+  total: number;
+  label: string;
+}
+
 export interface QuotePdfProps {
   lead: Lead;
   quote: QuoteDraft;
@@ -54,9 +62,32 @@ export interface QuotePdfProps {
 }
 
 export function QuotePdfDocument({ lead, quote, branding }: QuotePdfProps) {
+  const quoteRecord = quote as unknown as Record<string, unknown>;
+  const isTiered = quoteRecord['tier_mode'] === 'tiered';
+
+  // For tiered quotes, use better tier as primary (backward compat)
   const lineItems = (quote.line_items as unknown as QuoteLineItem[]) || [];
   const quoteDate = new Date(quote.created_at);
   const primaryColor = branding.primaryColor;
+
+  // Parse tier data if available
+  const tierData: Record<TierName, TierData> | null = isTiered ? {
+    good: {
+      items: (quoteRecord['tier_good'] as QuoteLineItem[] | null) || [],
+      total: ((quoteRecord['tier_good'] as QuoteLineItem[] | null) || []).reduce((s, i) => s + i.total, 0),
+      label: 'Good — Economy',
+    },
+    better: {
+      items: (quoteRecord['tier_better'] as QuoteLineItem[] | null) || [],
+      total: ((quoteRecord['tier_better'] as QuoteLineItem[] | null) || []).reduce((s, i) => s + i.total, 0),
+      label: 'Better — Standard',
+    },
+    best: {
+      items: (quoteRecord['tier_best'] as QuoteLineItem[] | null) || [],
+      total: ((quoteRecord['tier_best'] as QuoteLineItem[] | null) || []).reduce((s, i) => s + i.total, 0),
+      label: 'Best — Premium',
+    },
+  } : null;
 
   // Generate quote number from lead ID (first 3 digits or sequential)
   const quoteNumber = lead.id.slice(0, 3).replace(/[^0-9]/g, '') || '001';
@@ -397,7 +428,7 @@ export function QuotePdfDocument({ lead, quote, branding }: QuotePdfProps) {
         {/* Terms and Total */}
         <View style={styles.bottomSection}>
           <View style={styles.termsSection}>
-            <Text style={styles.termsTitle}>Terms: 50% Deposit required to schedule work.</Text>
+            <Text style={styles.termsTitle}>Terms: 15% Deposit required to schedule work.</Text>
             <Text style={styles.termsText}>
               Disclaimer: Pricing on this estimate is subject to change if client changes requirements
               or unexpected issues arise during job. Due to fluctuations in commodity availability,
@@ -416,6 +447,96 @@ export function QuotePdfDocument({ lead, quote, branding }: QuotePdfProps) {
           </View>
         </View>
       </Page>
+
+      {/* Tier Comparison Page — only for tiered quotes */}
+      {isTiered && tierData && (
+        <Page size="LETTER" style={styles.page}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.logoSection}>
+              <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: primaryColor }}>{branding.name}</Text>
+            </View>
+            <View style={styles.estimateSection}>
+              <Text style={{ fontSize: 18, fontFamily: 'Helvetica-Bold', color: STATIC_COLORS.secondary }}>
+                PRICING OPTIONS
+              </Text>
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 11, color: STATIC_COLORS.muted, marginBottom: 20 }}>
+            We have prepared three options at different price points. Each tier includes the same scope of work
+            with different materials and finishes.
+          </Text>
+
+          {/* Three tier columns */}
+          {(['good', 'better', 'best'] as TierName[]).map((tierName) => {
+            const tier = tierData[tierName];
+            const tierSubtotal = tier.total;
+            const tierHst = tierSubtotal * 0.13;
+            const tierTotal = tierSubtotal + tierHst;
+            const isBetter = tierName === 'better';
+
+            return (
+              <View
+                key={tierName}
+                style={{
+                  marginBottom: 15,
+                  padding: 12,
+                  borderWidth: isBetter ? 2 : 1,
+                  borderColor: isBetter ? primaryColor : STATIC_COLORS.border,
+                  borderRadius: 4,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: STATIC_COLORS.secondary }}>
+                      {tier.label}
+                    </Text>
+                    {isBetter && (
+                      <Text style={{ fontSize: 9, color: primaryColor, fontFamily: 'Helvetica-Bold', marginLeft: 8 }}>
+                        RECOMMENDED
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: STATIC_COLORS.secondary }}>
+                    {formatCurrency(tierTotal)}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 9, color: STATIC_COLORS.muted }}>
+                    {tier.items.length} items — Subtotal: {formatCurrency(tierSubtotal)}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: STATIC_COLORS.muted }}>
+                    HST (13%): {formatCurrency(tierHst)}
+                  </Text>
+                </View>
+
+                {/* Key items summary */}
+                {tier.items.slice(0, 5).map((item, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: STATIC_COLORS.secondary, flex: 3 }}>
+                      {item.description}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: STATIC_COLORS.secondary, textAlign: 'right' as const, flex: 1 }}>
+                      {formatCurrency(item.total)}
+                    </Text>
+                  </View>
+                ))}
+                {tier.items.length > 5 && (
+                  <Text style={{ fontSize: 8, color: STATIC_COLORS.muted, marginTop: 2 }}>
+                    + {tier.items.length - 5} more items (see detailed breakdown)
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+
+          <Text style={{ fontSize: 9, color: STATIC_COLORS.muted, marginTop: 10, textAlign: 'center' as const }}>
+            All options include the same scope of work. Deposit of 15% required to schedule.
+          </Text>
+        </Page>
+      )}
     </Document>
   );
 }

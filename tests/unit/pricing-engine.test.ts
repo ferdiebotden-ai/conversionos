@@ -224,7 +224,7 @@ describe('generateEstimateSummary', () => {
     expect(summary).toContain('Contingency (10%):');
     expect(summary).toContain('HST (13%):');
     expect(summary).toContain('Deposit required:');
-    expect(summary).toContain('(50%)');
+    expect(summary).toContain('(15%)');
     expect(summary).toContain('preliminary AI-generated estimate');
   });
 

@@ -313,7 +313,7 @@ export function InvoiceEmailTemplate({ invoice, customMessage, branding }: Invoi
               </Text>
               {depositRequired > 0 && Number(invoice.amount_paid) === 0 && (
                 <Text style={{ ...balanceText, color: STATIC_COLORS.muted }}>
-                  Deposit required: {formatCurrency(depositRequired)} (50%)
+                  Deposit required: {formatCurrency(depositRequired)} (15%)
                 </Text>
               )}
             </Section>

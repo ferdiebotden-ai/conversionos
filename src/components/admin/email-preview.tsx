@@ -134,7 +134,7 @@ export function EmailPreview({
                           </tr>
                           ${depositRequired ? `
                           <tr>
-                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; color: #1565C0; font-weight: 500;">Deposit Required (50%)</td>
+                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; color: #1565C0; font-weight: 500;">Deposit Required (15%)</td>
                             <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; text-align: right; font-weight: bold; color: #1565C0;">${formatCurrency(depositRequired)}</td>
                           </tr>
                           ` : ''}
