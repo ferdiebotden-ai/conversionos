@@ -1,0 +1,11 @@
+item_name,category,unit,unit_price,supplier
+"Stock cabinets (per linear ft)",materials,lin ft,220,Test Hardware
+"Quartz countertop (installed)",materials,sqft,85,Test Stone Supply
+"Porcelain tile (floor)",materials,sqft,12,Tile Depot
+"Licensed plumber",labor,hr,95,
+"Licensed electrician",contract,hr,110,Spark Electric
+"HVAC technician",contract,hr,105,Cool Air Inc
+"Building permit",permit,ea,500,
+"Dumpster rental (10yd)",equipment,ea,450,Waste Solutions
+"Scaffolding rental (weekly)",equipment,week,175,Build Rental
+"Appliance allowance",allowances,ea,3500,

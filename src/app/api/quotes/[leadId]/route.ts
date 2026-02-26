@@ -271,9 +271,9 @@ export async function PUT(
         updated_at: now.toISOString(),
         ...totals,
       };
-      // Tier data (JSONB columns — may not be in generated types)
+      // Tier data (JSONB columns — tier_good/better/best exist in DB)
+      // Note: tier_mode is NOT stored in DB — inferred from tier arrays on read
       if (tier_mode) {
-        updateData['tier_mode'] = tier_mode;
         updateData['tier_good'] = (tier_good ?? null) as Json;
         updateData['tier_better'] = (tier_better ?? null) as Json;
         updateData['tier_best'] = (tier_best ?? null) as Json;
@@ -325,8 +325,8 @@ export async function PUT(
         expires_at: expiresAt.toISOString(),
         ...totals,
       };
+      // Tier data — tier_mode NOT stored in DB (inferred from tier arrays)
       if (tier_mode) {
-        insertData['tier_mode'] = tier_mode;
         insertData['tier_good'] = (tier_good ?? null) as Json;
         insertData['tier_better'] = (tier_better ?? null) as Json;
         insertData['tier_best'] = (tier_best ?? null) as Json;

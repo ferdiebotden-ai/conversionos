@@ -22,10 +22,10 @@ interface VisualizationMetrics {
   total_visualizations: number;
   avg_generation_time_ms: number;
   avg_validation_score: number | null;
-  retry_rate: number;
-  quote_conversion_rate: number;
-  admin_selection_rate: number;
-  conversation_mode_rate: number;
+  retry_rate: number | null;
+  quote_conversion_rate: number | null;
+  admin_selection_rate: number | null;
+  conversation_mode_rate: number | null;
 }
 
 type FeasibilityDistribution = Record<string, number>;
@@ -145,7 +145,7 @@ export function VisualizationMetricsWidget({
               Quote Conversion
             </div>
             <div className="text-2xl font-bold">
-              {metrics.quote_conversion_rate.toFixed(1)}%
+              {(metrics.quote_conversion_rate ?? 0).toFixed(1)}%
             </div>
           </div>
 
@@ -156,7 +156,7 @@ export function VisualizationMetricsWidget({
               Admin Selected
             </div>
             <div className="text-2xl font-bold">
-              {metrics.admin_selection_rate.toFixed(1)}%
+              {(metrics.admin_selection_rate ?? 0).toFixed(1)}%
             </div>
           </div>
 
@@ -167,7 +167,7 @@ export function VisualizationMetricsWidget({
               Chat Mode
             </div>
             <div className="text-2xl font-bold">
-              {metrics.conversation_mode_rate.toFixed(1)}%
+              {(metrics.conversation_mode_rate ?? 0).toFixed(1)}%
             </div>
           </div>
 
@@ -239,7 +239,7 @@ export function VisualizationMetricsWidget({
         <div className="mt-4 pt-4 border-t border-border text-sm text-muted-foreground">
           Retry rate:{' '}
           <span className="font-medium text-foreground">
-            {metrics.retry_rate.toFixed(1)}%
+            {(metrics.retry_rate ?? 0).toFixed(1)}%
           </span>
         </div>
       </CardContent>
