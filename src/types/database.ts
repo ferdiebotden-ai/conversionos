@@ -737,3 +737,63 @@ export interface QuoteLineItem {
   unit_price: number;
   total: number;
 }
+
+// Contractor uploaded prices (F9: CSV Price Upload)
+export interface ContractorPrice {
+  id: string;
+  site_id: string;
+  item_name: string;
+  category: string;
+  unit: string;
+  unit_price: number;
+  supplier: string | null;
+  uploaded_at: string;
+  created_at: string;
+}
+
+export interface ContractorPriceInsert {
+  site_id: string;
+  item_name: string;
+  category: string;
+  unit?: string | undefined;
+  unit_price: number;
+  supplier?: string | null | undefined;
+}
+
+// Assembly template item (within JSONB)
+export interface AssemblyTemplateItem {
+  description: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+}
+
+// Assembly templates (F10: Assembly Templates)
+export interface AssemblyTemplate {
+  id: string;
+  site_id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  items: AssemblyTemplateItem[];
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssemblyTemplateInsert {
+  site_id: string;
+  name: string;
+  category: string;
+  description?: string | null | undefined;
+  items: AssemblyTemplateItem[];
+  is_default?: boolean | undefined;
+}
+
+export interface AssemblyTemplateUpdate {
+  name?: string | undefined;
+  category?: string | undefined;
+  description?: string | null | undefined;
+  items?: AssemblyTemplateItem[] | undefined;
+}

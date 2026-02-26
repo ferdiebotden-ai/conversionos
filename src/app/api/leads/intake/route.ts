@@ -103,6 +103,11 @@ export async function POST(request: Request) {
     // Attempt AI quote generation if enough data (non-blocking)
     if (data.projectType && data.goalsText && canAccess(tier, 'ai_quote_engine')) {
       try {
+        // Fetch contractor prices for AI prompt injection
+        const { data: contractorPrices } = await (supabase as any).from('contractor_prices')
+          .select('*')
+          .eq('site_id', siteId);
+
         const { generateAIQuote, convertAIQuoteToLineItems, calculateAIQuoteTotals } = await import('@/lib/ai/quote-generation');
         const aiQuote = await generateAIQuote({
           projectType: data.projectType,
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
           goalsText: data.goalsText,
           city: data.city || 'Ontario',
           province: 'ON',
-        });
+        }, undefined, contractorPrices ?? []);
 
         const aiTotals = calculateAIQuoteTotals(aiQuote);
         const quoteDraftJson = {

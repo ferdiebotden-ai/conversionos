@@ -110,14 +110,19 @@ export async function POST(
       .maybeSingle();
     const markups: CategoryMarkupsConfig = (markupsRow?.value as unknown as CategoryMarkupsConfig) || DEFAULT_CATEGORY_MARKUPS;
 
+    // Fetch contractor prices for AI prompt injection
+    const { data: contractorPrices } = await (supabase as any).from('contractor_prices')
+      .select('*')
+      .eq('site_id', getSiteId());
+
     // Generate new AI quote (single or tiered)
     let aiQuote;
     let aiTieredQuote;
     if (tiered) {
       if (guidance) {
-        aiTieredQuote = await regenerateTieredAIQuote(quoteInput, guidance, markups);
+        aiTieredQuote = await regenerateTieredAIQuote(quoteInput, guidance, markups, contractorPrices ?? []);
       } else {
-        aiTieredQuote = await generateTieredAIQuote(quoteInput, markups);
+        aiTieredQuote = await generateTieredAIQuote(quoteInput, markups, contractorPrices ?? []);
       }
       // Use the "better" tier as the primary quote for backward compat
       aiQuote = {
@@ -129,9 +134,9 @@ export async function POST(
         calculationSummary: aiTieredQuote.calculationSummary,
       };
     } else if (guidance) {
-      aiQuote = await regenerateAIQuote(quoteInput, guidance, markups);
+      aiQuote = await regenerateAIQuote(quoteInput, guidance, markups, contractorPrices ?? []);
     } else {
-      aiQuote = await generateAIQuote(quoteInput, markups);
+      aiQuote = await generateAIQuote(quoteInput, markups, contractorPrices ?? []);
     }
 
     // Update the lead's quote_draft_json with the new AI quote

@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Quote Engine V2 Phase 3A — multi-page PDF, e-signature, quote versioning, contractor lead intake)
+**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Quote Engine V2 Phase 3B — CSV price upload, assembly templates)
 
 ---
 
@@ -60,6 +60,8 @@ The result: faster response times, higher conversion rates, and a sales tool tha
 | Architecture drawings management | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
 | Quote assistance (admin-configurable) | — | Yes | Yes |
+| CSV price upload (contractor's own pricing) | — | Yes | Yes |
+| Assembly templates (reusable line item bundles) | — | Yes | Yes |
 | Voice agent (Emma via ElevenLabs, web) | Yes | Yes | Yes |
 | Voice agent (phone/Twilio) | — | — | Yes |
 | Analytics dashboard (Recharts) | — | — | Yes |
@@ -350,7 +352,7 @@ All website copy dynamically adapts based on **tier + quote assistance mode**. T
 
 ## Quote Engine V2
 
-The AI quote engine generates structured, transparent quotes with full cost breakdowns. Four integrated subsystems work together: transparency cards, per-category markups, Good/Better/Best tiers, and scope gap detection.
+The AI quote engine generates structured, transparent quotes with full cost breakdowns. Six integrated subsystems work together: transparency cards, per-category markups, Good/Better/Best tiers, scope gap detection, contractor price upload (CSV), and assembly templates.
 
 ### Transparency Cards ("Show the Math")
 
@@ -370,7 +372,7 @@ Every AI-generated line item includes a `transparencyData` object validated by `
 
 **UI component:** `TransparencyCard` (`src/components/admin/transparency-card.tsx`) — animated expand/collapse card below line item row. Sections: room analysis, material selection, cost breakdown table, markup badge, data source badge, total. Toggle via Info icon button on each AI line item. Mobile: full width with horizontal scroll on cost table.
 
-**AI prompt enrichment:** The system prompt in `quote-generation.ts` injects the full Ontario pricing database (`PRICING_FULL` from `src/lib/ai/knowledge/pricing.ts`) and material references filtered by project type via `getMaterialsForRoom()`. The AI references actual Ontario DB rates in every cost breakdown line. `maxOutputTokens` increased to 4096 for transparency data.
+**AI prompt enrichment:** The system prompt in `quote-generation.ts` injects the full Ontario pricing database (`PRICING_FULL` from `src/lib/ai/knowledge/pricing.ts`) and material references filtered by project type via `getMaterialsForRoom()`. When the contractor has uploaded their own price list (CSV), `buildContractorPricesSection()` injects up to 100 contractor prices grouped by category, instructing the AI to prioritise them over Ontario DB defaults. The AI references actual Ontario DB or contractor rates in every cost breakdown line. `maxOutputTokens` increased to 4096 for transparency data.
 
 ### Per-Category Markup Controls
 
@@ -579,19 +581,64 @@ Contractors can create leads directly from the admin dashboard instead of waitin
 | `tests/unit/quote-versioning.test.ts` | 15 tests for version snapshot logic |
 | `tests/unit/intake-extraction.test.ts` | 26 tests for AI intake extraction |
 
+### CSV Price Upload (Phase 3B)
+
+Contractors upload their own material/labour price lists via CSV. When present, the AI quote engine prioritises these prices over Ontario database defaults, and the quote editor shows a "Using your prices (N items)" badge.
+
+**Upload flow:** Admin Settings → "Price List" tab → drag-drop or click to upload CSV → preview first 10 rows → confirm. Full replace semantics (each upload deletes previous prices). Max 5MB file size.
+
+**CSV format:** `item_name` (required), `category` (materials/labor/contract/permit/equipment/allowances/other), `unit` (default: ea), `unit_price` (required, positive), `supplier` (optional). Headers are normalised (trim, lowercase, underscores).
+
+**AI integration:** `buildContractorPricesSection()` in `quote-generation.ts` injects up to 100 contractor prices into the AI prompt, grouped by category. The AI is instructed to prioritise contractor prices and set `transparencyData.dataSource` to "Contractor Price List" for matched items. All four generation functions (`generateAIQuote`, `regenerateAIQuote`, `generateTieredAIQuote`, `regenerateTieredAIQuote`) accept an optional `contractorPrices` parameter.
+
+**Fuzzy matching:** `src/lib/pricing/fuzzy-match.ts` — Levenshtein distance algorithm matches AI-generated item descriptions to contractor price names (threshold: 3). Used for the "Using your prices" badge indicator in the quote editor, not for price substitution (the AI handles that via prompt).
+
+**Key files:**
+| File | Purpose |
+|------|---------|
+| `src/app/api/admin/prices/route.ts` | POST (CSV upload), GET (list), DELETE (clear) |
+| `src/components/admin/price-upload.tsx` | Upload zone, preview, current prices table, sample download |
+| `src/lib/pricing/fuzzy-match.ts` | Levenshtein distance + matching functions |
+| `supabase/migrations/20260228000000_contractor_prices.sql` | Table with NUMERIC(12,2), category CHECK, RLS |
+| `tests/unit/fuzzy-match.test.ts` | 21 tests for distance calculation and matching |
+| `tests/unit/price-upload.test.ts` | 16 tests for CSV validation and price indicators |
+
+### Assembly Templates (Phase 3B)
+
+Reusable bundles of line items (e.g., "Standard Kitchen Demolition", "Bathroom Tile Package") that contractors can insert into quotes with one click. Ships with 10 default Ontario renovation templates.
+
+**Template management:** Admin Settings → "Templates" tab → CRUD interface with category-coloured cards, create/edit dialog with inline line items editor, duplicate, delete. "Load Default Templates" seeds 10 built-in Ontario templates on first use.
+
+**Quote editor integration:** "Insert Template" button next to "Add Line Item" opens the template picker modal. Category filter tabs (All/Kitchen/Bathroom/etc.), selectable template cards with expandable item preview showing quantities and totals. Inserts all template items as new line items with `isFromTemplate: true` and `templateName` metadata.
+
+**Default templates (10):** Standard Kitchen Demolition, Kitchen Cabinetry Package, Bathroom Rough-In, Bathroom Tile, Basement Framing & Insulation, Basement Drywall & Paint, Hardwood Flooring Installation, Electrical Rough-In & Lighting, Exterior Paint, Permit & Inspection Package. All priced with realistic Ontario rates.
+
+**Key files:**
+| File | Purpose |
+|------|---------|
+| `src/app/api/admin/templates/route.ts` | GET (list, optional category filter), POST (create) |
+| `src/app/api/admin/templates/[id]/route.ts` | GET, PUT, DELETE for single template |
+| `src/components/admin/template-manager.tsx` | Full CRUD UI with category cards |
+| `src/components/admin/template-picker.tsx` | Quote editor insertion modal |
+| `src/lib/data/default-templates.ts` | 10 Ontario renovation assembly templates |
+| `supabase/migrations/20260228100000_assembly_templates.sql` | Table with JSONB items, category CHECK, RLS |
+| `tests/unit/assembly-templates.test.ts` | 25 tests for validation, defaults, insertion |
+
 ---
 
 ## Database Schema
 
 **Supabase project:** NorBot-Pipeline (ktpfyangnmpwufghgasx, ca-central-1)
 
-### Core Tables (12)
+### Core Tables (14)
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
 | `admin_settings` | Per-tenant config (branding, pricing, plan) | `site_id`, `key`, `value` (JSONB) |
 | `leads` | CRM — homeowner and contractor-created inquiries | Contact info, project details, AI transcripts, Ontario-specific fields, `created_by` (customer/contractor), `intake_method` (website/voice_dictation/text_input/form), `intake_raw_input` |
 | `quote_drafts` | AI-generated quotes with versioning | Line items, tiered pricing (good/better/best), totals with HST, `version` (int), `sent_at`, `acceptance_token` (unique), `acceptance_status` (pending/accepted/declined), `accepted_at`, `accepted_by_name`, `accepted_by_ip` |
+| `contractor_prices` | Contractor's uploaded price list (CSV) | `site_id`, `item_name`, `category` (7 types), `unit`, `unit_price` (NUMERIC 12,2), `supplier`, `uploaded_at` |
+| `assembly_templates` | Reusable line item bundles | `site_id`, `name`, `category` (8 room types), `items` (JSONB array), `is_default`, `description` |
 | `visualizations` | AI design concepts | Photo analysis, concepts (JSONB), generation metrics, admin review fields. Room type CHECK: kitchen, bathroom, living_room, bedroom, basement, dining_room, exterior, other. Style CHECK: modern, traditional, farmhouse, industrial, minimalist, contemporary, other. |
 | `lead_visualizations` | Junction: leads ↔ visualizations | `is_primary`, `admin_selected` |
 | `invoices` | Billing | Line items, payment tracking, auto-numbering (INV-YYYY-NNN) |
@@ -612,7 +659,7 @@ Contractors can create leads directly from the admin dashboard instead of waitin
 
 ---
 
-## API Routes (42 endpoints)
+## API Routes (48 endpoints)
 
 ### AI (7 routes)
 | Route | Description |
@@ -656,12 +703,15 @@ Contractors can create leads directly from the admin dashboard instead of waitin
 | `POST /api/invoices/[id]/send` | Send via email |
 | `GET /api/invoices/export/sage` | Sage 50 CSV export |
 
-### Admin (7 routes)
+### Admin (13 routes)
 | Route | Description |
 |-------|-------------|
 | `GET/POST /api/admin/leads/[id]/visualizations` | Lead-visualization linking |
+| `POST/GET/DELETE /api/admin/prices` | CSV price upload (POST multipart), list (GET), clear all (DELETE) |
 | `GET /api/admin/quote-assistance` | Quote assistance config |
 | `GET/PUT/PATCH /api/admin/settings` | Tenant settings CRUD |
+| `GET/POST /api/admin/templates` | List templates (GET, optional ?category= filter), create template (POST) |
+| `GET/PUT/DELETE /api/admin/templates/[id]` | Single template CRUD |
 | `GET/PATCH /api/admin/visualizations/[id]` | Visualization admin review |
 | `GET /api/admin/visualizations/metrics` | Visualization KPIs |
 | `GET /api/admin/visualizations/trends` | Daily trends (Dominate only) |
@@ -708,7 +758,7 @@ Contractors can create leads directly from the admin dashboard instead of waitin
 | `/admin/invoices/[id]` | Accelerate+ | Invoice detail with payments |
 | `/admin/drawings` | Accelerate+ | Drawing management |
 | `/admin/drawings/[id]` | Accelerate+ | Drawing editor |
-| `/admin/settings` | Accelerate+ | Branding, pricing, quote assistance config |
+| `/admin/settings` | Accelerate+ | Branding, pricing, quote assistance, price list, templates |
 | `/admin/analytics` | Dominate | Recharts analytics dashboard |
 
 ---

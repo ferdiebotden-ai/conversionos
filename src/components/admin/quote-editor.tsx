@@ -27,7 +27,9 @@ import { TierComparison, type TierName } from './tier-comparison';
 import { ScopeGapRecommendations } from './scope-gap-recommendations';
 import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
 import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
-import type { QuoteDraft, Json } from '@/types/database';
+import { TemplatePicker } from './template-picker';
+import { countPriceMatches } from '@/lib/pricing/fuzzy-match';
+import type { QuoteDraft, Json, AssemblyTemplate, ContractorPrice } from '@/types/database';
 import type { AIGeneratedQuote, AIQuoteLineItem, AITieredQuote } from '@/lib/schemas/ai-quote';
 import {
   Plus,
@@ -254,6 +256,31 @@ export function QuoteEditor({
   const [selectedVersion, setSelectedVersion] = useState(latestVersion);
   const isReadOnly = versions && versions.length > 1 && selectedVersion !== latestVersion;
 
+  // Template picker state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+  // Contractor prices state (for "Using your prices" indicator)
+  const [contractorPrices, setContractorPrices] = useState<ContractorPrice[]>([]);
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const res = await fetch('/api/admin/prices');
+        const json = await res.json();
+        if (json.success && json.data?.length > 0) {
+          setContractorPrices(json.data);
+        }
+      } catch {
+        // Silently fail — indicator just won't show
+      }
+    }
+    fetchPrices();
+  }, []);
+
+  const contractorPriceMatchCount = useMemo(
+    () => countPriceMatches(lineItems.map(i => i.description), contractorPrices),
+    [lineItems, contractorPrices],
+  );
+
   // Acceptance status from initial quote
   const quoteRecord = initialQuote as unknown as Record<string, unknown> | null;
   const acceptanceStatus = quoteRecord?.['acceptance_status'] as string | null;
@@ -392,6 +419,22 @@ export function QuoteEditor({
       isFromAI: false,
     };
     setLineItems([...lineItems, newItem]);
+    markChanged();
+  }
+
+  function handleInsertTemplate(template: AssemblyTemplate) {
+    const items = typeof template.items === 'string' ? JSON.parse(template.items) : template.items;
+    const newItems: LineItem[] = items.map((item: { description: string; category: string; quantity: number; unit: string; unit_price: number }) => ({
+      id: generateId(),
+      description: item.description,
+      category: item.category as LineItem['category'],
+      quantity: item.quantity,
+      unit: item.unit,
+      unit_price: item.unit_price,
+      total: item.quantity * item.unit_price,
+      isFromAI: false,
+    }));
+    setLineItems([...lineItems, ...newItems]);
     markChanged();
   }
 
@@ -753,7 +796,7 @@ export function QuoteEditor({
       {/* AI Info Banner */}
       {aiQuote && aiItemCount > 0 && (
         <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50/50 border border-purple-200/50">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm flex-wrap">
             <Sparkles className="h-4 w-4 text-purple-600" />
             <span className="text-purple-700">
               AI-generated quote
@@ -761,6 +804,11 @@ export function QuoteEditor({
               {tierMode === 'single' && ` — ${aiItemCount} items`}
               {aiConfidence > 0 && ` — ${Math.round(aiConfidence * 100)}% avg confidence`}
             </span>
+            {contractorPriceMatchCount > 0 && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                Using your prices ({contractorPriceMatchCount} item{contractorPriceMatchCount !== 1 ? 's' : ''})
+              </Badge>
+            )}
           </div>
           <Button
             variant="outline"
@@ -878,6 +926,14 @@ export function QuoteEditor({
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Line Item
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplatePicker(true)}
+            >
+              <Layers className="h-4 w-4 mr-1" />
+              Insert Template
             </Button>
             {aiQuote && lineItems.length > 0 && (
               <Button
@@ -1103,6 +1159,13 @@ export function QuoteEditor({
         onOpenChange={setShowRegenerateDialog}
         onRegenerate={handleRegenerateAIQuote}
         isRegenerating={isRegenerating}
+      />
+
+      {/* Template Picker */}
+      <TemplatePicker
+        open={showTemplatePicker}
+        onOpenChange={setShowTemplatePicker}
+        onInsert={handleInsertTemplate}
       />
     </div>
   );

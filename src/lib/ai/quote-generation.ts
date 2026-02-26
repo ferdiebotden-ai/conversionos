@@ -24,6 +24,7 @@ import {
 import { PRICING_FULL } from './knowledge/pricing';
 import { getMaterialsForRoom, type RoomCategory, type FinishLevel } from './knowledge/pricing-data';
 import type { CategoryMarkupsConfig } from '../pricing/category-markups';
+import type { ContractorPrice } from '@/types/database';
 
 /**
  * System prompt for quote generation — enriched with full Ontario pricing DB
@@ -104,9 +105,47 @@ Apply these exact markups by category:
 }
 
 /**
+ * Build contractor prices section for AI prompt.
+ * Caps at 100 items to control prompt size.
+ */
+function buildContractorPricesSection(prices: ContractorPrice[]): string {
+  if (prices.length === 0) return '';
+
+  const capped = prices.slice(0, 100);
+  const parts: string[] = [];
+
+  parts.push(`\n## Contractor's Own Price List (PRIORITISE THESE)`);
+  parts.push(`The contractor has uploaded their own pricing. Use these prices FIRST.`);
+  parts.push(`Only fall back to Ontario DB prices for items NOT in this list.`);
+
+  // Group by category
+  const byCategory = new Map<string, ContractorPrice[]>();
+  for (const p of capped) {
+    const existing = byCategory.get(p.category) ?? [];
+    existing.push(p);
+    byCategory.set(p.category, existing);
+  }
+
+  for (const [cat, items] of byCategory) {
+    parts.push(`\n**${cat}:**`);
+    for (const item of items) {
+      parts.push(`- ${item.item_name}: $${item.unit_price} / ${item.unit}${item.supplier ? ` (${item.supplier})` : ''}`);
+    }
+  }
+
+  parts.push(`\nWhen using contractor prices, set transparencyData.dataSource to "Contractor Price List".`);
+
+  return parts.join('\n');
+}
+
+/**
  * Build user prompt from input data
  */
-function buildUserPrompt(input: QuoteGenerationInput, markups?: CategoryMarkupsConfig): string {
+function buildUserPrompt(
+  input: QuoteGenerationInput,
+  markups?: CategoryMarkupsConfig,
+  contractorPrices?: ContractorPrice[],
+): string {
   const parts: string[] = [];
 
   // Project overview
@@ -187,6 +226,11 @@ function buildUserPrompt(input: QuoteGenerationInput, markups?: CategoryMarkupsC
     }
   }
 
+  // Contractor's own prices (override Ontario DB defaults)
+  if (contractorPrices && contractorPrices.length > 0) {
+    parts.push(buildContractorPricesSection(contractorPrices));
+  }
+
   parts.push(`\n## Instructions`);
   parts.push(`Generate specific line items for this ${input.projectType} renovation project.`);
   parts.push(`Make sure totals align with the expected range.`);
@@ -202,6 +246,7 @@ function buildUserPrompt(input: QuoteGenerationInput, markups?: CategoryMarkupsC
 export async function generateAIQuote(
   input: QuoteGenerationInput,
   markups?: CategoryMarkupsConfig,
+  contractorPrices?: ContractorPrice[],
 ): Promise<AIGeneratedQuote> {
   // Validate input
   const validatedInput = QuoteGenerationInputSchema.parse(input);
@@ -211,7 +256,7 @@ export async function generateAIQuote(
     model: openai('gpt-4o'),
     schema: AIGeneratedQuoteSchema,
     system: QUOTE_GENERATION_SYSTEM_PROMPT,
-    prompt: buildUserPrompt(validatedInput, markups),
+    prompt: buildUserPrompt(validatedInput, markups, contractorPrices),
     temperature: 0.3,
     maxOutputTokens: 4096,
   });
@@ -226,11 +271,12 @@ export async function regenerateAIQuote(
   input: QuoteGenerationInput,
   adminGuidance: string,
   markups?: CategoryMarkupsConfig,
+  contractorPrices?: ContractorPrice[],
 ): Promise<AIGeneratedQuote> {
   // Validate input
   const validatedInput = QuoteGenerationInputSchema.parse(input);
 
-  const userPrompt = buildUserPrompt(validatedInput, markups) + `
+  const userPrompt = buildUserPrompt(validatedInput, markups, contractorPrices) + `
 
 ## Admin Guidance
 The admin has requested the following adjustments to the quote:
@@ -257,6 +303,7 @@ Please regenerate the quote incorporating this feedback.`;
 export async function generateTieredAIQuote(
   input: QuoteGenerationInput,
   markups?: CategoryMarkupsConfig,
+  contractorPrices?: ContractorPrice[],
 ): Promise<AITieredQuote> {
   const validatedInput = QuoteGenerationInputSchema.parse(input);
 
@@ -294,7 +341,7 @@ Generate THREE tiers of pricing for this project:
     model: openai('gpt-4o'),
     schema: AITieredQuoteSchema,
     system: tieredSystemPrompt,
-    prompt: buildUserPrompt(validatedInput, markups),
+    prompt: buildUserPrompt(validatedInput, markups, contractorPrices),
     temperature: 0.3,
     maxOutputTokens: 6144,
   });
@@ -309,6 +356,7 @@ export async function regenerateTieredAIQuote(
   input: QuoteGenerationInput,
   adminGuidance: string,
   markups?: CategoryMarkupsConfig,
+  contractorPrices?: ContractorPrice[],
 ): Promise<AITieredQuote> {
   const validatedInput = QuoteGenerationInputSchema.parse(input);
 
@@ -318,7 +366,7 @@ export async function regenerateTieredAIQuote(
 Generate THREE tiers: Good (economy), Better (standard, recommended), Best (premium).
 Better 20-30% above Good, Best 40-60% above Good. Descriptions must differ per tier.`;
 
-  const userPrompt = buildUserPrompt(validatedInput, markups) + `
+  const userPrompt = buildUserPrompt(validatedInput, markups, contractorPrices) + `
 
 ## Admin Guidance
 ${adminGuidance}

@@ -16,9 +16,12 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote } from 'lucide-react';
+import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers } from 'lucide-react';
 import { CategoryMarkupSettings } from '@/components/admin/category-markup-settings';
 import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
+import { PriceUpload } from '@/components/admin/price-upload';
+import { TemplateManager } from '@/components/admin/template-manager';
+import { useTier } from '@/components/tier-provider';
 
 // Types for settings
 interface PricingRange {
@@ -157,6 +160,7 @@ function PricingCard({
 }
 
 export default function SettingsPage() {
+  const { canAccess } = useTier();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -326,6 +330,18 @@ export default function SettingsPage() {
             <Building className="h-4 w-4" />
             Business Info
           </TabsTrigger>
+          {canAccess('csv_price_upload') && (
+            <TabsTrigger value="price-list" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Price List
+            </TabsTrigger>
+          )}
+          {canAccess('assembly_templates') && (
+            <TabsTrigger value="templates" className="gap-2">
+              <Layers className="h-4 w-4" />
+              Templates
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Pricing Tab */}
@@ -735,6 +751,20 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Price List Tab (F9 — self-contained, own API calls) */}
+        {canAccess('csv_price_upload') && (
+          <TabsContent value="price-list" className="space-y-6">
+            <PriceUpload />
+          </TabsContent>
+        )}
+
+        {/* Templates Tab (F10 — self-contained, own API calls) */}
+        {canAccess('assembly_templates') && (
+          <TabsContent value="templates" className="space-y-6">
+            <TemplateManager />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Save Button */}

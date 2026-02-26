@@ -182,6 +182,12 @@ export async function POST(request: NextRequest) {
       // Generate AI-powered detailed quote with line items (Accelerate+ only)
       if (hasQuoteEngine) {
         try {
+          // Fetch contractor prices for AI prompt injection
+          const priceClient = createServiceClient();
+          const { data: contractorPrices } = await (priceClient as any).from('contractor_prices')
+            .select('*')
+            .eq('site_id', getSiteId());
+
           aiGeneratedQuote = await generateAIQuote({
             projectType: data.projectType,
             areaSqft: data.areaSqft,
@@ -190,7 +196,7 @@ export async function POST(request: NextRequest) {
             goalsText: data.goalsText,
             city: 'Ontario', // Default for now
             province: 'ON',
-          });
+          }, undefined, contractorPrices ?? []);
 
           // Add AI quote data to the draft JSON
           const aiTotals = calculateAIQuoteTotals(aiGeneratedQuote);
