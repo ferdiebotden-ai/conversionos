@@ -55,8 +55,9 @@ tenant-builder/
     screenshot.mjs       # Desktop + mobile screenshots via Playwright
     structural-qa.mjs    # Wraps existing verify.mjs (8-check suite)
     visual-qa.mjs        # Claude Vision 5-dimension rubric
-    refinement-loop.mjs  # Fix-and-recheck cycle (max 3 iterations)
-    content-integrity.mjs # Demo leakage + broken image + colour + section checks
+    refinement-loop.mjs  # Fix-and-recheck cycle (plateau/regression detection, snapshot/rollback)
+    content-integrity.mjs # 9-check suite + autoFixViolations() for DB cleanup
+    audit-report.mjs     # Human-readable markdown audit report generator
   schemas/
     icp-score.json       # ICP scoring structured output
     branding-v2.json     # Branding extraction structured output
@@ -111,11 +112,13 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 1. **Select targets** — from Turso DB (pipeline mode) or Firecrawl search (discovery mode)
 2. **ICP score** — 6-criterion model (100 pts), threshold 50 for manual review, 70 for auto-proceed
 3. **Scrape** — branding v2 + existing 7-stage scrape.mjs + 4-level logo extraction + OKLCH recomputation + trust metrics from Turso
-4. **Quality gates** — filter testimonials (min 2 valid), portfolio (require images), services (require name+description), hero (reject generic)
-5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment
+4. **Quality gates** — filter testimonials (min 2 valid), portfolio (require images), services (require name+description), hero (reject generic), verifiable badge filter (15 keywords), logo URL keyword filter (27 non-logo terms)
+5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment. Provenance tracking via `_provenance` field.
 6. **Merge proxy** — combine all fragments into proxy.ts
-7. **Git + deploy** — commit, push, wait for Vercel
-8. **QA** — structural checks + visual scoring + content integrity (demo leakage, broken images, colour, section integrity) + refinement loop
+7. **Git + deploy** — commit, push, wait for Vercel (poll skipped with `--skip-git`)
+8. **QA Phase A** — content integrity (9 checks: demo leakage, broken images, demo images, colour, sections, fabrication, placeholders, business name, copyright) → auto-fix critical issues
+9. **QA Phase B** — visual QA + refinement loop (plateau/regression detection, snapshot/rollback)
+10. **Audit report** — human-readable markdown (content integrity + visual QA + auto-fixes + human review checklist)
 
 ## ICP Scoring (6 Dimensions, 100 pts)
 
@@ -147,15 +150,34 @@ Existing columns used: `bespoke_status`, `bespoke_score`, `brand_assets`
 
 ## Content Integrity QA (qa/content-integrity.mjs)
 
-Post-provisioning Playwright check for 5 categories:
+Post-provisioning Playwright check for 9 categories + auto-fix:
 1. **Demo leakage** — scans for NorBot phone/email/address/demo image paths on tenant pages
 2. **Broken images** — HEAD requests on all `<img>` sources + naturalWidth check
 3. **Demo images** — regex scan for `/images/demo/` in HTML source
 4. **Colour consistency** — verifies `--primary` CSS variable matches expected colour
 5. **Section integrity** — flags sections with headings but < 20 chars body text
+6. **Fabrication detection** — reads `_provenance` from scraped.json, flags AI-generated high-risk fields
+7. **Placeholder text** — scans for generic phrases (lorem ipsum, your business, coming soon, etc.)
+8. **Business name presence** — verifies contractor name in page title and body
+9. **Copyright format** — checks for double periods in footer
+
+**Auto-fix:** `autoFixViolations(siteId, violations)` — clears fabricated trustBadges/processSteps/values/trust_metrics in Supabase.
 
 ```bash
-node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example [--expected-color "#D60000"]
+node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example [--expected-color "#D60000"] [--scraped-data ./scraped.json] [--business-name "Company Name"]
+```
+
+## Audit Report (qa/audit-report.mjs)
+
+Generates human-readable markdown summary from QA results:
+- Content integrity results (✅/⚠️ per check)
+- Visual QA scores per dimension
+- Auto-fixes applied
+- Human review checklist (logo quality, copy tone, hero image, brand feel, service accuracy)
+- Overall verdict: `complete` (all passed) or `review` (needs human glance)
+
+```bash
+node qa/audit-report.mjs --site-id example --results-dir ./results/2026-02-26/example/
 ```
 
 ## Testing

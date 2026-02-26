@@ -569,9 +569,9 @@ const generationLog = {
 };
 
 // Fields safe to generate (derivable from scraped data)
-const SAFE_TO_GENERATE = ['tagline', 'mission', 'why_choose_us', 'values', 'process_steps', 'hero_headline'];
+const SAFE_TO_GENERATE = ['tagline', 'mission', 'why_choose_us', 'hero_headline'];
 // Fields NEVER to generate (must be real or hidden)
-const NEVER_GENERATE = ['testimonials', 'certifications', 'team_members', 'phone', 'email', 'address', 'founded_year', 'portfolio'];
+const NEVER_GENERATE = ['testimonials', 'certifications', 'team_members', 'phone', 'email', 'address', 'founded_year', 'portfolio', 'process_steps', 'values', 'trust_badges'];
 
 const missingFields = SAFE_TO_GENERATE.filter(f => {
   const val = extracted[f];
@@ -602,16 +602,17 @@ if (missingFields.length > 0) {
 - hero_headline: attention-grabbing, 5-10 words, speaks to homeowners.
 - mission: 1-2 sentences about the company's purpose.
 - why_choose_us: 3 items, each with title (3-4 words) and description (1-2 sentences). Base on real attributes.
-- values: 3-4 items with title, description, and iconHint (one of: heart, shield, star, award, users, home, hammer, leaf, target, zap).
-- process_steps: 4 steps with title and description reflecting a realistic renovation workflow.
+- trust_badges, process_steps, and values: return null for these — they must come from real website content, never generated.
 Return JSON. Only include fields you can generate truthfully. Return null for fields you cannot.`,
     `Generate these missing fields: ${missingFields.join(', ')}\n\nScraped data:\n${contextForAI}`
   );
 
   if (generated) {
+    if (!extracted._provenance) extracted._provenance = {};
     for (const [field, value] of Object.entries(generated)) {
       if (value != null && missingFields.includes(field)) {
         extracted[field] = value;
+        extracted._provenance[field] = 'ai_generated';
         generationLog.fields.push({ field, source: 'ai_generated', value });
         console.log(`  ✓ Generated: ${field}`);
       }
@@ -620,7 +621,7 @@ Return JSON. Only include fields you can generate truthfully. Return null for fi
 }
 
 // 5b. Augment undersized arrays (e.g., expand 2 why_choose_us items to 3+)
-const ARRAY_MINIMUMS = { why_choose_us: 3, values: 3, process_steps: 4 };
+const ARRAY_MINIMUMS = { why_choose_us: 3 };
 const fieldsToAugment = Object.entries(ARRAY_MINIMUMS).filter(([field, min]) =>
   Array.isArray(extracted[field]) && extracted[field].length > 0 && extracted[field].length < min
 );
@@ -650,9 +651,11 @@ Return JSON with ONLY the new items to add (not the existing ones). Example: { "
   );
 
   if (augmented) {
+    if (!extracted._provenance) extracted._provenance = {};
     for (const [field] of fieldsToAugment) {
       if (Array.isArray(augmented[field]) && augmented[field].length > 0) {
         extracted[field] = [...extracted[field], ...augmented[field]];
+        extracted._provenance[field] = 'ai_augmented';
         generationLog.fields.push({ field, source: 'ai_augmented', added: augmented[field].length });
         console.log(`  ✓ Augmented: ${field} (now ${extracted[field].length} items)`);
       }

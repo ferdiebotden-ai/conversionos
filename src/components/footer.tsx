@@ -156,7 +156,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 text-sm text-muted-foreground md:flex-row">
-          <p>&copy; {currentYear} {branding.name}. All rights reserved.</p>
+          <p>&copy; {currentYear} {branding.name.replace(/\.\s*$/, '')}. All rights reserved.</p>
           <div className="flex gap-6">
             <span className="text-muted-foreground/60">
               Privacy Policy

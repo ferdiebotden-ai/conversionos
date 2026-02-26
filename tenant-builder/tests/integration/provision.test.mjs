@@ -91,10 +91,10 @@ describe('provision-tenant (integration)', () => {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    // Should still have exactly 4 admin_settings rows
+    // Should still have exactly 5 admin_settings rows (business_info, branding, company_profile, plan, quote_assistance)
     const sb = getSupabase();
     const { data } = await sb.from('admin_settings').select('key').eq('site_id', `${TEST_SITE_ID}-prov-test`);
-    expect(data.length).toBe(4);
+    expect(data.length).toBe(5);
 
     // Should still have exactly 1 tenants row
     const { data: tenants } = await sb.from('tenants').select('*').eq('site_id', `${TEST_SITE_ID}-prov-test`);

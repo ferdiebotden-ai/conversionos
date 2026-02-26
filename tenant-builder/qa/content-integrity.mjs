@@ -10,7 +10,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import * as logger from '../lib/logger.mjs';
@@ -307,6 +307,171 @@ async function checkSectionIntegrity(page, pageUrl) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Phase C: Additional checks
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Check for AI-fabricated content by reading _provenance from scraped.json.
+ * @param {string} scrapedDataPath - Path to scraped.json
+ * @returns {Array<{ field: string, source: string }>}
+ */
+function checkFabrication(scrapedDataPath) {
+  const violations = [];
+  try {
+    const data = JSON.parse(readFileSync(scrapedDataPath, 'utf-8'));
+    const provenance = data._provenance || {};
+    const HIGH_RISK_FIELDS = ['trust_badges', 'process_steps', 'values', 'testimonials', 'certifications', 'team_members'];
+    for (const field of HIGH_RISK_FIELDS) {
+      if (provenance[field] === 'ai_generated' || provenance[field] === 'ai_augmented') {
+        violations.push({ field, source: provenance[field] });
+      }
+    }
+  } catch { /* scraped.json may not exist for direct URL mode */ }
+  return violations;
+}
+
+const GENERIC_PHRASES = [
+  'lorem ipsum', 'your business', 'your company', 'example company',
+  'acme', '[company', '[business', 'placeholder', 'coming soon',
+  'tbd', 'insert', 'todo', 'description here',
+];
+
+/**
+ * Check for placeholder/generic text on a page.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @returns {Promise<Array<{ page: string, phrase: string, context: string }>>}
+ */
+async function checkPlaceholderText(page, pageUrl) {
+  const violations = [];
+  const bodyText = (await page.textContent('body') || '').toLowerCase();
+  for (const phrase of GENERIC_PHRASES) {
+    if (bodyText.includes(phrase)) {
+      const idx = bodyText.indexOf(phrase);
+      const context = bodyText.slice(Math.max(0, idx - 30), idx + phrase.length + 30).trim();
+      violations.push({ page: pageUrl, phrase, context });
+    }
+  }
+  return violations;
+}
+
+/**
+ * Check that business name appears on the page (title and body).
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @param {string} businessName
+ * @returns {Promise<Array<{ page: string, check: string, title?: string }>>}
+ */
+async function checkBusinessNamePresence(page, pageUrl, businessName) {
+  if (!businessName) return [];
+  const violations = [];
+  const bodyText = await page.textContent('body') || '';
+  const title = await page.title();
+  // Check page title contains business name (homepage only)
+  if (pageUrl.endsWith('/') && !title.toLowerCase().includes(businessName.toLowerCase())) {
+    violations.push({ page: pageUrl, check: 'title_missing', title });
+  }
+  // Check body contains business name
+  if (!bodyText.toLowerCase().includes(businessName.toLowerCase())) {
+    violations.push({ page: pageUrl, check: 'body_missing' });
+  }
+  return violations;
+}
+
+/**
+ * Check copyright line in footer for formatting issues.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @returns {Promise<Array<{ page: string, issue: string }>>}
+ */
+async function checkCopyrightFormat(page, pageUrl) {
+  const violations = [];
+  const footerText = await page.$eval('footer', el => el?.textContent || '').catch(() => '');
+  if (/\.\.\s*All rights reserved/i.test(footerText)) {
+    violations.push({ page: pageUrl, issue: 'double_period_in_copyright' });
+  }
+  return violations;
+}
+
+// ──────────────────────────────────────────────────────────
+// Auto-fix capability
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Auto-fix critical content integrity issues in Supabase.
+ * @param {string} siteId
+ * @param {Array} violations
+ * @returns {Promise<Array<{ fix: string, success: boolean }>>}
+ */
+export async function autoFixViolations(siteId, violations) {
+  const { getSupabase } = await import('../lib/supabase-client.mjs');
+  const sb = getSupabase();
+  const fixes = [];
+
+  // Check for fabrication violations that need DB cleanup
+  const fabricationFields = violations
+    .filter(v => v.check === 'fabrication')
+    .map(v => v.field);
+
+  if (fabricationFields.length === 0 && !violations.some(v => v.check === 'demo_leakage')) return fixes;
+
+  // Read current company_profile
+  const { data } = await sb
+    .from('admin_settings')
+    .select('value')
+    .eq('site_id', siteId)
+    .eq('key', 'company_profile')
+    .single();
+
+  if (!data?.value) return fixes;
+
+  const profile = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+  let changed = false;
+
+  // Map field names to their company_profile keys
+  const FIELD_TO_KEY = {
+    trust_badges: 'trustBadges',
+    process_steps: 'processSteps',
+    values: 'values',
+    trust_metrics: 'trust_metrics',
+  };
+
+  for (const field of fabricationFields) {
+    const profileKey = FIELD_TO_KEY[field];
+    if (profileKey && profile[profileKey]) {
+      profile[profileKey] = Array.isArray(profile[profileKey]) ? [] : {};
+      changed = true;
+      fixes.push({ fix: `Cleared fabricated ${field}`, success: true });
+      logger.info(`  Auto-fix: cleared fabricated ${field}`);
+    }
+  }
+
+  // Also fix trust_metrics if demo leakage detected
+  if (violations.some(v => v.check === 'demo_leakage')) {
+    if (profile.trust_metrics && Object.keys(profile.trust_metrics).length > 0) {
+      profile.trust_metrics = {};
+      changed = true;
+      fixes.push({ fix: 'Cleared trust_metrics (demo leakage)', success: true });
+    }
+  }
+
+  if (changed) {
+    const { error } = await sb
+      .from('admin_settings')
+      .update({ value: profile })
+      .eq('site_id', siteId)
+      .eq('key', 'company_profile');
+
+    if (error) {
+      fixes.push({ fix: 'DB update failed', success: false });
+      logger.error(`  Auto-fix DB update failed: ${error.message}`);
+    }
+  }
+
+  return fixes;
+}
+
+// ──────────────────────────────────────────────────────────
 // Main exported function
 // ──────────────────────────────────────────────────────────
 
@@ -314,11 +479,11 @@ async function checkSectionIntegrity(page, pageUrl) {
  * Run all content integrity checks on a provisioned tenant site.
  * @param {string} url - Base URL of the tenant site
  * @param {string} siteId - Tenant site ID
- * @param {{ expectedColour?: string, outputPath?: string }} options
+ * @param {{ expectedColour?: string, outputPath?: string, scrapedDataPath?: string, businessName?: string }} options
  * @returns {Promise<{ passed: boolean, violations: object[], summary: object }>}
  */
 export async function checkContentIntegrity(url, siteId, options = {}) {
-  const { expectedColour, outputPath } = options;
+  const { expectedColour, outputPath, scrapedDataPath, businessName } = options;
   const baseUrl = url.replace(/\/$/, '');
 
   const allViolations = [];
@@ -331,7 +496,20 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
     demo_images: 0,
     empty_sections: 0,
     colour_check: null,
+    fabrication: 0,
+    placeholder_text: 0,
+    business_name: 0,
+    copyright_format: 0,
   };
+
+  // Fabrication check (reads scraped.json, not browser)
+  if (scrapedDataPath && existsSync(scrapedDataPath)) {
+    const fabricationViolations = checkFabrication(scrapedDataPath);
+    for (const v of fabricationViolations) {
+      allViolations.push({ check: 'fabrication', ...v });
+    }
+    summary.fabrication = fabricationViolations.length;
+  }
 
   const browser = await chromium.launch({ headless: true });
 
@@ -394,6 +572,29 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
         }
         summary.empty_sections += sectionViolations.length;
 
+        // 6. Placeholder text check
+        const placeholderViolations = await checkPlaceholderText(page, pageUrl);
+        for (const v of placeholderViolations) {
+          allViolations.push({ check: 'placeholder_text', ...v });
+        }
+        summary.placeholder_text += placeholderViolations.length;
+
+        // 7. Business name presence check
+        if (businessName) {
+          const nameViolations = await checkBusinessNamePresence(page, pageUrl, businessName);
+          for (const v of nameViolations) {
+            allViolations.push({ check: 'business_name', ...v });
+          }
+          summary.business_name += nameViolations.length;
+        }
+
+        // 8. Copyright format check
+        const copyrightViolations = await checkCopyrightFormat(page, pageUrl);
+        for (const v of copyrightViolations) {
+          allViolations.push({ check: 'copyright_format', ...v });
+        }
+        summary.copyright_format += copyrightViolations.length;
+
         // 5. Colour consistency (homepage only, if expected colour provided)
         if (pagePath === '/' && expectedColour) {
           const colourResult = await checkColourConsistency(page, pageUrl, expectedColour);
@@ -447,6 +648,8 @@ if (isDirectRun) {
       url: { type: 'string' },
       'site-id': { type: 'string' },
       'expected-color': { type: 'string' },
+      'scraped-data': { type: 'string' },
+      'business-name': { type: 'string' },
       output: { type: 'string' },
       help: { type: 'boolean' },
     },
@@ -458,6 +661,7 @@ if (isDirectRun) {
 Usage:
   node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example
   node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example --expected-color "#D60000"
+  node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example --scraped-data ./results/scraped.json --business-name "Example Co"
   node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id example --output ./results/
 
 Checks:
@@ -465,7 +669,11 @@ Checks:
   2. Broken images     — <img> elements with non-loading sources
   3. Demo images       — /images/demo/ paths in HTML (unreplaced fallbacks)
   4. Section integrity — Sections with headings but no meaningful body content
-  5. Colour consistency — --primary CSS variable matches expected colour (optional)`);
+  5. Colour consistency — --primary CSS variable matches expected colour (optional)
+  6. Fabrication        — AI-generated high-risk fields (from scraped.json provenance)
+  7. Placeholder text   — Generic/lorem ipsum text on pages
+  8. Business name      — Contractor name present on pages and in title
+  9. Copyright format   — Double period or other formatting issues in footer`);
     process.exit(0);
   }
 
@@ -490,6 +698,8 @@ Checks:
   try {
     const result = await checkContentIntegrity(siteUrl, siteId, {
       expectedColour: args['expected-color'],
+      scrapedDataPath: args['scraped-data'],
+      businessName: args['business-name'],
       outputPath,
     });
 
@@ -506,6 +716,10 @@ Checks:
     logger.info(`  Broken images:   ${result.summary.broken_images} violation(s)`);
     logger.info(`  Demo images:     ${result.summary.demo_images} violation(s)`);
     logger.info(`  Empty sections:  ${result.summary.empty_sections} violation(s)`);
+    logger.info(`  Fabrication:     ${result.summary.fabrication} field(s)`);
+    logger.info(`  Placeholder text:${result.summary.placeholder_text} found`);
+    logger.info(`  Business name:   ${result.summary.business_name} page(s) missing`);
+    logger.info(`  Copyright format:${result.summary.copyright_format} issue(s)`);
     if (result.summary.colour_check) {
       logger.info(`  Colour check:    actual=${result.summary.colour_check.actual}, buttons=${result.summary.colour_check.buttonsUsingPrimary}/${result.summary.colour_check.totalButtons}`);
     }

@@ -262,10 +262,10 @@ export default async function Home() {
           <div className="container mx-auto">
             <FadeInUp className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                What Our Users Say
+                What Our Clients Say
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Ontario homeowners who have used ConversionOS to plan their renovations.
+                Real feedback from {branding.name.replace(/\.\s*$/, '')} clients across {config.serviceArea || 'Ontario'}.
               </p>
             </FadeInUp>
 

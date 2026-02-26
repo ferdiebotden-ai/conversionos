@@ -278,29 +278,31 @@ if (!dryRun) {
   }
 
   // Wait for Vercel deploy (poll first succeeded tenant)
-  const firstSuccess = results.find(r => r.status === 'fulfilled');
-  if (firstSuccess) {
-    const testUrl = `https://${firstSuccess.value.siteId}.norbotsystems.com`;
-    logger.info(`Waiting for Vercel deploy (polling ${testUrl})...`);
-    const deadline = Date.now() + 300000; // 5 min
-    let deployed = false;
-    while (Date.now() < deadline) {
-      try {
-        const resp = await fetch(testUrl, { signal: AbortSignal.timeout(5000) });
-        if (resp.ok) { deployed = true; break; }
-      } catch { /* not ready yet */ }
-      await new Promise(r => setTimeout(r, 15000));
-    }
-    if (deployed) {
-      logger.info('Vercel deploy confirmed');
-    } else {
-      logger.warn('Vercel deploy timeout — QA may fail on unreachable URLs');
+  if (!args['skip-git']) {
+    const firstSuccess = results.find(r => r.status === 'fulfilled');
+    if (firstSuccess) {
+      const testUrl = `https://${firstSuccess.value.siteId}.norbotsystems.com`;
+      logger.info(`Waiting for Vercel deploy (polling ${testUrl})...`);
+      const deadline = Date.now() + 300000; // 5 min
+      let deployed = false;
+      while (Date.now() < deadline) {
+        try {
+          const resp = await fetch(testUrl, { signal: AbortSignal.timeout(5000) });
+          if (resp.ok) { deployed = true; break; }
+        } catch { /* not ready yet */ }
+        await new Promise(r => setTimeout(r, 15000));
+      }
+      if (deployed) {
+        logger.info('Vercel deploy confirmed');
+      } else {
+        logger.warn('Vercel deploy timeout — QA may fail on unreachable URLs');
+      }
     }
   }
 }
 
 // ──────────────────────────────────────────────────────────
-// Step 5: QA
+// Step 5: QA (content integrity -> auto-fix -> visual QA -> audit report)
 // ──────────────────────────────────────────────────────────
 
 const qaResults = [];
@@ -310,11 +312,49 @@ if (!dryRun && !args['skip-qa']) {
     if (r.status !== 'fulfilled') continue;
     const { siteId, targetId } = r.value;
     const siteUrl = `https://${siteId}.norbotsystems.com`;
+    const outputDir = resolve(TB_ROOT, `results/${TODAY}/${siteId}`);
+    const scrapedPath = resolve(outputDir, 'scraped.json');
 
     logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'start' });
 
     try {
-      // Structural QA
+      // 5a. Content integrity check (before visual QA)
+      logger.info(`[${siteId}] Running content integrity check...`);
+      try {
+        const ciArgs = [
+          resolve(TB_ROOT, 'qa/content-integrity.mjs'),
+          '--url', siteUrl,
+          '--site-id', siteId,
+          '--output', outputDir,
+        ];
+        if (existsSync(scrapedPath)) ciArgs.push('--scraped-data', scrapedPath);
+
+        execFileSync('node', ciArgs, {
+          cwd: DEMO_ROOT, env: process.env, timeout: 120000,
+          maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (e) {
+        // content-integrity exits 1 on violations — read result file for auto-fix
+        const ciResultPath = resolve(outputDir, 'content-integrity.json');
+        if (existsSync(ciResultPath)) {
+          logger.info(`[${siteId}] Content integrity found violations, attempting auto-fix...`);
+          try {
+            const ciResult = JSON.parse(readFileSync(ciResultPath, 'utf-8'));
+            if (ciResult.violations?.length > 0) {
+              const { autoFixViolations } = await import('./qa/content-integrity.mjs');
+              const fixes = await autoFixViolations(siteId, ciResult.violations);
+              if (fixes.length > 0) {
+                writeFileSync(resolve(outputDir, 'auto-fixes.json'), JSON.stringify(fixes, null, 2));
+                logger.info(`[${siteId}] Applied ${fixes.length} auto-fix(es)`);
+              }
+            }
+          } catch (fixErr) {
+            logger.warn(`[${siteId}] Auto-fix failed: ${fixErr.message?.slice(0, 100)}`);
+          }
+        }
+      }
+
+      // 5b. Screenshots
       try {
         execFileSync('node', [
           resolve(TB_ROOT, 'qa/screenshot.mjs'),
@@ -326,7 +366,7 @@ if (!dryRun && !args['skip-qa']) {
         });
       } catch { /* screenshots may fail if not deployed yet */ }
 
-      // Visual QA with refinement
+      // 5c. Visual QA with refinement
       const qaArgs = [
         resolve(TB_ROOT, 'qa/refinement-loop.mjs'),
         '--site-id', siteId,
@@ -340,9 +380,25 @@ if (!dryRun && !args['skip-qa']) {
         maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      qaResults.push({ siteId, pass: true });
-      logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'complete' });
+      // 5d. Generate audit report
+      let qaStatus = 'complete';
+      try {
+        const { generateAuditReport } = await import('./qa/audit-report.mjs');
+        const report = generateAuditReport(siteId, outputDir);
+        qaStatus = report.status; // 'complete' or 'review'
+      } catch (e) {
+        logger.warn(`[${siteId}] Audit report generation failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      qaResults.push({ siteId, pass: true, status: qaStatus });
+      logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'complete', detail: qaStatus });
     } catch (e) {
+      // Generate audit report even on failure
+      try {
+        const { generateAuditReport } = await import('./qa/audit-report.mjs');
+        generateAuditReport(siteId, outputDir);
+      } catch { /* best effort */ }
+
       qaResults.push({ siteId, pass: false, error: e.message?.slice(0, 100) });
       logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
     }

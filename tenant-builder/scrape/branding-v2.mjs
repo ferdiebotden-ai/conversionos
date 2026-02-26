@@ -48,6 +48,24 @@ For logos, prioritise header/nav area logos. For colours, filter out common grey
       timeoutMs: 60000,
     });
 
+    // Filter out misidentified logos (kitchen photos, bathroom images, etc.)
+    const NON_LOGO_KEYWORDS = [
+      'kitchen', 'bathroom', 'basement', 'outdoor', 'project', 'gallery',
+      'renovation', 'patio', 'deck', 'porch', 'bedroom', 'living',
+      'dining', 'laundry', 'garage', 'pool', 'backyard', 'garden',
+      'before', 'after', 'portfolio', 'work', 'slider', 'banner', 'hero',
+    ];
+    if (result.logos && Array.isArray(result.logos)) {
+      result.logos = result.logos.filter(logo => {
+        const url = (logo.url || logo.src || '').toLowerCase();
+        const isNonLogo = NON_LOGO_KEYWORDS.some(kw => url.includes(kw));
+        if (isNonLogo) {
+          logger.info(`  Rejected non-logo URL: ${url.slice(0, 80)}`);
+        }
+        return !isNonLogo;
+      });
+    }
+
     logger.info(`Branding v2: found ${result.logos?.length || 0} logos, ${result.colors?.length || 0} colours, ${result.fonts?.length || 0} fonts`);
     return result;
   } catch (e) {

@@ -195,10 +195,23 @@ const companyProfile = {
   heroImageUrl: data.hero_image_url || '',
   aboutImageUrl: data.about_image_url || '',
   logoUrl: data.logo_url || '',
-  trustBadges: (data.trust_badges || []).map(b => ({ label: b.label, iconHint: inferBadgeIcon(b.label) })),
+  trustBadges: (() => {
+    // Verifiable badge keyword filter — reject fabricated badges
+    const VERIFIABLE_BADGE_KEYWORDS = [
+      'licensed', 'insured', 'bonded', 'wsib', 'bbb', 'accredit',
+      'renomark', 'warranty', 'guarantee', 'tarion', 'member', 'association',
+      'certified', 'registered', 'approved', 'code', 'safety',
+    ];
+    return (data.trust_badges || [])
+      .filter(b => {
+        const lower = (b.label || '').toLowerCase();
+        return VERIFIABLE_BADGE_KEYWORDS.some(kw => lower.includes(kw));
+      })
+      .map(b => ({ label: b.label, iconHint: inferBadgeIcon(b.label) }));
+  })(),
   whyChooseUs: data.why_choose_us || [],
-  values: (data.values || []).map(v => ({ ...v, iconHint: v.iconHint || 'heart' })),
-  processSteps: data.process_steps || [],
+  values: (data.values && data.values.length > 0) ? data.values.map(v => ({ ...v, iconHint: v.iconHint || 'heart' })) : [],
+  processSteps: (data.process_steps && data.process_steps.length > 0) ? data.process_steps : [],
   teamMembers: (data.team_members || []).map(m => ({
     name: m.name,
     role: m.role || '',
@@ -212,7 +225,7 @@ const companyProfile = {
     serviceType: p.service_type || '',
     location: p.location || '',
   })),
-  trust_metrics: data._trust_metrics || undefined,
+  trust_metrics: data._trust_metrics || {},
 };
 
 // Upsert admin_settings rows

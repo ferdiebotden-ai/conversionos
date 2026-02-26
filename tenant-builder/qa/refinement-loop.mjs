@@ -65,8 +65,31 @@ if (targetId) {
   }
 }
 
+async function snapshotAdminSettings(siteId) {
+  const sb = getSupabase();
+  const { data } = await sb
+    .from('admin_settings')
+    .select('key, value')
+    .eq('site_id', siteId);
+  return data || [];
+}
+
+async function restoreSnapshot(siteId, snapshot) {
+  const sb = getSupabase();
+  for (const row of snapshot) {
+    await sb
+      .from('admin_settings')
+      .update({ value: row.value })
+      .eq('site_id', siteId)
+      .eq('key', row.key);
+  }
+  logger.info('Snapshot restored');
+}
+
 let iteration = 0;
 let lastResult = null;
+let previousScore = null;
+let lastSnapshot = null;
 
 while (iteration < maxIterations) {
   iteration++;
@@ -128,12 +151,35 @@ while (iteration < maxIterations) {
     break;
   }
 
+  const currentScore = lastResult?.average || 0;
+
+  // Plateau detection — stop if improvement < 0.2
+  if (previousScore !== null && currentScore - previousScore < 0.2) {
+    logger.info(`Score plateau: ${previousScore} -> ${currentScore} (delta < 0.2). Stopping.`);
+    break;
+  }
+
+  // Regression detection — stop and rollback
+  if (previousScore !== null && currentScore < previousScore) {
+    logger.warn(`Score regression: ${previousScore} -> ${currentScore}. Stopping to prevent degradation.`);
+    if (lastSnapshot) {
+      logger.info('Rolling back to previous snapshot...');
+      await restoreSnapshot(siteId, lastSnapshot);
+    }
+    break;
+  }
+
+  previousScore = currentScore;
+
   logger.info(`QA FAILED on iteration ${iteration} (avg: ${lastResult?.average || 'N/A'})`);
 
   if (iteration >= maxIterations) {
     logger.warn(`Max iterations reached. Final score: ${lastResult?.average || 'N/A'}`);
     break;
   }
+
+  // Snapshot before applying fixes
+  lastSnapshot = await snapshotAdminSettings(siteId);
 
   // Step 3: Analyse failures and generate fixes
   logger.info('Generating fix instructions...');
