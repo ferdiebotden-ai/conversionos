@@ -85,7 +85,7 @@ test.describe('Visualizer Upload — Desktop', () => {
     });
 
     // Should show resolution error
-    await expect(page.getByText(/resolution too low/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/too small for AI visualization/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('post-upload shows room type selector', async ({ page }) => {
@@ -129,7 +129,7 @@ test.describe('Visualizer Upload — Desktop', () => {
     // Should show all three trust messages
     await expect(page.getByText(/Free to use/i)).toBeVisible();
     await expect(page.getByText(/Generation time/i)).toBeVisible();
-    await expect(page.getByText(/photos stay private/i)).toBeVisible();
+    await expect(page.getByText(/No account needed/i)).toBeVisible();
   });
 });
 

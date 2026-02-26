@@ -137,7 +137,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
           source: 'voice',
         };
         setVoiceTranscriptMessages((prev) => [...prev, msg]);
-        parseEstimateFromResponse(entry.content);
+        parseEstimateFromResponse(entry.content, entry.role);
       }
     }
   }, [voiceTranscript]);
@@ -257,7 +257,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
     // Parse estimate data from recent messages (both user and assistant)
     const recentMessages = messagesWithImages.slice(-4);
     for (const msg of recentMessages) {
-      parseEstimateFromResponse(msg.content);
+      parseEstimateFromResponse(msg.content, msg.role);
     }
 
     // Update progress step based on conversation
@@ -290,11 +290,11 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       source: 'voice',
     };
     setVoiceTranscriptMessages((prev) => [...prev, msg]);
-    parseEstimateFromResponse(entry.content);
+    parseEstimateFromResponse(entry.content, entry.role);
   }, []);
 
   // Parse estimate data from AI response and user messages
-  const parseEstimateFromResponse = useCallback((content: string) => {
+  const parseEstimateFromResponse = useCallback((content: string, role?: 'user' | 'assistant') => {
     const lower = content.toLowerCase();
 
     // Look for JSON block in the response
@@ -373,30 +373,32 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       setEstimateData((prev) => ({ ...prev, finishLevel: prev.finishLevel || 'standard' }));
     }
 
-    // Extract goals/wants from user messages
-    const goalPatterns = [
-      /(?:i|we)(?:'d|'ll)?\s+(?:want|like|love)\s+(?:to\s+)?(.+?)(?:\.|,|$)/gi,
-      /(?:looking|hoping)\s+(?:to|for)\s+(.+?)(?:\.|,|$)/gi,
-      /(?:my|our)\s+goal\s+is\s+(?:to\s+)?(.+?)(?:\.|,|$)/gi,
-      /(?:need|must have)\s+(.+?)(?:\.|,|$)/gi,
-    ];
+    // Extract goals/wants from user messages only (skip assistant to avoid capturing Emma's phrasing)
+    if (role !== 'assistant') {
+      const goalPatterns = [
+        /(?:i|we)(?:'d|'ll)?\s+(?:want|like|love)\s+(?:to\s+)?(.+?)(?:\.|,|$)/gi,
+        /(?:looking|hoping)\s+(?:to|for)\s+(.+?)(?:\.|,|$)/gi,
+        /(?:my|our)\s+goal\s+is\s+(?:to\s+)?(.+?)(?:\.|,|$)/gi,
+        /(?:need|must have)\s+(.+?)(?:\.|,|$)/gi,
+      ];
 
-    for (const pattern of goalPatterns) {
-      const matches = content.matchAll(pattern);
-      for (const match of matches) {
-        const goalText = match[1];
-        if (goalText && goalText.length > 10 && goalText.length < 200) {
-          setEstimateData((prev) => {
-            const existingGoals = prev.goals || '';
-            const newGoal = goalText.trim();
-            if (existingGoals.toLowerCase().includes(newGoal.toLowerCase())) {
-              return prev;
-            }
-            return {
-              ...prev,
-              goals: existingGoals ? `${existingGoals}. ${newGoal}` : newGoal,
-            };
-          });
+      for (const pattern of goalPatterns) {
+        const matches = content.matchAll(pattern);
+        for (const match of matches) {
+          const goalText = match[1];
+          if (goalText && goalText.length > 10 && goalText.length < 200) {
+            setEstimateData((prev) => {
+              const existingGoals = prev.goals || '';
+              const newGoal = goalText.trim();
+              if (existingGoals.toLowerCase().includes(newGoal.toLowerCase())) {
+                return prev;
+              }
+              return {
+                ...prev,
+                goals: existingGoals ? `${existingGoals}. ${newGoal}` : newGoal,
+              };
+            });
+          }
         }
       }
     }
@@ -485,8 +487,9 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
 
   // Handle submit request
   const handleSubmitRequest = useCallback(
-    async (contactInfo: { name: string; email: string; phone?: string }) => {
+    async (contactInfo: { name: string; email: string; phone?: string; additionalNotes?: string }) => {
       const allMessages = [...localMessages, ...voiceTranscriptMessages];
+      const goalsText = [estimateData.goals, contactInfo.additionalNotes].filter(Boolean).join('. ') || undefined;
       const leadData = {
         name: contactInfo.name,
         email: contactInfo.email,
@@ -495,7 +498,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         areaSqft: estimateData.areaSqft,
         finishLevel: estimateData.finishLevel,
         timeline: mapTimelineToApi(estimateData.timeline),
-        goalsText: estimateData.goals,
+        goalsText,
         chatTranscript: allMessages.map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,

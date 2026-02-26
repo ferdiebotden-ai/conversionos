@@ -13,7 +13,10 @@ import {
   Image as ImageIcon,
   X,
   Camera,
-  Lightbulb,
+  Sun,
+  Maximize,
+  Trash2,
+  Focus,
 } from 'lucide-react';
 import { compressImage, fileToBase64 } from '@/lib/utils/image';
 
@@ -262,36 +265,25 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
         <p className="text-sm text-destructive">{error}</p>
       )}
 
-      {/* Tips section */}
-      {isMobile ? (
-        <div className="bg-muted/50 rounded-lg p-4 border border-border">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Lightbulb className="w-4 h-4 text-amber-600" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Tip: Hold your phone in landscape from a corner of the room
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-muted/50 rounded-lg p-4 border border-border">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Lightbulb className="w-4 h-4 text-amber-600" />
+      {/* Tips grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { icon: Sun, label: 'Good Lighting', desc: 'Natural light works best' },
+          { icon: Maximize, label: 'Wide Shot', desc: 'Shoot from a corner' },
+          { icon: Trash2, label: 'Clear Clutter', desc: 'Cleaner visualizations' },
+          { icon: Focus, label: 'Key Features', desc: 'Include what to transform' },
+        ].map((tip) => (
+          <div key={tip.label} className="flex flex-col items-center text-center gap-2 p-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <tip.icon className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Tips for best results</p>
-              <ul className="text-sm text-muted-foreground mt-1 space-y-1">
-                <li>Take a wide shot from a corner of the room</li>
-                <li>Ensure good lighting (natural light works best)</li>
-                <li>Clear clutter for cleaner visualizations</li>
-                <li>Include key features you want to transform</li>
-              </ul>
+              <p className="text-sm font-medium">{tip.label}</p>
+              <p className="text-xs text-muted-foreground">{tip.desc}</p>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
