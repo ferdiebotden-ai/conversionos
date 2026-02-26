@@ -55,6 +55,9 @@ export const EmailGenerationInputSchema = z.object({
 
   /** Goals/scope from customer conversation */
   goalsText: z.string().optional(),
+
+  /** Whether this lead was created by the contractor (not a customer self-serve) */
+  isContractorIntake: z.boolean().optional(),
 });
 
 export type EmailGenerationInput = z.infer<typeof EmailGenerationInputSchema>;

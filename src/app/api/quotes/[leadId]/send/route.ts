@@ -18,6 +18,20 @@ import { canAccess } from '@/lib/entitlements';
 
 type RouteContext = { params: Promise<{ leadId: string }> };
 
+/**
+ * Generate a cryptographically random acceptance token (24 alphanumeric chars).
+ */
+function generateAcceptanceToken(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  const array = new Uint8Array(24);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 24; i++) {
+    token += chars[array[i]! % chars.length];
+  }
+  return token;
+}
+
 // Request schema
 const SendQuoteSchema = z.object({
   customMessage: z.string().max(500).optional(),
@@ -155,6 +169,11 @@ export async function POST(
     // Determine email subject
     const finalSubject = emailSubject || `Your ${projectType} Quote from ${branding.name} - ${quoteNumber}`;
 
+    // Generate acceptance token and URL before sending email
+    const acceptanceToken = generateAcceptanceToken();
+    const appUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'https://conversionos-demo.norbotsystems.com';
+    const acceptanceUrl = `${appUrl}/quote/accept/${acceptanceToken}`;
+
     // Send email with Resend
     const resend = getResend();
 
@@ -205,7 +224,7 @@ export async function POST(
         to: [toEmail],
         replyTo: REPLY_TO_EMAIL,
         subject: finalSubject,
-        react: QuoteEmailTemplate({ lead, quote, customMessage, branding }),
+        react: QuoteEmailTemplate({ lead, quote, customMessage, branding, acceptanceUrl }),
         attachments: [
           {
             filename,
@@ -225,16 +244,49 @@ export async function POST(
 
     const now = new Date().toISOString();
 
-    // Update quote_drafts with sent info
+    // Update current quote row with sent info + acceptance token
     await supabase
       .from('quote_drafts')
       .update({
         sent_at: now,
         sent_to_email: toEmail,
+        acceptance_token: acceptanceToken,
+        acceptance_status: 'pending',
         updated_at: now,
       })
       .eq('id', quote.id)
       .eq('site_id', getSiteId());
+
+    // Create a new draft row (version snapshot) — the new row becomes the editable draft
+    const nextVersion = (quote.version || 1) + 1;
+    await (supabase.from('quote_drafts') as ReturnType<typeof supabase.from>).insert({
+      site_id: quote.site_id,
+      lead_id: quote.lead_id,
+      version: nextVersion,
+      line_items: quote.line_items,
+      ai_draft_json: quote.ai_draft_json,
+      tier_good: quote.tier_good,
+      tier_better: quote.tier_better,
+      tier_best: quote.tier_best,
+      assumptions: quote.assumptions,
+      exclusions: quote.exclusions,
+      special_notes: quote.special_notes,
+      recommended_next_step: quote.recommended_next_step,
+      subtotal: quote.subtotal,
+      contingency_percent: quote.contingency_percent,
+      contingency_amount: quote.contingency_amount,
+      hst_percent: quote.hst_percent,
+      hst_amount: quote.hst_amount,
+      total: quote.total,
+      deposit_percent: quote.deposit_percent,
+      deposit_required: quote.deposit_required,
+      validity_days: quote.validity_days,
+      expires_at: quote.expires_at,
+      // New draft: clear sent/acceptance fields
+      sent_at: null,
+      sent_to_email: null,
+      pdf_url: null,
+    });
 
     // Update lead status to 'sent'
     await supabase
@@ -258,6 +310,7 @@ export async function POST(
         total: quote.total,
         email_id: emailResult.data?.id,
         custom_message: customMessage || null,
+        acceptance_url: acceptanceUrl,
       },
     }));
 
@@ -269,6 +322,7 @@ export async function POST(
         sentTo: toEmail,
         sentAt: now,
         quoteNumber,
+        acceptanceUrl,
       },
     });
   } catch (error) {

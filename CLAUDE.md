@@ -147,4 +147,4 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 - **Quality check:** Min 640x640 pixels after compression
 
 ## Business Constants
-HST: 13% • Deposit: 50%
+HST: 13% • Deposit: 15% • Contingency: 10% • Estimate Variance: ±15%

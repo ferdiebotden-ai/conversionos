@@ -25,6 +25,7 @@ import { RegenerateQuoteDialog } from './regenerate-quote-dialog';
 import { QuoteSendWizard } from './quote-send-wizard';
 import { TierComparison, type TierName } from './tier-comparison';
 import { ScopeGapRecommendations } from './scope-gap-recommendations';
+import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
 import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
 import type { QuoteDraft, Json } from '@/types/database';
 import type { AIGeneratedQuote, AIQuoteLineItem, AITieredQuote } from '@/lib/schemas/ai-quote';
@@ -71,6 +72,7 @@ interface QuoteEditorProps {
   customerName?: string;
   projectType?: string | undefined;
   goalsText?: string | undefined;
+  versions?: VersionSummary[] | undefined;
 }
 
 function generateId(): string {
@@ -179,6 +181,7 @@ export function QuoteEditor({
   customerName,
   projectType = 'other',
   goalsText,
+  versions,
 }: QuoteEditorProps) {
   // Extract AI quote from initial estimate
   const aiQuoteFromEstimate = extractAIQuote(initialEstimate);
@@ -245,6 +248,17 @@ export function QuoteEditor({
   const [sentAt, setSentAt] = useState<Date | null>(
     initialQuote?.sent_at ? new Date(initialQuote.sent_at) : null
   );
+
+  // Version history state
+  const latestVersion = versions?.[0]?.version ?? (initialQuote?.version ?? 1);
+  const [selectedVersion, setSelectedVersion] = useState(latestVersion);
+  const isReadOnly = versions && versions.length > 1 && selectedVersion !== latestVersion;
+
+  // Acceptance status from initial quote
+  const quoteRecord = initialQuote as unknown as Record<string, unknown> | null;
+  const acceptanceStatus = quoteRecord?.['acceptance_status'] as string | null;
+  const acceptedByName = quoteRecord?.['accepted_by_name'] as string | null;
+  const acceptedAt = quoteRecord?.['accepted_at'] as string | null;
 
   // Tier state — Good/Better/Best
   const initialQuoteRecord = initialQuote as unknown as Record<string, unknown> | null;
@@ -765,6 +779,15 @@ export function QuoteEditor({
         </div>
       )}
 
+      {/* Version History */}
+      {versions && versions.length > 1 && (
+        <QuoteVersionHistory
+          versions={versions}
+          activeVersion={selectedVersion}
+          onSelectVersion={setSelectedVersion}
+        />
+      )}
+
       {/* Line Items */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -795,7 +818,7 @@ export function QuoteEditor({
                 Saving...
               </span>
             )}
-            <Button onClick={saveQuote} disabled={isSaving || !hasChanges} size="sm">
+            <Button onClick={saveQuote} disabled={isSaving || !hasChanges || !!isReadOnly} size="sm">
               <Save className="h-4 w-4 mr-1" />
               Save
             </Button>
@@ -1009,6 +1032,22 @@ export function QuoteEditor({
                   </span>
                 </div>
               )}
+              {acceptanceStatus === 'accepted' && acceptedByName && acceptedAt && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Check className="h-3 w-3 mr-1" />
+                  Approved by {acceptedByName} on{' '}
+                  {new Date(acceptedAt).toLocaleDateString('en-CA', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Badge>
+              )}
+              {acceptanceStatus === 'pending' && sentAt && (
+                <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                  Awaiting approval
+                </Badge>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -1025,14 +1064,16 @@ export function QuoteEditor({
                 Download PDF
               </Button>
 
-              <Button
-                onClick={handleOpenSendWizard}
-                disabled={lineItems.length === 0 || !customerEmail}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {sentAt ? 'Resend Quote' : 'Send Quote'}
-              </Button>
+              {!isReadOnly && (
+                <Button
+                  onClick={handleOpenSendWizard}
+                  disabled={lineItems.length === 0 || !customerEmail}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sentAt ? 'Resend Quote' : 'Send Quote'}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

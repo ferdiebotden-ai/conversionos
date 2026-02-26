@@ -66,9 +66,10 @@ export interface QuoteEmailProps {
   quote: QuoteDraft;
   customMessage?: string | undefined;
   branding: Branding;
+  acceptanceUrl?: string | undefined;
 }
 
-export function QuoteEmailTemplate({ lead, quote, customMessage, branding }: QuoteEmailProps) {
+export function QuoteEmailTemplate({ lead, quote, customMessage, branding, acceptanceUrl }: QuoteEmailProps) {
   const firstName = lead.name.split(' ')[0];
   const projectType = PROJECT_TYPE_LABELS[lead.project_type || 'other'] || 'Renovation Project';
   const quoteDate = new Date(quote.created_at);
@@ -361,6 +362,18 @@ export function QuoteEmailTemplate({ lead, quote, customMessage, branding }: Quo
                 Deposit required: {formatCurrency(quote.deposit_required || 0)} ({quote.deposit_percent}%)
               </Text>
             </Section>
+
+            {/* Acceptance CTA */}
+            {acceptanceUrl && (
+              <Section style={ctaSection}>
+                <Button href={acceptanceUrl} style={ctaButton}>
+                  Review &amp; Approve Your Quote
+                </Button>
+                <Text style={{ ...paragraph, fontSize: '13px', color: STATIC_COLORS.muted, marginTop: '8px' }}>
+                  Click above to review and approve this quote online
+                </Text>
+              </Section>
+            )}
 
             {/* CTA */}
             <Section style={ctaSection}>

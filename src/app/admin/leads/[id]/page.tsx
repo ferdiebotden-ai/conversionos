@@ -18,6 +18,15 @@ interface LeadDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+interface VersionSummary {
+  version: number;
+  status: 'draft' | 'sent';
+  updatedAt: string;
+  sentAt?: string | undefined;
+  total: number | null;
+  acceptanceStatus?: string | undefined;
+}
+
 async function getLeadData(id: string) {
   const supabase = createServiceClient();
 
@@ -33,17 +42,31 @@ async function getLeadData(id: string) {
     return null;
   }
 
-  // Fetch quote draft
-  const { data: quote } = await supabase
+  // Fetch ALL quote versions (newest first)
+  const { data: allDrafts } = await supabase
     .from('quote_drafts')
     .select('*')
     .eq('lead_id', id)
     .eq('site_id', getSiteId())
-    .order('version', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('version', { ascending: false });
 
-  return { lead, quote };
+  // Latest version is the editable draft
+  const quote = allDrafts?.[0] ?? null;
+
+  // Build version summary list
+  const versions: VersionSummary[] = (allDrafts || []).map((d) => {
+    const row = d as Record<string, unknown>;
+    return {
+      version: d.version,
+      status: d.sent_at ? 'sent' as const : 'draft' as const,
+      updatedAt: d.updated_at,
+      sentAt: d.sent_at || undefined,
+      total: d.total,
+      acceptanceStatus: (row['acceptance_status'] as string) || undefined,
+    };
+  });
+
+  return { lead, quote, versions };
 }
 
 export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
@@ -54,7 +77,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
     notFound();
   }
 
-  const { lead, quote } = data;
+  const { lead, quote, versions } = data;
 
   return (
     <div className="space-y-6">
@@ -110,6 +133,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             customerName={lead.name}
             projectType={lead.project_type || undefined}
             goalsText={lead.goals_text || undefined}
+            versions={versions}
           />
         </TabsContent>
 
@@ -120,7 +144,11 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
         {/* Chat Transcript Tab */}
         <TabsContent value="transcript">
-          <ChatTranscript transcript={lead.chat_transcript} />
+          <ChatTranscript
+            transcript={lead.chat_transcript}
+            intakeRawInput={(lead as Record<string, unknown>)['intake_raw_input'] as string | undefined}
+            intakeMethod={(lead as Record<string, unknown>)['intake_method'] as string | undefined}
+          />
         </TabsContent>
 
         {/* Activity Tab */}

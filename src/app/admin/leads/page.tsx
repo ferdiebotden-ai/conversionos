@@ -1,7 +1,10 @@
 import { Suspense } from 'react';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 import { LeadsTable } from '@/components/admin/leads-table';
+import { LeadsPageHeader } from '@/components/admin/leads-page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { LeadStatus, ProjectType } from '@/types/database';
 
@@ -128,13 +131,16 @@ function LeadsTableSkeleton() {
 }
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const { leads, pagination, feasibilityMap } = await getLeads(searchParams);
+  const [{ leads, pagination, feasibilityMap }, tier] = await Promise.all([
+    getLeads(searchParams),
+    getTier(),
+  ]);
+
+  const hasIntake = canAccess(tier, 'contractor_lead_intake');
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground">
-        Manage and track all your renovation leads.
-      </p>
+      <LeadsPageHeader showIntakeButton={hasIntake} />
 
       <Suspense fallback={<LeadsTableSkeleton />}>
         <LeadsTable

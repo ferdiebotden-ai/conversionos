@@ -150,6 +150,25 @@ function createColumns(feasibilityMap: Record<string, number>): ColumnDef<Lead>[
     },
   },
   {
+    id: 'source',
+    header: 'Source',
+    cell: ({ row }) => {
+      const source = (row.original as Record<string, unknown>)['source'] as string | null | undefined;
+      if (source === 'contractor_intake') {
+        return (
+          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-100">
+            Intake
+          </Badge>
+        );
+      }
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Website
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: 'created_at',
     header: ({ column }) => {
       const isSorted = column.getIsSorted();

@@ -9,6 +9,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { QuotePdfDocument } from '@/lib/pdf/quote-template';
+import { formatQuoteNumber } from '@/lib/pdf/pdf-utils';
 import { getBranding } from '@/lib/branding';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -90,8 +91,7 @@ export async function GET(
     );
 
     // Create filename
-    const quoteDate = new Date(quote.created_at);
-    const quoteNumber = `DEMO-${quoteDate.getFullYear()}-${String(lead.id).slice(0, 8).toUpperCase()}`;
+    const quoteNumber = formatQuoteNumber(quote.created_at, lead.id);
     const filename = `${quoteNumber}-Quote-${lead.name.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
 
     // Log the PDF generation

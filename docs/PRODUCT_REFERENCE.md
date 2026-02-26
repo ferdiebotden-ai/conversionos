@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 26, 2026 | **Updated by:** Claude Code (Quote Engine V2 Phase 2 — transparency cards, per-category markups, Good/Better/Best tiers, scope gap detection)
+**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Quote Engine V2 Phase 3A — multi-page PDF, e-signature, quote versioning, contractor lead intake)
 
 ---
 
@@ -52,7 +52,10 @@ The result: faster response times, higher conversion rates, and a sales tool tha
 | Mobile camera capture | Yes | Yes | Yes |
 | Admin Dashboard | — | Yes | Yes |
 | AI Quote Engine | — | Yes | Yes |
-| PDF quote generation + email sending | — | Yes | Yes |
+| PDF quotes (multi-page: cover, photos, items, tiers, terms+signature) | — | Yes | Yes |
+| E-signature (public acceptance page, token-gated) | — | Yes | Yes |
+| Quote versioning (snapshot on send, version history) | — | Yes | Yes |
+| Contractor lead intake (voice dictation, text, form) | — | Yes | Yes |
 | Invoicing + payment tracking | — | Yes | Yes |
 | Architecture drawings management | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
@@ -88,12 +91,12 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Database | Supabase (PostgreSQL) | @supabase/supabase-js 2.93.3 | ca-central-1 region, RLS enabled |
 | File storage | Supabase Storage | — | Photos, concepts, PDFs, tenant assets |
 | Email | Resend | 6.9.1 | Lead notifications, quote delivery, invoice sending |
-| PDF | @react-pdf/renderer + jspdf | — | Quotes and invoices |
+| PDF | @react-pdf/renderer + jspdf | — | Multi-page quotes (cover, photos, categorised items, tiers, terms+signature) and invoices |
 | Image processing | Sharp | 0.34.5 | Compression, resizing, edge detection |
 | Mobile photos | heic2any | — | HEIC/HEIF conversion from iOS |
 | AI framework | Vercel AI SDK | 6.0.67 | Streaming, structured outputs, tool calling |
 | Validation | Zod | 4.3.6 | All AI outputs validated before render/store |
-| Testing | Vitest + Playwright | — | 195 unit tests, E2E browser automation |
+| Testing | Vitest + Playwright | — | 449 unit tests (15 test files), E2E browser automation |
 
 ---
 
@@ -149,15 +152,15 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 2. **Dashboard** (`/admin`) — Overview of leads, visualization metrics, pipeline health.
 
-3. **Leads** (`/admin/leads`) — Searchable, filterable table of all leads. Feasibility badges (colour-coded dots: green 4-5, yellow 3, red 1-2). Click into lead detail for full context: contact info, visualization panel, chat transcript, cost analysis.
+3. **Leads** (`/admin/leads`) — Searchable, filterable table of all leads. Feasibility badges (colour-coded dots: green 4-5, yellow 3, red 1-2). Source badge column distinguishes leads: blue "Intake" badge for contractor-created leads, grey "Website" badge for homeowner-created leads. "+ New Lead" button (gated by `contractor_lead_intake` entitlement) opens a 3-tab intake dialog for voice dictation, typed notes, or manual form entry. Click into lead detail for full context: contact info, visualization panel, chat transcript (shows "Contractor Intake Notes" with raw input when no chat transcript exists), cost analysis.
 
-4. **Quotes** (`/admin/quotes`) — AI-generated quotes with transparency cards ("show the math"), per-category markup controls (7 categories), Good/Better/Best tier comparison, scope gap detection (20+ rules), PDF generation, email sending. See "Quote Engine V2" section below.
+4. **Quotes** (`/admin/quotes`) — AI-generated quotes with transparency cards ("show the math"), per-category markup controls (7 categories), Good/Better/Best tier comparison, scope gap detection (20+ rules), multi-page PDF generation (cover, before/after photos, categorised items, tier comparison, terms + signature block), email sending with "Review & Approve Your Quote" CTA, e-signature acceptance (public token-gated page), and quote versioning with version history chips. See "Quote Engine V2" section below.
 
 5. **Invoices** (`/admin/invoices`) — Create from quotes, track payments (cash, cheque, e-transfer, credit card), auto-update status (draft → sent → partially paid → paid). PDF generation. Sage 50 CSV export.
 
 6. **Drawings** (`/admin/drawings`) — CAD-style drawing management for technical plans.
 
-7. **Settings** (`/admin/settings`) — Business info, branding, pricing parameters, quote assistance mode (none/range/estimate with configurable range band), per-category markup controls (Materials 15%, Labour 30%, Contract 15%, Equipment 10%, Permits 0%, Allowances 0%, Other 10%).
+7. **Settings** (`/admin/settings`) — Business info, branding, pricing parameters, quote assistance mode (none/range/estimate with configurable range band), per-category markup controls (Materials 15%, Labour 30%, Contract Labour 15%, Equipment 10%, Permits 0%, Allowances 0%, Other 10%).
 
 8. **Analytics** (`/admin/analytics`, Dominate only) — Recharts dashboard: daily visualization trends, room type distribution, generation time tracking, conversion rates. KPI cards with period-over-period deltas.
 
@@ -412,7 +415,7 @@ Each tier includes: label, description, finishLevel, and full `AIQuoteLineItemSc
 
 **Send wizard:** When tiered, the Review step shows all three tier totals (with HST) instead of a single total. Better marked as "Recommended".
 
-**PDF template:** When tiered, a "Pricing Options" comparison page is inserted after the main estimate page showing all three tiers with labels, totals (including HST), item summaries, and "RECOMMENDED" label on Better.
+**PDF template:** When tiered, a "Pricing Options" comparison page is inserted after the categorised line items page showing all three tiers with labels, totals (including HST), item summaries, and "RECOMMENDED" label on Better.
 
 ### Scope Gap Detection
 
@@ -447,6 +450,101 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 
 **Integration:** `detectScopeGaps(lineItems, projectType, context?)` called via `useMemo` in the quote editor. Runs whenever line items or project type change. `handleAddScopeGapItem(gap)` creates a new manual line item from the gap's suggested item and estimated cost midpoint.
 
+### Multi-Page Professional PDF
+
+The quote PDF is a multi-page document built with `@react-pdf/renderer`. Layout:
+
+1. **Cover page** — Company logo (falls back to text name when SVG — react-pdf `Image` does not support SVG), company name, address, quote reference number (pattern: `DEMO-{year}-{first 8 chars of lead ID}`), customer contact info, project description, quote date, validity period.
+2. **Before/after photo page** (conditional) — Only rendered when the lead has an associated visualization with photos. Shows original room photo and AI-generated concept side by side.
+3. **Categorised line items** — Items grouped by category (Demolition & Removal, Structural & Framing, Plumbing, Electrical, Materials & Finishes, Labour, Other) with per-category subtotals. Unit prices are deliberately omitted to prevent line-item negotiation. Totals section: subtotal, contingency (if any), HST (13%), grand total, deposit amount (15%).
+4. **Tier comparison page** (conditional) — Only rendered when quote is tiered. Shows Good/Better/Best with totals and item summaries.
+5. **Terms + signature block** — Fixed terms text (assumptions, exclusions, payment terms, warranty), followed by signature lines (printed name, signature, date) for both customer and contractor. Quote validity stated.
+
+**Fixed page footer:** Every page carries "Page X of Y" numbering via react-pdf's `render` prop.
+
+**Shared PDF infrastructure:**
+- `src/lib/pdf/pdf-utils.ts` — 7 utility functions: `groupLineItemsByCategory()`, `formatQuoteNumber()`, `formatCurrency()`, `getCategoryLabel()`, `formatDate()`, `resolveImageUrl()`, `getProjectTypeLabel()`
+- `src/lib/pdf/shared-pdf-styles.ts` — `STATIC_COLORS` constant and `createBaseStyles(primaryColor)` factory shared by quote and invoice templates
+- `src/lib/pdf/quote-template.tsx` — `QuotePdfDocument` component with `QuotePdfProps` interface
+
+### E-Signature Acceptance
+
+Customers receive an email with a "Review & Approve Your Quote" CTA button linking to a public acceptance page. No authentication required — access is controlled by a unique 24-character alphanumeric token.
+
+**Public page:** `/quote/accept/[token]` — mobile-first, contractor-branded (reads branding from `admin_settings` via the quote's `site_id`).
+
+**5 page states:**
+- `loading` — Initial fetch
+- `pending` — Quote summary (project type, total, deposit, line item count, validity) with approval form: typed name input + "I accept the terms" checkbox
+- `accepted` — Confirmation with accepted date and name
+- `expired` — Quote has passed its validity date; shows contractor contact info
+- `not_found` — Invalid or missing token
+
+**Database columns** (added to `quote_drafts` via migration `20260227000000_e_signature.sql`):
+- `acceptance_token` (TEXT, UNIQUE, indexed) — 24-char alphanumeric, generated on quote send
+- `acceptance_status` (TEXT, CHECK: pending/accepted/declined, default: pending)
+- `accepted_at` (TIMESTAMPTZ)
+- `accepted_by_name` (TEXT)
+- `accepted_by_ip` (TEXT)
+
+**On acceptance:** Lead status updated to `'won'`, action logged to `audit_log`.
+
+**Quote editor integration:** Acceptance status badge displayed — green "Approved" when accepted, muted "Awaiting approval" when pending.
+
+**API:** `GET/POST /api/quotes/accept/[token]` — public route, no site_id filter, no auth required. Token uniqueness enforces access control.
+
+### Quote Versioning
+
+When a quote is sent, the current row is frozen (sets `sent_at`) and a new draft row is created with `version + 1` for future edits. This preserves a complete history of every quote version sent to the customer.
+
+**Version history API:** `GET /api/quotes/[leadId]/versions` — returns all versions ordered by version descending, including sent status and acceptance status.
+
+**Version history component:** `QuoteVersionHistory` (`src/components/admin/quote-version-history.tsx`) — horizontal scrollable chip bar showing version chips. Each chip shows: version number, sent status icon (check for sent, clock for draft, file for current draft), acceptance status. Active chip is highlighted. Clicking a chip loads that version into the quote editor.
+
+**Quote editor integration:**
+- `selectedVersion` state tracks which version is being viewed
+- Old versions load in **read-only mode** with a read-only banner
+- Only the latest draft version is editable
+- Lead detail page fetches all versions and passes them to the QuoteEditor
+
+### Contractor Lead Intake
+
+Contractors can create leads directly from the admin dashboard instead of waiting for homeowner submissions. Gated by the `contractor_lead_intake` entitlement (Accelerate + Dominate tiers).
+
+**Entry point:** "+ New Lead" button on the leads page header (`src/components/admin/leads-page-header.tsx`).
+
+**3-tab intake dialog** (`src/components/admin/contractor-intake-dialog.tsx`):
+
+| Tab | Method | How It Works |
+|-----|--------|-------------|
+| Dictate | Voice dictation | MediaRecorder captures audio (all browsers), optional Web Speech API live preview. 90s max recording. Audio sent to `/api/transcribe` (OpenAI Whisper `gpt-4o-mini-transcribe`, ~$0.003/min). Renovation-specific vocabulary prompt improves accuracy. Transcript fed to AI extraction. |
+| Type/Paste | Text input | Contractor types or pastes job notes. Text fed to AI extraction. |
+| Form | Manual entry | Traditional form fields — no AI extraction needed. |
+
+**AI field extraction** (`src/lib/ai/intake-extraction.ts`): GPT-4o-mini extracts structured fields from raw contractor notes — name, email, phone, address, city, projectType, areaSqft, finishLevel, timeline, budgetBand, goalsText, specificMaterials, structuralNotes. Schema: `IntakeExtractionSchema` in `src/lib/schemas/intake.ts`. Extraction pre-fills the form; contractor reviews and adjusts before submission.
+
+**Intake API:** `POST /api/leads/intake` — discriminated union with two actions:
+- `action: 'extract'` — AI extraction only (returns structured fields)
+- `action: 'create'` — Creates lead with source tracking
+
+**Lead record enrichment:**
+- `created_by: 'contractor'` (vs default `'customer'`)
+- `intake_method: 'voice_dictation' | 'text_input' | 'form'`
+- `intake_raw_input` — original dictation/text for audit trail
+- `source: 'contractor_intake'`
+- AI quote generation attempted automatically when enough project data is present
+
+**Leads table:** Source badge column — blue "Intake" badge for contractor-created leads, grey "Website" for homeowner-created leads.
+
+**Email generation:** Source-aware — contractor-created leads receive different language (no "design session" references since there was no homeowner interaction).
+
+**Chat transcript fallback:** When a lead has no chat transcript (contractor-created via intake), the transcript section shows "Contractor Intake Notes" with the raw dictation/text input.
+
+**Database columns** (added to `leads` via migration `20260227100000_contractor_intake.sql`):
+- `created_by` (TEXT, CHECK: customer/contractor, default: customer)
+- `intake_raw_input` (TEXT)
+- `intake_method` (TEXT, CHECK: website/voice_dictation/text_input/form)
+
 ### Files Summary
 
 | File | Purpose |
@@ -458,10 +556,28 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 | `src/components/admin/tier-comparison.tsx` | 3-column tier comparison bar |
 | `src/lib/ai/scope-gap-rules.ts` | 20+ pure detection rules |
 | `src/components/admin/scope-gap-recommendations.tsx` | Collapsible scope gap UI with "Add" actions |
+| `src/lib/pdf/pdf-utils.ts` | 7 shared PDF utilities (grouping, formatting, URL resolution) |
+| `src/lib/pdf/shared-pdf-styles.ts` | Shared StyleSheet factory and static colours |
+| `src/lib/pdf/quote-template.tsx` | Multi-page quote PDF document component |
+| `src/app/quote/accept/[token]/page.tsx` | Public e-signature acceptance page |
+| `src/app/api/quotes/accept/[token]/route.ts` | E-signature API (GET summary + POST accept) |
+| `src/components/admin/quote-version-history.tsx` | Horizontal version chip bar |
+| `src/app/api/quotes/[leadId]/versions/route.ts` | Version history API |
+| `src/components/admin/contractor-intake-dialog.tsx` | 3-tab intake dialog (dictate, type, form) |
+| `src/components/admin/voice-dictation-input.tsx` | MediaRecorder + Whisper voice capture |
+| `src/components/admin/leads-page-header.tsx` | Leads page header with "+ New Lead" button |
+| `src/lib/ai/intake-extraction.ts` | GPT-4o-mini field extraction from contractor notes |
+| `src/lib/schemas/intake.ts` | Zod schemas for intake extraction and request |
+| `src/app/api/leads/intake/route.ts` | Intake API (extract + create actions) |
+| `src/app/api/transcribe/route.ts` | Whisper transcription endpoint |
 | `tests/unit/transparency-schema.test.ts` | 35 tests for transparency schemas |
 | `tests/unit/category-markups.test.ts` | 16 tests for markup math |
 | `tests/unit/tiered-quote-schema.test.ts` | 17 tests for tiered quote schemas |
 | `tests/unit/scope-gap-rules.test.ts` | 95 tests for all 20+ rules |
+| `tests/unit/pdf-utils.test.ts` | 24 tests for PDF utility functions |
+| `tests/unit/e-signature.test.ts` | 26 tests for e-signature flow |
+| `tests/unit/quote-versioning.test.ts` | 15 tests for version snapshot logic |
+| `tests/unit/intake-extraction.test.ts` | 26 tests for AI intake extraction |
 
 ---
 
@@ -474,8 +590,8 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
 | `admin_settings` | Per-tenant config (branding, pricing, plan) | `site_id`, `key`, `value` (JSONB) |
-| `leads` | CRM — homeowner inquiries | Contact info, project details, AI transcripts, Ontario-specific fields |
-| `quote_drafts` | AI-generated quotes | Line items, tiered pricing (good/better/best), totals with HST |
+| `leads` | CRM — homeowner and contractor-created inquiries | Contact info, project details, AI transcripts, Ontario-specific fields, `created_by` (customer/contractor), `intake_method` (website/voice_dictation/text_input/form), `intake_raw_input` |
+| `quote_drafts` | AI-generated quotes with versioning | Line items, tiered pricing (good/better/best), totals with HST, `version` (int), `sent_at`, `acceptance_token` (unique), `acceptance_status` (pending/accepted/declined), `accepted_at`, `accepted_by_name`, `accepted_by_ip` |
 | `visualizations` | AI design concepts | Photo analysis, concepts (JSONB), generation metrics, admin review fields. Room type CHECK: kitchen, bathroom, living_room, bedroom, basement, dining_room, exterior, other. Style CHECK: modern, traditional, farmhouse, industrial, minimalist, contemporary, other. |
 | `lead_visualizations` | Junction: leads ↔ visualizations | `is_primary`, `admin_selected` |
 | `invoices` | Billing | Line items, payment tracking, auto-numbering (INV-YYYY-NNN) |
@@ -496,7 +612,7 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 
 ---
 
-## API Routes (36 endpoints)
+## API Routes (42 endpoints)
 
 ### AI (7 routes)
 | Route | Description |
@@ -509,21 +625,26 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 | `POST /api/ai/visualize/stream` | Generate 4 concepts (SSE streaming, primary) |
 | `POST /api/ai/visualizer-chat` | Design chat during visualization |
 
-### Leads (4 routes)
+### Leads (6 routes)
 | Route | Description |
 |-------|-------------|
 | `GET/POST /api/leads` | List or create leads |
 | `GET/PATCH/DELETE /api/leads/[id]` | Single lead CRUD |
 | `GET /api/leads/[id]/audit` | Lead audit log |
+| `POST /api/leads/intake` | Contractor lead intake (extract AI fields or create lead) |
+| `POST /api/transcribe` | Whisper audio transcription for voice dictation |
 
-### Quotes (5 routes)
+### Quotes (8 routes)
 | Route | Description |
 |-------|-------------|
 | `GET/PUT /api/quotes/[leadId]` | Retrieve or update quote |
-| `GET /api/quotes/[leadId]/pdf` | Generate PDF |
+| `GET /api/quotes/[leadId]/pdf` | Generate multi-page PDF |
 | `POST /api/quotes/[leadId]/draft-email` | AI-draft email text |
 | `POST /api/quotes/[leadId]/regenerate` | Re-generate from conversation |
-| `POST /api/quotes/[leadId]/send` | Send via Resend email |
+| `POST /api/quotes/[leadId]/send` | Send via Resend email (generates acceptance token, snapshots version) |
+| `GET /api/quotes/[leadId]/versions` | Quote version history |
+| `GET /api/quotes/accept/[token]` | Public: fetch quote summary for acceptance page |
+| `POST /api/quotes/accept/[token]` | Public: accept quote with typed name |
 
 ### Invoices (6 routes)
 | Route | Description |
@@ -558,7 +679,7 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 
 ---
 
-## Page Routes (21 pages)
+## Page Routes (22 pages)
 
 ### Public (accessible to all visitors)
 | Route | Purpose |
@@ -573,6 +694,7 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 | `/estimate/resume` | Resume saved session |
 | `/contact` | Contact form |
 | `/projects` | Portfolio / case studies |
+| `/quote/accept/[token]` | Public e-signature acceptance page (no auth, token-gated) |
 
 ### Admin (gated by tier)
 | Route | Tier Required | Purpose |
@@ -595,7 +717,7 @@ Pure rules engine detects commonly missed items in renovation quotes. Module: `s
 
 | Service | Purpose | Cost Model |
 |---------|---------|------------|
-| **OpenAI** (GPT-5.2) | Chat, vision analysis, quote generation, moderation | Per-token |
+| **OpenAI** (GPT-5.2, GPT-4o-mini, Whisper) | Chat, vision analysis, quote generation, moderation, intake field extraction (GPT-4o-mini), voice transcription (gpt-4o-mini-transcribe, ~$0.003/min) | Per-token |
 | **Google Generative AI** (Gemini 3 Pro Image) | Renovation concept generation | Per-request |
 | **ElevenLabs** | Voice agent: Emma (all tiers, web; Dominate only for phone/Twilio), single agent per tenant with session prompt overrides | Per-minute |
 | **Supabase** | PostgreSQL database + file storage + RLS | Free tier / Pro |
@@ -680,12 +802,24 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Check | Status | Notes |
 |-------|--------|-------|
 | `npm run build` | Passing | TypeScript strict + Next.js build |
-| `npm run test` | 195 passing | 7 test files (pricing, schemas, visualizer, copy, etc.) |
+| `npm run test` | 449 passing | 15 test files (pricing, schemas, visualizer, copy, transparency, markups, tiers, scope gaps, PDF utils, e-signature, quote versioning, intake extraction) |
 | `npm run lint` | Passing | 24 pre-existing errors, 123 warnings (none from recent work) |
 | SSE streaming | Verified | 4 concepts in ~41s, progressive reveal |
 | Multi-tenant isolation | Verified | McCarty Squared vs ConversionOS Demo vs Red White Reno — no brand leakage |
-| Tier gating | Verified | Analytics hidden for Accelerate, visible for Dominate |
+| Tier gating | Verified | Analytics hidden for Accelerate, visible for Dominate; contractor intake on Accelerate+ |
 | Mobile layout | Verified | 375x812 renders correctly |
+
+---
+
+## Business Constants
+
+| Constant | Value | Location |
+|----------|-------|----------|
+| HST (Ontario) | 13% | `src/lib/pricing/constants.ts` → `hstRate: 0.13` |
+| Deposit | 15% | `src/lib/pricing/constants.ts` → `depositRate: 0.15` |
+| Estimate variance | +/-15% | `src/lib/pricing/constants.ts` → `varianceRate: 0.15` |
+| Quote validity | 30 days | Quote PDF terms page |
+| Contingency (default) | 10% | `src/lib/pricing/constants.ts` → `contingencyRate: 0.10` |
 
 ---
 

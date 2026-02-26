@@ -74,6 +74,12 @@ function buildUserPrompt(input: EmailGenerationInput): string {
     parts.push(`- Note: This is a resend of a previous quote`);
   }
 
+  if (input.isContractorIntake) {
+    parts.push(`\n## Note: This lead was created by the contractor from a phone call or in-person conversation.`);
+    parts.push(`Do NOT reference "your conversation with Emma" or "your design session".`);
+    parts.push(`Instead reference "your recent conversation with the team".`);
+  }
+
   if (input.goalsText) {
     parts.push(`\n## Customer's Goals`);
     parts.push(input.goalsText);

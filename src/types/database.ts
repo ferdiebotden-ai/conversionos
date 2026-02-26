@@ -54,6 +54,9 @@ export type Database = {
           assigned_to: string | null;
           last_contacted_at: string | null;
           follow_up_date: string | null;
+          created_by: string;
+          intake_raw_input: string | null;
+          intake_method: string | null;
         };
         Insert: {
           id?: string;
@@ -91,6 +94,9 @@ export type Database = {
           assigned_to?: string | null;
           last_contacted_at?: string | null;
           follow_up_date?: string | null;
+          created_by?: string;
+          intake_raw_input?: string | null;
+          intake_method?: string | null;
         };
         Update: {
           id?: string;
@@ -128,6 +134,9 @@ export type Database = {
           assigned_to?: string | null;
           last_contacted_at?: string | null;
           follow_up_date?: string | null;
+          created_by?: string;
+          intake_raw_input?: string | null;
+          intake_method?: string | null;
         };
         Relationships: [];
       };
@@ -162,6 +171,11 @@ export type Database = {
           sent_to_email: string | null;
           opened_at: string | null;
           pdf_url: string | null;
+          acceptance_token: string | null;
+          acceptance_status: string | null;
+          accepted_at: string | null;
+          accepted_by_name: string | null;
+          accepted_by_ip: string | null;
         };
         Insert: {
           id?: string;
@@ -193,6 +207,11 @@ export type Database = {
           sent_to_email?: string | null;
           opened_at?: string | null;
           pdf_url?: string | null;
+          acceptance_token?: string | null;
+          acceptance_status?: string | null;
+          accepted_at?: string | null;
+          accepted_by_name?: string | null;
+          accepted_by_ip?: string | null;
         };
         Update: {
           id?: string;
@@ -224,6 +243,11 @@ export type Database = {
           sent_to_email?: string | null;
           opened_at?: string | null;
           pdf_url?: string | null;
+          acceptance_token?: string | null;
+          acceptance_status?: string | null;
+          accepted_at?: string | null;
+          accepted_by_name?: string | null;
+          accepted_by_ip?: string | null;
         };
         Relationships: [
           {
