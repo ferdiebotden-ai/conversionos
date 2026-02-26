@@ -148,6 +148,127 @@ export function createInvalidCSVContent(): string {
   ].join('\n');
 }
 
+// ---------- Supabase Direct API ----------
+
+/** Supabase project URL and service role key (for test setup/teardown) */
+const SUPABASE_URL = process.env['NEXT_PUBLIC_SUPABASE_URL'] || '';
+const SUPABASE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] || '';
+const SITE_ID = process.env['NEXT_PUBLIC_SITE_ID'] || 'demo';
+
+/**
+ * Make a direct Supabase REST API call (bypasses the app).
+ * Used for test setup/teardown only.
+ */
+async function supabaseRest(
+  table: string,
+  options: {
+    method?: string;
+    query?: string;
+    body?: Record<string, unknown>;
+    headers?: Record<string, string>;
+    prefer?: string;
+  } = {}
+): Promise<Response> {
+  const { method = 'GET', query = '', body, headers = {}, prefer } = options;
+  const url = `${SUPABASE_URL}/rest/v1/${table}${query ? `?${query}` : ''}`;
+  const reqHeaders: Record<string, string> = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+  if (prefer) reqHeaders['Prefer'] = prefer;
+  return fetch(url, {
+    method,
+    headers: reqHeaders,
+    body: body ? JSON.stringify(body) : null,
+  });
+}
+
+/**
+ * Seed an acceptance token on the latest quote draft for a lead.
+ * Returns the 24-char token that can be used to visit /quote/accept/[token].
+ */
+export async function seedAcceptanceToken(leadId: string): Promise<string> {
+  const token = `test_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+  // Find the latest quote draft for this lead
+  const findRes = await supabaseRest('quote_drafts', {
+    query: `lead_id=eq.${leadId}&site_id=eq.${SITE_ID}&order=version.desc&limit=1&select=id`,
+  });
+  const rows = await findRes.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`No quote draft found for lead ${leadId}`);
+  }
+
+  const quoteId = rows[0].id;
+
+  // Set acceptance_token and ensure acceptance_status is null/pending
+  const updateRes = await supabaseRest('quote_drafts', {
+    method: 'PATCH',
+    query: `id=eq.${quoteId}`,
+    body: {
+      acceptance_token: token,
+      acceptance_status: null,
+      accepted_at: null,
+      accepted_by_name: null,
+      accepted_by_ip: null,
+    },
+    prefer: 'return=minimal',
+  });
+
+  if (!updateRes.ok) {
+    const err = await updateRes.text();
+    throw new Error(`Failed to seed acceptance token: ${err}`);
+  }
+
+  return token;
+}
+
+/**
+ * Change the tenant plan tier in admin_settings.
+ * Useful for testing tier gating. Always clean up after test!
+ */
+export async function setTenantTier(tier: 'elevate' | 'accelerate' | 'dominate'): Promise<void> {
+  const updateRes = await supabaseRest('admin_settings', {
+    method: 'PATCH',
+    query: `site_id=eq.${SITE_ID}&key=eq.plan`,
+    body: { value: { tier } },
+    prefer: 'return=minimal',
+  });
+
+  if (!updateRes.ok) {
+    const err = await updateRes.text();
+    throw new Error(`Failed to set tenant tier to ${tier}: ${err}`);
+  }
+}
+
+/**
+ * Get the first lead ID from the leads page.
+ * Navigates if not already on the leads page.
+ */
+export async function getFirstLeadId(page: Page): Promise<string> {
+  // Navigate to leads if not already there
+  if (!page.url().includes('/admin/leads')) {
+    await page.goto('/admin/leads');
+    await expect(page.locator('table')).toBeVisible({ timeout: UI_TIMEOUT });
+  }
+
+  // Click the first lead's view link
+  const firstRow = page.locator('table tbody tr').first();
+  await expect(firstRow).toBeVisible({ timeout: UI_TIMEOUT });
+  const viewLink = firstRow.getByRole('link').first();
+  const href = await viewLink.getAttribute('href');
+
+  if (!href) throw new Error('No link found in first lead row');
+
+  // Extract the lead ID from the href
+  const leadId = href.split('/admin/leads/')[1]?.split(/[?#]/)[0] || '';
+  if (!leadId) throw new Error(`Could not extract lead ID from href: ${href}`);
+
+  return leadId;
+}
+
 // ---------- Console Error Checking ----------
 
 /**
