@@ -87,29 +87,8 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
   const cancelledRef = useRef(false);
   const active = transformations[activeIndex]!;
 
-  // ─── Auto-animate when section scrolls into view ─────────────────────
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || hasAnimated) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting && !hasAnimated) {
-          observer.disconnect();
-          setHasAnimated(true);
-          cancelledRef.current = false;
-          runIntroAnimation();
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAnimated]);
-
-  async function runIntroAnimation() {
+  // ─── Intro animation sequence ────────────────────────────────────────
+  const runIntroAnimation = useCallback(async () => {
     // 1. Wait 400ms
     await new Promise((r) => setTimeout(r, 400));
     if (cancelledRef.current) return;
@@ -147,7 +126,28 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
     if (cancelledRef.current) return;
 
     setShowLabels(true);
-  }
+  }, []);
+
+  // ─── Auto-animate when section scrolls into view ─────────────────────
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || hasAnimated) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && !hasAnimated) {
+          observer.disconnect();
+          setHasAnimated(true);
+          cancelledRef.current = false;
+          runIntroAnimation();
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [hasAnimated, runIntroAnimation]);
 
   // ─── Position calculation from track interaction ─────────────────────
   const updatePositionFromClient = useCallback((clientX: number) => {
@@ -218,6 +218,33 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
       window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
+  // ─── Keyboard handler for slider (A1) ──────────────────────────────
+  const handleSliderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    let newPos = sliderPosition;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowUp':
+        newPos = Math.min(sliderPosition + 5, 100);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        newPos = Math.max(sliderPosition - 5, 0);
+        break;
+      case 'Home':
+        newPos = 0;
+        break;
+      case 'End':
+        newPos = 100;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    cancelledRef.current = true;
+    setShowLabels(true);
+    setSliderPosition(newPos);
+  }, [sliderPosition]);
 
   // ─── Tab switch: reset & replay animation ────────────────────────────
   const handleTabSwitch = (index: number) => {
@@ -314,13 +341,22 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
             {/* Slider track */}
             <div
               ref={trackRef}
+              role="slider"
+              tabIndex={0}
+              aria-label="Before and after comparison"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(sliderPosition)}
+              aria-valuetext={`Showing ${Math.round(sliderPosition)}% of the renovation`}
               className={cn(
                 'relative flex-1 h-2 bg-white/20 backdrop-blur-sm rounded-full',
                 'cursor-pointer',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/50 rounded-full',
                 isDragging && 'cursor-grabbing',
               )}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
+              onKeyDown={handleSliderKeyDown}
             >
               {/* Filled portion */}
               <div
@@ -328,11 +364,12 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
                 style={{ width: `${sliderPosition}%` }}
               />
 
-              {/* Thumb */}
+              {/* Thumb — 44px touch target on touch devices (WCAG), smaller on desktop */}
               <div
                 className={cn(
                   'absolute top-1/2 -translate-y-1/2 -translate-x-1/2',
                   'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white shadow-lg border-2 border-primary',
+                  '[@media(hover:none)]:w-11 [@media(hover:none)]:h-11',
                   'transition-transform duration-100',
                   isDragging && 'scale-110',
                 )}

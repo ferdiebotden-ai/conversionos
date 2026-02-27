@@ -21,6 +21,7 @@ import { EMMA_PERSONA } from '@/lib/ai/personas';
 import { cn } from '@/lib/utils';
 import { MessageCircle, AudioLines, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SRAnnounce } from '@/components/ui/sr-announce';
 import { useTier } from '@/components/tier-provider';
 
 function getMessageContent(message: UIMessage): string {
@@ -120,8 +121,16 @@ export function ReceptionistChat() {
     [sendMessage]
   );
 
+  // Screen reader announcement message
+  const srMessage = useMemo(() => {
+    if (isLoading) return 'Emma is typing...';
+    if (status === 'connecting') return 'Processing voice input...';
+    if (isVoiceActive) return 'Voice mode active';
+    return '';
+  }, [isLoading, isVoiceActive, status]);
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-[min(520px,calc(100dvh-120px))]">
       {/* Mode Toggle — Chat / Talk segmented control (voice = Dominate only) */}
       {hasVoice && (
         <div className="flex items-center gap-1 px-3 pt-2 pb-1">
@@ -155,7 +164,7 @@ export function ReceptionistChat() {
       )}
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 min-h-0">
+      <ScrollArea ref={scrollRef} className="flex-1 min-h-0" aria-live="polite" role="log">
         <div className="space-y-1 py-2">
           {displayMessages.map((message) => {
             if (message.source === 'voice') {
@@ -240,6 +249,9 @@ export function ReceptionistChat() {
           context="general"
         />
       )}
+
+      {/* Screen reader announcements */}
+      <SRAnnounce message={srMessage} />
     </div>
   );
 }

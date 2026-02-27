@@ -28,7 +28,9 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { VoiceDictationInput } from './voice-dictation-input';
-import { Mic, Type, ClipboardList, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Mic, Type, ClipboardList, Loader2, Sparkles, AlertCircle, RotateCcw } from 'lucide-react';
+import { isValidEmail, isValidPhone } from '@/lib/utils/validation';
 import type { IntakeExtraction } from '@/lib/schemas/intake';
 
 interface ContractorIntakeDialogProps {
@@ -115,6 +117,16 @@ export function ContractorIntakeDialog({
   const [extractionSource, setExtractionSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [typedNotes, setTypedNotes] = useState('');
+  // V3/V4: Field validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // F9: Submit confirmation dialog
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  // V10: Duplicate lead detection
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  // E5: AI extraction failure state
+  const [extractionFailed, setExtractionFailed] = useState(false);
+  const [failedRawInput, setFailedRawInput] = useState('');
+  const [failedMethod, setFailedMethod] = useState<IntakeMethod>('voice_dictation');
 
   const resetDialog = useCallback(() => {
     setForm(EMPTY_FORM);
@@ -127,6 +139,12 @@ export function ContractorIntakeDialog({
     setError(null);
     setTypedNotes('');
     setActiveTab('dictate');
+    setFieldErrors({});
+    setShowSubmitConfirm(false);
+    setShowDuplicateWarning(false);
+    setExtractionFailed(false);
+    setFailedRawInput('');
+    setFailedMethod('voice_dictation');
   }, []);
 
   const handleOpenChange = useCallback(
@@ -179,12 +197,38 @@ export function ContractorIntakeDialog({
         setExtractionSource(method === 'voice_dictation' ? 'Extracted from dictation' : 'Extracted from text');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to extract fields. Please try manual entry.');
+        // E5: Store failure state for recovery UI
+        setExtractionFailed(true);
+        setFailedRawInput(input);
+        setFailedMethod(method);
       } finally {
         setIsExtracting(false);
       }
     },
     [applyExtraction],
   );
+
+  // E5: Retry extraction after failure
+  const handleRetryExtraction = useCallback(() => {
+    if (failedRawInput) {
+      setExtractionFailed(false);
+      setError(null);
+      extractFromInput(failedRawInput, failedMethod);
+    }
+  }, [failedRawInput, failedMethod, extractFromInput]);
+
+  // E5: Switch to manual form with raw text preserved
+  const handleEnterManually = useCallback(() => {
+    setExtractionFailed(false);
+    setError(null);
+    setForm(prev => ({
+      ...prev,
+      goalsText: failedRawInput || prev.goalsText,
+    }));
+    setIntakeMethod('form');
+    setShowReview(true);
+    setExtractionSource(null);
+  }, [failedRawInput]);
 
   const handleDictationTranscript = useCallback(
     (text: string) => {
@@ -209,11 +253,39 @@ export function ContractorIntakeDialog({
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const isFormValid = form.name.length >= 2 && form.email.includes('@');
+  // V3/V4: Validate with proper email and phone checks
+  const emailValid = isValidEmail(form.email);
+  const phoneValid = !form.phone || isValidPhone(form.phone);
+  const isFormValid = form.name.length >= 2 && emailValid && phoneValid;
 
-  const handleSubmit = useCallback(async () => {
-    if (!isFormValid) return;
+  // Validate fields and update errors
+  const validateFields = useCallback((): boolean => {
+    const errors: Record<string, string> = {};
+    if (form.email && !isValidEmail(form.email)) {
+      errors['intake-email'] = 'Please enter a valid email address';
+    }
+    if (form.phone && !isValidPhone(form.phone)) {
+      errors['intake-phone'] = 'Phone number must be at least 10 digits';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [form.email, form.phone]);
 
+  // V10: Check for duplicate lead by email
+  const checkDuplicateLead = useCallback(async (email: string): Promise<boolean> => {
+    try {
+      const siteId = process.env['NEXT_PUBLIC_SITE_ID'] || 'demo';
+      const res = await fetch(`/api/leads?email=${encodeURIComponent(email)}&site_id=${encodeURIComponent(siteId)}`);
+      if (!res.ok) return false; // If API doesn't support filter, skip check
+      const data = await res.json();
+      return Array.isArray(data.leads) && data.leads.length > 0;
+    } catch {
+      return false; // Skip check on error
+    }
+  }, []);
+
+  // Actual submission logic (after all confirmations)
+  const doSubmit = useCallback(async () => {
     setIsSubmitting(true);
     setError(null);
 
@@ -255,7 +327,35 @@ export function ContractorIntakeDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, rawInput, intakeMethod, isFormValid, onLeadCreated, handleOpenChange]);
+  }, [form, rawInput, intakeMethod, onLeadCreated, handleOpenChange]);
+
+  // F9: Show confirmation modal before submit, V10: check for duplicates
+  const handleSubmit = useCallback(async () => {
+    if (!isFormValid) return;
+    if (!validateFields()) return;
+
+    // V10: Check for duplicate lead
+    const isDuplicate = await checkDuplicateLead(form.email);
+    if (isDuplicate) {
+      setShowDuplicateWarning(true);
+      return;
+    }
+
+    // F9: Show confirmation dialog
+    setShowSubmitConfirm(true);
+  }, [isFormValid, validateFields, checkDuplicateLead, form.email]);
+
+  // V10: After duplicate warning, proceed to confirmation
+  const handleDuplicateConfirm = useCallback(() => {
+    setShowDuplicateWarning(false);
+    setShowSubmitConfirm(true);
+  }, []);
+
+  // F9: After confirmation, submit
+  const handleConfirmSubmit = useCallback(() => {
+    setShowSubmitConfirm(false);
+    doSubmit();
+  }, [doSubmit]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -299,6 +399,26 @@ export function ContractorIntakeDialog({
                   Extracting lead details...
                 </div>
               )}
+              {/* E5: Extraction failure recovery for dictation */}
+              {extractionFailed && failedMethod === 'voice_dictation' && (
+                <div className="mt-4 space-y-3 p-3 border border-amber-200 bg-amber-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>AI extraction failed. Your transcript is preserved below.</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground bg-white rounded p-2 border">{failedRawInput}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleRetryExtraction} disabled={isExtracting}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                      Try Again
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleEnterManually}>
+                      <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                      Enter Manually
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="type" className="mt-4 space-y-3">
@@ -326,6 +446,25 @@ export function ContractorIntakeDialog({
                   </>
                 )}
               </Button>
+              {/* E5: Extraction failure recovery for text input */}
+              {extractionFailed && failedMethod === 'text_input' && (
+                <div className="space-y-3 p-3 border border-amber-200 bg-amber-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>AI extraction failed. Your text is preserved above.</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleRetryExtraction} disabled={isExtracting}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                      Try Again
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleEnterManually}>
+                      <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                      Enter Manually
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             {/* Form tab immediately shows review via handleFormTabSwitch */}
@@ -362,19 +501,33 @@ export function ContractorIntakeDialog({
                   id="intake-email"
                   type="email"
                   value={form.email}
-                  onChange={(e) => updateField('email', e.target.value)}
+                  onChange={(e) => { updateField('email', e.target.value); setFieldErrors(prev => { const next = { ...prev }; delete next['intake-email']; return next; }); }}
                   placeholder="customer@email.com"
-                  className={!form.email ? 'border-amber-300' : undefined}
+                  className={!form.email ? 'border-amber-300' : fieldErrors['intake-email'] ? 'border-destructive' : undefined}
+                  aria-invalid={!!fieldErrors['intake-email']}
+                  aria-describedby={fieldErrors['intake-email'] ? 'intake-email-error' : undefined}
                 />
+                {fieldErrors['intake-email'] && (
+                  <p id="intake-email-error" className="text-xs text-destructive" role="alert">
+                    {fieldErrors['intake-email']}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="intake-phone" className="text-xs">Phone</Label>
                 <Input
                   id="intake-phone"
                   value={form.phone}
-                  onChange={(e) => updateField('phone', e.target.value)}
+                  onChange={(e) => { updateField('phone', e.target.value); setFieldErrors(prev => { const next = { ...prev }; delete next['intake-phone']; return next; }); }}
                   placeholder="519-555-1234"
+                  aria-invalid={!!fieldErrors['intake-phone']}
+                  aria-describedby={fieldErrors['intake-phone'] ? 'intake-phone-error' : undefined}
                 />
+                {fieldErrors['intake-phone'] && (
+                  <p id="intake-phone-error" className="text-xs text-destructive" role="alert">
+                    {fieldErrors['intake-phone']}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="intake-city" className="text-xs">City</Label>
@@ -494,7 +647,11 @@ export function ContractorIntakeDialog({
             {!isFormValid && (
               <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-md p-2.5">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Name and a valid email are required to create a lead.</span>
+                <span>
+                  {form.name.length < 2 && 'Name is required. '}
+                  {!emailValid && 'A valid email is required. '}
+                  {!phoneValid && 'Please enter a valid phone number.'}
+                </span>
               </div>
             )}
 
@@ -533,6 +690,33 @@ export function ContractorIntakeDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* V10: Duplicate lead warning */}
+      <ConfirmDialog
+        open={showDuplicateWarning}
+        onOpenChange={setShowDuplicateWarning}
+        title="Duplicate Lead"
+        description="A lead with this email already exists. Create anyway?"
+        confirmLabel="Create Anyway"
+        onConfirm={handleDuplicateConfirm}
+      />
+
+      {/* F9: Intake confirmation modal */}
+      <ConfirmDialog
+        open={showSubmitConfirm}
+        onOpenChange={setShowSubmitConfirm}
+        title="Create Lead"
+        description={`Please confirm the lead details below.`}
+        confirmLabel="Create Lead"
+        listItems={[
+          `Name: ${form.name}`,
+          `Email: ${form.email}`,
+          ...(form.phone ? [`Phone: ${form.phone}`] : []),
+          ...(form.projectType ? [`Project: ${PROJECT_TYPES.find(t => t.value === form.projectType)?.label || form.projectType}`] : []),
+          `Intake method: ${intakeMethod === 'voice_dictation' ? 'Voice Dictation' : intakeMethod === 'text_input' ? 'Text Input' : 'Form'}`,
+        ]}
+        onConfirm={handleConfirmSubmit}
+      />
     </Dialog>
   );
 }

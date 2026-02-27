@@ -6,6 +6,12 @@
  */
 
 import { Check, Clock, FileText, Send } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export interface VersionSummary {
   version: number;
@@ -29,6 +35,15 @@ function formatShortDate(iso: string): string {
   });
 }
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function QuoteVersionHistory({
   versions,
   activeVersion,
@@ -40,6 +55,7 @@ export function QuoteVersionHistory({
   const isViewingOldVersion = activeVersion !== latestVersion;
 
   return (
+    <TooltipProvider>
     <div className="space-y-2">
       {/* Version chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -51,34 +67,40 @@ export function QuoteVersionHistory({
           const isPending = v.acceptanceStatus === 'pending';
 
           return (
-            <button
-              key={v.version}
-              onClick={() => onSelectVersion(v.version)}
-              className={`
-                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                transition-colors shrink-0 cursor-pointer border
-                ${isActive
-                  ? 'bg-primary/10 text-primary border-primary/30'
-                  : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border'
-                }
-              `}
-            >
-              {isSent ? (
-                <Send className="h-3 w-3" />
-              ) : (
-                <FileText className="h-3 w-3" />
-              )}
-              <span>v{v.version}</span>
-              {isSent && v.sentAt && (
-                <span className="text-[10px] opacity-70">{formatShortDate(v.sentAt)}</span>
-              )}
-              {isAccepted && (
-                <Check className="h-3 w-3 text-green-600" />
-              )}
-              {isPending && (
-                <Clock className="h-3 w-3 text-amber-500" />
-              )}
-            </button>
+            <Tooltip key={v.version}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onSelectVersion(v.version)}
+                  className={`
+                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                    transition-colors shrink-0 cursor-pointer border
+                    ${isActive
+                      ? 'bg-primary/10 text-primary border-primary/30'
+                      : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border'
+                    }
+                  `}
+                >
+                  {isSent ? (
+                    <Send className="h-3 w-3" />
+                  ) : (
+                    <FileText className="h-3 w-3" />
+                  )}
+                  <span>v{v.version}</span>
+                  {isSent && v.sentAt && (
+                    <span className="text-[10px] opacity-70">{formatShortDate(v.sentAt)}</span>
+                  )}
+                  {isAccepted && (
+                    <Check className="h-3 w-3 text-green-600" />
+                  )}
+                  {isPending && (
+                    <Clock className="h-3 w-3 text-amber-500" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {v.total != null ? formatCurrency(v.total) : 'No total'}
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
@@ -103,5 +125,6 @@ export function QuoteVersionHistory({
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }

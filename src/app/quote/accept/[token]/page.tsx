@@ -53,6 +53,15 @@ function formatDate(iso: string): string {
   });
 }
 
+const RESPONSIVE_STYLES = `
+  .esign-card { padding: 16px; }
+  @media (min-width: 640px) { .esign-card { padding: 24px; } }
+  @media (min-width: 768px) { .esign-card { padding: 40px; } }
+  .esign-content { padding: 24px 16px; }
+  @media (min-width: 640px) { .esign-content { padding: 28px 24px; } }
+  @media (min-width: 768px) { .esign-content { padding: 32px 24px; } }
+`;
+
 const PROJECT_TYPE_LABELS: Record<string, string> = {
   kitchen: 'Kitchen Renovation',
   bathroom: 'Bathroom Renovation',
@@ -154,7 +163,8 @@ export default function QuoteAcceptancePage() {
   if (state.kind === 'not_found') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8' }}>
-        <div style={{ maxWidth: 420, padding: 40, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <style>{RESPONSIVE_STYLES}</style>
+        <div className="esign-card" style={{ maxWidth: 420, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>!</div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>Quote Not Found</h1>
           <p style={{ fontSize: 15, color: '#666', margin: 0, lineHeight: 1.5 }}>
@@ -168,7 +178,8 @@ export default function QuoteAcceptancePage() {
   if (state.kind === 'accepted') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8' }}>
-        <div style={{ maxWidth: 420, padding: 40, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <style>{RESPONSIVE_STYLES}</style>
+        <div className="esign-card" style={{ maxWidth: 420, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, color: '#16a34a' }}>&#10003;</div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>Quote Already Approved</h1>
           <p style={{ fontSize: 15, color: '#666', margin: 0, lineHeight: 1.5 }}>
@@ -182,7 +193,8 @@ export default function QuoteAcceptancePage() {
   if (state.kind === 'expired') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8' }}>
-        <div style={{ maxWidth: 420, padding: 40, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <style>{RESPONSIVE_STYLES}</style>
+        <div className="esign-card" style={{ maxWidth: 420, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, color: '#d97706' }}>&#9200;</div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>Quote Expired</h1>
           <p style={{ fontSize: 15, color: '#666', margin: 0, lineHeight: 1.5 }}>
@@ -210,7 +222,8 @@ export default function QuoteAcceptancePage() {
   if (state.kind === 'submitted') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8' }}>
-        <div style={{ maxWidth: 420, padding: 40, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <style>{RESPONSIVE_STYLES}</style>
+        <div className="esign-card" style={{ maxWidth: 420, background: '#fff', borderRadius: 12, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, color: '#16a34a' }}>&#10003;</div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>Quote Approved!</h1>
           <p style={{ fontSize: 15, color: '#666', margin: 0, lineHeight: 1.5 }}>
@@ -231,6 +244,7 @@ export default function QuoteAcceptancePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f8f8', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      <style>{RESPONSIVE_STYLES}</style>
       {/* Branding header */}
       <div style={{ background: '#fff', borderBottom: `3px solid ${branding.primaryColor}`, padding: '20px 24px' }}>
         <div style={{ maxWidth: 540, margin: '0 auto' }}>
@@ -243,7 +257,7 @@ export default function QuoteAcceptancePage() {
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 540, margin: '0 auto', padding: '32px 24px' }}>
+      <div className="esign-content" style={{ maxWidth: 540, margin: '0 auto' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>
           Review Your Quote
         </h1>
@@ -328,8 +342,15 @@ export default function QuoteAcceptancePage() {
           </div>
 
           {submitError && (
-            <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, marginBottom: 16, fontSize: 14, color: '#dc2626' }}>
-              {submitError}
+            <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, marginBottom: 16, fontSize: 14, color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <span>Something went wrong.</span>
+              <button
+                onClick={handleAccept}
+                disabled={submitting}
+                style={{ background: 'none', border: '1px solid #dc2626', borderRadius: 6, padding: '4px 12px', color: '#dc2626', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 13 }}
+              >
+                Try Again
+              </button>
             </div>
           )}
 

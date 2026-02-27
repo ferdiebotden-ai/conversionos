@@ -5,7 +5,7 @@
  * Self-contained component for the admin Settings "Templates" tab.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,9 @@ import {
   Package,
   Download,
   X,
+  Search,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { AssemblyTemplate, AssemblyTemplateItem } from '@/types/database';
 import { DEFAULT_ASSEMBLY_TEMPLATES } from '@/lib/data/default-templates';
 
@@ -71,6 +73,32 @@ interface EditingTemplate {
   items: AssemblyTemplateItem[];
 }
 
+/** V8: Per-field validation errors for a template line item. */
+export interface ItemValidationErrors {
+  description?: string | undefined;
+  quantity?: string | undefined;
+  unit_price?: string | undefined;
+}
+
+/** V8: Validate a single template line item. Returns errors or null if valid. */
+export function validateTemplateItem(item: AssemblyTemplateItem): ItemValidationErrors | null {
+  const errors: ItemValidationErrors = {};
+  let hasError = false;
+  if (!item.description.trim()) {
+    errors.description = 'Description is required';
+    hasError = true;
+  }
+  if (item.quantity <= 0) {
+    errors.quantity = 'Must be > 0';
+    hasError = true;
+  }
+  if (item.unit_price < 0) {
+    errors.unit_price = 'Must be >= 0';
+    hasError = true;
+  }
+  return hasError ? errors : null;
+}
+
 const EMPTY_ITEM: AssemblyTemplateItem = {
   description: '',
   category: 'materials',
@@ -89,6 +117,44 @@ export function TemplateManager() {
   // Edit dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EditingTemplate | null>(null);
+  // V8: Track whether save was attempted (to show validation errors)
+  const [saveAttempted, setSaveAttempted] = useState(false);
+
+  // F14: Search and filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // C5: Load defaults confirmation dialog
+  const [defaultsConfirmOpen, setDefaultsConfirmOpen] = useState(false);
+
+  // F14: Debounce search
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery]);
+
+  // F14: Filter templates
+  const filteredTemplates = useMemo(() => {
+    let result = templates;
+    if (filterCategory !== 'all') {
+      result = result.filter(t => t.category === filterCategory);
+    }
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.trim().toLowerCase();
+      result = result.filter(t =>
+        t.name.toLowerCase().includes(q) ||
+        (t.description ?? '').toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [templates, filterCategory, debouncedSearch]);
 
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
@@ -123,6 +189,7 @@ export function TemplateManager() {
       description: '',
       items: [{ ...EMPTY_ITEM }],
     });
+    setSaveAttempted(false);
     setDialogOpen(true);
   }, []);
 
@@ -135,6 +202,7 @@ export function TemplateManager() {
       description: template.description ?? '',
       items: [...(typeof template.items === 'string' ? JSON.parse(template.items) : template.items)],
     });
+    setSaveAttempted(false);
     setDialogOpen(true);
   }, []);
 
@@ -147,6 +215,7 @@ export function TemplateManager() {
       description: template.description ?? '',
       items: [...items],
     });
+    setSaveAttempted(false);
     setDialogOpen(true);
   }, []);
 
@@ -165,9 +234,21 @@ export function TemplateManager() {
     }
   }, []);
 
+  // V8: Compute item validation errors
+  const itemErrors = useMemo(() => {
+    if (!editing) return [];
+    return editing.items.map(item => validateTemplateItem(item));
+  }, [editing]);
+
+  const hasItemErrors = useMemo(() => {
+    return itemErrors.some(e => e !== null);
+  }, [itemErrors]);
+
   // Save (create or update)
   const handleSave = useCallback(async () => {
     if (!editing) return;
+
+    setSaveAttempted(true);
 
     if (!editing.name.trim()) {
       setError('Template name is required');
@@ -175,6 +256,13 @@ export function TemplateManager() {
     }
     if (editing.items.length === 0) {
       setError('Template must have at least one item');
+      return;
+    }
+
+    // V8: Check for item validation errors
+    const errors = editing.items.map(item => validateTemplateItem(item));
+    if (errors.some(e => e !== null)) {
+      setError('Fix line item errors before saving');
       return;
     }
 
@@ -186,7 +274,7 @@ export function TemplateManager() {
         name: editing.name.trim(),
         category: editing.category,
         description: editing.description.trim() || null,
-        items: editing.items.filter(item => item.description.trim()),
+        items: editing.items,
       };
 
       let res: Response;
@@ -212,6 +300,7 @@ export function TemplateManager() {
 
       setDialogOpen(false);
       setEditing(null);
+      setSaveAttempted(false);
       await fetchTemplates();
     } catch {
       setError('Failed to save template');
@@ -328,7 +417,7 @@ export function TemplateManager() {
               Get started with our default Ontario renovation templates, or create your own.
             </p>
             <div className="flex justify-center gap-3">
-              <Button onClick={handleSeedDefaults} disabled={seedingDefaults}>
+              <Button onClick={() => setDefaultsConfirmOpen(true)} disabled={seedingDefaults}>
                 {seedingDefaults ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -350,10 +439,46 @@ export function TemplateManager() {
         </Card>
       )}
 
-      {/* Template list */}
+      {/* F14: Search and filter (only show when templates exist) */}
       {templates.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {CATEGORIES.map(c => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Template list */}
+      {templates.length > 0 && filteredTemplates.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No templates match your search. Try a different term or category.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {filteredTemplates.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
-          {templates.map((template) => {
+          {filteredTemplates.map((template) => {
             const items = typeof template.items === 'string' ? JSON.parse(template.items) : template.items;
             const total = templateTotal(items);
             return (
@@ -402,8 +527,19 @@ export function TemplateManager() {
         </div>
       )}
 
+      {/* C5: Load defaults confirmation dialog */}
+      <ConfirmDialog
+        open={defaultsConfirmOpen}
+        onOpenChange={setDefaultsConfirmOpen}
+        title="Load Default Templates"
+        description={`This will add ${DEFAULT_ASSEMBLY_TEMPLATES.length} default templates. ${templates.length} existing templates will not be affected.`}
+        confirmLabel="Load Defaults"
+        onConfirm={handleSeedDefaults}
+        listItems={DEFAULT_ASSEMBLY_TEMPLATES.map(t => t.name)}
+      />
+
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditing(null); }}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditing(null); setSaveAttempted(false); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing?.id ? 'Edit Template' : 'Create Template'}</DialogTitle>
@@ -457,7 +593,8 @@ export function TemplateManager() {
                   </Button>
                 </div>
 
-                <div className="border rounded-lg overflow-hidden">
+                {/* M5: Desktop table layout (hidden on mobile) */}
+                <div className="border rounded-lg overflow-hidden hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -471,75 +608,162 @@ export function TemplateManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {editing.items.map((item, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="p-1">
-                            <Input
-                              value={item.description}
-                              onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                              placeholder="Item description"
-                              className="h-8 text-sm"
-                            />
-                          </TableCell>
-                          <TableCell className="p-1">
-                            <Select value={item.category} onValueChange={(v) => updateItem(idx, 'category', v)}>
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ITEM_CATEGORIES.map(c => (
-                                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="p-1">
+                      {editing.items.map((item, idx) => {
+                        const errs = saveAttempted ? itemErrors[idx] : null;
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="p-1">
+                              <Input
+                                value={item.description}
+                                onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                                placeholder="Item description"
+                                className={`h-8 text-sm ${errs?.description ? 'border-destructive' : ''}`}
+                              />
+                              {errs?.description && <p className="text-xs text-destructive mt-0.5">{errs.description}</p>}
+                            </TableCell>
+                            <TableCell className="p-1">
+                              <Select value={item.category} onValueChange={(v) => updateItem(idx, 'category', v)}>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ITEM_CATEGORIES.map(c => (
+                                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="p-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={item.quantity}
+                                onChange={(e) => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                                className={`h-8 text-sm w-16 ${errs?.quantity ? 'border-destructive' : ''}`}
+                              />
+                              {errs?.quantity && <p className="text-xs text-destructive mt-0.5">{errs.quantity}</p>}
+                            </TableCell>
+                            <TableCell className="p-1">
+                              <Input
+                                value={item.unit}
+                                onChange={(e) => updateItem(idx, 'unit', e.target.value)}
+                                className="h-8 text-sm w-20"
+                              />
+                            </TableCell>
+                            <TableCell className="p-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={item.unit_price}
+                                onChange={(e) => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
+                                className={`h-8 text-sm w-24 text-right ${errs?.unit_price ? 'border-destructive' : ''}`}
+                              />
+                              {errs?.unit_price && <p className="text-xs text-destructive mt-0.5">{errs.unit_price}</p>}
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-medium p-1">
+                              ${(item.quantity * item.unit_price).toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="p-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeItem(idx)}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* M5: Mobile stacked layout (visible only on mobile) */}
+                <div className="space-y-3 md:hidden">
+                  {editing.items.map((item, idx) => {
+                    const errs = saveAttempted ? itemErrors[idx] : null;
+                    return (
+                      <div key={idx} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground font-medium">Item {idx + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeItem(idx)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        {/* Description — full width */}
+                        <div>
+                          <Input
+                            value={item.description}
+                            onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                            placeholder="Item description"
+                            className={`text-sm ${errs?.description ? 'border-destructive' : ''}`}
+                          />
+                          {errs?.description && <p className="text-xs text-destructive mt-0.5">{errs.description}</p>}
+                        </div>
+                        {/* Category — full width */}
+                        <Select value={item.category} onValueChange={(v) => updateItem(idx, 'category', v)}>
+                          <SelectTrigger className="text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ITEM_CATEGORIES.map(c => (
+                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {/* Qty, Unit, Price in a row */}
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Label className="text-xs">Qty</Label>
                             <Input
                               type="number"
                               min={0}
                               step={1}
                               value={item.quantity}
                               onChange={(e) => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="h-8 text-sm w-16"
+                              className={`text-sm ${errs?.quantity ? 'border-destructive' : ''}`}
                             />
-                          </TableCell>
-                          <TableCell className="p-1">
+                            {errs?.quantity && <p className="text-xs text-destructive mt-0.5">{errs.quantity}</p>}
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-xs">Unit</Label>
                             <Input
                               value={item.unit}
                               onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                              className="h-8 text-sm w-20"
+                              className="text-sm"
                             />
-                          </TableCell>
-                          <TableCell className="p-1">
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-xs">Price</Label>
                             <Input
                               type="number"
                               min={0}
                               step={0.01}
                               value={item.unit_price}
                               onChange={(e) => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
-                              className="h-8 text-sm w-24 text-right"
+                              className={`text-sm text-right ${errs?.unit_price ? 'border-destructive' : ''}`}
                             />
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium p-1">
-                            ${(item.quantity * item.unit_price).toLocaleString('en-CA', { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="p-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => removeItem(idx)}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            {errs?.unit_price && <p className="text-xs text-destructive mt-0.5">{errs.unit_price}</p>}
+                          </div>
+                        </div>
+                        <div className="text-right text-sm font-medium">
+                          ${(item.quantity * item.unit_price).toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <div className="text-right text-sm font-medium pr-14">
+                <div className="text-right text-sm font-medium pr-0 md:pr-14">
                   Total: ${templateTotal(editing.items).toLocaleString('en-CA', { minimumFractionDigits: 2 })}
                 </div>
               </div>
@@ -547,10 +771,10 @@ export function TemplateManager() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); setEditing(null); }}>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); setEditing(null); setSaveAttempted(false); }}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || (saveAttempted && hasItemErrors)}>
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -138,7 +138,7 @@ export function QuoteSendWizard({
   // Get current step index
   const currentStepIndex = STEP_ORDER.indexOf(currentStep);
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens — prefetch PDF and generate email
   useEffect(() => {
     if (open) {
       setCurrentStep('review');
@@ -147,6 +147,8 @@ export function QuoteSendWizard({
       setIsEmailEdited(false);
       // Generate AI email on open
       generateEmail();
+      // Prefetch PDF so it's ready when user reaches the preview step (P2)
+      loadPdfPreview();
     } else {
       // Clean up PDF URL when closing
       if (pdfUrl) {
@@ -316,7 +318,7 @@ The ${branding.name} Team`);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[700px] w-[calc(100%-2rem)] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />

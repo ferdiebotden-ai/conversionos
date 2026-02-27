@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Enterprise Hardening — 20 fixes: auth middleware, rate limiting, CSP headers, Sentry, privacy/terms/data-deletion pages, CI/CD, 571 tests)
+**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Sentry + Upstash provisioning, enterprise hardening E2E verification — 31 Playwright tests, env var deployment to all 3 Vercel projects)
 
 ---
 
@@ -98,7 +98,9 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Mobile photos | heic2any | — | HEIC/HEIF conversion from iOS |
 | AI framework | Vercel AI SDK | 6.0.67 | Streaming, structured outputs, tool calling |
 | Validation | Zod | 4.3.6 | All AI outputs validated before render/store |
-| Testing | Vitest + Playwright | — | 511 unit tests (15+ test files), 6 E2E test suites, browser automation |
+| Error monitoring | Sentry | @sentry/nextjs 9.7.0 | Client, server, edge configs. Org: `norbot-systems-inc`, project: `javascript-nextjs` |
+| Rate limiting | Upstash Redis | @upstash/ratelimit 2.0.5 | Database: `conversionos-ratelimit` (US-East-1). Falls back to in-memory if unavailable |
+| Testing | Vitest + Playwright | — | 571 unit tests, 7 E2E test suites (including enterprise hardening), browser automation |
 
 ---
 
@@ -772,6 +774,8 @@ Reusable bundles of line items (e.g., "Standard Kitchen Demolition", "Bathroom T
 | **ElevenLabs** | Voice agent: Emma (all tiers, web; Dominate only for phone/Twilio), single agent per tenant with session prompt overrides | Per-minute |
 | **Supabase** | PostgreSQL database + file storage + RLS | Free tier / Pro |
 | **Resend** | Email delivery (lead notifications, quotes, invoices) | Per-email |
+| **Sentry** | Error monitoring, performance tracing, source map uploads (org: `norbot-systems-inc`, project: `javascript-nextjs`) | Free tier |
+| **Upstash Redis** | Serverless rate limiting, persistent across cold starts (database: `conversionos-ratelimit`, US-East-1) | Free tier |
 | **Vercel** | Hosting, CDN, serverless functions, domain routing | Pro plan |
 | **Firecrawl** | Web scraping for automated tenant onboarding (dev dependency) | Per-scrape |
 
@@ -811,7 +815,7 @@ Every aspect of the contractor's experience is configurable per tenant:
 | Notification email addresses | `admin_settings` → `notification_emails` | Settings page |
 | Custom domain | `src/proxy.ts` → `DOMAIN_TO_SITE` | Manual (or onboarding script) |
 | "Powered by ConversionOS" footer | Tier-dependent visibility | Elevate: shown (60% opacity), Accelerate: shown (40% opacity), Dominate: hidden |
-| Footer legal links (Privacy Policy, Terms of Service) | Rendered as non-clickable `<span>` elements | Intentional for demo tenants. Production tenants will need actual policy pages and clickable links. |
+| Footer legal links (Privacy Policy, Terms of Service) | Clickable links to `/privacy` and `/terms` | PIPEDA-compliant, branded per tenant via `getBranding()` |
 | Social proof metrics (Google rating, years, projects, licensed) | `admin_settings` → `company_profile` → `trust_metrics` | Settings page |
 
 ---
@@ -887,7 +891,7 @@ All admin routes are protected by Supabase auth middleware integrated into `src/
 
 ### Rate Limiting
 
-Module: `src/lib/rate-limit.ts`. Uses Upstash Redis if `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set; falls back to in-memory `Map` per serverless instance. Edge-runtime compatible.
+Module: `src/lib/rate-limit.ts`. Uses Upstash Redis (`conversionos-ratelimit` database, US-East-1) for persistent rate limiting across serverless instances. Falls back to in-memory `Map` per instance if Upstash credentials are unavailable. Edge-runtime compatible.
 
 | Endpoints | Limit | Rationale |
 |-----------|-------|-----------|
@@ -920,7 +924,7 @@ All API routes return generic error messages to clients. Internal error details 
 
 ### Monitoring
 
-Sentry integration via `@sentry/nextjs`. Config files: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/instrumentation.ts`. Only active when `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` env var is set. PII scrubbing enabled (cookies, auth headers stripped from error reports).
+Sentry integration via `@sentry/nextjs` (org: `norbot-systems-inc`, project: `javascript-nextjs`, US data region). Config files: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/instrumentation.ts`. Active on all deployed environments (env vars set on all 3 Vercel projects). PII scrubbing enabled (cookies, auth headers stripped from error reports). Source map uploads enabled via `SENTRY_AUTH_TOKEN` with `org:ci` scope.
 
 ### Compliance
 
@@ -936,11 +940,12 @@ Sentry integration via `@sentry/nextjs`. Config files: `sentry.client.config.ts`
 
 ### Pre-commit Hooks
 
-Husky + lint-staged. Pre-commit runs `eslint --fix` on staged `.ts/.tsx` files + `tsc --noEmit` for type checking.
+Husky + lint-staged. Pre-commit runs `eslint --fix` on staged `.ts/.tsx` files. Type checking (`tsc --noEmit`) runs in CI only (pre-existing test type errors block it locally).
 
 ### Test Infrastructure
 
 - **Entitlements tests:** `tests/unit/entitlements.test.ts` — 60 tests covering all 18 features × 3 tiers exhaustively
+- **Enterprise hardening E2E:** `tests/e2e/v2/enterprise-hardening.spec.ts` — 31 tests across 7 groups: auth middleware (8), rate limiting (2), security headers (5), error leakage (3), compliance pages (8), OKLCH validation (2), public endpoint access (3)
 - **Coverage thresholds:** `vitest.config.ts` — lines 30%, functions 25%, branches 25%, statements 30%
 - **Browser coverage:** Playwright config includes Firefox and WebKit (Desktop Safari) alongside existing Chrome, Mobile, Tablet
 - **Cross-tenant E2E:** `tests/e2e/v2/cross-tenant.spec.ts` — verifies leads and admin_settings isolated between tenants

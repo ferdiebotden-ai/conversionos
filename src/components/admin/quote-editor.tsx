@@ -44,7 +44,11 @@ import {
   RotateCcw,
   Layers,
   Minus,
+  X,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Business constants
 const HST_PERCENT = 13;
@@ -246,6 +250,18 @@ export function QuoteEditor({
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // V9: Subtotal sanity check dismissal
+  const [sanityDismissed, setSanityDismissed] = useState(false);
+
+  // F7: Tier mode toggle confirmation
+  const [showTierConfirm, setShowTierConfirm] = useState(false);
+
+  // C4: Reset to AI confirmation
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // E1: Retry state — tracks the last failed operation for retry
+  const [failedOperation, setFailedOperation] = useState<'save' | 'load' | null>(null);
+
   // PDF and send quote state
   const [isDownloading, setIsDownloading] = useState(false);
   const [showSendWizard, setShowSendWizard] = useState(false);
@@ -378,7 +394,8 @@ export function QuoteEditor({
       setHasChanges(false);
     } catch (err) {
       console.error('Error saving quote:', err);
-      setError('Failed to save quote. Please try again.');
+      setError('Failed to save quote.');
+      setFailedOperation('save');
     } finally {
       setIsSaving(false);
     }
@@ -394,7 +411,7 @@ export function QuoteEditor({
 
     saveTimeoutRef.current = setTimeout(() => {
       saveQuote();
-    }, 2000);
+    }, 1500);
 
     return () => {
       if (saveTimeoutRef.current) {
@@ -488,22 +505,13 @@ export function QuoteEditor({
     markChanged();
   }
 
-  // Toggle tier mode
+  // Toggle tier mode — F7: Confirm before generating tiers
   function handleToggleTierMode() {
     if (tierMode === 'single') {
-      // Switching to tiered — generate tiered quote from AI
-      setTierMode('tiered');
-      // If we don't have tiered data yet, trigger generation
-      if (tieredLineItems.good.length === 0 && tieredLineItems.better.length === 0) {
-        handleRegenerateAIQuote(undefined, true);
-      } else {
-        // Use existing tiered data, load better tier
-        setLineItems(tieredLineItems.better);
-        setActiveTier('better');
-      }
-      markChanged();
+      // Show confirmation before generating tiers
+      setShowTierConfirm(true);
     } else {
-      // Switching to single — keep the active tier
+      // Switching to single — no confirmation needed
       setTierMode('single');
       // Save current active tier first
       setTieredLineItems((prev) => ({
@@ -512,6 +520,18 @@ export function QuoteEditor({
       }));
       markChanged();
     }
+  }
+
+  // Actually execute the tier mode switch after confirmation
+  function executeToggleToTiered() {
+    setTierMode('tiered');
+    if (tieredLineItems.good.length === 0 && tieredLineItems.better.length === 0) {
+      handleRegenerateAIQuote(undefined, true);
+    } else {
+      setLineItems(tieredLineItems.better);
+      setActiveTier('better');
+    }
+    markChanged();
   }
 
   // Keep tieredLineItems in sync when lineItems changes in tiered mode
@@ -579,12 +599,20 @@ export function QuoteEditor({
     } catch (err) {
       console.error('Error regenerating quote:', err);
       setError(err instanceof Error ? err.message : 'Failed to regenerate quote');
+      setFailedOperation('load');
     } finally {
       setIsRegenerating(false);
     }
   }
 
+  // C4: Show confirmation before resetting
   function handleResetToAI() {
+    if (!aiQuote) return;
+    setShowResetConfirm(true);
+  }
+
+  // Actually execute the reset after confirmation
+  function executeResetToAI() {
     if (!aiQuote) return;
 
     const aiItems = aiItemsToLineItems(aiQuote.lineItems);
@@ -716,10 +744,41 @@ export function QuoteEditor({
     };
   }, [tierMode, tieredLineItems, tieredDescriptions]);
 
+  // V9: Subtotal sanity check
+  const isSanityWarning = subtotal > 0 && (subtotal < 500 || subtotal > 500000);
+
   // Scope gap detection (pure rules, zero API cost, microseconds)
   const scopeGaps = useMemo(() => {
     return detectScopeGaps(lineItems, projectType);
   }, [lineItems, projectType]);
+
+  // F8: Filter out gaps where the suggested item already exists in line items
+  const filteredScopeGaps = useMemo(() => {
+    const existingDescriptions = new Set(
+      lineItems.map((item) => item.description.toLowerCase().trim())
+    );
+    return scopeGaps.filter(
+      (gap) => !existingDescriptions.has(gap.suggestedItem.description.toLowerCase().trim())
+    );
+  }, [scopeGaps, lineItems]);
+
+  // E1: Retry handler
+  function handleRetry() {
+    if (failedOperation === 'save') {
+      setError(null);
+      setFailedOperation(null);
+      saveQuote();
+    } else if (failedOperation === 'load') {
+      setError(null);
+      setFailedOperation(null);
+      handleRegenerateAIQuote();
+    }
+  }
+
+  function handleDismissError() {
+    setError(null);
+    setFailedOperation(null);
+  }
 
   function handleAddScopeGapItem(gap: ScopeGap) {
     const newItem: LineItem = {
@@ -875,10 +934,31 @@ export function QuoteEditor({
           </div>
         </CardHeader>
         <CardContent>
+          {/* E1: Error banner with retry/dismiss */}
           {error && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span className="text-sm flex-1">{error}</span>
+              {failedOperation && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDismissError}
+                className="h-6 w-6 shrink-0 text-destructive hover:bg-destructive/10"
+                aria-label="Dismiss error"
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
           )}
 
@@ -890,6 +970,33 @@ export function QuoteEditor({
                 {formatCurrency((initialEstimate as { estimateLow?: number }).estimateLow || 0)} -{' '}
                 {formatCurrency((initialEstimate as { estimateHigh?: number }).estimateHigh || 0)}
               </p>
+            </div>
+          )}
+
+          {/* F8: Scope Gap Recommendations above line items */}
+          {filteredScopeGaps.length > 0 && (
+            <div className="mb-4">
+              <ScopeGapRecommendations
+                gaps={filteredScopeGaps}
+                onAddItem={handleAddScopeGapItem}
+              />
+            </div>
+          )}
+
+          {/* V9: Subtotal sanity check warning */}
+          {isSanityWarning && !sanityDismissed && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span className="text-sm flex-1">This quote total seems unusual. Please verify.</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSanityDismissed(true)}
+                className="h-6 w-6 shrink-0 text-amber-600 hover:bg-amber-100"
+                aria-label="Dismiss warning"
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
           )}
 
@@ -951,14 +1058,6 @@ export function QuoteEditor({
           </div>
         </CardContent>
       </Card>
-
-      {/* Scope Gap Recommendations */}
-      {scopeGaps.length > 0 && (
-        <ScopeGapRecommendations
-          gaps={scopeGaps}
-          onAddItem={handleAddScopeGapItem}
-        />
-      )}
 
       {/* Totals */}
       <Card>
@@ -1168,6 +1267,27 @@ export function QuoteEditor({
         open={showTemplatePicker}
         onOpenChange={setShowTemplatePicker}
         onInsert={handleInsertTemplate}
+      />
+
+      {/* F7: Tier mode toggle confirmation */}
+      <ConfirmDialog
+        open={showTierConfirm}
+        onOpenChange={setShowTierConfirm}
+        title="Generate Pricing Tiers"
+        description="Generate Good/Better/Best tiers? This will take ~10 seconds and create three pricing options."
+        confirmLabel="Generate"
+        onConfirm={executeToggleToTiered}
+      />
+
+      {/* C4: Reset to AI confirmation */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reset to AI Quote"
+        description="This will discard all manual edits and regenerate from AI. This cannot be undone."
+        confirmLabel="Reset"
+        destructive
+        onConfirm={executeResetToAI}
       />
     </div>
   );

@@ -6,7 +6,7 @@
  * [DEV-072]
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,12 +16,15 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers } from 'lucide-react';
+import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers, Info, RefreshCw } from 'lucide-react';
 import { CategoryMarkupSettings } from '@/components/admin/category-markup-settings';
 import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
 import { PriceUpload } from '@/components/admin/price-upload';
 import { TemplateManager } from '@/components/admin/template-manager';
 import { useTier } from '@/components/tier-provider';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { isValidEmail, isValidPhone, isValidCanadianPostal } from '@/lib/utils/validation';
 
 // Types for settings
 interface PricingRange {
@@ -109,16 +112,34 @@ const DEFAULT_SETTINGS: Settings = {
   category_markups: DEFAULT_CATEGORY_MARKUPS,
 };
 
+/** Validate all pricing ranges: min must be less than max */
+function getPricingErrors(settings: Settings): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const pricingKeys = ['pricing_kitchen', 'pricing_bathroom', 'pricing_basement', 'pricing_flooring'] as const;
+  const levels = ['economy', 'standard', 'premium'] as const;
+  for (const key of pricingKeys) {
+    const pricing = settings[key];
+    for (const level of levels) {
+      if (pricing[level].min >= pricing[level].max) {
+        errors[`${key}-${level}`] = 'Minimum must be less than maximum';
+      }
+    }
+  }
+  return errors;
+}
+
 function PricingCard({
   title,
   settingKey,
   pricing,
   onChange,
+  pricingErrors,
 }: {
   title: string;
   settingKey: string;
   pricing: PricingSettings;
   onChange: (key: string, level: string, field: string, value: number) => void;
+  pricingErrors: Record<string, string>;
 }) {
   return (
     <Card>
@@ -126,34 +147,48 @@ function PricingCard({
         <CardTitle className="text-base font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {(['economy', 'standard', 'premium'] as const).map((level) => (
-          <div key={level} className="space-y-2">
-            <Label className="text-sm capitalize">{level}</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">$</span>
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                value={pricing[level].min}
-                onChange={(e) => onChange(settingKey, level, 'min', parseFloat(e.target.value) || 0)}
-                className="w-20 h-8"
-                aria-label={`${title} ${level} minimum price`}
-              />
-              <span className="text-sm text-muted-foreground">to $</span>
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                value={pricing[level].max}
-                onChange={(e) => onChange(settingKey, level, 'max', parseFloat(e.target.value) || 0)}
-                className="w-20 h-8"
-                aria-label={`${title} ${level} maximum price`}
-              />
-              <span className="text-sm text-muted-foreground">/sqft</span>
+        {(['economy', 'standard', 'premium'] as const).map((level) => {
+          const errorKey = `${settingKey}-${level}`;
+          const errorMsg = pricingErrors[errorKey];
+          const errorId = `${errorKey}-error`;
+          return (
+            <div key={level} className="space-y-2">
+              <Label className="text-sm capitalize">{level}</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={pricing[level].min}
+                  onChange={(e) => onChange(settingKey, level, 'min', parseFloat(e.target.value) || 0)}
+                  className={`w-20 h-8 ${errorMsg ? 'border-destructive' : ''}`}
+                  aria-label={`${title} ${level} minimum price`}
+                  aria-invalid={!!errorMsg}
+                  aria-describedby={errorMsg ? errorId : undefined}
+                />
+                <span className="text-sm text-muted-foreground">to $</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={pricing[level].max}
+                  onChange={(e) => onChange(settingKey, level, 'max', parseFloat(e.target.value) || 0)}
+                  className={`w-20 h-8 ${errorMsg ? 'border-destructive' : ''}`}
+                  aria-label={`${title} ${level} maximum price`}
+                  aria-invalid={!!errorMsg}
+                  aria-describedby={errorMsg ? errorId : undefined}
+                />
+                <span className="text-sm text-muted-foreground">/sqft</span>
+              </div>
+              {errorMsg && (
+                <p id={errorId} className="text-xs text-destructive" role="alert">
+                  {errorMsg}
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );
@@ -167,37 +202,48 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  // V2: Cross-field validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // F10: Quote mode change confirmation
+  const [showQuoteModeConfirm, setShowQuoteModeConfirm] = useState(false);
+  const [pendingQuoteMode, setPendingQuoteMode] = useState<string | null>(null);
 
   // Load settings from API
-  useEffect(() => {
-    async function loadSettings() {
-      try {
-        const response = await fetch('/api/admin/settings');
-        if (!response.ok) {
-          throw new Error('Failed to load settings');
-        }
-        const data = await response.json();
+  const loadSettings = useCallback(async (isRetry = false) => {
+    if (isRetry) setIsRetrying(true);
+    setLoadFailed(false);
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (!response.ok) {
+        throw new Error('Failed to load settings');
+      }
+      const data = await response.json();
 
-        // Merge with defaults
-        const loadedSettings: Settings = { ...DEFAULT_SETTINGS };
-        if (data.data) {
-          for (const [key, value] of Object.entries(data.data)) {
-            if (key in loadedSettings) {
-              (loadedSettings as unknown as Record<string, unknown>)[key] = (value as { value: unknown }).value;
-            }
+      // Merge with defaults
+      const loadedSettings: Settings = { ...DEFAULT_SETTINGS };
+      if (data.data) {
+        for (const [key, value] of Object.entries(data.data)) {
+          if (key in loadedSettings) {
+            (loadedSettings as unknown as Record<string, unknown>)[key] = (value as { value: unknown }).value;
           }
         }
-        setSettings(loadedSettings);
-      } catch (err) {
-        console.error('Error loading settings:', err);
-        // Use defaults if load fails
-      } finally {
-        setIsLoading(false);
       }
+      setSettings(loadedSettings);
+    } catch (err) {
+      console.error('Error loading settings:', err);
+      setLoadFailed(true);
+      // Use defaults if load fails
+    } finally {
+      setIsLoading(false);
+      setIsRetrying(false);
     }
-
-    loadSettings();
   }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   // Handle pricing change
   const handlePricingChange = (key: string, level: string, field: string, value: number) => {
@@ -232,8 +278,36 @@ export default function SettingsPage() {
     setSaveSuccess(false);
   };
 
-  // Save settings
+  // Save settings with validation
   const handleSave = async () => {
+    // V2: Cross-field pricing validation
+    const pricingErrors = getPricingErrors(settings);
+    // V3/V4/V5: Field-level validation
+    const errors: Record<string, string> = { ...pricingErrors };
+
+    // V4: Phone validation (settings)
+    if (settings.business_info?.phone && !isValidPhone(settings.business_info.phone)) {
+      errors['businessPhone'] = 'Phone number must be at least 10 digits';
+    }
+    // V3: Email validation (settings — notification email)
+    if (settings.notifications?.email && !isValidEmail(settings.notifications.email)) {
+      errors['notificationEmail'] = 'Please enter a valid email address';
+    }
+    // V3: Email validation (settings — business email)
+    if (settings.business_info?.email && !isValidEmail(settings.business_info.email)) {
+      errors['businessEmail'] = 'Please enter a valid email address';
+    }
+    // V5: Canadian postal code validation
+    if (settings.business_info?.postal && !isValidCanadianPostal(settings.business_info.postal)) {
+      errors['businessPostal'] = 'Enter a valid Canadian postal code (e.g., N5A 1A1)';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the validation errors before saving.');
+      return;
+    }
+
     setIsSaving(true);
     setSaveSuccess(false);
     setError(null);
@@ -301,6 +375,24 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* E3: Settings load failure banner */}
+      {loadFailed && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span className="text-sm flex-1">Failed to load settings. Using defaults.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadSettings(true)}
+            disabled={isRetrying}
+            className="shrink-0"
+          >
+            {isRetrying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+            Retry
+          </Button>
+        </div>
+      )}
+
       {error && (
         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
           <AlertCircle className="h-4 w-4" />
@@ -362,24 +454,28 @@ export default function SettingsPage() {
               settingKey="pricing_kitchen"
               pricing={settings.pricing_kitchen}
               onChange={handlePricingChange}
+              pricingErrors={fieldErrors}
             />
             <PricingCard
               title="Bathroom Renovation"
               settingKey="pricing_bathroom"
               pricing={settings.pricing_bathroom}
               onChange={handlePricingChange}
+              pricingErrors={fieldErrors}
             />
             <PricingCard
               title="Basement Finishing"
               settingKey="pricing_basement"
               pricing={settings.pricing_basement}
               onChange={handlePricingChange}
+              pricingErrors={fieldErrors}
             />
             <PricingCard
               title="Flooring Installation"
               settingKey="pricing_flooring"
               pricing={settings.pricing_flooring}
               onChange={handlePricingChange}
+              pricingErrors={fieldErrors}
             />
           </div>
         </TabsContent>
@@ -483,7 +579,15 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hst_rate">HST Rate (%)</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="hst_rate">HST Rate (%)</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>Ontario HST is 13% (set by law)</TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Input
                     id="hst_rate"
                     type="number"
@@ -491,7 +595,6 @@ export default function SettingsPage() {
                     disabled
                     className="bg-muted"
                   />
-                  <p className="text-xs text-muted-foreground">Ontario HST rate (locked)</p>
                 </div>
               </div>
             </CardContent>
@@ -513,6 +616,12 @@ export default function SettingsPage() {
                 <Select
                   value={settings.quote_assistance?.mode || 'range'}
                   onValueChange={(value) => {
+                    // F10: Confirm when switching TO 'none'
+                    if (value === 'none' && settings.quote_assistance?.mode !== 'none') {
+                      setPendingQuoteMode(value);
+                      setShowQuoteModeConfirm(true);
+                      return;
+                    }
                     setSettings(prev => ({
                       ...prev,
                       quote_assistance: {
@@ -606,10 +715,18 @@ export default function SettingsPage() {
                   value={settings.notifications?.email || ''}
                   onChange={(e) => handleValueChange('notifications', 'email', e.target.value)}
                   placeholder="admin@example.com"
+                  aria-invalid={!!fieldErrors['notificationEmail']}
+                  aria-describedby={fieldErrors['notificationEmail'] ? 'notificationEmail-error' : undefined}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Email address for receiving notifications.
-                </p>
+                {fieldErrors['notificationEmail'] ? (
+                  <p id="notificationEmail-error" className="text-xs text-destructive" role="alert">
+                    {fieldErrors['notificationEmail']}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Email address for receiving notifications.
+                  </p>
+                )}
               </div>
 
               <Separator />
@@ -714,7 +831,14 @@ export default function SettingsPage() {
                     id="businessPostal"
                     value={settings.business_info?.postal || ''}
                     onChange={(e) => handleValueChange('business_info', 'postal', e.target.value)}
+                    aria-invalid={!!fieldErrors['businessPostal']}
+                    aria-describedby={fieldErrors['businessPostal'] ? 'businessPostal-error' : undefined}
                   />
+                  {fieldErrors['businessPostal'] && (
+                    <p id="businessPostal-error" className="text-xs text-destructive" role="alert">
+                      {fieldErrors['businessPostal']}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -726,7 +850,14 @@ export default function SettingsPage() {
                     type="tel"
                     value={settings.business_info?.phone || ''}
                     onChange={(e) => handleValueChange('business_info', 'phone', e.target.value)}
+                    aria-invalid={!!fieldErrors['businessPhone']}
+                    aria-describedby={fieldErrors['businessPhone'] ? 'businessPhone-error' : undefined}
                   />
+                  {fieldErrors['businessPhone'] && (
+                    <p id="businessPhone-error" className="text-xs text-destructive" role="alert">
+                      {fieldErrors['businessPhone']}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -736,7 +867,14 @@ export default function SettingsPage() {
                     type="email"
                     value={settings.business_info?.email || ''}
                     onChange={(e) => handleValueChange('business_info', 'email', e.target.value)}
+                    aria-invalid={!!fieldErrors['businessEmail']}
+                    aria-describedby={fieldErrors['businessEmail'] ? 'businessEmail-error' : undefined}
                   />
+                  {fieldErrors['businessEmail'] && (
+                    <p id="businessEmail-error" className="text-xs text-destructive" role="alert">
+                      {fieldErrors['businessEmail']}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -786,6 +924,31 @@ export default function SettingsPage() {
           </span>
         )}
       </div>
+
+      {/* F10: Quote mode change to 'none' confirmation */}
+      <ConfirmDialog
+        open={showQuoteModeConfirm}
+        onOpenChange={setShowQuoteModeConfirm}
+        title="Disable Pricing Information"
+        description="This will hide all pricing information from your website. Visitors will not see cost estimates."
+        confirmLabel="Disable Pricing"
+        destructive
+        onConfirm={() => {
+          if (pendingQuoteMode) {
+            setSettings(prev => ({
+              ...prev,
+              quote_assistance: {
+                ...prev.quote_assistance!,
+                mode: pendingQuoteMode as 'none' | 'range' | 'estimate',
+              },
+            }));
+            setHasChanges(true);
+            setSaveSuccess(false);
+          }
+          setPendingQuoteMode(null);
+        }}
+        onCancel={() => setPendingQuoteMode(null)}
+      />
     </div>
   );
 }

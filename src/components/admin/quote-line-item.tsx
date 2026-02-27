@@ -7,8 +7,9 @@
  * [DEV-054]
  */
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Input } from '@/components/ui/input';
+import { isNonEmptyString } from '@/lib/utils/validation';
 import {
   Select,
   SelectContent,
@@ -68,7 +69,7 @@ interface QuoteLineItemProps {
   isDraggable?: boolean;
 }
 
-export function QuoteLineItem({
+function QuoteLineItemInner({
   item,
   onChange,
   onDelete,
@@ -76,6 +77,13 @@ export function QuoteLineItem({
   isDraggable = false,
 }: QuoteLineItemProps) {
   const [showTransparency, setShowTransparency] = useState(false);
+
+  // V1: Inline validation
+  const validationErrors = {
+    description: !isNonEmptyString(item.description, 5) ? 'Description must be at least 5 characters' : null,
+    unit_price: item.unit_price <= 0 ? 'Unit price must be greater than $0' : null,
+    quantity: item.quantity <= 0 ? 'Quantity must be greater than 0' : null,
+  };
 
   function handleFieldChange<K extends keyof LineItem>(
     field: K,
@@ -139,13 +147,19 @@ export function QuoteLineItem({
         {/* Description */}
         <td className="p-2">
           <div className="flex items-center gap-2">
-            <Input
-              value={item.description}
-              onChange={(e) => handleFieldChange('description', e.target.value)}
-              placeholder="Item description"
-              className="min-w-[200px]"
-              aria-label="Item description"
-            />
+            <div className="flex flex-col gap-0.5 min-w-[200px]">
+              <Input
+                value={item.description}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                placeholder="Item description"
+                className={cn('min-w-[200px]', validationErrors.description && item.description.length > 0 && 'border-red-400 focus-visible:ring-red-400')}
+                aria-label="Item description"
+                aria-invalid={!!validationErrors.description && item.description.length > 0}
+              />
+              {validationErrors.description && item.description.length > 0 && (
+                <span className="text-xs text-red-500">{validationErrors.description}</span>
+              )}
+            </div>
             {/* Status badges */}
             {item.isFromAI && !item.isModified && (
               <Tooltip>
@@ -164,7 +178,8 @@ export function QuoteLineItem({
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  {item.aiReasoning || 'AI-generated item'}
+                  <p>{item.aiReasoning || 'AI-generated item'}</p>
+                  <p className="mt-1 text-[10px] opacity-70">AI confidence this estimate is accurate based on project scope and Ontario pricing data</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -229,17 +244,23 @@ export function QuoteLineItem({
 
       {/* Quantity */}
       <td className="p-2">
-        <Input
-          type="number"
-          min="0"
-          step="0.01"
-          value={item.quantity}
-          onChange={(e) =>
-            handleFieldChange('quantity', parseFloat(e.target.value) || 0)
-          }
-          className="w-[80px]"
-          aria-label="Quantity"
-        />
+        <div className="flex flex-col gap-0.5">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={item.quantity}
+            onChange={(e) =>
+              handleFieldChange('quantity', parseFloat(e.target.value) || 0)
+            }
+            className={cn('w-[80px]', validationErrors.quantity && 'border-red-400 focus-visible:ring-red-400')}
+            aria-label="Quantity"
+            aria-invalid={!!validationErrors.quantity}
+          />
+          {validationErrors.quantity && (
+            <span className="text-xs text-red-500">{'> 0'}</span>
+          )}
+        </div>
       </td>
 
       {/* Unit */}
@@ -255,17 +276,23 @@ export function QuoteLineItem({
 
       {/* Unit Price */}
       <td className="p-2">
-        <Input
-          type="number"
-          min="0"
-          step="0.01"
-          value={item.unit_price}
-          onChange={(e) =>
-            handleFieldChange('unit_price', parseFloat(e.target.value) || 0)
-          }
-          className="w-[120px]"
-          aria-label="Unit price"
-        />
+        <div className="flex flex-col gap-0.5">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={item.unit_price}
+            onChange={(e) =>
+              handleFieldChange('unit_price', parseFloat(e.target.value) || 0)
+            }
+            className={cn('w-[120px]', validationErrors.unit_price && 'border-red-400 focus-visible:ring-red-400')}
+            aria-label="Unit price"
+            aria-invalid={!!validationErrors.unit_price}
+          />
+          {validationErrors.unit_price && (
+            <span className="text-xs text-red-500">{'> $0'}</span>
+          )}
+        </div>
       </td>
 
         {/* Total (read-only) */}
@@ -273,8 +300,8 @@ export function QuoteLineItem({
 
         {/* Actions */}
         <td className="p-2">
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* Transparency info button */}
+          <div className="flex items-center gap-1">
+            {/* F4: Transparency info button — always visible for AI items */}
             {item.isFromAI && item.transparencyData && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -282,10 +309,10 @@ export function QuoteLineItem({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "h-8 w-8",
+                      "h-8 w-8 transition-opacity",
                       showTransparency
-                        ? "text-primary"
-                        : "text-primary/70 hover:text-primary"
+                        ? "text-primary opacity-100"
+                        : "text-primary/70 hover:text-primary opacity-50 hover:opacity-100"
                     )}
                     onClick={() => setShowTransparency(!showTransparency)}
                     aria-label="Show price breakdown"
@@ -297,39 +324,42 @@ export function QuoteLineItem({
               </Tooltip>
             )}
 
-            {/* Duplicate button */}
-            {onDuplicate && (
+            {/* M1: Touch-visible action buttons — hover on desktop, always on touch devices */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+              {/* Duplicate button */}
+              {onDuplicate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={onDuplicate}
+                      aria-label="Duplicate item"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Duplicate item</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Delete button */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={onDuplicate}
-                    aria-label="Duplicate item"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={onDelete}
+                    aria-label="Remove item"
                   >
-                    <Copy className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Duplicate item</TooltipContent>
+                <TooltipContent>Remove item</TooltipContent>
               </Tooltip>
-            )}
-
-            {/* Delete button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={onDelete}
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Remove item</TooltipContent>
-            </Tooltip>
+            </div>
           </div>
         </td>
       </tr>
@@ -344,3 +374,21 @@ export function QuoteLineItem({
     </TooltipProvider>
   );
 }
+
+// P1: Custom comparator for memo — only re-render on meaningful changes
+export function lineItemMemoComparator(
+  prev: QuoteLineItemProps,
+  next: QuoteLineItemProps
+): boolean {
+  return (
+    prev.item.id === next.item.id &&
+    prev.item.description === next.item.description &&
+    prev.item.quantity === next.item.quantity &&
+    prev.item.unit_price === next.item.unit_price &&
+    prev.item.category === next.item.category &&
+    prev.item.isModified === next.item.isModified &&
+    prev.isDraggable === next.isDraggable
+  );
+}
+
+export const QuoteLineItem = memo(QuoteLineItemInner, lineItemMemoComparator);

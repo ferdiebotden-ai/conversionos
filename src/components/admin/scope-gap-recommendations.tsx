@@ -86,7 +86,12 @@ export function ScopeGapRecommendations({ gaps, onAddItem }: ScopeGapRecommendat
                 isAdded && 'opacity-50 bg-muted/30',
               )}
             >
-              <SeverityIcon className={cn('h-4 w-4 mt-0.5 shrink-0', severityColor)} />
+              <div className="flex items-center gap-1.5 mt-0.5 shrink-0">
+                <SeverityIcon className={cn('h-4 w-4', severityColor)} />
+                <span className={cn('text-xs font-medium', severityColor)}>
+                  {gap.severity === 'warning' ? 'Warning' : 'Suggestion'}
+                </span>
+              </div>
 
               <div className="flex-1 min-w-0 space-y-1">
                 <p className="text-sm">{gap.message}</p>
