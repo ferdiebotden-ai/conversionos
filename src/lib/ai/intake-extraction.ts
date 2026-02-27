@@ -15,13 +15,22 @@ Ontario renovation context: HST is 13%, common permit requirements for structura
  * Extract structured lead fields from raw contractor notes (voice transcript or typed text).
  */
 export async function extractIntakeFields(rawInput: string): Promise<IntakeExtraction> {
-  const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
-    schema: IntakeExtractionSchema,
-    system: SYSTEM_PROMPT,
-    prompt: `Extract structured lead data from these contractor notes:\n\n${rawInput}`,
-    temperature: 0.1,
-    maxOutputTokens: 1024,
-  });
-  return object;
+  try {
+    const { object } = await generateObject({
+      model: openai('gpt-4o-mini'),
+      schema: IntakeExtractionSchema,
+      system: SYSTEM_PROMPT,
+      prompt: `Extract structured lead data from these contractor notes:\n\n${rawInput}`,
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+    });
+    // Ensure goalsText is never empty
+    if (!object.goalsText) {
+      object.goalsText = rawInput;
+    }
+    return object;
+  } catch (error) {
+    console.error('AI extraction failed, falling back to raw input:', error);
+    return { goalsText: rawInput } as IntakeExtraction;
+  }
 }

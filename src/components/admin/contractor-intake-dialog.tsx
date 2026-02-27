@@ -404,7 +404,7 @@ export function ContractorIntakeDialog({
                 <div className="mt-4 space-y-3 p-3 border border-amber-200 bg-amber-50 rounded-lg">
                   <div className="flex items-center gap-2 text-sm text-amber-700">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>AI extraction failed. Your transcript is preserved below.</span>
+                    <span>Couldn&apos;t extract details automatically &mdash; try adding more specifics, or enter the fields manually below.</span>
                   </div>
                   <p className="text-sm text-muted-foreground bg-white rounded p-2 border">{failedRawInput}</p>
                   <div className="flex gap-2">
@@ -451,7 +451,7 @@ export function ContractorIntakeDialog({
                 <div className="space-y-3 p-3 border border-amber-200 bg-amber-50 rounded-lg">
                   <div className="flex items-center gap-2 text-sm text-amber-700">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>AI extraction failed. Your text is preserved above.</span>
+                    <span>Couldn&apos;t extract details automatically &mdash; try adding more specifics, or enter the fields manually below.</span>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={handleRetryExtraction} disabled={isExtracting}>

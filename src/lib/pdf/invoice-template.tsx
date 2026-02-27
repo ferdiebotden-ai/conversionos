@@ -207,7 +207,7 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
       borderTopColor: STATIC_COLORS.border,
     },
     termsSection: {
-      flex: 3,
+      flex: 2.5,
       paddingTop: 10,
       paddingRight: 20,
     },
@@ -224,7 +224,8 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
       marginBottom: 8,
     },
     totalSection: {
-      flex: 1,
+      flex: 1.5,
+      minWidth: 160,
       paddingTop: 10,
       paddingLeft: 10,
       borderLeftWidth: 1,
@@ -268,8 +269,8 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingTop: 4,
-      marginTop: 4,
+      paddingTop: 6,
+      marginTop: 8,
     },
     balanceDueLabel: {
       fontSize: 12,

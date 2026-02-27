@@ -474,6 +474,8 @@ export function LeadsTable({ initialLeads, initialPagination, initialFeasibility
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => router.push(`/admin/leads/${row.original.id}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

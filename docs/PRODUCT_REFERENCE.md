@@ -109,7 +109,7 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 1. **Dashboard** (`/admin`) — Leads overview, visualization metrics, pipeline health
 2. **Leads** (`/admin/leads`) — Table with feasibility badges, source badges (Intake/Website), "+ New Lead" intake dialog (voice dictation/text/form, Accelerate+)
 3. **Quotes** (`/admin/quotes`) — Full AI quote engine (see Quote Engine V2 section)
-4. **Invoices** (`/admin/invoices`) — Create from quotes, payment tracking, PDF, Sage 50 CSV export
+4. **Invoices** (`/admin/invoices`) — Create from quotes, payment tracking, PDF, 4-step send wizard (review → preview PDF → compose email → confirm), Sage 50 CSV export
 5. **Drawings** (`/admin/drawings`) — CAD-style drawing management
 6. **Settings** (`/admin/settings`) — Business info, branding, pricing, quote assistance mode, category markups, price list (CSV), templates, live preview
 7. **Analytics** (`/admin/analytics`, Dominate only) — Recharts: daily trends, room types, generation times, conversions
@@ -383,7 +383,7 @@ All tenant branding via `admin_settings` JSONB: business info, logo (SVG/PNG URL
 
 **Performance:** `React.memo()` on line items, PDF preview prefetch, 1.5s save debounce, ISR.
 
-**Error recovery:** Retry/dismiss on save failure, "Try Again" on e-signature/settings/CSV/AI extraction failures.
+**Error recovery:** Retry/dismiss on save failure, "Try Again" on e-signature/settings/CSV/AI extraction failures. AI extraction (`src/lib/ai/intake-extraction.ts`) has try-catch fallback — on failure returns `{ goalsText: rawInput }` instead of throwing, with user-friendly error message and manual entry option.
 
 **Shared components:** `src/lib/utils/validation.ts`, `src/components/ui/confirm-dialog.tsx`, `src/components/ui/sr-announce.tsx`.
 
@@ -415,11 +415,13 @@ ConversionOS supports a demo mode for prospect previews. Demo instances let pote
 
 **Auth bypass:** Authentication is bypassed in `src/proxy.ts`. The proxy resolves tenants from hostname and sets `x-site-id`, but does not enforce Supabase auth or role checks. All admin routes are publicly accessible on demo instances. When landing the first production client, re-enable auth in `proxy.ts` and move admin to an `app.*` subdomain. See git history for the full auth implementation (Supabase SSR session refresh + admin role check).
 
-**Admin button:** The public header (`src/components/header.tsx`) includes an "Admin" link gated by `canAccess('admin_dashboard')` — renders only for Accelerate and Dominate tiers. Desktop: ghost button with `LayoutDashboard` icon left of customer CTAs. Mobile: in hamburger menu with separator from customer navigation.
+**Admin button:** The public header (`src/components/header.tsx`) includes an "Admin" link gated by `canAccess('admin_dashboard')` — renders only for Accelerate and Dominate tiers. Desktop: positioned in the main `<nav>` after the About link with a red border (`border-red-500`) so it stands out from regular navigation. Mobile: in hamburger menu with separator from customer navigation.
 
-**Demo interstitial:** On first admin visit per browser session, a full-screen overlay explains this is a preview and production would be login-protected. Implementation in `src/app/admin/admin-layout-client.tsx`. Shows tenant logo, `ShieldCheck` icon, "Admin Dashboard Preview" heading, and a "Continue to Dashboard" button. Uses `sessionStorage` key `conversionos-demo-splash-seen` — does not re-show on same-session navigation. Animated with framer-motion (fade + scale).
+**Demo interstitial:** On first admin visit per browser session, a full-screen overlay encourages exploration. Implementation in `src/app/admin/admin-layout-client.tsx`. Shows tenant logo, `ShieldCheck` icon, "Welcome to Your Command Centre" heading, subtitle encouraging clicking around freely, and an "Explore the Dashboard" button. Footer: "Sample data for illustration — your real dashboard starts fresh". Uses `sessionStorage` key `conversionos-demo-splash-seen` — does not re-show on same-session navigation. Animated with framer-motion (fade + scale).
 
-**Sample data:** `scripts/seed-demo-data.mjs` populates the demo tenant (`site_id='demo'`) with realistic sample data: 8 leads (spread across 30 days, mixed statuses and project types), 4 quote drafts (linked to leads, $18k–$92k range), 3 invoices (paid/sent/draft), and 1 payment. Run `node scripts/seed-demo-data.mjs` after configuring `.env.local`. Idempotent — clears existing demo data before inserting.
+**Sample data:** `scripts/seed-demo-data.mjs` populates the demo tenant (`site_id='demo'`) with 2 fully-fleshed leads designed to showcase every tab and feature: (1) Sarah Mitchell — kitchen, premium, `draft_ready` status, 10-message Emma chat session, 2 uploaded photos, 4 generated concepts, 8-item quote (~$64k total), voice dictation intake data; (2) Robert Kowalski — basement, premium, `won` status, 12-message Emma chat, photos, concepts, 10-item quote (~$92k, sent+accepted), deposit invoice (paid), e-transfer payment. Run `node scripts/seed-demo-data.mjs` after configuring `.env.local`. Idempotent — clears existing demo data before inserting.
+
+**UX polish:** Leads table rows are fully clickable (cursor + onClick navigates to detail). "New Lead" button has contextual hint text ("Phone calls, walk-ins & referrals"). Global `cursor-pointer` fix applied for Tailwind v4 regression (button.tsx CVA + globals.css base layer).
 
 ---
 

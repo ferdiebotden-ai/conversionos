@@ -34,10 +34,15 @@ export function LeadsPageHeader({ showIntakeButton }: LeadsPageHeaderProps) {
       </p>
       {showIntakeButton && (
         <>
-          <Button onClick={() => setIntakeOpen(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Lead
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground/70 hidden sm:inline">
+              Phone calls, walk-ins &amp; referrals
+            </span>
+            <Button onClick={() => setIntakeOpen(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />
+              New Lead
+            </Button>
+          </div>
           <ContractorIntakeDialog
             open={intakeOpen}
             onOpenChange={setIntakeOpen}

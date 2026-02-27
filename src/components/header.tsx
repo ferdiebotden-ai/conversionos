@@ -132,25 +132,19 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {showAdmin && (
+            <Link
+              href="/admin"
+              className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-red-50 hover:text-foreground dark:hover:bg-red-950/20 inline-flex items-center gap-1.5"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* CTA buttons */}
         <div className="flex items-center gap-2">
-          {/* Admin link — desktop (Accelerate+ only) */}
-          {showAdmin && (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="hidden md:inline-flex h-9 gap-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <Link href="/admin">
-                <LayoutDashboard className="h-4 w-4" />
-                Admin
-              </Link>
-            </Button>
-          )}
-
           {/* Mobile: Only primary CTA */}
           <Button asChild size="sm" className="h-10 px-4 md:hidden">
             <Link href={cta.href}>{cta.label}</Link>

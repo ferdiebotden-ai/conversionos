@@ -119,13 +119,14 @@ export function AdminLayoutClient({
 
                 {/* Headline */}
                 <h1 className="mb-2 text-2xl font-bold tracking-tight text-foreground">
-                  Admin Dashboard Preview
+                  Welcome to Your Command Centre
                 </h1>
 
                 {/* Subtitle */}
                 <p className="mb-8 text-sm leading-relaxed text-muted-foreground">
-                  Experience the full contractor command centre. In production,
-                  this dashboard is protected with secure authentication.
+                  We&apos;ve loaded this demo with sample data so you can explore everything.
+                  Click around freely &mdash; create quotes, send invoices, and test every feature.
+                  You can also generate new leads right from the main website.
                 </p>
 
                 {/* CTA */}
@@ -134,12 +135,12 @@ export function AdminLayoutClient({
                   onClick={dismissSplash}
                   className="h-12 w-full text-base font-semibold"
                 >
-                  Continue to Dashboard
+                  Explore the Dashboard
                 </Button>
 
                 {/* Subtle demo badge */}
                 <p className="mt-4 text-xs text-muted-foreground/60">
-                  Demo instance &mdash; sample data for illustration
+                  Sample data for illustration &mdash; your real dashboard starts fresh
                 </p>
               </div>
             </motion.div>

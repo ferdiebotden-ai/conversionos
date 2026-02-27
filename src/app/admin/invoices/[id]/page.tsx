@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ import {
   FileText,
 } from 'lucide-react';
 import type { Invoice, Payment, InvoiceStatus, QuoteLineItem, PaymentMethod } from '@/types/database';
+import { InvoiceSendWizard } from '@/components/admin/invoice-send-wizard';
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Clock }> = {
   draft: { label: 'Draft', variant: 'secondary', icon: Clock },
@@ -88,13 +89,12 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 
 export default function InvoiceDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params['id'] as string;
 
   const [invoice, setInvoice] = useState<(Invoice & { payments: Payment[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [sendOpen, setSendOpen] = useState(false);
+  const [sendWizardOpen, setSendWizardOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Payment form state
@@ -103,22 +103,17 @@ export default function InvoiceDetailPage() {
   const [payRef, setPayRef] = useState('');
   const [payNotes, setPayNotes] = useState('');
 
-  // Send form state
-  const [sendEmail, setSendEmail] = useState('');
-  const [sendMessage, setSendMessage] = useState('');
-
   const fetchInvoice = useCallback(async () => {
     const res = await fetch(`/api/invoices/${id}`);
     if (res.ok) {
       const data = await res.json();
       setInvoice(data.data);
-      setSendEmail(data.data.customer_email || '');
     }
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    fetchInvoice();
+    void fetchInvoice(); // eslint-disable-line react-hooks/set-state-in-effect -- initial data fetch
   }, [fetchInvoice]);
 
   const handleRecordPayment = async () => {
@@ -139,25 +134,6 @@ export default function InvoiceDetailPage() {
       setPayAmount('');
       setPayRef('');
       setPayNotes('');
-      await fetchInvoice();
-    }
-    setSubmitting(false);
-  };
-
-  const handleSendInvoice = async () => {
-    setSubmitting(true);
-    const res = await fetch(`/api/invoices/${id}/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to_email: sendEmail,
-        custom_message: sendMessage || undefined,
-      }),
-    });
-
-    if (res.ok) {
-      setSendOpen(false);
-      setSendMessage('');
       await fetchInvoice();
     }
     setSubmitting(false);
@@ -224,48 +200,22 @@ export default function InvoiceDetailPage() {
 
           {invoice.status !== 'cancelled' && invoice.status !== 'paid' && (
             <>
-              <Dialog open={sendOpen} onOpenChange={setSendOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Send className="h-4 w-4 mr-1" />
-                    Send
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Send Invoice</DialogTitle>
-                    <DialogDescription>
-                      Send {invoice.invoice_number} to the customer via email.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="send-email">Email</Label>
-                      <Input
-                        id="send-email"
-                        type="email"
-                        value={sendEmail}
-                        onChange={(e) => setSendEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="send-message">Custom Message (optional)</Label>
-                      <Textarea
-                        id="send-message"
-                        value={sendMessage}
-                        onChange={(e) => setSendMessage(e.target.value)}
-                        placeholder="Add a personal note..."
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSendInvoice} disabled={submitting || !sendEmail}>
-                      {submitting ? 'Sending...' : 'Send Invoice'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button variant="outline" size="sm" onClick={() => setSendWizardOpen(true)}>
+                <Send className="h-4 w-4 mr-1" />
+                Send
+              </Button>
+              <InvoiceSendWizard
+                open={sendWizardOpen}
+                onOpenChange={setSendWizardOpen}
+                invoiceId={id}
+                invoiceNumber={invoice.invoice_number}
+                customerName={invoice.customer_name}
+                customerEmail={invoice.customer_email || ''}
+                total={Number(invoice.total)}
+                balanceDue={Number(invoice.balance_due)}
+                lineItemCount={lineItems.length}
+                onSendComplete={fetchInvoice}
+              />
 
               <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
                 <DialogTrigger asChild>
@@ -440,7 +390,7 @@ export default function InvoiceDetailPage() {
                 <span className="text-muted-foreground">HST (13%)</span>
                 <span>{formatCurrency(Number(invoice.hst_amount))}</span>
               </div>
-              <div className="flex justify-between font-medium pt-3 border-t">
+              <div className="flex justify-between text-sm font-medium pt-3 border-t">
                 <span>Total</span>
                 <span>{formatCurrency(Number(invoice.total))}</span>
               </div>
@@ -450,7 +400,7 @@ export default function InvoiceDetailPage() {
                   <span>-{formatCurrency(Number(invoice.amount_paid))}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-lg pt-3 border-t border-primary">
+              <div className="flex justify-between font-semibold text-base pt-3 border-t border-primary/30">
                 <span className="text-primary">Balance Due</span>
                 <span className={Number(invoice.balance_due) > 0 ? 'text-primary' : 'text-green-600'}>
                   {formatCurrency(Number(invoice.balance_due))}

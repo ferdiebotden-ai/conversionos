@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * Seed the `demo` tenant with realistic sample data for sales demonstrations.
+ * Seed the `demo` tenant with 2 realistic leads for sales demonstrations.
  * Idempotent — clears existing demo data before inserting.
+ *
+ * Lead 1: Sarah Mitchell — Kitchen, Premium, draft_ready (full pipeline minus invoice)
+ * Lead 2: Robert Kowalski — Basement, Premium, won (quote accepted, deposit paid)
  *
  * Usage: node scripts/seed-demo-data.mjs
  * Requires: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local
@@ -50,6 +53,7 @@ function todayAt(hour) {
 // ─── Lead Data ───────────────────────────────────────────────────────────────
 
 const leads = [
+  // Lead 1: Sarah Mitchell — Kitchen, Premium, draft_ready
   {
     site_id: SITE_ID,
     name: 'Sarah Mitchell',
@@ -65,145 +69,26 @@ const leads = [
     budget_band: '40k_60k',
     finish_level: 'premium',
     goals_text: 'Want to open up the wall between kitchen and dining room, add a large island with waterfall quartz, new custom cabinetry, and upgraded lighting throughout.',
-    status: 'new',
+    status: 'draft_ready',
     confidence_score: 0.88,
     ai_notes: 'High-intent lead. Clear scope, premium finish level, realistic budget for the work described. Strong candidate for quote generation.',
     source: 'website',
+    intake_raw_input: 'Just got off the phone with Sarah Mitchell from Waterloo. She wants a full kitchen reno — open up the wall to the dining room, big island with waterfall quartz, custom Shaker cabinets, new lighting throughout. Budget is around $50-60k. Looking to start in 2-3 months. Premium finishes.',
+    intake_method: 'voice_dictation',
+    uploaded_photos: [
+      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80',
+      'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800&q=80',
+    ],
+    generated_concepts: [
+      'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+      'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80',
+      'https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=800&q=80',
+    ],
     last_contacted_at: null,
-    created_at: todayAt(10),
+    created_at: daysAgo(2),
   },
-  {
-    site_id: SITE_ID,
-    name: 'David Chen',
-    email: 'david.chen@outlook.com',
-    phone: '(226) 555-0293',
-    address: '112 King Street West',
-    postal_code: 'N2H 4Y7',
-    city: 'Kitchener',
-    province: 'ON',
-    project_type: 'bathroom',
-    area_sqft: 65,
-    timeline: 'asap',
-    budget_band: '25k_40k',
-    finish_level: 'standard',
-    goals_text: 'Main bathroom needs a full gut reno. Replacing tub with walk-in shower, new vanity, heated tile floors. Need it done before in-laws visit in April.',
-    status: 'new',
-    confidence_score: 0.82,
-    ai_notes: 'Urgent timeline. Scope is well-defined. Budget aligns with standard bathroom renovation in K-W region.',
-    source: 'website',
-    last_contacted_at: null,
-    created_at: todayAt(8),
-  },
-  {
-    site_id: SITE_ID,
-    name: 'Rachel Okafor',
-    email: 'rachel.okafor@gmail.com',
-    phone: '(905) 555-0418',
-    address: '8 Paisley Crescent',
-    postal_code: 'L8P 1A2',
-    city: 'Hamilton',
-    province: 'ON',
-    project_type: 'basement',
-    area_sqft: 750,
-    timeline: '3_6_months',
-    budget_band: '25k_40k',
-    finish_level: 'standard',
-    goals_text: 'Looking to finish the basement as a rental suite. Need a kitchenette, 3-piece bath, separate entrance if possible. Want to understand permit requirements.',
-    status: 'needs_clarification',
-    confidence_score: 0.71,
-    ai_notes: 'Budget may be tight for a full basement suite with separate entrance. Need clarification on permit status and whether foundation waterproofing is needed.',
-    source: 'website',
-    last_contacted_at: null,
-    created_at: daysAgo(3),
-  },
-  {
-    site_id: SITE_ID,
-    name: 'Marcus Thompson',
-    email: 'marcus.t@gmail.com',
-    phone: '(519) 555-0672',
-    address: '34 Woolwich Street',
-    postal_code: 'N1H 3V1',
-    city: 'Guelph',
-    province: 'ON',
-    project_type: 'flooring',
-    area_sqft: 620,
-    timeline: '1_3_months',
-    budget_band: '15k_25k',
-    finish_level: 'standard',
-    goals_text: 'Replace carpet with engineered hardwood on the main floor. Living room, dining room, and hallway. Want something durable with two dogs in the house.',
-    status: 'draft_ready',
-    confidence_score: 0.85,
-    ai_notes: 'Straightforward flooring job. Budget is realistic for 620 sqft engineered hardwood with removal and disposal of existing carpet.',
-    source: 'website',
-    last_contacted_at: null,
-    created_at: daysAgo(5),
-  },
-  {
-    site_id: SITE_ID,
-    name: 'Jennifer Liu',
-    email: 'jennifer.liu@rogers.com',
-    phone: '(226) 555-0834',
-    address: '291 Oxford Street East',
-    postal_code: 'N6A 1V3',
-    city: 'London',
-    province: 'ON',
-    project_type: 'kitchen',
-    area_sqft: 210,
-    timeline: 'asap',
-    budget_band: '60k_plus',
-    finish_level: 'premium',
-    goals_text: 'Complete kitchen overhaul — remove wall to open up to family room, custom Shaker cabinetry, quartz countertops with waterfall island, pot filler, under-cabinet lighting. Saw a design on Houzz we love.',
-    status: 'draft_ready',
-    confidence_score: 0.92,
-    ai_notes: 'Premium renovation with clear vision. Budget supports the scope. Structural work (wall removal) requires engineering assessment. Excellent candidate.',
-    source: 'website',
-    last_contacted_at: null,
-    created_at: daysAgo(6),
-  },
-  {
-    site_id: SITE_ID,
-    name: 'Andrew Patel',
-    email: 'andrew.patel@bell.net',
-    phone: '(519) 555-0156',
-    address: '67 Hespeler Road',
-    postal_code: 'N1R 6J3',
-    city: 'Cambridge',
-    province: 'ON',
-    project_type: 'exterior',
-    area_sqft: 2200,
-    timeline: '1_3_months',
-    budget_band: '40k_60k',
-    finish_level: 'premium',
-    goals_text: 'Full exterior refresh — new James Hardie siding, replace front porch with covered portico, new composite deck in back, soffit and fascia. Want a modern farmhouse look.',
-    status: 'sent',
-    confidence_score: 0.87,
-    ai_notes: 'Well-defined exterior project. Budget supports premium materials (Hardie board, composite decking). Weather-dependent timeline — spring start ideal.',
-    source: 'website',
-    created_at: daysAgo(12),
-    last_contacted_at: daysAgo(10),
-  },
-  {
-    site_id: SITE_ID,
-    name: 'Lisa Morrison',
-    email: 'lisa.morrison@gmail.com',
-    phone: '(548) 555-0291',
-    address: '15 Downie Street',
-    postal_code: 'N5A 1W7',
-    city: 'Stratford',
-    province: 'ON',
-    project_type: 'bathroom',
-    area_sqft: 55,
-    timeline: '3_6_months',
-    budget_band: '25k_40k',
-    finish_level: 'premium',
-    goals_text: 'Ensuite bathroom — freestanding soaker tub, frameless glass shower, double vanity with vessel sinks, large format porcelain tile. Going for a spa-inspired feel.',
-    status: 'sent',
-    confidence_score: 0.79,
-    ai_notes: 'Premium ensuite with spa finishes. Budget is adequate for the scope. Plumbing relocation for freestanding tub may add complexity.',
-    source: 'website',
-    created_at: daysAgo(18),
-    last_contacted_at: daysAgo(15),
-  },
+  // Lead 2: Robert Kowalski — Basement, Premium, won
   {
     site_id: SITE_ID,
     name: 'Robert Kowalski',
@@ -223,45 +108,145 @@ const leads = [
     confidence_score: 0.91,
     ai_notes: 'Premium basement build-out. Budget supports full scope including theatre, wet bar, and guest suite. Permit required for egress window. Client signed.',
     source: 'website',
+    uploaded_photos: [
+      'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80',
+      'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800&q=80',
+    ],
+    generated_concepts: [
+      'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=80',
+      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
+      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&q=80',
+    ],
     created_at: daysAgo(25),
     last_contacted_at: daysAgo(20),
   },
 ];
 
+// ─── Chat Sessions ───────────────────────────────────────────────────────────
+
+function buildChatSessions(insertedLeads) {
+  const byName = Object.fromEntries(insertedLeads.map((l) => [l.name, l]));
+  const sarah = byName['Sarah Mitchell'];
+  const robert = byName['Robert Kowalski'];
+
+  return [
+    // Sarah Mitchell — 10-message kitchen discovery chat
+    {
+      site_id: SITE_ID,
+      email: sarah.email,
+      state: 'completed',
+      device_type: 'desktop',
+      started_from: 'general',
+      extracted_data: {
+        leadId: sarah.id,
+        projectType: 'kitchen',
+      },
+      messages: [
+        { role: 'assistant', content: 'Welcome! I\'m Emma, your renovation assistant. How can I help you today?' },
+        { role: 'user', content: 'Hi Emma, I\'m looking to renovate my kitchen. It\'s pretty dated — original from when the house was built in 1998.' },
+        { role: 'assistant', content: 'A kitchen renovation is a great investment! I\'d love to help you explore your options. Can you tell me a bit about what you have in mind? Are you thinking of a full gut renovation or more of a cosmetic refresh?' },
+        { role: 'user', content: 'Definitely a full reno. I want to open up the wall between the kitchen and the dining room to create an open concept layout. I\'ve been dreaming about a big island with a waterfall quartz countertop.' },
+        { role: 'assistant', content: 'That sounds like a beautiful transformation! An open concept layout with a waterfall island is very popular right now. What about cabinetry — do you have a style in mind? And are you thinking about upgrading the lighting as well?' },
+        { role: 'user', content: 'Yes! Custom Shaker cabinets, soft-close everything. For lighting I want a mix of under-cabinet LEDs and some statement pendants over the island. I really want it to feel high-end.' },
+        { role: 'assistant', content: 'You clearly have great taste! Shaker cabinetry with soft-close is a timeless choice, and the layered lighting with under-cabinet LEDs plus pendants will really make the space shine. Do you have a sense of your budget range for this project?' },
+        { role: 'user', content: 'We\'re thinking around $50-60k. Is that realistic for what I\'m describing? The kitchen is about 185 square feet.' },
+        { role: 'assistant', content: 'For a 185 square foot kitchen with premium finishes — wall removal, custom cabinetry, quartz waterfall island, and upgraded lighting — $50-60k is a realistic range. The structural work for the wall removal will need an engineering assessment, but that\'s very doable. When were you hoping to get started?' },
+        { role: 'user', content: 'Ideally in the next couple of months. We want to enjoy it for summer entertaining! Can you connect me with someone to get a proper quote?' },
+      ],
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: daysAgo(2),
+    },
+    // Robert Kowalski — 12-message basement discovery chat
+    {
+      site_id: SITE_ID,
+      email: robert.email,
+      state: 'completed',
+      device_type: 'desktop',
+      started_from: 'general',
+      extracted_data: {
+        leadId: robert.id,
+        projectType: 'basement',
+      },
+      messages: [
+        { role: 'assistant', content: 'Welcome! I\'m Emma, your renovation assistant. How can I help you today?' },
+        { role: 'user', content: 'Hi there. I\'ve got an unfinished basement — about 900 square feet — and I want to turn it into something special.' },
+        { role: 'assistant', content: 'That\'s a fantastic amount of space to work with! An unfinished 900 sqft basement opens up so many possibilities. What\'s your vision for the space?' },
+        { role: 'user', content: 'I want the full package. A home theatre area with built-in speakers and a proper screen wall, a wet bar for entertaining, and a guest bedroom with its own bathroom.' },
+        { role: 'assistant', content: 'That sounds like an incredible entertainment space! A home theatre, wet bar, and guest suite — you\'ll essentially be adding a whole new living area to your home. Are you thinking about an exercise area too? That\'s a popular addition with this kind of build-out.' },
+        { role: 'user', content: 'Actually yes, I was thinking about that too. A small exercise area with rubber flooring in one corner. Maybe 120 square feet or so. And I want premium finishes throughout — this isn\'t a budget build.' },
+        { role: 'assistant', content: 'Premium finishes throughout will really elevate the space. For the guest bedroom, are you planning to add an egress window? That\'s typically required by building code for a bedroom in a basement, and it also brings in natural light.' },
+        { role: 'user', content: 'Yes, egress window is a must. I know we\'ll need permits for that. What about the wet bar — I\'m thinking proper cabinetry, a sink, countertop, and space for a mini fridge.' },
+        { role: 'assistant', content: 'A full wet bar with cabinetry, sink, countertop, and mini fridge alcove is a great call for entertaining. We\'d need to run plumbing for the sink and the bathroom, plus extend your HVAC to heat and cool the finished space properly. Have you thought about flooring for the main areas?' },
+        { role: 'user', content: 'Luxury vinyl plank for most of it — I\'ve heard it\'s the best option for basements because of moisture. Rubber for the gym area like I mentioned. What kind of budget should I be thinking about for all of this?' },
+        { role: 'assistant', content: 'LVP is the perfect choice for basements — it\'s waterproof, durable, and looks beautiful. For a 900 sqft premium basement build-out with theatre, wet bar, guest suite with egress window, full bathroom, exercise area, and high-end finishes, you\'re likely looking at $70-90k range. That includes framing, insulation, electrical, plumbing, HVAC extension, and all the finishing work. Does that align with your expectations?' },
+        { role: 'user', content: 'That\'s right in line with what I was expecting. We want to get started within the next couple of months. Can we move forward with a detailed quote?' },
+      ],
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: daysAgo(25),
+    },
+  ];
+}
+
 // ─── Quote Drafts ────────────────────────────────────────────────────────────
 
 function buildQuoteDrafts(insertedLeads) {
   const byName = Object.fromEntries(insertedLeads.map((l) => [l.name, l]));
-
-  const jennifer = byName['Jennifer Liu'];
-  const andrew = byName['Andrew Patel'];
-  const lisa = byName['Lisa Morrison'];
+  const sarah = byName['Sarah Mitchell'];
   const robert = byName['Robert Kowalski'];
 
+  // Sarah Mitchell — Kitchen, 8 line items
+  // Subtotal: 3500 + 5200 + 6800 + 18700 + 6875 + 3330 + 4200 + 3000 = 51605
+  const sarahSubtotal = 51605;
+  const sarahContingency = Math.round(sarahSubtotal * 0.10 * 100) / 100;
+  const sarahHst = Math.round((sarahSubtotal + sarahContingency) * 0.13 * 100) / 100;
+  const sarahTotal = Math.round((sarahSubtotal + sarahContingency + sarahHst) * 100) / 100;
+  const sarahDeposit = Math.round(sarahTotal * 0.15 * 100) / 100;
+
+  // Robert Kowalski — Basement, 10 line items
+  // Subtotal: 7200 + 4500 + 7200 + 10800 + 9200 + 9360 + 8800 + 5800 + 7200 + 4200 = 74260
+  const robertItems = [
+    { description: 'Basement framing — walls, bulkheads, soffits', category: 'Demo/Framing', quantity: 900, unit: 'sqft', unit_price: 8, total: 7200 },
+    { description: 'Spray foam insulation and vapour barrier', category: 'Insulation', quantity: 900, unit: 'sqft', unit_price: 5, total: 4500 },
+    { description: 'Drywall, taping, and sanding throughout', category: 'Finishes', quantity: 900, unit: 'sqft', unit_price: 8, total: 7200 },
+    { description: 'Electrical rough-in — panel, 22 circuits, theatre wiring', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 10800, total: 10800 },
+    { description: 'Plumbing — full bathroom + wet bar sink rough-in and fixtures', category: 'Plumbing', quantity: 1, unit: 'lot', unit_price: 9200, total: 9200 },
+    { description: 'Luxury vinyl plank flooring (main areas)', category: 'Flooring', quantity: 780, unit: 'sqft', unit_price: 12, total: 9360 },
+    { description: 'Wet bar — custom cabinetry, quartz countertop, sink, mini fridge alcove', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 8800, total: 8800 },
+    { description: 'Interior trim, doors, and baseboards', category: 'Finishes', quantity: 1, unit: 'lot', unit_price: 5800, total: 5800 },
+    { description: 'HVAC ductwork extension — 2 zones', category: 'Mechanical', quantity: 1, unit: 'lot', unit_price: 7200, total: 7200 },
+    { description: 'Prime and paint — walls, ceilings, trim (2 coats)', category: 'Finishes', quantity: 1, unit: 'lot', unit_price: 4200, total: 4200 },
+  ];
+  const robertSubtotal = robertItems.reduce((sum, i) => sum + i.total, 0); // 74260
+  const robertContingency = Math.round(robertSubtotal * 0.10 * 100) / 100;
+  const robertHst = Math.round((robertSubtotal + robertContingency) * 0.13 * 100) / 100;
+  const robertTotal = Math.round((robertSubtotal + robertContingency + robertHst) * 100) / 100;
+  const robertDeposit = Math.round(robertTotal * 0.15 * 100) / 100;
+
   return [
-    // Jennifer Liu — kitchen, premium, ~$53k subtotal
+    // Sarah Mitchell — kitchen, premium, draft_ready (NOT sent)
     {
       site_id: SITE_ID,
-      lead_id: jennifer.id,
+      lead_id: sarah.id,
       version: 1,
       line_items: [
         { description: 'Kitchen demolition and disposal', category: 'Demo/Framing', quantity: 1, unit: 'lot', unit_price: 3500, total: 3500 },
-        { description: 'Structural header for wall removal', category: 'Demo/Framing', quantity: 1, unit: 'lot', unit_price: 4200, total: 4200 },
-        { description: 'Electrical panel upgrade and rough-in (12 circuits)', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 6800, total: 6800 },
-        { description: 'Plumbing rough-in and fixture install', category: 'Plumbing', quantity: 1, unit: 'lot', unit_price: 5400, total: 5400 },
+        { description: 'Plumbing rough-in and fixture installation', category: 'Plumbing', quantity: 1, unit: 'lot', unit_price: 5200, total: 5200 },
+        { description: 'Electrical panel upgrade and rough-in (14 circuits)', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 6800, total: 6800 },
         { description: 'Custom Shaker cabinetry — soft-close, full overlay', category: 'Finishes', quantity: 22, unit: 'lf', unit_price: 850, total: 18700 },
-        { description: 'Quartz countertops (Cambria, waterfall edge island)', category: 'Finishes', quantity: 55, unit: 'sqft', unit_price: 125, total: 6875 },
-        { description: 'Engineered hardwood flooring (5" white oak)', category: 'Flooring', quantity: 180, unit: 'sqft', unit_price: 18, total: 3240 },
-        { description: 'Under-cabinet and pendant lighting package', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 4800, total: 4800 },
+        { description: 'Quartz countertops with waterfall edge island', category: 'Finishes', quantity: 55, unit: 'sqft', unit_price: 125, total: 6875 },
+        { description: 'Porcelain tile flooring (large format)', category: 'Flooring', quantity: 185, unit: 'sqft', unit_price: 18, total: 3330 },
+        { description: 'Under-cabinet LED and pendant lighting package', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 4200, total: 4200 },
+        { description: 'Paint and trim — walls, ceiling, crown moulding', category: 'Finishes', quantity: 1, unit: 'lot', unit_price: 3000, total: 3000 },
       ],
-      subtotal: 53515,
+      subtotal: sarahSubtotal,
       contingency_percent: 10,
-      contingency_amount: 5351.50,
+      contingency_amount: sarahContingency,
       hst_percent: 13,
-      hst_amount: 7652.65,
-      total: 66519.15,
+      hst_amount: sarahHst,
+      total: sarahTotal,
       deposit_percent: 15,
-      deposit_required: 9977.87,
+      deposit_required: sarahDeposit,
       validity_days: 30,
       assumptions: [
         'Standard 8\' ceiling height',
@@ -270,7 +255,7 @@ function buildQuoteDrafts(insertedLeads) {
         'Structural engineer approval for wall removal included',
       ],
       exclusions: [
-        'Appliance supply (allowance included for installation only)',
+        'Appliance supply (installation allowance included)',
         'Window treatments',
         'Permits and engineering fees billed separately',
         'Furniture removal and storage',
@@ -280,115 +265,22 @@ function buildQuoteDrafts(insertedLeads) {
       acceptance_status: null,
       accepted_at: null,
       accepted_by_name: null,
-      created_at: daysAgo(5),
+      created_at: daysAgo(1),
     },
-    // Andrew Patel — exterior, premium, ~$44k subtotal
-    {
-      site_id: SITE_ID,
-      lead_id: andrew.id,
-      version: 1,
-      line_items: [
-        { description: 'Existing siding and trim removal', category: 'Demo/Framing', quantity: 1, unit: 'lot', unit_price: 3200, total: 3200 },
-        { description: 'James Hardie HardiePlank siding — Arctic White', category: 'Finishes', quantity: 2200, unit: 'sqft', unit_price: 9.50, total: 20900 },
-        { description: 'Front portico — covered entry with columns', category: 'Demo/Framing', quantity: 1, unit: 'lot', unit_price: 6500, total: 6500 },
-        { description: 'Composite deck (16x20) with railing', category: 'Finishes', quantity: 320, unit: 'sqft', unit_price: 22, total: 7040 },
-        { description: 'Soffit, fascia, and eavestrough replacement', category: 'Finishes', quantity: 1, unit: 'lot', unit_price: 3800, total: 3800 },
-        { description: 'Exterior electrical — pot lights, outlet', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 2600, total: 2600 },
-      ],
-      subtotal: 44040,
-      contingency_percent: 10,
-      contingency_amount: 4404,
-      hst_percent: 13,
-      hst_amount: 6297.72,
-      total: 54741.72,
-      deposit_percent: 15,
-      deposit_required: 8211.26,
-      validity_days: 30,
-      sent_at: daysAgo(10),
-      sent_to_email: andrew.email,
-      acceptance_status: null,
-      accepted_at: null,
-      accepted_by_name: null,
-      assumptions: [
-        'Existing sheathing in good condition (no replacement)',
-        'Standard soil conditions for deck footings',
-        'Work performed spring through fall (no winter premium)',
-      ],
-      exclusions: [
-        'Landscaping and grading',
-        'Permit fees',
-        'Window and door replacement',
-      ],
-      created_at: daysAgo(11),
-    },
-    // Lisa Morrison — bathroom, premium, ~$29k subtotal
-    {
-      site_id: SITE_ID,
-      lead_id: lisa.id,
-      version: 1,
-      line_items: [
-        { description: 'Full bathroom demolition and disposal', category: 'Demo/Framing', quantity: 1, unit: 'lot', unit_price: 2200, total: 2200 },
-        { description: 'Plumbing rough-in — tub relocation, dual vanity', category: 'Plumbing', quantity: 1, unit: 'lot', unit_price: 5800, total: 5800 },
-        { description: 'Electrical — heated floor, exhaust fan, lighting', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 3200, total: 3200 },
-        { description: 'Large format porcelain tile (floor and shower)', category: 'Finishes', quantity: 120, unit: 'sqft', unit_price: 28, total: 3360 },
-        { description: 'Frameless glass shower enclosure', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 4200, total: 4200 },
-        { description: 'Freestanding soaker tub (acrylic)', category: 'Fixtures', quantity: 1, unit: 'ea', unit_price: 2800, total: 2800 },
-        { description: 'Double vanity with vessel sinks and faucets', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 4500, total: 4500 },
-        { description: 'Accessories and finishing (mirror, towel bars, toilet)', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 2900, total: 2900 },
-      ],
-      subtotal: 28960,
-      contingency_percent: 10,
-      contingency_amount: 2896,
-      hst_percent: 13,
-      hst_amount: 4141.28,
-      total: 35997.28,
-      deposit_percent: 15,
-      deposit_required: 5399.59,
-      validity_days: 30,
-      sent_at: daysAgo(14),
-      sent_to_email: lisa.email,
-      acceptance_status: null,
-      accepted_at: null,
-      accepted_by_name: null,
-      assumptions: [
-        'Existing plumbing stack accessible and in good condition',
-        'Standard joist depth (no structural modifications needed)',
-        'Waterproofing membrane included for shower and tub areas',
-      ],
-      exclusions: [
-        'Linen closet or cabinetry outside bathroom footprint',
-        'Towels and decorative accessories',
-        'Permit fees if required by municipality',
-      ],
-      created_at: daysAgo(16),
-    },
-    // Robert Kowalski — basement, premium, ~$72k subtotal
+    // Robert Kowalski — basement, premium, sent + accepted
     {
       site_id: SITE_ID,
       lead_id: robert.id,
       version: 1,
-      line_items: [
-        { description: 'Basement framing — walls, bulkheads, soffits', category: 'Demo/Framing', quantity: 900, unit: 'sqft', unit_price: 8, total: 7200 },
-        { description: 'Egress window installation (code compliant)', category: 'Demo/Framing', quantity: 1, unit: 'ea', unit_price: 4500, total: 4500 },
-        { description: 'Electrical rough-in — panel, 20 circuits, theatre', category: 'Electrical', quantity: 1, unit: 'lot', unit_price: 9200, total: 9200 },
-        { description: 'Plumbing — full bathroom + wet bar rough-in', category: 'Plumbing', quantity: 1, unit: 'lot', unit_price: 7800, total: 7800 },
-        { description: 'HVAC — ductwork extension, 2 zones', category: 'Mechanical', quantity: 1, unit: 'lot', unit_price: 5500, total: 5500 },
-        { description: 'Insulation and vapour barrier', category: 'Finishes', quantity: 900, unit: 'sqft', unit_price: 4.50, total: 4050 },
-        { description: 'Drywall, taping, and painting throughout', category: 'Finishes', quantity: 900, unit: 'sqft', unit_price: 7, total: 6300 },
-        { description: 'Luxury vinyl plank flooring', category: 'Flooring', quantity: 780, unit: 'sqft', unit_price: 12, total: 9360 },
-        { description: 'Rubber gym flooring (exercise area)', category: 'Flooring', quantity: 120, unit: 'sqft', unit_price: 8, total: 960 },
-        { description: 'Wet bar — cabinetry, sink, countertop, mini fridge', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 6800, total: 6800 },
-        { description: 'Home theatre — built-in speakers, wiring, screen wall', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 5200, total: 5200 },
-        { description: 'Full bathroom — toilet, vanity, shower, tile', category: 'Fixtures', quantity: 1, unit: 'lot', unit_price: 7400, total: 7400 },
-      ],
-      subtotal: 74270,
+      line_items: robertItems,
+      subtotal: robertSubtotal,
       contingency_percent: 10,
-      contingency_amount: 7427,
+      contingency_amount: robertContingency,
       hst_percent: 13,
-      hst_amount: 10620.61,
-      total: 92317.61,
+      hst_amount: robertHst,
+      total: robertTotal,
       deposit_percent: 15,
-      deposit_required: 13847.64,
+      deposit_required: robertDeposit,
       validity_days: 30,
       sent_at: daysAgo(22),
       sent_to_email: robert.email,
@@ -403,7 +295,7 @@ function buildQuoteDrafts(insertedLeads) {
       ],
       exclusions: [
         'Audio/video equipment (speakers, projector, screen)',
-        'Exercise equipment',
+        'Exercise equipment and rubber gym flooring',
         'Furniture and decor',
         'Mini fridge and bar accessories',
       ],
@@ -412,7 +304,7 @@ function buildQuoteDrafts(insertedLeads) {
   ];
 }
 
-// ─── Invoices ────────────────────────────────────────────────────────────────
+// ─── Invoice ─────────────────────────────────────────────────────────────────
 
 function buildInvoices(insertedLeads, insertedQuoteDrafts) {
   const byName = Object.fromEntries(insertedLeads.map((l) => [l.name, l]));
@@ -421,14 +313,8 @@ function buildInvoices(insertedLeads, insertedQuoteDrafts) {
   const robert = byName['Robert Kowalski'];
   const robertQuote = quoteByLead[robert.id];
 
-  const andrew = byName['Andrew Patel'];
-  const andrewQuote = quoteByLead[andrew.id];
-
-  const lisa = byName['Lisa Morrison'];
-  const lisaQuote = quoteByLead[lisa.id];
-
   return [
-    // INV-2026-001 — Robert Kowalski — PAID (deposit)
+    // Robert Kowalski — deposit invoice, PAID
     {
       site_id: SITE_ID,
       invoice_number: 'INV-2026-001',
@@ -436,16 +322,16 @@ function buildInvoices(insertedLeads, insertedQuoteDrafts) {
       quote_draft_id: robertQuote.id,
       status: 'paid',
       line_items: [
-        { description: 'Basement renovation — 15% deposit', category: 'Deposit', quantity: 1, unit: 'lot', unit_price: 13847.64, total: 13847.64 },
+        { description: 'Basement renovation — 15% deposit', category: 'Deposit', quantity: 1, unit: 'lot', unit_price: robertQuote.deposit_required, total: robertQuote.deposit_required },
       ],
-      subtotal: 13847.64,
+      subtotal: robertQuote.deposit_required,
       contingency_percent: 0,
       contingency_amount: 0,
       hst_amount: 0,
-      total: 13847.64,
-      amount_paid: 13847.64,
+      total: robertQuote.deposit_required,
+      amount_paid: robertQuote.deposit_required,
       balance_due: 0,
-      deposit_required: 13847.64,
+      deposit_required: robertQuote.deposit_required,
       deposit_received: true,
       customer_name: robert.name,
       customer_email: robert.email,
@@ -459,70 +345,6 @@ function buildInvoices(insertedLeads, insertedQuoteDrafts) {
       sent_at: daysAgo(20),
       notes: 'Deposit invoice — project start contingent on receipt.',
       created_at: daysAgo(20),
-    },
-    // INV-2026-002 — Andrew Patel — SENT (awaiting deposit)
-    {
-      site_id: SITE_ID,
-      invoice_number: 'INV-2026-002',
-      lead_id: andrew.id,
-      quote_draft_id: andrewQuote.id,
-      status: 'sent',
-      line_items: [
-        { description: 'Exterior renovation — 15% deposit', category: 'Deposit', quantity: 1, unit: 'lot', unit_price: 8211.26, total: 8211.26 },
-      ],
-      subtotal: 8211.26,
-      contingency_percent: 0,
-      contingency_amount: 0,
-      hst_amount: 0,
-      total: 8211.26,
-      amount_paid: 0,
-      balance_due: 8211.26,
-      deposit_required: 8211.26,
-      deposit_received: false,
-      customer_name: andrew.name,
-      customer_email: andrew.email,
-      customer_phone: andrew.phone,
-      customer_address: andrew.address,
-      customer_city: andrew.city,
-      customer_province: andrew.province,
-      customer_postal_code: andrew.postal_code,
-      issue_date: daysAgo(8).split('T')[0],
-      due_date: daysAgo(-22).split('T')[0],
-      sent_at: daysAgo(8),
-      notes: 'Deposit invoice — spring start date pending payment.',
-      created_at: daysAgo(8),
-    },
-    // INV-2026-003 — Lisa Morrison — DRAFT
-    {
-      site_id: SITE_ID,
-      invoice_number: 'INV-2026-003',
-      lead_id: lisa.id,
-      quote_draft_id: lisaQuote.id,
-      status: 'draft',
-      line_items: [
-        { description: 'Ensuite bathroom renovation — 15% deposit', category: 'Deposit', quantity: 1, unit: 'lot', unit_price: 5399.59, total: 5399.59 },
-      ],
-      subtotal: 5399.59,
-      contingency_percent: 0,
-      contingency_amount: 0,
-      hst_amount: 0,
-      total: 5399.59,
-      amount_paid: 0,
-      balance_due: 5399.59,
-      deposit_required: 5399.59,
-      deposit_received: false,
-      customer_name: lisa.name,
-      customer_email: lisa.email,
-      customer_phone: lisa.phone,
-      customer_address: lisa.address,
-      customer_city: lisa.city,
-      customer_province: lisa.province,
-      customer_postal_code: lisa.postal_code,
-      issue_date: new Date().toISOString().split('T')[0],
-      due_date: daysAgo(-30).split('T')[0],
-      sent_at: null,
-      notes: 'Deposit invoice — awaiting client confirmation before sending.',
-      created_at: daysAgo(2),
     },
   ];
 }
@@ -593,7 +415,7 @@ async function main() {
   console.log(`Seeding demo data (site_id: ${SITE_ID})...\n`);
 
   // Step 1: Clear existing data (FK order)
-  console.log('  Step 1/5: Clearing existing demo data...');
+  console.log('  Step 1/6: Clearing existing demo data...');
   for (const table of [
     'payments',
     'invoices',
@@ -611,32 +433,39 @@ async function main() {
   console.log('    ✓ Cleared\n');
 
   // Step 2: Insert leads
-  console.log('  Step 2/5: Inserting leads...');
+  console.log('  Step 2/6: Inserting leads...');
   const insertedLeads = await insertRows('leads', leads);
   console.log(`    ✓ ${insertedLeads.length} leads inserted\n`);
 
-  // Step 3: Insert quote drafts
-  console.log('  Step 3/5: Inserting quote drafts...');
+  // Step 3: Insert chat sessions
+  console.log('  Step 3/6: Inserting chat sessions...');
+  const chatSessions = buildChatSessions(insertedLeads);
+  const insertedSessions = await insertRows('chat_sessions', chatSessions);
+  console.log(`    ✓ ${insertedSessions.length} chat sessions inserted\n`);
+
+  // Step 4: Insert quote drafts
+  console.log('  Step 4/6: Inserting quote drafts...');
   const quoteDrafts = buildQuoteDrafts(insertedLeads);
   const insertedQuotes = await insertRows('quote_drafts', quoteDrafts);
   console.log(`    ✓ ${insertedQuotes.length} quote drafts inserted\n`);
 
-  // Step 4: Insert invoices
-  console.log('  Step 4/5: Inserting invoices...');
+  // Step 5: Insert invoice
+  console.log('  Step 5/6: Inserting invoices...');
   const invoices = buildInvoices(insertedLeads, insertedQuotes);
   const insertedInvoices = await insertRows('invoices', invoices);
-  console.log(`    ✓ ${insertedInvoices.length} invoices inserted\n`);
+  console.log(`    ✓ ${insertedInvoices.length} invoice(s) inserted\n`);
 
-  // Step 5: Insert payment
-  console.log('  Step 5/5: Inserting payments...');
+  // Step 6: Insert payment
+  console.log('  Step 6/6: Inserting payments...');
   const payments = buildPayments(insertedInvoices);
   const insertedPayments = await insertRows('payments', payments);
   console.log(`    ✓ ${insertedPayments.length} payment(s) inserted\n`);
 
   console.log('Done! Demo data seeded successfully.');
   console.log(`  ${insertedLeads.length} leads`);
+  console.log(`  ${insertedSessions.length} chat sessions`);
   console.log(`  ${insertedQuotes.length} quote drafts`);
-  console.log(`  ${insertedInvoices.length} invoices`);
+  console.log(`  ${insertedInvoices.length} invoice(s)`);
   console.log(`  ${insertedPayments.length} payment(s)`);
 }
 
