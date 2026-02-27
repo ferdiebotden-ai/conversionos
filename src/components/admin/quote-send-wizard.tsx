@@ -43,6 +43,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { StepProgress, PdfSkeleton } from '@/components/ui/progress-loader';
+import { SRAnnounce } from '@/components/ui/sr-announce';
 import { EmailPreview } from './email-preview';
 import type { AIEmail } from '@/lib/schemas/ai-email';
 import { useBranding } from '@/components/branding-provider';
@@ -319,6 +320,12 @@ The ${branding.name} Team`);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] w-[calc(100%-2rem)] max-h-[90vh] overflow-hidden flex flex-col">
+        <SRAnnounce
+          message={
+            isGeneratingEmail ? 'Generating email...' :
+            isSending ? 'Sending quote...' : ''
+          }
+        />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />

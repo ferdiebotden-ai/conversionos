@@ -28,6 +28,7 @@ import { ScopeGapRecommendations } from './scope-gap-recommendations';
 import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
 import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
 import { TemplatePicker } from './template-picker';
+import { SRAnnounce } from '@/components/ui/sr-announce';
 import { countPriceMatches } from '@/lib/pricing/fuzzy-match';
 import type { QuoteDraft, Json, AssemblyTemplate, ContractorPrice } from '@/types/database';
 import type { AIGeneratedQuote, AIQuoteLineItem, AITieredQuote } from '@/lib/schemas/ai-quote';
@@ -813,6 +814,13 @@ export function QuoteEditor({
 
   return (
     <div className="space-y-6">
+      <SRAnnounce
+        message={
+          isSaving ? 'Saving quote...' :
+          isRegenerating ? 'Generating AI quote...' :
+          lastSaved ? 'Quote saved' : ''
+        }
+      />
       {/* Tier Mode Toggle */}
       {aiQuote && (
         <div className="flex items-center justify-between">
