@@ -32,6 +32,7 @@ interface NewLeadNotificationEmailProps {
   confidenceScore?: number | null | undefined;
   tier?: PlanTier;
   adminUrl?: string;
+  primaryColor?: string | undefined;
 }
 
 export function NewLeadNotificationEmail({
@@ -48,6 +49,7 @@ export function NewLeadNotificationEmail({
   confidenceScore,
   tier = 'accelerate',
   adminUrl: customAdminUrl,
+  primaryColor: brandColor = '#1565C0',
 }: NewLeadNotificationEmailProps) {
   const hasEstimate = estimateLow && estimateHigh;
   const formattedProjectType = projectType.charAt(0).toUpperCase() + projectType.slice(1);
@@ -68,7 +70,7 @@ export function NewLeadNotificationEmail({
       <Preview>New {formattedProjectType} Lead: {customerName}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <div style={badge}>NEW LEAD</div>
+          <div style={{ ...badge, backgroundColor: brandColor }}>NEW LEAD</div>
 
           <Heading style={heading}>
             {formattedProjectType} Renovation Request
@@ -80,7 +82,7 @@ export function NewLeadNotificationEmail({
 
             <Text style={infoLabel}>Email</Text>
             <Text style={infoValue}>
-              <Link href={`mailto:${customerEmail}`} style={link}>
+              <Link href={`mailto:${customerEmail}`} style={{ color: brandColor, textDecoration: 'none' }}>
                 {customerEmail}
               </Link>
             </Text>
@@ -89,7 +91,7 @@ export function NewLeadNotificationEmail({
               <>
                 <Text style={infoLabel}>Phone</Text>
                 <Text style={infoValue}>
-                  <Link href={`tel:${customerPhone}`} style={link}>
+                  <Link href={`tel:${customerPhone}`} style={{ color: brandColor, textDecoration: 'none' }}>
                     {customerPhone}
                   </Link>
                 </Text>
@@ -105,9 +107,9 @@ export function NewLeadNotificationEmail({
           </Section>
 
           {hasEstimate && (
-            <Section style={estimateBox}>
+            <Section style={{ ...estimateBox, borderLeft: `4px solid ${brandColor}` }}>
               <Text style={estimateLabel}>AI Estimate</Text>
-              <Text style={estimateValue}>
+              <Text style={{ ...estimateValue, color: brandColor }}>
                 ${estimateLow.toLocaleString()} - ${estimateHigh.toLocaleString()}
               </Text>
               {confidenceScore && (
@@ -136,13 +138,13 @@ export function NewLeadNotificationEmail({
 
           {hasDashboard ? (
             <Section style={ctaSection}>
-              <Link href={adminUrl} style={ctaButton}>
+              <Link href={adminUrl} style={{ ...ctaButton, backgroundColor: brandColor }}>
                 View in Dashboard
               </Link>
             </Section>
           ) : (
             <Section style={ctaSection}>
-              <Text style={elevateCta}>
+              <Text style={{ ...elevateCta, color: brandColor }}>
                 Reply to this email or call the homeowner directly to follow up.
               </Text>
             </Section>
@@ -174,7 +176,6 @@ const container = {
 };
 
 const badge = {
-  backgroundColor: '#1565C0',
   color: '#ffffff',
   padding: '6px 12px',
   borderRadius: '4px',
@@ -215,17 +216,11 @@ const infoValue = {
   fontWeight: '500',
 };
 
-const link = {
-  color: '#1565C0',
-  textDecoration: 'none',
-};
-
 const estimateBox = {
   backgroundColor: '#fef2f2',
   borderRadius: '8px',
   padding: '20px',
   margin: '0 0 16px',
-  borderLeft: '4px solid #1565C0',
 };
 
 const estimateLabel = {
@@ -239,7 +234,6 @@ const estimateLabel = {
 const estimateValue = {
   fontSize: '28px',
   fontWeight: '700',
-  color: '#1565C0',
   margin: '0',
 };
 
@@ -288,7 +282,6 @@ const ctaSection = {
 };
 
 const ctaButton = {
-  backgroundColor: '#1565C0',
   borderRadius: '8px',
   color: '#fff',
   fontSize: '16px',
@@ -302,7 +295,6 @@ const ctaButton = {
 const elevateCta = {
   fontSize: '16px',
   fontWeight: '600',
-  color: '#1565C0',
   textAlign: 'center' as const,
   margin: '0',
 };

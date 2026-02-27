@@ -48,7 +48,7 @@ import {
 
 // Business constants
 const HST_PERCENT = 13;
-const DEPOSIT_PERCENT = 15;
+const DEFAULT_DEPOSIT_PERCENT = 15;
 const DEFAULT_CONTINGENCY_PERCENT = 10;
 
 // Default templates
@@ -75,6 +75,7 @@ interface QuoteEditorProps {
   projectType?: string | undefined;
   goalsText?: string | undefined;
   versions?: VersionSummary[] | undefined;
+  depositPercent?: number | undefined;
 }
 
 function generateId(): string {
@@ -184,6 +185,7 @@ export function QuoteEditor({
   projectType = 'other',
   goalsText,
   versions,
+  depositPercent = DEFAULT_DEPOSIT_PERCENT,
 }: QuoteEditorProps) {
   // Extract AI quote from initial estimate
   const aiQuoteFromEstimate = extractAIQuote(initialEstimate);
@@ -331,7 +333,7 @@ export function QuoteEditor({
   const subtotalWithContingency = subtotal + contingencyAmount;
   const hstAmount = subtotalWithContingency * (HST_PERCENT / 100);
   const total = subtotalWithContingency + hstAmount;
-  const depositRequired = total * (DEPOSIT_PERCENT / 100);
+  const depositRequired = total * (depositPercent / 100);
 
   // Count AI items
   const aiItemCount = lineItems.filter((item) => item.isFromAI).length;
@@ -1008,7 +1010,7 @@ export function QuoteEditor({
             {/* Deposit */}
             <div className="flex justify-between text-primary">
               <span className="font-medium">
-                Deposit Required ({DEPOSIT_PERCENT}%)
+                Deposit Required ({depositPercent}%)
               </span>
               <span className="font-bold">{formatCurrency(depositRequired)}</span>
             </div>

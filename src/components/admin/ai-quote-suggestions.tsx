@@ -191,7 +191,7 @@ export function AIQuoteSuggestions({
                 className={`border rounded-lg transition-all ${
                   isAccepted
                     ? 'border-green-200 bg-green-50/50'
-                    : 'border-border hover:border-[#1565C0]/30'
+                    : 'border-border hover:border-primary/30'
                 }`}
               >
                 <div className="p-3">

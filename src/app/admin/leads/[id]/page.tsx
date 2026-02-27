@@ -10,6 +10,7 @@ import { QuoteEditor } from '@/components/admin/quote-editor';
 import { AuditLogView } from '@/components/admin/audit-log';
 import { LeadVisualizationPanel } from '@/components/admin/lead-visualization-panel';
 import { LeadDrawingsPanel } from '@/components/admin/lead-drawings-panel';
+import { getDepositPercent } from '@/lib/pricing/deposit.server';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   }
 
   const { lead, quote, versions } = data;
+  const depositPercent = await getDepositPercent();
 
   return (
     <div className="space-y-6">
@@ -134,6 +136,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             projectType={lead.project_type || undefined}
             goalsText={lead.goals_text || undefined}
             versions={versions}
+            depositPercent={depositPercent}
           />
         </TabsContent>
 

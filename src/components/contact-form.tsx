@@ -132,7 +132,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="name">

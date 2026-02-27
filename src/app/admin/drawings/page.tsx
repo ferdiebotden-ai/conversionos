@@ -102,7 +102,7 @@ function DrawingsGrid({ drawings }: { drawings: Drawing[] }) {
             </CardContent>
             <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{formatDate(drawing.created_at)}</span>
-              <Button asChild variant="default" size="sm" className="bg-[#1565C0] text-white hover:bg-[#B71C1C] h-8">
+              <Button asChild variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 h-8">
                 <Link href={`/admin/drawings/${drawing.id}`}>
                   Open
                 </Link>

@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
+import { getDepositPercent } from '@/lib/pricing/deposit.server';
 import type { QuoteDraftUpdate, Json } from '@/types/database';
 
 /**
@@ -45,21 +46,21 @@ type RouteContext = { params: Promise<{ leadId: string }> };
 
 // Business constants
 const HST_PERCENT = 13;
-const DEPOSIT_PERCENT = 15;
 
 /**
  * Calculate quote totals from line items
  */
 function calculateTotals(
   lineItems: z.infer<typeof LineItemSchema>[],
-  contingencyPercent: number
+  contingencyPercent: number,
+  depositPercent: number,
 ) {
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const contingencyAmount = subtotal * (contingencyPercent / 100);
   const subtotalWithContingency = subtotal + contingencyAmount;
   const hstAmount = subtotalWithContingency * (HST_PERCENT / 100);
   const total = subtotalWithContingency + hstAmount;
-  const depositRequired = total * (DEPOSIT_PERCENT / 100);
+  const depositRequired = total * (depositPercent / 100);
 
   return {
     subtotal,
@@ -241,7 +242,8 @@ export async function PUT(
     }
 
     // Calculate totals
-    const totals = calculateTotals(line_items, contingency_percent);
+    const depositPercent = await getDepositPercent();
+    const totals = calculateTotals(line_items, contingency_percent, depositPercent);
 
     // Check for existing quote
     const { data: existingQuote } = await supabase
@@ -265,7 +267,7 @@ export async function PUT(
         special_notes: special_notes ?? null,
         contingency_percent,
         hst_percent: HST_PERCENT,
-        deposit_percent: DEPOSIT_PERCENT,
+        deposit_percent: depositPercent,
         validity_days,
         expires_at: expiresAt.toISOString(),
         updated_at: now.toISOString(),
@@ -320,7 +322,7 @@ export async function PUT(
         special_notes: special_notes ?? null,
         contingency_percent,
         hst_percent: HST_PERCENT,
-        deposit_percent: DEPOSIT_PERCENT,
+        deposit_percent: depositPercent,
         validity_days,
         expires_at: expiresAt.toISOString(),
         ...totals,

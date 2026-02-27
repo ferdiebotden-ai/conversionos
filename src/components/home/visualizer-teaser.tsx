@@ -22,7 +22,7 @@ interface Transformation {
   after: string;
 }
 
-const TRANSFORMATIONS: Transformation[] = [
+const DEFAULT_TRANSFORMATIONS: Transformation[] = [
   {
     label: 'Modern',
     before: '/images/teaser/before-kitchen.jpg',
@@ -40,12 +40,42 @@ const TRANSFORMATIONS: Transformation[] = [
   },
 ];
 
-interface VisualizerTeaserProps {
-  className?: string;
+export interface PortfolioImage {
+  title: string;
+  imageUrl: string;
 }
 
-export function VisualizerTeaser({ className }: VisualizerTeaserProps) {
+interface VisualizerTeaserProps {
+  className?: string;
+  portfolioImages?: PortfolioImage[];
+}
+
+/**
+ * Build transformation list from portfolio images.
+ * Uses pairs of portfolio images as before/after when >= 2 images exist.
+ * Falls back to default static transformations otherwise.
+ */
+function buildTransformations(portfolioImages?: PortfolioImage[]): Transformation[] {
+  if (!portfolioImages || portfolioImages.length < 2) return DEFAULT_TRANSFORMATIONS;
+
+  const validImages = portfolioImages.filter(p => p.imageUrl && p.title);
+  if (validImages.length < 2) return DEFAULT_TRANSFORMATIONS;
+
+  const transformations: Transformation[] = [];
+  for (let i = 0; i < Math.min(validImages.length - 1, 3); i++) {
+    transformations.push({
+      label: validImages[i + 1]!.title.split(/[\s-]/)[0] || `Style ${i + 1}`,
+      before: validImages[0]!.imageUrl,
+      after: validImages[i + 1]!.imageUrl,
+    });
+  }
+
+  return transformations.length > 0 ? transformations : DEFAULT_TRANSFORMATIONS;
+}
+
+export function VisualizerTeaser({ className, portfolioImages }: VisualizerTeaserProps) {
   const shouldReduce = useReducedMotion();
+  const transformations = buildTransformations(portfolioImages);
   const [activeIndex, setActiveIndex] = useState(0);
   // 0 = fully "before", 100 = fully "after"
   const [sliderPosition, setSliderPosition] = useState(shouldReduce ? 90 : 0);
@@ -55,7 +85,7 @@ export function VisualizerTeaser({ className }: VisualizerTeaserProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const cancelledRef = useRef(false);
-  const active = TRANSFORMATIONS[activeIndex]!;
+  const active = transformations[activeIndex]!;
 
   // ─── Auto-animate when section scrolls into view ─────────────────────
   useEffect(() => {
@@ -213,7 +243,7 @@ export function VisualizerTeaser({ className }: VisualizerTeaserProps) {
 
       {/* Style tabs */}
       <div className="flex justify-center gap-2 mt-8">
-        {TRANSFORMATIONS.map((t, i) => (
+        {transformations.map((t, i) => (
           <button
             key={i}
             onClick={() => handleTabSwitch(i)}

@@ -129,7 +129,7 @@ export default async function Home() {
       <section className="px-4 py-16 md:py-20">
         <div className="container mx-auto">
           <FadeInUp>
-            <VisualizerTeaser />
+            <VisualizerTeaser portfolioImages={config.portfolio} />
           </FadeInUp>
         </div>
       </section>

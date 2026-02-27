@@ -1,4 +1,5 @@
 'use client';
+// Hardcoded #1565C0 colours in this file are intentional 3D rendering colours, not brand colours.
 
 import { Edges, Html } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';

@@ -357,6 +357,7 @@ export async function POST(request: NextRequest) {
           hasPhotos: (data.uploadedPhotos?.length ?? 0) > 0,
           confidenceScore: data.confidenceScore,
           tier,
+          primaryColor: branding.primaryColor,
         }),
         replyTo: data.email,
       }).catch((err) => {

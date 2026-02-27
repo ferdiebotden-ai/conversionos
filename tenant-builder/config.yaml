@@ -23,6 +23,10 @@ scraping:
       - links
     timeout_ms: 30000
     max_pages_per_site: 6   # Homepage + about + services + contact + gallery + testimonials
+    rate_limit:
+      requests_per_minute: 30
+      retry_on_429: true
+      backoff: exponential    # 1s, 2s, 4s, 8s...
     fallback_pages:
       - /about
       - /about-us

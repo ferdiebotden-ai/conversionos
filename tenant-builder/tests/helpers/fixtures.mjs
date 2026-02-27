@@ -29,11 +29,12 @@ export const mockScrapedData = {
   address: '123 Main St, London, ON',
   primary_color_hex: '#2563eb',
   services: [
-    { name: 'Kitchen Renovation', slug: 'kitchen-renovation' },
-    { name: 'Bathroom Renovation', slug: 'bathroom-renovation' },
+    { name: 'Kitchen Renovation', slug: 'kitchen-renovation', description: 'Full kitchen remodel including cabinets and countertops.' },
+    { name: 'Bathroom Renovation', slug: 'bathroom-renovation', description: 'Complete bathroom transformation with modern finishes.' },
   ],
   testimonials: [
-    { name: 'John S.', text: 'Great work on our kitchen!', rating: 5 },
+    { author: 'John S.', quote: 'Great work on our kitchen! Professional team and excellent results throughout.', rating: 5 },
+    { author: 'Sarah M.', quote: 'Transformed our bathroom completely. Would highly recommend their services.', rating: 5 },
   ],
   logo_url: 'https://example.com/logo.png',
   _branding: {
@@ -106,4 +107,90 @@ export const mockIcpBreakdown = {
   company_size: 12,
   total: 79,
   notes: 'sophistication=template, size=small',
+};
+
+/** Mock company_profile with trustMetrics (camelCase) */
+export const mockCompanyProfile = {
+  services: [
+    { name: 'Kitchen Renovation', slug: 'kitchen-renovation', description: 'Full kitchen remodel with custom cabinets.' },
+    { name: 'Bathroom Remodel', slug: 'bathroom-remodel', description: 'Complete bathroom transformation services.' },
+  ],
+  trustMetrics: {
+    google_rating: '4.6',
+    projects_completed: '32+ Reviews',
+    years_in_business: '5',
+    licensed_insured: true,
+  },
+  trustBadges: [
+    { label: 'Licensed & Insured', icon: 'shield-check' },
+    { label: 'WSIB Covered', icon: 'hard-hat' },
+  ],
+  processSteps: [
+    { title: 'Consultation', description: 'Free in-home consultation.' },
+    { title: 'Design', description: 'Custom design and planning.' },
+  ],
+  values: [
+    { title: 'Quality', description: 'Best materials and craftsmanship.' },
+  ],
+};
+
+/** Mock content integrity result (passing) */
+export const mockContentIntegrityPass = {
+  passed: true,
+  violations: [],
+  summary: {
+    site_id: 'test-reno',
+    pages_checked: 4,
+    demo_leakage: 0,
+    broken_images: 0,
+    demo_images: 0,
+    empty_sections: 0,
+    fabrication: 0,
+    placeholder_text: 0,
+    business_name: 0,
+    copyright_format: 0,
+    total_violations: 0,
+    passed: true,
+  },
+};
+
+/** Mock content integrity result (failing) */
+export const mockContentIntegrityFail = {
+  passed: false,
+  violations: [
+    { check: 'demo_leakage', page: '/', leaked_string: '(226) 444-3478', context: 'Call us: (226) 444-3478' },
+    { check: 'fabrication', field: 'trust_badges', source: 'ai_generated' },
+  ],
+  summary: {
+    site_id: 'test-reno',
+    pages_checked: 4,
+    demo_leakage: 1,
+    broken_images: 0,
+    demo_images: 0,
+    empty_sections: 0,
+    fabrication: 1,
+    placeholder_text: 0,
+    business_name: 0,
+    copyright_format: 0,
+    total_violations: 2,
+    passed: false,
+  },
+};
+
+/** Mock audit report input */
+export const mockAuditInput = {
+  contentIntegrity: mockContentIntegrityPass,
+  visualQa: {
+    logo_fidelity: 4,
+    colour_match: 5,
+    copy_accuracy: 4,
+    layout_integrity: 5,
+    brand_cohesion: 4,
+    average: 4.4,
+    pass: true,
+    notes: 'Excellent rendering.',
+  },
+  autoFixes: [],
+  siteId: 'test-reno',
+  businessName: 'Test Reno Inc.',
 };

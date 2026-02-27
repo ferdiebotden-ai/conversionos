@@ -319,7 +319,7 @@ export function ProjectFormModal({
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="sm:flex-1 bg-[#1565C0] hover:bg-[#B71C1C]"
+                className="sm:flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {isSubmitting ? (
                   <>

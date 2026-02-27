@@ -41,9 +41,17 @@ const SendQuoteSchema = z.object({
   useCustomEmail: z.boolean().optional(), // Whether to use custom email content
 });
 
-// Email configuration
-const FROM_EMAIL = process.env['FROM_EMAIL'] || 'ConversionOS <noreply@conversionos.com>';
-const REPLY_TO_EMAIL = process.env['REPLY_TO_EMAIL'] || 'admin@conversionos.com';
+/**
+ * Build tenant-aware email addresses from branding data.
+ * Falls back to env vars, then to generic defaults.
+ */
+function getEmailConfig(branding: { name: string; email: string; website: string }) {
+  const domain = branding.website?.replace(/^(https?:\/\/)?(www\.)?/, '') || 'conversionos.com';
+  const fromEmail = process.env['FROM_EMAIL'] || `${branding.name} <noreply@${domain}>`;
+  const replyToEmail = process.env['REPLY_TO_EMAIL'] || branding.email || `admin@${domain}`;
+  const appUrl = process.env['NEXT_PUBLIC_APP_URL'] || `https://${domain}`;
+  return { fromEmail, replyToEmail, appUrl };
+}
 
 /**
  * POST /api/quotes/[leadId]/send
@@ -171,8 +179,8 @@ export async function POST(
 
     // Generate acceptance token and URL before sending email
     const acceptanceToken = generateAcceptanceToken();
-    const appUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'https://conversionos-demo.norbotsystems.com';
-    const acceptanceUrl = `${appUrl}/quote/accept/${acceptanceToken}`;
+    const emailConfig = getEmailConfig(branding);
+    const acceptanceUrl = `${emailConfig.appUrl}/quote/accept/${acceptanceToken}`;
 
     // Send email with Resend
     const resend = getResend();
@@ -182,9 +190,9 @@ export async function POST(
     if (useCustomEmail && emailBody) {
       // Send with custom plain text body (Resend will handle it)
       emailResult = await resend.emails.send({
-        from: FROM_EMAIL,
+        from: emailConfig.fromEmail,
         to: [toEmail],
-        replyTo: REPLY_TO_EMAIL,
+        replyTo: emailConfig.replyToEmail,
         subject: finalSubject,
         html: `
 <!DOCTYPE html>
@@ -220,9 +228,9 @@ export async function POST(
     } else {
       // Use the React template
       emailResult = await resend.emails.send({
-        from: FROM_EMAIL,
+        from: emailConfig.fromEmail,
         to: [toEmail],
-        replyTo: REPLY_TO_EMAIL,
+        replyTo: emailConfig.replyToEmail,
         subject: finalSubject,
         react: QuoteEmailTemplate({ lead, quote, customMessage, branding, acceptanceUrl }),
         attachments: [

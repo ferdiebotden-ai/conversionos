@@ -215,11 +215,96 @@ async function checkDemoImages(page, pageUrl) {
 }
 
 /**
+ * Parse an OKLCH string like "oklch(0.588 0.108 180)" into { L, C, H }.
+ * @param {string} oklchStr
+ * @returns {{ L: number, C: number, H: number } | null}
+ */
+function parseOklch(oklchStr) {
+  const match = oklchStr.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  if (!match) return null;
+  return { L: parseFloat(match[1]), C: parseFloat(match[2]), H: parseFloat(match[3]) };
+}
+
+/**
+ * Parse a hex colour string into { r, g, b } (0-255).
+ * @param {string} hex
+ * @returns {{ r: number, g: number, b: number } | null}
+ */
+function parseHex(hex) {
+  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+
+/**
+ * Convert sRGB (0-255) to linear RGB.
+ */
+function srgbToLinear(c) {
+  c = c / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+/**
+ * Convert linear RGB to OKLAB { L, a, b }.
+ * Uses the standard sRGB -> OKLAB conversion via LMS intermediary.
+ */
+function rgbToOklab(r, g, b) {
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+
+  const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+  const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+  const s = 0.0883024619 * lr + 0.2220049174 * lg + 0.6896926208 * lb;
+
+  const l_ = Math.cbrt(l);
+  const m_ = Math.cbrt(m);
+  const s_ = Math.cbrt(s);
+
+  return {
+    L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+  };
+}
+
+/**
+ * Convert hex colour to OKLCH { L, C, H }.
+ */
+function hexToOklch(hex) {
+  const rgb = parseHex(hex);
+  if (!rgb) return null;
+  const lab = rgbToOklab(rgb.r, rgb.g, rgb.b);
+  const C = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
+  let H = Math.atan2(lab.b, lab.a) * (180 / Math.PI);
+  if (H < 0) H += 360;
+  return { L: lab.L, C, H };
+}
+
+/**
+ * Compute Delta-E (OKLCH) between two colours.
+ * Uses simple Euclidean distance in OKLCH space with hue wrapping.
+ * @returns {number} - distance (< 5 is a close match)
+ */
+function deltaE_oklch(a, b) {
+  const dL = (a.L - b.L) * 100; // Scale L from 0-1 to 0-100 for comparable magnitude
+  const dC = (a.C - b.C) * 100;
+  let dH = a.H - b.H;
+  if (dH > 180) dH -= 360;
+  if (dH < -180) dH += 360;
+  // Hue contribution weighted by chroma (low chroma = hue doesn't matter)
+  const avgC = (a.C + b.C) / 2;
+  const hueWeight = avgC * 100 * (dH / 180);
+  return Math.sqrt(dL * dL + dC * dC + hueWeight * hueWeight);
+}
+
+/**
  * Check colour consistency — verify --primary CSS variable matches expected colour.
+ * Uses OKLCH Delta-E comparison with threshold < 5.
  * @param {import('playwright').Page} page
  * @param {string} pageUrl
  * @param {string} expectedColour - hex colour (e.g., "#D60000")
- * @returns {Promise<{ match: boolean, expected: string, actual: string, buttonsUsingPrimary: number, totalButtons: number }>}
+ * @returns {Promise<{ match: boolean, expected: string, actual: string, deltaE: number | null, buttonsUsingPrimary: number, totalButtons: number }>}
  */
 async function checkColourConsistency(page, pageUrl, expectedColour) {
   const result = await page.evaluate(() => {
@@ -227,20 +312,15 @@ async function checkColourConsistency(page, pageUrl, expectedColour) {
     const style = getComputedStyle(root);
     const primary = style.getPropertyValue('--primary').trim();
 
-    // Check buttons for brand colour usage
     const buttons = document.querySelectorAll('button, a[role="button"], [class*="btn"]');
     let totalButtons = 0;
     let buttonsUsingPrimary = 0;
 
     buttons.forEach(btn => {
-      // Skip hidden buttons
       if (btn.offsetParent === null && getComputedStyle(btn).display === 'none') return;
       totalButtons++;
       const btnStyle = getComputedStyle(btn);
       const bg = btnStyle.backgroundColor;
-      const color = btnStyle.color;
-      // Check if bg or text colour references the primary value
-      // (This is a heuristic — exact comparison is hard with OKLCH)
       if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== 'rgb(255, 255, 255)') {
         buttonsUsingPrimary++;
       }
@@ -249,14 +329,26 @@ async function checkColourConsistency(page, pageUrl, expectedColour) {
     return { primary, totalButtons, buttonsUsingPrimary };
   });
 
-  // Simple hex-to-approximate comparison
-  // The --primary is typically OKLCH, so we just report it for human review
-  const match = result.primary.length > 0 && result.primary !== '';
+  // Compare colours using OKLCH Delta-E
+  let match = false;
+  let deltaE = null;
+
+  const actualOklch = parseOklch(result.primary);
+  const expectedOklch = hexToOklch(expectedColour);
+
+  if (actualOklch && expectedOklch) {
+    deltaE = deltaE_oklch(actualOklch, expectedOklch);
+    match = deltaE < 5;
+  } else if (result.primary.length > 0) {
+    // Fallback: just check the variable is set
+    match = true;
+  }
 
   return {
     match,
     expected: expectedColour,
     actual: result.primary,
+    deltaE,
     buttonsUsingPrimary: result.buttonsUsingPrimary,
     totalButtons: result.totalButtons,
   };
@@ -408,12 +500,14 @@ export async function autoFixViolations(siteId, violations) {
   const sb = getSupabase();
   const fixes = [];
 
-  // Check for fabrication violations that need DB cleanup
+  // Determine what needs fixing
   const fabricationFields = violations
     .filter(v => v.check === 'fabrication')
     .map(v => v.field);
+  const hasPlaceholders = violations.some(v => v.check === 'placeholder_text');
+  const hasDemoLeakage = violations.some(v => v.check === 'demo_leakage');
 
-  if (fabricationFields.length === 0 && !violations.some(v => v.check === 'demo_leakage')) return fixes;
+  if (fabricationFields.length === 0 && !hasDemoLeakage && !hasPlaceholders) return fixes;
 
   // Read current company_profile
   const { data } = await sb
@@ -433,7 +527,8 @@ export async function autoFixViolations(siteId, violations) {
     trust_badges: 'trustBadges',
     process_steps: 'processSteps',
     values: 'values',
-    trust_metrics: 'trust_metrics',
+    trust_metrics: 'trustMetrics',
+    services: 'services',
   };
 
   for (const field of fabricationFields) {
@@ -446,12 +541,26 @@ export async function autoFixViolations(siteId, violations) {
     }
   }
 
-  // Also fix trust_metrics if demo leakage detected
-  if (violations.some(v => v.check === 'demo_leakage')) {
-    if (profile.trust_metrics && Object.keys(profile.trust_metrics).length > 0) {
-      profile.trust_metrics = {};
+  // Fix trustMetrics if demo leakage detected
+  if (hasDemoLeakage) {
+    if (profile.trustMetrics && Object.keys(profile.trustMetrics).length > 0) {
+      profile.trustMetrics = {};
       changed = true;
-      fixes.push({ fix: 'Cleared trust_metrics (demo leakage)', success: true });
+      fixes.push({ fix: 'Cleared trustMetrics (demo leakage)', success: true });
+    }
+  }
+
+  // Fix placeholder text in text fields
+  if (hasPlaceholders) {
+    const placeholderRe = new RegExp(GENERIC_PHRASES.join('|'), 'gi');
+    const textFields = ['aboutCopy', 'mission'];
+    for (const field of textFields) {
+      if (typeof profile[field] === 'string' && placeholderRe.test(profile[field])) {
+        profile[field] = '';
+        changed = true;
+        fixes.push({ fix: `Cleared placeholder text in ${field}`, success: true });
+        logger.info(`  Auto-fix: cleared placeholder text in ${field}`);
+      }
     }
   }
 

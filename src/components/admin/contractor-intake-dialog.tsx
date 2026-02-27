@@ -268,7 +268,7 @@ export function ContractorIntakeDialog({
         </DialogHeader>
 
         {!showReview ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === 'form') handleFormTabSwitch(); }} className="mt-2">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="dictate" className="gap-1.5">
                 <Mic className="h-3.5 w-3.5" />

@@ -47,8 +47,8 @@ export function FloatingGenerateButton({
               'pointer-events-auto',
               'min-h-[52px] w-full max-w-[400px]',
               'rounded-full text-base font-semibold',
-              'bg-[#1565C0] hover:bg-[#B71C1C] text-white',
-              'shadow-lg shadow-[#1565C0]/25',
+              'bg-primary hover:bg-primary/90 text-primary-foreground',
+              'shadow-lg shadow-primary/25',
               'transition-all',
               (disabled || isGenerating) && 'opacity-50 cursor-not-allowed'
             )}

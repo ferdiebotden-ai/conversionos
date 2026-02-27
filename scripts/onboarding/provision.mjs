@@ -225,7 +225,7 @@ const companyProfile = {
     serviceType: p.service_type || '',
     location: p.location || '',
   })),
-  trust_metrics: data._trust_metrics || {},
+  trustMetrics: data._trust_metrics || {},
 };
 
 // Upsert admin_settings rows

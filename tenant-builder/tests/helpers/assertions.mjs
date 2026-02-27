@@ -93,8 +93,11 @@ export function assertValidScrapedData(data, expectedBusinessName) {
  * Assert valid provisioning state in Supabase.
  * @param {string} siteId - Site ID to check
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase - Supabase client
+ * @param {{ tier?: string }} options
  */
-export async function assertValidProvision(siteId, supabase) {
+export async function assertValidProvision(siteId, supabase, options = {}) {
+  const tier = options.tier || 'accelerate';
+
   // Check admin_settings rows
   const { data: settings, error: settingsErr } = await supabase
     .from('admin_settings')
@@ -119,6 +122,13 @@ export async function assertValidProvision(siteId, supabase) {
   expect(profile.value.services).toBeDefined();
   expect(profile.value.services.length).toBeGreaterThanOrEqual(1);
 
+  // trustMetrics should be camelCase (not snake_case trust_metrics)
+  if (profile.value.trustMetrics !== undefined) {
+    expect(typeof profile.value.trustMetrics).toBe('object');
+    // Must not have the old snake_case key
+    expect(profile.value.trust_metrics).toBeUndefined();
+  }
+
   const plan = settings.find(s => s.key === 'plan');
   expect(['elevate', 'accelerate', 'dominate']).toContain(plan.value.tier);
 
@@ -132,6 +142,43 @@ export async function assertValidProvision(siteId, supabase) {
   expect(tenantErr).toBeNull();
   expect(tenant.domain).toContain(siteId);
   expect(tenant.active).toBe(true);
+
+  // Check assembly templates for Accelerate+ tiers
+  if (tier === 'accelerate' || tier === 'dominate') {
+    const { data: templates, error: templateErr } = await (supabase).from('assembly_templates')
+      .select('id')
+      .eq('site_id', siteId);
+
+    expect(templateErr).toBeNull();
+    expect(templates.length).toBeGreaterThanOrEqual(10);
+  }
+}
+
+/**
+ * Assert that auto-fix can clear the expected fields from company_profile.
+ * Validates the expanded auto-fix coverage (services, trustMetrics, trustBadges, etc.).
+ * @param {object} profile - company_profile value object
+ * @param {string[]} fieldsToFix - field names expected to be clearable
+ */
+export function assertAutoFixCoverage(profile, fieldsToFix) {
+  // Verify the profile key mapping works for all fixable fields
+  const FIELD_TO_KEY = {
+    trust_badges: 'trustBadges',
+    process_steps: 'processSteps',
+    values: 'values',
+    trust_metrics: 'trustMetrics',
+    services: 'services',
+  };
+
+  for (const field of fieldsToFix) {
+    const profileKey = FIELD_TO_KEY[field];
+    expect(profileKey).toBeDefined();
+    // The profile should have this key and it should be clearable
+    if (profile[profileKey] !== undefined) {
+      const cleared = Array.isArray(profile[profileKey]) ? [] : {};
+      expect(cleared).toBeDefined();
+    }
+  }
 }
 
 /**

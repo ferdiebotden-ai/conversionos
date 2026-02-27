@@ -53,7 +53,7 @@ export const BUSINESS_CONSTANTS = {
   /** Ontario HST rate (13%) */
   hstRate: 0.13,
 
-  /** Required deposit percentage (15%) */
+  /** Default deposit percentage (15%). Use getDepositPercent() for tenant-specific values. */
   depositRate: 0.15,
 
   /** Contingency rate (10%) */
@@ -81,3 +81,6 @@ export const MATERIAL_SPLIT = {
 
 export type ProjectType = keyof typeof PRICING_GUIDELINES;
 export type FinishLevel = 'economy' | 'standard' | 'premium';
+
+/** Default deposit percentage when admin_settings has no override */
+export const DEFAULT_DEPOSIT_PERCENT = 15;

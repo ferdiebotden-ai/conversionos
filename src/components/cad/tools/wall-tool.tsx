@@ -1,4 +1,5 @@
 'use client';
+// Hardcoded #1565C0 colours in this file are intentional 3D rendering colours, not brand colours.
 
 import { useState, useCallback, useRef } from 'react';
 import { Line } from '@react-three/drei';

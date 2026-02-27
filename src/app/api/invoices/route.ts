@@ -4,10 +4,10 @@ import { getSiteId, withSiteId } from '@/lib/db/site';
 import { InvoiceCreateSchema } from '@/lib/schemas/invoice';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
+import { getDepositPercent } from '@/lib/pricing/deposit.server';
 import type { InvoiceStatus, Json } from '@/types/database';
 
 const HST_PERCENT = 13;
-const DEPOSIT_PERCENT = 15;
 
 /**
  * GET /api/invoices
@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
     const subtotalWithContingency = subtotal + contingencyAmount;
     const hstAmount = Number(quote.hst_amount) || subtotalWithContingency * (HST_PERCENT / 100);
     const total = Number(quote.total) || subtotalWithContingency + hstAmount;
-    const depositRequired = total * (DEPOSIT_PERCENT / 100);
+    const depositPercent = await getDepositPercent();
+    const depositRequired = total * (depositPercent / 100);
 
     const invoiceData = {
       invoice_number: invoiceNumber,

@@ -18,6 +18,7 @@ const { values: args } = parseArgs({
     'results-dir': { type: 'string' },
     help: { type: 'boolean' },
   },
+  strict: false,
 });
 
 if (args.help) {
@@ -138,13 +139,19 @@ export function generateAuditReport(siteId, resultsDir) {
   return { status, markdown, reportPath };
 }
 
-// CLI entry point
-if (args['site-id'] && args['results-dir']) {
-  const result = generateAuditReport(args['site-id'], args['results-dir']);
-  console.log(result.markdown);
-  process.exit(result.status === 'complete' ? 0 : 1);
-} else if (!args.help) {
-  console.log('Required: --site-id and --results-dir');
-  console.log('Run with --help for usage');
-  process.exit(1);
+// CLI entry point (only runs when executed directly, not imported)
+const isDirectRun = process.argv[1] &&
+  (resolve(process.argv[1]) === resolve(import.meta.dirname, 'audit-report.mjs') ||
+   import.meta.url === `file://${resolve(process.argv[1])}`);
+
+if (isDirectRun) {
+  if (args['site-id'] && args['results-dir']) {
+    const result = generateAuditReport(args['site-id'], args['results-dir']);
+    console.log(result.markdown);
+    process.exit(result.status === 'complete' ? 0 : 1);
+  } else if (!args.help) {
+    console.log('Required: --site-id and --results-dir');
+    console.log('Run with --help for usage');
+    process.exit(1);
+  }
 }

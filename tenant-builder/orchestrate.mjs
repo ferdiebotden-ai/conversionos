@@ -46,6 +46,7 @@ const { values: args } = parseArgs({
     'dry-run': { type: 'boolean', default: false },
     'skip-qa': { type: 'boolean', default: false },
     'skip-git': { type: 'boolean', default: false },
+    'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
   },
 });
@@ -63,6 +64,7 @@ Modes:
 
 Options:
   --concurrency N    Max parallel workers (default: 4)
+  --timeout-multiplier N  Scale all timeouts (default: 1)
   --dry-run          Score + scrape only, no provisioning
   --skip-qa          Skip QA checks
   --skip-git         Skip git commit + push`);
@@ -72,6 +74,7 @@ Options:
 const limit = parseInt(args.limit, 10);
 const concurrency = parseInt(args.concurrency, 10);
 const dryRun = args['dry-run'];
+const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
 
 // ──────────────────────────────────────────────────────────
 // Step 1: Select targets
@@ -196,6 +199,8 @@ const tasks = targets.map(target => async () => {
     });
     logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'complete' });
   } catch (e) {
+    const stderrTail = extractStderr(e);
+    if (stderrTail) logger.warn(`[${siteId}] scrape stderr: ${stderrTail}`);
     logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
     throw new Error(`Scrape failed: ${e.message?.slice(0, 200)}`);
   }
@@ -230,6 +235,8 @@ const tasks = targets.map(target => async () => {
       });
       logger.progress({ stage: 'provision', target_id: target.id, site_id: siteId, status: 'complete' });
     } catch (e) {
+      const stderrTail = extractStderr(e);
+      if (stderrTail) logger.warn(`[${siteId}] provision stderr: ${stderrTail}`);
       logger.progress({ stage: 'provision', target_id: target.id, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
       throw new Error(`Provision failed: ${e.message?.slice(0, 200)}`);
     }
@@ -302,6 +309,22 @@ if (!dryRun) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Step 4b: Verify tenant URLs are reachable
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun && !args['skip-qa'] && !args['skip-git']) {
+  const tenantUrls = results
+    .filter(r => r.status === 'fulfilled')
+    .map(r => `https://${r.value.siteId}.norbotsystems.com`);
+
+  if (tenantUrls.length > 0) {
+    logger.info(`Verifying ${tenantUrls.length} tenant URL(s)...`);
+    const { verified, failed } = await verifyTenantUrls(tenantUrls);
+    logger.info(`URL verification: ${verified.length} passed, ${failed.length} failed`);
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 // Step 5: QA (content integrity -> auto-fix -> visual QA -> audit report)
 // ──────────────────────────────────────────────────────────
 
@@ -367,16 +390,18 @@ if (!dryRun && !args['skip-qa']) {
       } catch { /* screenshots may fail if not deployed yet */ }
 
       // 5c. Visual QA with refinement
+      const maxIter = CONFIG.qa.max_refinement_iterations || 3;
+      const qaTimeoutMs = (maxIter * 250 + 120) * 1000 * timeoutMultiplier;
       const qaArgs = [
         resolve(TB_ROOT, 'qa/refinement-loop.mjs'),
         '--site-id', siteId,
         '--url', siteUrl,
-        '--max-iterations', String(CONFIG.qa.max_refinement_iterations || 3),
+        '--max-iterations', String(maxIter),
       ];
       if (targetId) qaArgs.push('--target-id', String(targetId));
 
       execFileSync('node', qaArgs, {
-        cwd: DEMO_ROOT, env: process.env, timeout: 600000,
+        cwd: DEMO_ROOT, env: process.env, timeout: qaTimeoutMs,
         maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
       });
 
@@ -390,7 +415,7 @@ if (!dryRun && !args['skip-qa']) {
         logger.warn(`[${siteId}] Audit report generation failed: ${e.message?.slice(0, 100)}`);
       }
 
-      qaResults.push({ siteId, pass: true, status: qaStatus });
+      qaResults.push({ siteId, pass: qaStatus === 'complete', status: qaStatus });
       logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'complete', detail: qaStatus });
     } catch (e) {
       // Generate audit report even on failure
@@ -444,6 +469,47 @@ process.exit(0);
 // ──────────────────────────────────────────────────────────
 // Helper functions
 // ──────────────────────────────────────────────────────────
+
+/**
+ * Extract last 20 lines of stderr from an execFileSync error.
+ * @param {Error} e - error from execFileSync
+ * @returns {string|null} - last 20 lines of stderr, or null if none
+ */
+function extractStderr(e) {
+  const stderr = e.stderr?.toString?.() || '';
+  if (!stderr.trim()) return null;
+  const lines = stderr.trim().split('\n');
+  return lines.slice(-20).join('\n');
+}
+
+/**
+ * Verify tenant URLs are reachable (HTTP GET, 3 retries, 30s timeout each).
+ * @param {string[]} urls - URLs to verify
+ * @returns {Promise<{ verified: string[], failed: string[] }>}
+ */
+async function verifyTenantUrls(urls) {
+  const verified = [];
+  const failed = [];
+
+  for (const url of urls) {
+    let ok = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const resp = await fetch(url, { signal: AbortSignal.timeout(30000) });
+        if (resp.ok) { ok = true; break; }
+      } catch { /* retry */ }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 5000));
+    }
+    if (ok) {
+      verified.push(url);
+    } else {
+      failed.push(url);
+      logger.warn(`URL verification failed: ${url}`);
+    }
+  }
+
+  return { verified, failed };
+}
 
 async function selectPipelineTargets(lim) {
   logger.info(`Pipeline mode: selecting up to ${lim} targets`);

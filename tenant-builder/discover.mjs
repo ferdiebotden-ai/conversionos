@@ -99,6 +99,20 @@ async function pipelineMode() {
 // Discovery mode: Firecrawl search + insert into Turso
 // ──────────────────────────────────────────────────────────
 
+/**
+ * Normalize a URL for deduplication: strip protocol, www, trailing slash, path.
+ * @param {string} url
+ * @returns {string} normalized domain
+ */
+function normalizeDomain(url) {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return url.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+  }
+}
+
 async function discoveryMode() {
   requireEnv(['FIRECRAWL_API_KEY']);
 
@@ -109,6 +123,7 @@ async function discoveryMode() {
   logger.info(`Discovery mode: searching ${cities.length} cities (limit ${limit} per city)`);
 
   const allTargets = [];
+  const seenDomains = new Set();
 
   for (const city of cities) {
     const searchQuery = CONFIG.discovery.search_template.replace('{city}', city);
@@ -118,6 +133,14 @@ async function discoveryMode() {
       const results = await search(searchQuery, { limit });
 
       for (const result of results) {
+        // Deduplicate within batch by normalized domain
+        const domain = normalizeDomain(result.url);
+        if (seenDomains.has(domain)) {
+          logger.debug(`Skipping duplicate domain: ${domain} (${result.title})`);
+          continue;
+        }
+        seenDomains.add(domain);
+
         // Skip if already in DB
         const existing = await query(
           'SELECT id FROM targets WHERE website = ? OR company_name = ?',
