@@ -100,7 +100,7 @@ Feature gating is enforced by a pure function: `canAccess(tier, feature)` in `sr
 | Validation | Zod | 4.3.6 | All AI outputs validated before render/store |
 | Error monitoring | Sentry | @sentry/nextjs 9.7.0 | Client, server, edge configs. Org: `norbot-systems-inc`, project: `javascript-nextjs` |
 | Rate limiting | Upstash Redis | @upstash/ratelimit 2.0.5 | Database: `conversionos-ratelimit` (US-East-1). Falls back to in-memory if unavailable |
-| Testing | Vitest + Playwright | — | 571 unit tests, 7 E2E test suites (including enterprise hardening), browser automation |
+| Testing | Vitest + Playwright | — | 723 unit tests (25 test files), 7 E2E test suites (including enterprise hardening), browser automation |
 
 ---
 
@@ -856,18 +856,18 @@ Every aspect of the contractor's experience is configurable per tenant:
 
 ## Build & Test Status
 
-**Quote Engine V2 status:** Final QA complete. All 12 features functional. Two bugs found and fixed during QA (dashboard null safety crash, quote save 500 from `tier_mode` column). Build clean, 511 unit tests pass, 6 E2E test suites written.
+**Quote Engine V2 status:** Complete with polish addendum. All 12 features functional + 40 polish improvements (validation, UX, mobile, accessibility, performance, error recovery). Build clean, 723 unit tests pass, 7 E2E test suites.
 
 | Check | Status | Notes |
 |-------|--------|-------|
 | `npm run build` | Passing | TypeScript strict + Next.js build |
-| `npm run test` | 511 passing | 15+ test files (pricing, schemas, visualizer, copy, transparency, markups, tiers, scope gaps, PDF utils, e-signature, quote versioning, intake extraction, fuzzy match, price upload, assembly templates) |
-| `npm run lint` | Passing | 24 pre-existing errors, 123 warnings (none from recent work) |
-| E2E test suites | 6 suites written | quote-editor-core, transparency-cards, tier-mode, csv-price-upload, assembly-templates, public-pages |
+| `npm run test` | 723 passing | 25 test files — all original + 6 new polish test files (validation, quote-editor-polish, settings-intake-polish, csv-template-polish, public-ux-polish, chat-a11y-polish) |
+| `npm run lint` | Passing | Pre-existing warnings only |
+| E2E test suites | 7 suites | quote-editor-core, transparency-cards, tier-mode, csv-price-upload, assembly-templates, public-pages, enterprise-hardening |
 | SSE streaming | Verified | 4 concepts in ~41s, progressive reveal |
 | Multi-tenant isolation | Verified | McCarty Squared vs ConversionOS Demo vs Red White Reno — no brand leakage |
 | Tier gating | Verified | Analytics hidden for Accelerate, visible for Dominate; contractor intake on Accelerate+ |
-| Mobile layout | Verified | 375x812 renders correctly |
+| Mobile layout | Verified | 375x812 renders correctly, touch-friendly buttons, responsive dialogs |
 | E-signature acceptance | **Deferred** | Page timed out during QA — needs testing at next session with warm dev server |
 
 ### QA Bugs Fixed (Feb 27, 2026)
@@ -876,6 +876,81 @@ Every aspect of the contractor's experience is configurable per tenant:
 |---|-----|----------|-----|
 | 1 | `VisualizationMetricsWidget` — TypeError crash when `rate` fields are null | P1 | Added null safety checks (`?? 0`, `?? '-'`) to all rate field accesses in `visualization-metrics-widget.tsx` |
 | 2 | Quote save 500 — `tier_mode` column does not exist in `quote_drafts` table | P1 | Removed `tier_mode` from DB writes in `quotes/[leadId]/route.ts`. Tier mode is now inferred from whether `tier_good`/`tier_better`/`tier_best` arrays are populated (app-level logic, not stored). |
+
+---
+
+## QE V2 Addendum — Polish Improvements (Feb 27, 2026)
+
+40 improvements implemented across 15 files via 5 parallel Agent Teams teammates. 152 new unit tests.
+
+### Validation Guards
+- **Line items:** Min/max guards — $0 unit price prevented, negative qty prevented, description >= 5 chars required. Inline red border + error.
+- **Settings:** Cross-field pricing validation (min < max), Canadian postal code, email regex, phone validation. All with `aria-describedby` + `aria-invalid`.
+- **Intake dialog:** Email/phone validation, duplicate lead detection (checks API before create), confirmation modal before submit.
+- **CSV upload:** Per-row preview validation (price > 0, valid category, non-empty name). Row-level warnings with row numbers.
+- **Templates:** Line item validation (qty > 0, price >= 0, non-empty description). Prevents save with errors.
+- **Chat:** Max 2000 character limit with counter shown at > 1800 chars.
+- **Quote editor:** Subtotal sanity check — warning banner if total < $500 or > $500K.
+
+### UX Improvements
+- **Confidence tooltip:** AI confidence badge now has explanatory tooltip text.
+- **Read-only version banner:** Amber banner when viewing old version with "Back to latest" link.
+- **Version totals:** Tooltip on version chips shows formatted dollar total.
+- **Transparency icon:** Always visible (not hover-only) for AI line items.
+- **Scope gaps repositioned:** Now above line items, filtered to hide already-added items.
+- **CSV "Replace All" clarity:** ConfirmDialog with checkbox: "I understand this will replace all existing prices."
+- **CSV export:** "Export Current Prices" button generates downloadable CSV.
+- **Template search/filter:** Search input + category dropdown above template grid, 300ms debounce.
+- **HST lock tooltip:** Info icon explains "Ontario HST is 13% (set by law)."
+- **ISR:** Homepage statically generated with 1-hour revalidation.
+
+### Confirmation Dialogs (via shared `ConfirmDialog` component)
+- Tier mode toggle: "Generate Good/Better/Best tiers?"
+- Reset to AI: Destructive confirmation before regenerating from AI.
+- Quote mode → none: Destructive warning about hiding all pricing.
+- Load defaults: Shows count of existing + default template names.
+- Intake submit: Summary card of lead data before creation.
+
+### Mobile Responsiveness
+- Touch-visible action buttons on line items (`@media (hover: none)`).
+- 44px slider thumb on touch devices (WCAG).
+- E-signature page responsive padding (p-4/p-6/p-10 at breakpoints).
+- Template modal stacks fields vertically below 768px.
+- Send wizard full-width on mobile with proper margins.
+- Chat container uses `dvh` units for short phone screens.
+
+### Accessibility (WCAG 2.1 AA)
+- Keyboard navigation for before/after slider (Arrow keys ±5%, Home/End).
+- Full ARIA attributes on slider (`role="slider"`, valuemin/max/now/text).
+- Severity text labels in scope gaps (not colour-only).
+- `aria-live="polite"` on chat messages (screen reader announcement of new messages).
+- `SRAnnounce` component wired into quote editor, send wizard, and chat for loading states.
+- `aria-describedby` + `aria-invalid` on all validated form fields.
+- Global `*:focus-visible` indicator (2px solid primary, 2px offset).
+
+### Performance
+- `React.memo()` on `QuoteLineItem` with custom comparator.
+- PDF preview prefetch when send wizard opens (not on-demand).
+- 1.5s debounce on quote field changes with "Unsaved changes" indicator.
+- `useMemo` on chat transport config (verified stable).
+- ISR on homepage (`revalidate = 3600`).
+
+### Error Recovery
+- Quote editor: Retry/Dismiss banner on save failure.
+- E-signature: "Try Again" button on submission failure (form data preserved).
+- Settings: Error banner with Retry on initial load failure.
+- CSV upload: Categorized error summary (groups by error type with row numbers).
+- AI extraction: Shows raw transcript + "Try Again" / "Enter Manually" fallback.
+
+### Shared Components Created
+- `src/lib/utils/validation.ts` — EMAIL_REGEX, PHONE_REGEX, POSTAL_REGEX, isValidEmail, isValidPhone, isValidCanadianPostal, clampNumber, isNonEmptyString
+- `src/components/ui/confirm-dialog.tsx` — Reusable confirmation dialog with optional destructive styling and confirmation checkbox
+- `src/components/ui/sr-announce.tsx` — Screen reader announcement component (`aria-live="polite"`)
+
+### Remaining Items (3 deferred)
+- F12: Undo/redo for quote editor (1+ day, snapshot-based)
+- F13: Settings live preview (2-3 hr, iframe/preview)
+- M3: Mobile card layout for line items (2-3 hr, responsive breakpoint)
 
 ---
 
