@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
     .limit(50);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Visualizations fetch error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -85,7 +86,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Save visualization error:', error);
+      return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
     }
 
     // Generate share URL

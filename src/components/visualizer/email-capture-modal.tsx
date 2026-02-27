@@ -62,18 +62,13 @@ export function EmailCaptureModal({
           visualizationId,
           email,
           share: false,
+          marketingOptIn,
+          consentTimestamp: marketingOptIn ? new Date().toISOString() : undefined,
         }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save');
-      }
-
-      // TODO: If marketing opt-in, add to email list via Resend
-      if (marketingOptIn) {
-        // Future: Send to email marketing list
-        // For now, marketingOptIn preference is stored with visualization
-        void email; // Email is sent in the API request above
       }
 
       onEmailSubmitted();

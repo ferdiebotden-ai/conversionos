@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   images: {
@@ -27,10 +28,48 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-XSS-Protection", value: "0" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(self), microphone=(self), geolocation=()",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://cdn.elevenlabs.io",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://ktpfyangnmpwufghgasx.supabase.co",
+              "connect-src 'self' https://*.supabase.co wss://*.elevenlabs.io https://*.sentry.io",
+              "media-src 'self' blob:",
+              "worker-src 'self' blob:",
+              "font-src 'self' data:",
+              "frame-src 'self' https://elevenlabs.io",
+            ].join("; "),
+          },
         ],
       },
     ];
   },
 };
 
-export default nextConfig;
+// Only apply Sentry wrapper when DSN is configured
+const sentryAuthToken = process.env['SENTRY_AUTH_TOKEN'];
+const finalConfig = sentryAuthToken
+  ? withSentryConfig(nextConfig, {
+      org: process.env['SENTRY_ORG'] ?? '',
+      project: process.env['SENTRY_PROJECT'] ?? '',
+      authToken: sentryAuthToken,
+      silent: false,
+      widenClientFileUpload: true,
+      sourcemaps: {
+        deleteSourcemapsAfterUpload: true,
+      },
+      telemetry: false,
+    })
+  : nextConfig;
+
+export default finalConfig;

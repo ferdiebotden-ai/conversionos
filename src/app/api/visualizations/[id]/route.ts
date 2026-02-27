@@ -88,14 +88,15 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Update visualization error:', error);
+      return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error('Update visualization error:', error);
     return NextResponse.json(
-      { error: 'Failed to update visualization' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     );
   }
@@ -138,7 +139,8 @@ export async function POST(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Download tracking error:', error);
+      return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, download_count: data.download_count });

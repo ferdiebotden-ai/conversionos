@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
   try {
     const siteId = await getSiteIdAsync();
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30', 10);
+    const rawDays = parseInt(searchParams.get('days') || '30', 10);
+    const days = Math.max(1, Math.min(365, isNaN(rawDays) ? 30 : rawDays));
 
     const supabase = createServiceClient();
     const since = new Date();
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
       };
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Trends query error:', error);
+      return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
     }
 
     // Also get total leads for conversion calculation

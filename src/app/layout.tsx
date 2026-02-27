@@ -68,11 +68,17 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
-        {branding.primaryOklch && (
-          <style dangerouslySetInnerHTML={{
-            __html: `:root{--primary:oklch(${branding.primaryOklch})}`
-          }} />
-        )}
+        {(() => {
+          const oklchRegex = /^\d+(\.\d+)?\s+\d+(\.\d+)?\s+\d+(\.\d+)?$/;
+          const safeOklch = branding.primaryOklch && oklchRegex.test(branding.primaryOklch)
+            ? branding.primaryOklch
+            : null;
+          return safeOklch ? (
+            <style dangerouslySetInnerHTML={{
+              __html: `:root{--primary:oklch(${safeOklch})}`
+            }} />
+          ) : null;
+        })()}
       </head>
       <body
         className={`${plusJakartaSans.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}

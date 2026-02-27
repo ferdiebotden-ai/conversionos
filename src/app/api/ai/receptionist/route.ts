@@ -3,10 +3,12 @@
  * Streaming chat endpoint for Emma in the general context (homepage widget)
  */
 
+import { type NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { openai } from '@/lib/ai/providers';
 import { AI_CONFIG } from '@/lib/ai/config';
 import { buildAgentSystemPrompt } from '@/lib/ai/personas';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
@@ -21,7 +23,10 @@ interface IncomingMessage {
   parts?: MessagePart[];
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await applyRateLimit(req);
+  if (limited) return limited;
+
   try {
     const { messages } = await req.json();
 

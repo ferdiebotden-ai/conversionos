@@ -7,7 +7,7 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteIdAsync } from '@/lib/db/site';
 import type { PlanTier } from '@/lib/entitlements';
 
-const DEFAULT_TIER: PlanTier = 'accelerate';
+const DEFAULT_TIER: PlanTier = 'elevate';
 
 /**
  * Fetch the plan tier for the current tenant.

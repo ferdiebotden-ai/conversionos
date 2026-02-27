@@ -7,6 +7,7 @@
  * 2. Chat messages → streams via toUIMessageStreamResponse()
  */
 
+import { type NextRequest } from 'next/server';
 import { streamText, generateObject } from 'ai';
 import { z } from 'zod';
 import { openai } from '@/lib/ai/providers';
@@ -27,6 +28,7 @@ import {
 } from '@/lib/ai/visualizer-conversation';
 import { buildDynamicSystemPrompt } from '@/lib/ai/personas/prompt-assembler';
 import { getTier } from '@/lib/entitlements.server';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -56,7 +58,10 @@ interface IncomingMessage {
   parts?: MessagePart[];
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
 
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Visualizer chat error:', error);
     return Response.json(
-      { error: 'Chat failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     );
   }

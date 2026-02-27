@@ -245,7 +245,7 @@ export async function POST(
     if (emailResult.error) {
       console.error('Email send error:', emailResult.error);
       return NextResponse.json(
-        { error: 'Failed to send email', details: emailResult.error.message },
+        { error: 'An unexpected error occurred. Please try again.' },
         { status: 500 }
       );
     }

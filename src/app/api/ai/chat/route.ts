@@ -1,9 +1,11 @@
+import { type NextRequest } from 'next/server';
 import { streamText, type UserModelMessage, type AssistantModelMessage } from 'ai';
 import { openai } from '@/lib/ai/providers';
 import { AI_CONFIG } from '@/lib/ai/config';
 import { buildAgentSystemPrompt } from '@/lib/ai/personas';
 import { buildHandoffPromptPrefix, type HandoffContext } from '@/lib/chat/handoff';
 import { buildPricingGateInstruction, type EstimateContext } from '@/lib/ai/pricing-gate';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
@@ -20,7 +22,10 @@ interface IncomingMessage {
   data?: { images?: string[] };
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await applyRateLimit(req);
+  if (limited) return limited;
+
   try {
     const { messages, handoffContext, estimateData } = await req.json();
 

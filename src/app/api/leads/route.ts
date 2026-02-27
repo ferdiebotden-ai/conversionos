@@ -10,7 +10,15 @@ import { NewLeadNotificationEmail } from '@/emails/new-lead-notification';
 import { getBranding } from '@/lib/branding';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
+import { applyRateLimit } from '@/lib/rate-limit';
 import type { LeadStatus, ProjectType, FinishLevel, Timeline, BudgetBand, Json } from '@/types/database';
+
+/**
+ * Escape PostgREST special characters in user search input.
+ */
+function escapePostgREST(input: string): string {
+  return input.replace(/[,()%_\\*]/g, (ch) => `\\${ch}`);
+}
 
 /**
  * Query params schema for GET /api/leads
@@ -61,9 +69,10 @@ export async function GET(request: NextRequest) {
       query = query.eq('project_type', projectType as ProjectType);
     }
 
-    // Apply search (name, email, phone)
+    // Apply search (name, email, phone) — escape PostgREST special characters
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      const safe = escapePostgREST(search);
+      query = query.or(`name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
     }
 
     // Apply sorting
@@ -143,6 +152,9 @@ const LeadSubmissionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
 
@@ -184,6 +196,7 @@ export async function POST(request: NextRequest) {
         try {
           // Fetch contractor prices for AI prompt injection
           const priceClient = createServiceClient();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contractor_prices not in generated types
           const { data: contractorPrices } = await (priceClient as any).from('contractor_prices')
             .select('*')
             .eq('site_id', getSiteId());
@@ -250,13 +263,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating lead:', error);
-      // Return detailed error for debugging (shows in UI during development)
       return NextResponse.json(
-        {
-          error: `Failed to create lead: ${error.code || error.message || 'Unknown error'}`,
-          code: error.code,
-          hint: error.hint,
-        },
+        { error: 'An unexpected error occurred. Please try again.' },
         { status: 500 }
       );
     }

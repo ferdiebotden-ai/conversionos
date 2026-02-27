@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     if (error || !lead) {
       console.error('Error creating intake lead:', error);
       return NextResponse.json(
-        { error: `Failed to create lead: ${error?.message || 'Unknown error'}` },
+        { error: 'An unexpected error occurred. Please try again.' },
         { status: 500 },
       );
     }
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
     if (data.projectType && data.goalsText && canAccess(tier, 'ai_quote_engine')) {
       try {
         // Fetch contractor prices for AI prompt injection
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contractor_prices not in generated types
         const { data: contractorPrices } = await (supabase as any).from('contractor_prices')
           .select('*')
           .eq('site_id', siteId);

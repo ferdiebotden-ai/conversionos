@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { inferServiceIcon, inferBadgeIcon, isStrongHero as _isStrongHero, filterTestimonials, filterPortfolio, filterServices } from './lib/quality-gates.mjs';
 
 function loadEnv() {
   for (const envFile of ['.env.local', resolve(process.env.HOME, 'pipeline/scripts/.env')]) {
@@ -63,77 +64,15 @@ console.log(`Domain: ${domain}`);
 console.log(`Tier: ${tier}`);
 console.log('\u2500'.repeat(50));
 
-// Helper: infer icon hint for a service name
-function inferServiceIcon(serviceName) {
-  const name = serviceName.toLowerCase();
-  if (name.includes('kitchen')) return 'chef-hat';
-  if (name.includes('bathroom') || name.includes('bath')) return 'bath';
-  if (name.includes('basement')) return 'home';
-  if (name.includes('flooring') || name.includes('floor')) return 'layers';
-  if (name.includes('outdoor') || name.includes('deck') || name.includes('patio')) return 'trees';
-  if (name.includes('painting') || name.includes('paint')) return 'paintbrush';
-  if (name.includes('plumbing')) return 'droplets';
-  if (name.includes('electrical')) return 'zap';
-  if (name.includes('roofing') || name.includes('roof')) return 'warehouse';
-  if (name.includes('window') || name.includes('door')) return 'door-open';
-  if (name.includes('addition') || name.includes('extension')) return 'building';
-  if (name.includes('custom') || name.includes('renovation') || name.includes('remodel')) return 'hammer';
-  return 'wrench';
-}
-
-// Helper: infer icon hint for a trust badge label
-function inferBadgeIcon(label) {
-  const l = label.toLowerCase();
-  if (l.includes('licensed') || l.includes('insured') || l.includes('bonded')) return 'shield-check';
-  if (l.includes('bbb') || l.includes('accredit')) return 'badge-check';
-  if (l.includes('wsib') || l.includes('safety')) return 'hard-hat';
-  if (l.includes('ontario') || l.includes('local') || l.includes('based')) return 'map-pin';
-  if (l.includes('guarantee') || l.includes('warranty')) return 'shield';
-  if (l.includes('eco') || l.includes('green') || l.includes('energy')) return 'leaf';
-  if (l.includes('renomark') || l.includes('certified')) return 'award';
-  if (l.includes('member') || l.includes('association')) return 'users';
-  if (l.includes('year') || l.includes('experience')) return 'calendar';
-  return 'award';
-}
-
-// Helper: quality gate for hero headlines
+// Quality gate: hero headline check (wraps shared function with local business_name)
 function isStrongHero(headline) {
-  if (!headline || headline.length < 10 || headline.length > 100) return false;
-  const generic = ['welcome', 'home page', 'about us', 'home', 'our company', 'main page'];
-  const lower = headline.toLowerCase().trim();
-  if (generic.some(g => lower === g || lower.startsWith(g + ' '))) return false;
-  // If it's just the business name with no additional context
-  const bizName = (data.business_name || '').toLowerCase();
-  if (bizName && lower === bizName) return false;
-  return true;
+  return _isStrongHero(headline, data.business_name || '');
 }
 
 // Quality gates — filter out low-quality content
-// Gate 2: Testimonial authenticity
-const rawTestimonials = data.testimonials || [];
-const validTestimonials = rawTestimonials.filter(t =>
-  t.author && t.author.length > 2 &&
-  t.quote && t.quote.length > 20
-);
-// If fewer than 2 valid testimonials, don't provision any (template hides when < 2)
-const testimonials = validTestimonials.length >= 2 ? validTestimonials : [];
-
-// Gate 3: Portfolio reality check — only items with valid image URLs
-const rawPortfolio = data.portfolio || [];
-const validPortfolio = rawPortfolio.filter(p =>
-  p.image_url && (p.image_url.startsWith('http') || p.image_url.startsWith('/'))
-  && p.title && p.title.length > 0
-);
-
-// Gate 4: Service completeness — must have name and description
-const rawServices = data.services || [];
-const validServices = rawServices.filter(s => {
-  if (!s.name || s.name.length < 3) return false;
-  if (!s.description || s.description.length < 10) return false;
-  const placeholder = ['service 1', 'service 2', 'tbd', 'placeholder', 'coming soon'];
-  if (placeholder.includes(s.name.toLowerCase().trim())) return false;
-  return true;
-});
+const testimonials = filterTestimonials(data.testimonials || []);
+const validPortfolio = filterPortfolio(data.portfolio || []);
+const validServices = filterServices(data.services || []);
 
 // Build admin_settings rows
 const businessInfo = {

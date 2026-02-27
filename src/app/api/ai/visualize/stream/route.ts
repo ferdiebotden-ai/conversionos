@@ -9,6 +9,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import {
   type VisualizationResponse,
   type GeneratedConcept,
@@ -275,6 +276,9 @@ function sendEvent(
 
 // ── POST handler ────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   // Parse + validate body before opening the stream
   let body: unknown;
   try {
@@ -643,7 +647,7 @@ export async function POST(request: NextRequest) {
         console.error('Streaming visualization error:', error);
         sendEvent(controller, encoder, 'error', {
           type: 'error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
+          message: 'An unexpected error occurred. Please try again.',
         }, isAborted);
       } finally {
         clearInterval(heartbeat);

@@ -4,9 +4,21 @@
  * Gated behind contractor_lead_intake entitlement.
  */
 
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
+import { applyRateLimit } from '@/lib/rate-limit';
+
+const ALLOWED_AUDIO_TYPES = new Set([
+  'audio/wav',
+  'audio/mp3',
+  'audio/mpeg',
+  'audio/webm',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/m4a',
+]);
+const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
 
 const OPENAI_API_KEY = process.env['OPENAI_API_KEY'];
 
@@ -14,7 +26,10 @@ const OPENAI_API_KEY = process.env['OPENAI_API_KEY'];
 const RENOVATION_PROMPT =
   'Ontario renovation contractor job description. Terms: quartz countertops, egress window, rough-in plumbing, waterproofing membrane, soffit, fascia, R-2000, Schluter, Kerdi, Ditra, subway tile, shaker cabinets, soft-close, undermount sink.';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   // Entitlement check
   const tier = await getTier();
   if (!canAccess(tier, 'contractor_lead_intake')) {
@@ -39,6 +54,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Missing or invalid audio file.' },
         { status: 400 },
+      );
+    }
+
+    // Validate audio file size
+    if (audio.size > MAX_AUDIO_SIZE) {
+      return NextResponse.json(
+        { error: 'Audio file too large. Maximum size is 10MB.' },
+        { status: 413 },
+      );
+    }
+
+    // Validate audio MIME type
+    if (!ALLOWED_AUDIO_TYPES.has(audio.type)) {
+      return NextResponse.json(
+        { error: 'Unsupported audio format. Please use WAV, MP3, WebM, OGG, or M4A.' },
+        { status: 415 },
       );
     }
 

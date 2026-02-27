@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Quote Engine V2 Final QA — all 12 features functional, 2 bugs fixed, 511 tests)
+**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Enterprise Hardening — 20 fixes: auth middleware, rate limiting, CSP headers, Sentry, privacy/terms/data-deletion pages, CI/CD, 571 tests)
 
 ---
 
@@ -872,6 +872,79 @@ Every aspect of the contractor's experience is configurable per tenant:
 |---|-----|----------|-----|
 | 1 | `VisualizationMetricsWidget` — TypeError crash when `rate` fields are null | P1 | Added null safety checks (`?? 0`, `?? '-'`) to all rate field accesses in `visualization-metrics-widget.tsx` |
 | 2 | Quote save 500 — `tier_mode` column does not exist in `quote_drafts` table | P1 | Removed `tier_mode` from DB writes in `quotes/[leadId]/route.ts`. Tier mode is now inferred from whether `tier_good`/`tier_better`/`tier_best` arrays are populated (app-level logic, not stored). |
+
+---
+
+## Enterprise Hardening (Feb 27, 2026)
+
+### Authentication & Authorization
+
+All admin routes are protected by Supabase auth middleware integrated into `src/proxy.ts` (Next.js 16 proxy layer). The proxy handles both tenant resolution (x-site-id header) and auth gating in a single pass.
+
+**Protected routes:** `/api/admin/*`, `/api/leads` (GET only), `/api/quotes/*` (except `/api/quotes/accept/*`), `/api/invoices/*`, `/api/drawings/*`, `/admin/*` (except `/admin/login`). Returns 401 for unauthenticated API requests, redirects to `/admin/login` for page requests.
+
+**Public routes:** All `/api/ai/*`, `/api/contact`, `/api/voice/*`, `POST /api/leads`, `/api/quotes/accept/*` (e-signature).
+
+### Rate Limiting
+
+Module: `src/lib/rate-limit.ts`. Uses Upstash Redis if `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set; falls back to in-memory `Map` per serverless instance. Edge-runtime compatible.
+
+| Endpoints | Limit | Rationale |
+|-----------|-------|-----------|
+| `/api/ai/visualize*` | 5/min | $0.40/call (Gemini) |
+| `/api/ai/chat`, `/api/ai/receptionist` | 20/min | Streaming chat |
+| `/api/ai/visualizer-chat` | 15/min | Streaming chat |
+| `/api/ai/analyze-photo`, `/api/ai/summarize-voice` | 10/min | Per-call cost |
+| `/api/transcribe` | 5/min | Whisper cost |
+| `/api/contact`, `POST /api/leads` | 5/min | Spam prevention |
+
+Usage: `const limited = await applyRateLimit(request); if (limited) return limited;`
+
+### Security Headers
+
+Added to `next.config.ts` headers for all routes:
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- `Permissions-Policy: camera=(self), microphone=(self), geolocation=()`
+- `Content-Security-Policy` with scoped directives for self, ElevenLabs CDN, Supabase, Sentry
+
+### Error Handling
+
+All API routes return generic error messages to clients. Internal error details (`error.code`, `error.hint`, `error.message`) are logged via `console.error()` only. No stack traces or database hints are exposed.
+
+### Input Validation
+
+- **OKLCH injection:** `src/app/layout.tsx` validates `branding.primaryOklch` against `/^\d+(\.\d+)?\s+\d+(\.\d+)?\s+\d+(\.\d+)?$/` before `dangerouslySetInnerHTML`
+- **PostgREST escape:** `src/app/api/leads/route.ts` escapes `,()%_\*` in search queries
+- **Audio validation:** `src/app/api/transcribe/route.ts` enforces 10MB size limit and MIME type allowlist
+- **Query param clamping:** `/api/admin/visualizations/trends` clamps `days` to 1-365
+
+### Monitoring
+
+Sentry integration via `@sentry/nextjs`. Config files: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/instrumentation.ts`. Only active when `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` env var is set. PII scrubbing enabled (cookies, auth headers stripped from error reports).
+
+### Compliance
+
+- **Privacy Policy:** `/privacy` — PIPEDA-compliant, covers data collected, AI services used (OpenAI, Google, ElevenLabs), retention, rights. Server component using `getBranding()`.
+- **Terms of Service:** `/terms` — Ontario-governed, covers AI disclaimers, acceptable use, liability. Server component using `getBranding()`.
+- **Data Deletion:** `/data-deletion` — Public form. API `POST /api/data-deletion` marks matching leads with `deletion_requested_at` timestamp. 30-day processing timeline.
+- **CASL Consent:** `email-capture-modal.tsx` sends `marketingOptIn` + `consentTimestamp` with visualization requests.
+- **Deny-by-default tier:** `DEFAULT_TIER` is `'elevate'` (not `'accelerate'`). On DB failure, tenants degrade to public-only features.
+
+### CI/CD
+
+`.github/workflows/ci.yml` — Three jobs: `lint-typecheck` → `test-unit` → `build`. Runs on push/PR to `main`. E2E tests excluded (need running server).
+
+### Pre-commit Hooks
+
+Husky + lint-staged. Pre-commit runs `eslint --fix` on staged `.ts/.tsx` files + `tsc --noEmit` for type checking.
+
+### Test Infrastructure
+
+- **Entitlements tests:** `tests/unit/entitlements.test.ts` — 60 tests covering all 18 features × 3 tiers exhaustively
+- **Coverage thresholds:** `vitest.config.ts` — lines 30%, functions 25%, branches 25%, statements 30%
+- **Browser coverage:** Playwright config includes Firefox and WebKit (Desktop Safari) alongside existing Chrome, Mobile, Tablet
+- **Cross-tenant E2E:** `tests/e2e/v2/cross-tenant.spec.ts` — verifies leads and admin_settings isolated between tenants
+- **Quality gates extraction:** `scripts/onboarding/lib/quality-gates.mjs` — shared functions extracted from provision.mjs
 
 ---
 

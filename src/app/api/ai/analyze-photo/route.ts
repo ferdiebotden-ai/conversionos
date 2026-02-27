@@ -10,6 +10,7 @@ import {
   analyzeRoomPhotoForVisualization,
   type RoomAnalysis,
 } from '@/lib/ai/photo-analyzer';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 const requestSchema = z.object({
   image: z.string().min(1, 'Image data is required'),
@@ -18,6 +19,9 @@ const requestSchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const parseResult = requestSchema.safeParse(body);

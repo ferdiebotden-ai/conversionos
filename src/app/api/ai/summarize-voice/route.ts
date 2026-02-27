@@ -4,11 +4,12 @@
  * Extracts structured design preferences from the conversation transcript.
  */
 
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { openai } from '@/lib/ai/providers';
 import { z } from 'zod';
 import { voiceSummaryResponseSchema } from '@/lib/schemas/design-preferences';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
 
@@ -31,7 +32,10 @@ Instructions:
 
 If a category has no relevant mentions in the transcript, return an empty array for that field.`;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await applyRateLimit(req);
+  if (limited) return limited;
+
   try {
     const body = await req.json();
 
@@ -71,7 +75,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Voice summary API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to summarize voice transcript' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     );
   }

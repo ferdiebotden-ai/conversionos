@@ -20,6 +20,12 @@ export default defineConfig({
         'src/app/**/error.tsx',
         'src/app/**/not-found.tsx',
       ],
+      thresholds: {
+        lines: 30,
+        functions: 25,
+        branches: 25,
+        statements: 30,
+      },
     },
   },
   resolve: {

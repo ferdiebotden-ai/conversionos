@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import {
   visualizationRequestSchema,
   type VisualizationResponse,
@@ -117,6 +118,9 @@ function setCachedAnalysis(imageBase64: string, analysis: RoomAnalysis): void {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   const startTime = Date.now();
 
   try {
@@ -238,8 +242,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate visualization concepts
-    let concepts: GeneratedConcept[];
-
     if (!process.env['GOOGLE_GENERATIVE_AI_API_KEY']) {
       // No API key - return clear error instead of silent placeholder fallback
       const error: VisualizationError = {
@@ -279,7 +281,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Use real Gemini 3 Pro image generation with enhanced config
-    concepts = await generateConceptsWithGeminiEnhanced(
+    const concepts = await generateConceptsWithGeminiEnhanced(
       supabase,
       image,
       visualizationConfig,

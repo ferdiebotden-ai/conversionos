@@ -158,12 +158,12 @@ export function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 text-sm text-muted-foreground md:flex-row">
           <p>&copy; {currentYear} {branding.name.replace(/\.\s*$/, '')}. All rights reserved.</p>
           <div className="flex gap-6">
-            <span className="text-muted-foreground/60">
+            <Link href="/privacy" className="text-muted-foreground/60 hover:text-primary transition-colors">
               Privacy Policy
-            </span>
-            <span className="text-muted-foreground/60">
+            </Link>
+            <Link href="/terms" className="text-muted-foreground/60 hover:text-primary transition-colors">
               Terms of Service
-            </span>
+            </Link>
           </div>
         </div>
       </div>
