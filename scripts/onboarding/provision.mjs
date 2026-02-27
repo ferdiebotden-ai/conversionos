@@ -176,6 +176,10 @@ const rows = [
   { key: 'quote_assistance', value: tier === 'elevate' ? { mode: 'none' } : { mode: 'range', rangeBand: 10000 }, description: `${siteId} quote assistance config` },
 ];
 
+// ─── Upsert with rollback on failure ────────────────────────────────────────
+const completedKeys = [];
+let provisionFailed = false;
+
 for (const row of rows) {
   console.log(`  Upserting: ${row.key}`);
   const { error } = await supabase
@@ -188,24 +192,51 @@ for (const row of rows) {
     }, { onConflict: 'site_id,key' });
 
   if (error) {
-    console.error(`  Error upserting ${row.key}: ${error.message}`);
-    process.exit(1);
+    console.error(`  ✗ Error upserting ${row.key}: ${error.message}`);
+    provisionFailed = true;
+    break;
+  }
+  completedKeys.push(row.key);
+}
+
+// Upsert tenants table (only if admin_settings succeeded)
+if (!provisionFailed) {
+  console.log(`  Upserting tenant record`);
+  const { error: tenantError } = await supabase
+    .from('tenants')
+    .upsert({
+      site_id: siteId,
+      domain: domain,
+      plan_tier: tier,
+      active: true,
+    }, { onConflict: 'site_id' });
+
+  if (tenantError) {
+    console.error(`  ✗ Error upserting tenant: ${tenantError.message}`);
+    provisionFailed = true;
   }
 }
 
-// Upsert tenants table
-console.log(`  Upserting tenant record`);
-const { error: tenantError } = await supabase
-  .from('tenants')
-  .upsert({
-    site_id: siteId,
-    domain: domain,
-    plan_tier: tier,
-    active: true,
-  }, { onConflict: 'site_id' });
-
-if (tenantError) {
-  console.error(`  Error upserting tenant: ${tenantError.message}`);
+// ─── Rollback on failure ────────────────────────────────────────────────────
+if (provisionFailed) {
+  console.log('\n  ROLLING BACK — deleting partially provisioned rows...');
+  for (const key of completedKeys) {
+    const { error: delError } = await supabase
+      .from('admin_settings')
+      .delete()
+      .eq('site_id', siteId)
+      .eq('key', key);
+    if (delError) console.error(`    Failed to rollback ${key}: ${delError.message}`);
+    else console.log(`    ✓ Rolled back: ${key}`);
+  }
+  // Also clean up tenants table
+  const { error: tDelError } = await supabase
+    .from('tenants')
+    .delete()
+    .eq('site_id', siteId);
+  if (!tDelError) console.log(`    ✓ Rolled back: tenants record`);
+  console.log('  Rollback complete. Fix the issue and re-run.');
+  process.exit(1);
 }
 
 // Update proxy.ts with new domain

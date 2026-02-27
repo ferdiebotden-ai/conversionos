@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Download scraped images and upload to Supabase Storage.
+ * Download scraped images, optimize with sharp, and upload to Supabase Storage.
  * Usage: node upload-images.mjs --site-id example-reno --data /tmp/scraped.json --output /tmp/provisioned.json
  */
 
@@ -9,9 +9,9 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import sharp from 'sharp';
 
 function loadEnv() {
-  // Load from .env.local first (Supabase demo project), then pipeline env (API keys)
   for (const envFile of ['.env.local', resolve(process.env.HOME, 'pipeline/scripts/.env')]) {
     try {
       const content = readFileSync(resolve(process.cwd(), envFile), 'utf-8');
@@ -35,12 +35,15 @@ const { values: args } = parseArgs({
     'site-id': { type: 'string' },
     data: { type: 'string' },
     output: { type: 'string' },
+    'skip-optimize': { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
 
 if (args.help || !args['site-id'] || !args.data || !args.output) {
   console.log('Usage: node upload-images.mjs --site-id example-reno --data /tmp/scraped.json --output /tmp/provisioned.json');
+  console.log('Options:');
+  console.log('  --skip-optimize    Upload originals without sharp optimization');
   process.exit(args.help ? 0 : 1);
 }
 
@@ -55,17 +58,87 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 const siteId = args['site-id'];
 const data = JSON.parse(readFileSync(args.data, 'utf-8'));
+const skipOptimize = args['skip-optimize'];
 
 console.log(`\nUploading images for tenant: ${siteId}`);
-console.log('\u2500'.repeat(50));
+if (skipOptimize) console.log('  (optimization disabled — uploading originals)');
+console.log('─'.repeat(50));
 
 const urlMapping = {};
+let totalOriginalKB = 0;
+let totalOptimizedKB = 0;
 
-async function downloadAndUpload(url, storagePath) {
+// ─── Image Optimization ────────────────────────────────────────────────────
+
+// Size limits per image type
+const SIZE_LIMITS = {
+  hero:      { maxWidth: 1920, maxHeight: 1080 },
+  logo:      { maxWidth: 600,  maxHeight: 600 },
+  about:     { maxWidth: 1200, maxHeight: 800 },
+  team:      { maxWidth: 400,  maxHeight: 400 },
+  portfolio: { maxWidth: 1200, maxHeight: 900 },
+  service:   { maxWidth: 800,  maxHeight: 600 },
+};
+
+/**
+ * Optimize image buffer with sharp.
+ * Converts to WebP (except SVGs), resizes to max dimensions.
+ */
+async function optimizeImage(buffer, contentType, imageType) {
+  if (skipOptimize) return { buffer, contentType, ext: null };
+
+  try {
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+
+    // Skip SVGs — they don't need rasterization
+    if (metadata.format === 'svg' || contentType === 'image/svg+xml') {
+      return { buffer, contentType: 'image/svg+xml', ext: 'svg' };
+    }
+
+    const limits = SIZE_LIMITS[imageType] || SIZE_LIMITS.portfolio;
+    const originalKB = buffer.length / 1024;
+
+    // Skip if already small enough (under limits and under 500KB)
+    if (
+      metadata.width <= limits.maxWidth &&
+      metadata.height <= limits.maxHeight &&
+      buffer.length < 500_000
+    ) {
+      return { buffer, contentType: `image/${metadata.format}`, ext: null };
+    }
+
+    // Resize and convert to WebP
+    const optimized = await image
+      .resize(limits.maxWidth, limits.maxHeight, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    const optimizedKB = optimized.length / 1024;
+    const savings = ((1 - optimizedKB / originalKB) * 100).toFixed(0);
+    console.log(`    Optimized: ${originalKB.toFixed(0)}KB → ${optimizedKB.toFixed(0)}KB (${savings}% smaller)`);
+
+    totalOriginalKB += originalKB;
+    totalOptimizedKB += optimizedKB;
+
+    return { buffer: optimized, contentType: 'image/webp', ext: 'webp' };
+  } catch (e) {
+    console.log(`    Optimization failed: ${e.message}. Using original.`);
+    return { buffer, contentType, ext: null };
+  }
+}
+
+// ─── Download + Optimize + Upload ──────────────────────────────────────────
+
+async function downloadAndUpload(url, storagePath, imageType = 'portfolio') {
   if (!url || url.trim() === '') return null;
   try {
     let buffer;
     let contentType = 'image/jpeg';
+
     if (url.startsWith('/') || url.startsWith('file://')) {
       // Local file path (from logo extraction levels 3-4)
       const filePath = url.startsWith('file://') ? url.slice(7) : url;
@@ -80,7 +153,7 @@ async function downloadAndUpload(url, storagePath) {
       contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`;
     } else {
       console.log(`  Downloading: ${url.substring(0, 80)}...`);
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
       if (!response.ok) {
         console.log(`    Failed: HTTP ${response.status}`);
         return null;
@@ -88,13 +161,29 @@ async function downloadAndUpload(url, storagePath) {
       contentType = response.headers.get('content-type') || 'image/jpeg';
       buffer = Buffer.from(await response.arrayBuffer());
     }
-    const fullPath = `${siteId}/${storagePath}`;
 
-    console.log(`  Uploading: ${fullPath} (${(buffer.length / 1024).toFixed(0)}KB)`);
+    // Size guardrail: skip files > 10MB
+    if (buffer.length > 10 * 1024 * 1024) {
+      console.log(`    Skipping: file too large (${(buffer.length / 1024 / 1024).toFixed(1)}MB)`);
+      return null;
+    }
+
+    // Optimize with sharp
+    const { buffer: optimized, contentType: optType, ext: optExt } = await optimizeImage(buffer, contentType, imageType);
+
+    // Determine final storage path (change extension to .webp if optimized)
+    let finalPath = storagePath;
+    if (optExt) {
+      finalPath = storagePath.replace(/\.(jpg|jpeg|png|webp)$/i, `.${optExt}`);
+    }
+
+    const fullPath = `${siteId}/${finalPath}`;
+    console.log(`  Uploading: ${fullPath} (${(optimized.length / 1024).toFixed(0)}KB)`);
+
     const { error } = await supabase.storage
       .from('tenant-assets')
-      .upload(fullPath, buffer, {
-        contentType,
+      .upload(fullPath, optimized, {
+        contentType: optType,
         upsert: true,
       });
 
@@ -112,24 +201,26 @@ async function downloadAndUpload(url, storagePath) {
   }
 }
 
+// ─── Upload all image categories ────────────────────────────────────────────
+
 // Upload hero image
 if (data.hero_image_url) {
   const ext = data.hero_image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-  const newUrl = await downloadAndUpload(data.hero_image_url, `hero.${ext}`);
+  const newUrl = await downloadAndUpload(data.hero_image_url, `hero.${ext}`, 'hero');
   if (newUrl) data.hero_image_url = newUrl;
 }
 
 // Upload logo
 if (data.logo_url) {
   const ext = data.logo_url.match(/\.(svg|png|jpg|jpeg|webp)/i)?.[1] || 'png';
-  const newUrl = await downloadAndUpload(data.logo_url, `logo.${ext}`);
+  const newUrl = await downloadAndUpload(data.logo_url, `logo.${ext}`, 'logo');
   if (newUrl) data.logo_url = newUrl;
 }
 
 // Upload about image
 if (data.about_image_url) {
   const ext = data.about_image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-  const newUrl = await downloadAndUpload(data.about_image_url, `about.${ext}`);
+  const newUrl = await downloadAndUpload(data.about_image_url, `about.${ext}`, 'about');
   if (newUrl) data.about_image_url = newUrl;
 }
 
@@ -139,7 +230,7 @@ if (data.team_members?.length > 0) {
     const member = data.team_members[i];
     if (member.photo_url) {
       const ext = member.photo_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-      const newUrl = await downloadAndUpload(member.photo_url, `team/${i}.${ext}`);
+      const newUrl = await downloadAndUpload(member.photo_url, `team/${i}.${ext}`, 'team');
       if (newUrl) member.photo_url = newUrl;
     }
   }
@@ -151,7 +242,7 @@ if (data.portfolio?.length > 0) {
     const project = data.portfolio[i];
     if (project.image_url) {
       const ext = project.image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-      const newUrl = await downloadAndUpload(project.image_url, `portfolio/${i}.${ext}`);
+      const newUrl = await downloadAndUpload(project.image_url, `portfolio/${i}.${ext}`, 'portfolio');
       if (newUrl) project.image_url = newUrl;
     }
   }
@@ -165,7 +256,7 @@ if (data.services?.length > 0) {
     if (imgUrl) {
       const slug = service.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `service-${i}`;
       const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-      const newUrl = await downloadAndUpload(imgUrl, `services/${slug}.${ext}`);
+      const newUrl = await downloadAndUpload(imgUrl, `services/${slug}.${ext}`, 'service');
       if (newUrl) {
         service.image_urls[0] = newUrl;
       }
@@ -173,7 +264,15 @@ if (data.services?.length > 0) {
   }
 }
 
-console.log(`\nUploaded ${Object.keys(urlMapping).length} images`);
+// ─── Summary ────────────────────────────────────────────────────────────────
+
+const imageCount = Object.keys(urlMapping).length;
+console.log(`\nUploaded ${imageCount} images`);
+
+if (!skipOptimize && totalOriginalKB > 0) {
+  const totalSavings = ((1 - totalOptimizedKB / totalOriginalKB) * 100).toFixed(0);
+  console.log(`Total savings: ${totalOriginalKB.toFixed(0)}KB → ${totalOptimizedKB.toFixed(0)}KB (${totalSavings}% reduction)`);
+}
 
 // Write updated data
 writeFileSync(args.output, JSON.stringify(data, null, 2));
