@@ -241,8 +241,8 @@ test.describe('CSV Price Upload', () => {
     // Upload
     await page.getByRole('button', { name: /Upload Price List/i }).click();
 
-    // Server should report errors
-    await expect(page.getByText(/No valid rows found|row.*had errors/i)).toBeVisible({ timeout: UI_TIMEOUT });
+    // Server should report errors — use .first() to avoid strict mode if multiple error messages appear
+    await expect(page.getByText(/No valid rows found|row.*had errors/i).first()).toBeVisible({ timeout: UI_TIMEOUT });
   });
 
   test('API: GET /api/admin/prices returns JSON with success field', async () => {

@@ -37,7 +37,7 @@ function formatCurrency(value: number): string {
 }
 
 // Convert plain text email to HTML with basic formatting
-function textToHtml(text: string): string {
+function textToHtml(text: string, linkColor: string): string {
   // Escape HTML
   let html = text
     .replace(/&/g, '&amp;')
@@ -50,19 +50,19 @@ function textToHtml(text: string): string {
   // Make URLs clickable
   html = html.replace(
     /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" style="color: #1565C0;">$1</a>'
+    `<a href="$1" style="color: ${linkColor};">$1</a>`
   );
 
   // Make email addresses clickable
   html = html.replace(
     /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
-    '<a href="mailto:$1" style="color: #1565C0;">$1</a>'
+    `<a href="mailto:$1" style="color: ${linkColor};">$1</a>`
   );
 
   // Make phone numbers clickable
   html = html.replace(
     /(\(\d{3}\)\s?\d{3}[-.]?\d{4}|\d{3}[-.]?\d{3}[-.]?\d{4})/g,
-    '<a href="tel:$1" style="color: #1565C0;">$1</a>'
+    `<a href="tel:$1" style="color: ${linkColor};">$1</a>`
   );
 
   // Bold text between ** **
@@ -104,7 +104,7 @@ export function EmailPreview({
             <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
               <!-- Header -->
               <tr>
-                <td style="background-color: #1565C0; padding: 24px 30px; text-align: center;">
+                <td style="background-color: ${branding.primaryColor}; padding: 24px 30px; text-align: center;">
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">
                     ${resolvedCompanyName}
                   </h1>
@@ -118,7 +118,7 @@ export function EmailPreview({
               <tr>
                 <td style="padding: 30px;">
                   <div style="color: #333333; font-size: 16px; line-height: 1.6;">
-                    ${textToHtml(body)}
+                    ${textToHtml(body, branding.primaryColor)}
                   </div>
 
                   ${quoteTotal ? `
@@ -134,8 +134,8 @@ export function EmailPreview({
                           </tr>
                           ${depositRequired ? `
                           <tr>
-                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; color: #1565C0; font-weight: 500;">Deposit Required (15%)</td>
-                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; text-align: right; font-weight: bold; color: #1565C0;">${formatCurrency(depositRequired)}</td>
+                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; color: ${branding.primaryColor}; font-weight: 500;">Deposit Required (15%)</td>
+                            <td style="padding: 8px 0; border-top: 1px solid #e0e0e0; text-align: right; font-weight: bold; color: ${branding.primaryColor};">${formatCurrency(depositRequired)}</td>
                           </tr>
                           ` : ''}
                         </table>
@@ -157,7 +157,7 @@ export function EmailPreview({
                   <p style="margin: 0; color: #666666; font-size: 14px;">
                     <strong>${resolvedCompanyName}</strong><br>
                     ${branding.city}, ${branding.province}<br>
-                    <a href="mailto:${resolvedSenderEmail}" style="color: #1565C0; text-decoration: none;">${resolvedSenderEmail}</a>
+                    <a href="mailto:${resolvedSenderEmail}" style="color: ${branding.primaryColor}; text-decoration: none;">${resolvedSenderEmail}</a>
                   </p>
                   <p style="margin: 16px 0 0 0; color: #999999; font-size: 12px;">
                     © ${new Date().getFullYear()} ${resolvedCompanyName}. All rights reserved.

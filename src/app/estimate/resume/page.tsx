@@ -1,11 +1,8 @@
 import { Suspense } from 'react';
 import { ResumeChat } from './resume-chat';
-import { getBranding } from '@/lib/branding';
-
 export async function generateMetadata() {
-  const branding = await getBranding();
   return {
-    title: `Continue Your Quote | ${branding.name}`,
+    title: 'Continue Your Quote',
     description: 'Pick up where you left off on your renovation estimate.',
   };
 }

@@ -75,7 +75,6 @@ export function QuoteLineItem({
   onDuplicate,
   isDraggable = false,
 }: QuoteLineItemProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [showTransparency, setShowTransparency] = useState(false);
 
   function handleFieldChange<K extends keyof LineItem>(

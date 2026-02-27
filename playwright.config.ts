@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.local so Supabase URL/key are available to test helpers
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 /**
  * Playwright E2E Test Configuration
@@ -16,7 +21,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env['BASE_URL'] || 'http://localhost:3002',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

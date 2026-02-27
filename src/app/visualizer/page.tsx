@@ -1,5 +1,4 @@
 import { VisualizerForm } from '@/components/visualizer/visualizer-form';
-import { getBranding } from '@/lib/branding';
 import {
   FadeInUp,
   StaggerContainer,
@@ -8,9 +7,8 @@ import {
 import { UserX, Zap, DollarSign } from 'lucide-react';
 
 export async function generateMetadata() {
-  const branding = await getBranding();
   return {
-    title: `AI Design Visualizer | ${branding.name}`,
+    title: 'AI Design Visualizer',
     description:
       'See your renovation vision come to life. Upload a photo, choose a style, and let our AI show you the possibilities.',
   };

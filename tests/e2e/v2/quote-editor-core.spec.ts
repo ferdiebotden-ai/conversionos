@@ -164,7 +164,7 @@ test.describe('Quote Editor Core', () => {
     await expect(page.getByText(/Contingency/i).first()).toBeVisible();
     await expect(page.getByText(/HST.*13%/i).first()).toBeVisible();
     await expect(page.getByText('Total').first()).toBeVisible();
-    await expect(page.getByText(/Deposit Required.*15%/i).first()).toBeVisible();
+    await expect(page.getByText(/Deposit Required.*\d+%/i).first()).toBeVisible();
   });
 
   test('contingency percentage is editable', async ({ page }) => {

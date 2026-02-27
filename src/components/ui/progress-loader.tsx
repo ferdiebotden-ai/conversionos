@@ -96,7 +96,7 @@ export function StepProgress({
         className="flex items-center gap-3 mb-6"
         aria-live="polite"
       >
-        <Loader2 className="h-5 w-5 animate-spin text-[#1565C0] motion-reduce:animate-none" />
+        <Loader2 className="h-5 w-5 animate-spin text-primary motion-reduce:animate-none" />
         <p
           className={cn(
             'text-sm font-medium transition-opacity duration-200 motion-reduce:transition-none',
@@ -117,7 +117,7 @@ export function StepProgress({
       >
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#1565C0] rounded-full transition-all duration-300 ease-out motion-reduce:transition-none"
+            className="h-full bg-primary rounded-full transition-all duration-300 ease-out motion-reduce:transition-none"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -150,7 +150,7 @@ export function StepProgress({
                 className={cn(
                   'w-1.5 h-1.5 rounded-full transition-colors motion-reduce:transition-none',
                   index === currentTipIndex % 5
-                    ? 'bg-[#1565C0]'
+                    ? 'bg-primary'
                     : 'bg-muted-foreground/30'
                 )}
               />

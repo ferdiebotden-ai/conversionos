@@ -246,7 +246,8 @@ The ${branding.name} Team`);
 
     const a = document.createElement('a');
     a.href = pdfUrl;
-    a.download = `DEMO-Quote-${customerName.replace(/\s+/g, '-')}.pdf`;
+    const companyPrefix = (branding.name || 'Quote').replace(/\s+/g, '-');
+    a.download = `${companyPrefix}-Quote-${customerName.replace(/\s+/g, '-')}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

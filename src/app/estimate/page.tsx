@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { EstimatePageClient } from './estimate-client';
-import { getBranding } from '@/lib/branding';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
 export async function generateMetadata() {
-  const branding = await getBranding();
   return {
-    title: `Get an Instant Estimate | ${branding.name}`,
+    title: 'Get an Instant Estimate',
     description: 'Chat with our AI assistant to get a preliminary renovation estimate in minutes. Upload photos of your space and describe your project.',
   };
 }
