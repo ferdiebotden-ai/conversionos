@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu } from "lucide-react"
+import { Menu, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -18,6 +18,7 @@ import {
 import { useBranding } from "@/components/branding-provider"
 import { useCopyContext } from "@/lib/copy/use-site-copy"
 import { getHeaderCTA } from "@/lib/copy/site-copy"
+import { useTier } from "@/components/tier-provider"
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -32,6 +33,8 @@ export function Header() {
   const branding = useBranding()
   const copyCtx = useCopyContext()
   const cta = getHeaderCTA(copyCtx)
+  const { canAccess } = useTier()
+  const showAdmin = canAccess('admin_dashboard')
 
   // Hide public header on admin routes
   if (pathname.startsWith('/admin')) {
@@ -74,6 +77,20 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 ))}
+                {showAdmin && (
+                  <>
+                    <div className="my-2 border-t border-border" />
+                    <SheetClose asChild>
+                      <Link
+                        href="/admin"
+                        className="flex h-12 items-center gap-3 rounded-md px-4 text-base font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        Admin Dashboard
+                      </Link>
+                    </SheetClose>
+                  </>
+                )}
                 <div className="mt-4 flex flex-col gap-3 border-t pt-4">
                   <SheetClose asChild>
                     <Button asChild size="lg" className="h-12 w-full">
@@ -119,6 +136,21 @@ export function Header() {
 
         {/* CTA buttons */}
         <div className="flex items-center gap-2">
+          {/* Admin link — desktop (Accelerate+ only) */}
+          {showAdmin && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <Link href="/admin">
+                <LayoutDashboard className="h-4 w-4" />
+                Admin
+              </Link>
+            </Button>
+          )}
+
           {/* Mobile: Only primary CTA */}
           <Button asChild size="sm" className="h-10 px-4 md:hidden">
             <Link href={cta.href}>{cta.label}</Link>
