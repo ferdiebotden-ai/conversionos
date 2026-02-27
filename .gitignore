@@ -52,3 +52,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .playwright-mcp/
+
+# session artifacts
+playwright-report/
+
+# plan files
+~/.claude/plans/
