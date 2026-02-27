@@ -6,7 +6,7 @@
  * [DEV-072]
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers, Info, RefreshCw } from 'lucide-react';
+import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers, Info, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { CategoryMarkupSettings } from '@/components/admin/category-markup-settings';
 import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
 import { PriceUpload } from '@/components/admin/price-upload';
@@ -25,6 +25,8 @@ import { useTier } from '@/components/tier-provider';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { isValidEmail, isValidPhone, isValidCanadianPostal } from '@/lib/utils/validation';
+import { SettingsPreview } from '@/components/admin/settings-preview';
+import type { PreviewBranding } from '@/hooks/use-settings-preview';
 
 // Types for settings
 interface PricingRange {
@@ -209,6 +211,8 @@ export default function SettingsPage() {
   // F10: Quote mode change confirmation
   const [showQuoteModeConfirm, setShowQuoteModeConfirm] = useState(false);
   const [pendingQuoteMode, setPendingQuoteMode] = useState<string | null>(null);
+  // F13: Live settings preview
+  const [showPreview, setShowPreview] = useState(false);
 
   // Load settings from API
   const loadSettings = useCallback(async (isRetry = false) => {
@@ -244,6 +248,18 @@ export default function SettingsPage() {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // F13: Derive preview branding from current settings state
+  const previewBranding = useMemo<PreviewBranding>(() => ({
+    name: settings.business_info?.name,
+    phone: settings.business_info?.phone,
+    email: settings.business_info?.email,
+    website: settings.business_info?.website,
+    address: settings.business_info?.address,
+    city: settings.business_info?.city,
+    province: settings.business_info?.province,
+    postal: settings.business_info?.postal,
+  }), [settings.business_info]);
 
   // Handle pricing change
   const handlePricingChange = (key: string, level: string, field: string, value: number) => {
@@ -360,7 +376,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className={showPreview ? 'flex gap-0 h-[calc(100vh-4rem)]' : ''}>
+    <div className={`space-y-6 ${showPreview ? 'w-1/2 min-w-[480px] overflow-y-auto p-6' : 'max-w-4xl'}`}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold" id="settings-heading">Settings</h2>
@@ -368,11 +385,23 @@ export default function SettingsPage() {
             Configure pricing, business settings, and quote defaults.
           </p>
         </div>
-        {hasChanges && (
-          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-            Unsaved changes
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {hasChanges && (
+            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+              Unsaved changes
+            </Badge>
+          )}
+          <Button
+            variant={showPreview ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setShowPreview((v) => !v)}
+            className="gap-1.5"
+            aria-label={showPreview ? 'Hide preview' : 'Show preview'}
+          >
+            {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            Preview
+          </Button>
+        </div>
       </div>
 
       {/* E3: Settings load failure banner */}
@@ -949,6 +978,14 @@ export default function SettingsPage() {
         }}
         onCancel={() => setPendingQuoteMode(null)}
       />
+    </div>
+
+    {/* F13: Live preview panel */}
+    {showPreview && (
+      <div className="flex-1 min-w-[320px]">
+        <SettingsPreview settings={previewBranding} />
+      </div>
+    )}
     </div>
   );
 }

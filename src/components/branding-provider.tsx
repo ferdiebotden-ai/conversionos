@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from "react"
 import type { Branding } from "@/lib/branding"
+import { PREVIEW_MESSAGE_TYPE, type PreviewMessage } from "@/hooks/use-settings-preview"
 
 const DEMO_BRANDING: Branding = {
   name: "ConversionOS Demo",
@@ -89,6 +90,41 @@ export function BrandingProvider({
 
     load()
   }, [initial])
+
+  // F13: Listen for live preview messages from admin settings iframe parent
+  const handlePreviewMessage = useCallback((event: MessageEvent) => {
+    // Only accept same-origin messages
+    if (event.origin !== window.location.origin) return
+    const msg = event.data as PreviewMessage | undefined
+    if (!msg || msg.type !== PREVIEW_MESSAGE_TYPE) return
+
+    const d = msg.data
+    setBranding(prev => ({
+      ...prev,
+      ...(d.name !== undefined && { name: d.name }),
+      ...(d.tagline !== undefined && { tagline: d.tagline }),
+      ...(d.phone !== undefined && { phone: d.phone }),
+      ...(d.email !== undefined && { email: d.email }),
+      ...(d.website !== undefined && { website: d.website }),
+      ...(d.address !== undefined && { address: d.address }),
+      ...(d.city !== undefined && { city: d.city }),
+      ...(d.province !== undefined && { province: d.province }),
+      ...(d.postal !== undefined && { postal: d.postal }),
+      ...(d.primaryColor !== undefined && { primaryColor: d.primaryColor }),
+      ...(d.primaryOklch !== undefined && { primaryOklch: d.primaryOklch }),
+    }))
+  }, [])
+
+  useEffect(() => {
+    // Only listen when loaded inside an iframe with __preview param
+    if (typeof window === "undefined") return
+    if (window.self === window.top) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("__preview") !== "1") return
+
+    window.addEventListener("message", handlePreviewMessage)
+    return () => window.removeEventListener("message", handlePreviewMessage)
+  }, [handlePreviewMessage])
 
   return <BrandingContext value={branding}>{children}</BrandingContext>
 }

@@ -13,14 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { QuoteLineItem, type LineItem } from './quote-line-item';
+import { type LineItem } from './quote-line-item';
+import { QuoteLineItemsLayout } from './quote-line-items-layout';
 import { RegenerateQuoteDialog } from './regenerate-quote-dialog';
 import { QuoteSendWizard } from './quote-send-wizard';
 import { TierComparison, type TierName } from './tier-comparison';
@@ -28,8 +22,10 @@ import { ScopeGapRecommendations } from './scope-gap-recommendations';
 import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
 import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
 import { TemplatePicker } from './template-picker';
+import { UndoRedoToolbar } from './undo-redo-toolbar';
 import { SRAnnounce } from '@/components/ui/sr-announce';
 import { countPriceMatches } from '@/lib/pricing/fuzzy-match';
+import { useQuoteEditorStore } from '@/stores/quote-editor-store';
 import type { QuoteDraft, Json, AssemblyTemplate, ContractorPrice } from '@/types/database';
 import type { AIGeneratedQuote, AIQuoteLineItem, AITieredQuote } from '@/lib/schemas/ai-quote';
 import {
@@ -141,8 +137,6 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-type TierMode = 'single' | 'tiered';
-
 // Extract AI quote from initialEstimate
 function extractAIQuote(estimate: Json | null): AIGeneratedQuote | null {
   if (!estimate || typeof estimate !== 'object' || Array.isArray(estimate)) {
@@ -195,14 +189,31 @@ export function QuoteEditor({
   // Extract AI quote from initial estimate
   const aiQuoteFromEstimate = extractAIQuote(initialEstimate);
 
-  // State — auto-populate from AI if no saved quote exists
-  const [lineItems, setLineItems] = useState<LineItem[]>(() => {
+  // --- Zustand store for undoable state (F12) ---
+  const store = useQuoteEditorStore();
+  const lineItems = store.lineItems;
+  const assumptions = store.assumptions;
+  const exclusions = store.exclusions;
+  const contingencyPercent = store.contingencyPercent;
+  const tierMode = store.tierMode;
+  const activeTier = store.activeTier;
+  const tieredLineItems = store.tieredLineItems;
+  const tieredDescriptions = store.tieredDescriptions;
+
+  // Initialise the store once from props
+  const storeInitialised = useRef(false);
+  useEffect(() => {
+    if (storeInitialised.current) return;
+    storeInitialised.current = true;
+
+    const initialQuoteRecord = initialQuote as unknown as Record<string, unknown> | null;
+
+    // Line items
+    let initLineItems: LineItem[];
     if (initialQuote) {
-      return parseLineItems(initialQuote.line_items);
-    }
-    // Auto-populate from AI quote — items load directly into editable table
-    if (aiQuoteFromEstimate) {
-      return aiQuoteFromEstimate.lineItems.map((item) => ({
+      initLineItems = parseLineItems(initialQuote.line_items);
+    } else if (aiQuoteFromEstimate) {
+      initLineItems = aiQuoteFromEstimate.lineItems.map((item) => ({
         id: generateId(),
         description: item.description,
         category: item.category as LineItem['category'],
@@ -218,33 +229,74 @@ export function QuoteEditor({
         costBeforeMarkup: item.transparencyData?.totalBeforeMarkup,
         markupPercent: item.transparencyData?.markupApplied?.percent,
       }));
+    } else {
+      initLineItems = [];
     }
-    return [];
-  });
+
+    // Assumptions
+    let initAssumptions: string;
+    if (!initialQuote && aiQuoteFromEstimate?.assumptions?.length) {
+      initAssumptions = aiQuoteFromEstimate.assumptions.join('\n');
+    } else {
+      initAssumptions = (initialQuote?.assumptions || DEFAULT_ASSUMPTIONS).join('\n');
+    }
+
+    // Exclusions
+    let initExclusions: string;
+    if (!initialQuote && aiQuoteFromEstimate?.exclusions?.length) {
+      initExclusions = aiQuoteFromEstimate.exclusions.join('\n');
+    } else {
+      initExclusions = (initialQuote?.exclusions || DEFAULT_EXCLUSIONS).join('\n');
+    }
+
+    // Tier mode
+    const initTierMode = initialQuoteRecord?.['tier_mode'] === 'tiered' ? 'tiered' as const : 'single' as const;
+
+    // Tiered line items
+    let initTieredLineItems: Record<TierName, LineItem[]>;
+    if (initialQuoteRecord?.['tier_mode'] === 'tiered') {
+      initTieredLineItems = {
+        good: parseLineItems(initialQuoteRecord['tier_good'] as Json ?? null),
+        better: parseLineItems(initialQuoteRecord['tier_better'] as Json ?? null),
+        best: parseLineItems(initialQuoteRecord['tier_best'] as Json ?? null),
+      };
+    } else {
+      const tieredAI = extractTieredAIQuote(initialEstimate);
+      if (tieredAI) {
+        initTieredLineItems = {
+          good: aiItemsToLineItems(tieredAI.tiers.good.lineItems),
+          better: aiItemsToLineItems(tieredAI.tiers.better.lineItems),
+          best: aiItemsToLineItems(tieredAI.tiers.best.lineItems),
+        };
+      } else {
+        initTieredLineItems = { good: [], better: [], best: [] };
+      }
+    }
+
+    // Tiered descriptions
+    const tieredAI = extractTieredAIQuote(initialEstimate);
+    const initTieredDescriptions: Record<TierName, string> = {
+      good: tieredAI?.tiers.good.description || 'Economy finish, stock materials',
+      better: tieredAI?.tiers.better.description || 'Standard finish, mid-range materials',
+      best: tieredAI?.tiers.best.description || 'Premium finish, designer-grade materials',
+    };
+
+    store.init({
+      lineItems: initLineItems,
+      tieredLineItems: initTieredLineItems,
+      tieredDescriptions: initTieredDescriptions,
+      tierMode: initTierMode,
+      activeTier: 'better',
+      assumptions: initAssumptions,
+      exclusions: initExclusions,
+      contingencyPercent: initialQuote?.contingency_percent ?? DEFAULT_CONTINGENCY_PERCENT,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [aiQuote, setAiQuote] = useState<AIGeneratedQuote | null>(aiQuoteFromEstimate);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
-
-  const [contingencyPercent, setContingencyPercent] = useState(
-    initialQuote?.contingency_percent ?? DEFAULT_CONTINGENCY_PERCENT
-  );
-
-  const [assumptions, setAssumptions] = useState<string>(() => {
-    // Use AI assumptions if available and no existing quote
-    if (!initialQuote && aiQuoteFromEstimate?.assumptions?.length) {
-      return aiQuoteFromEstimate.assumptions.join('\n');
-    }
-    return (initialQuote?.assumptions || DEFAULT_ASSUMPTIONS).join('\n');
-  });
-
-  const [exclusions, setExclusions] = useState<string>(() => {
-    // Use AI exclusions if available and no existing quote
-    if (!initialQuote && aiQuoteFromEstimate?.exclusions?.length) {
-      return aiQuoteFromEstimate.exclusions.join('\n');
-    }
-    return (initialQuote?.exclusions || DEFAULT_EXCLUSIONS).join('\n');
-  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -266,7 +318,7 @@ export function QuoteEditor({
   // PDF and send quote state
   const [isDownloading, setIsDownloading] = useState(false);
   const [showSendWizard, setShowSendWizard] = useState(false);
-  const [sentAt, setSentAt] = useState<Date | null>(
+  const [sentAt] = useState<Date | null>(
     initialQuote?.sent_at ? new Date(initialQuote.sent_at) : null
   );
 
@@ -306,40 +358,21 @@ export function QuoteEditor({
   const acceptedByName = quoteRecord?.['accepted_by_name'] as string | null;
   const acceptedAt = quoteRecord?.['accepted_at'] as string | null;
 
-  // Tier state — Good/Better/Best
-  const initialQuoteRecord = initialQuote as unknown as Record<string, unknown> | null;
-  const [tierMode, setTierMode] = useState<TierMode>(() =>
-    initialQuoteRecord?.['tier_mode'] === 'tiered' ? 'tiered' : 'single'
-  );
-  const [activeTier, setActiveTier] = useState<TierName>('better');
-  const [tieredLineItems, setTieredLineItems] = useState<Record<TierName, LineItem[]>>(() => {
-    // Restore from saved quote
-    if (initialQuoteRecord?.['tier_mode'] === 'tiered') {
-      return {
-        good: parseLineItems(initialQuoteRecord['tier_good'] as Json ?? null),
-        better: parseLineItems(initialQuoteRecord['tier_better'] as Json ?? null),
-        best: parseLineItems(initialQuoteRecord['tier_best'] as Json ?? null),
-      };
+  // F12: Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (isReadOnly) return;
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        store.undo();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        store.redo();
+      }
     }
-    // Or from AI tiered quote
-    const tieredAI = extractTieredAIQuote(initialEstimate);
-    if (tieredAI) {
-      return {
-        good: aiItemsToLineItems(tieredAI.tiers.good.lineItems),
-        better: aiItemsToLineItems(tieredAI.tiers.better.lineItems),
-        best: aiItemsToLineItems(tieredAI.tiers.best.lineItems),
-      };
-    }
-    return { good: [], better: [], best: [] };
-  });
-  const [tieredDescriptions, setTieredDescriptions] = useState<Record<TierName, string>>(() => {
-    const tieredAI = extractTieredAIQuote(initialEstimate);
-    return {
-      good: tieredAI?.tiers.good.description || 'Economy finish, stock materials',
-      better: tieredAI?.tiers.better.description || 'Standard finish, mid-range materials',
-      best: tieredAI?.tiers.best.description || 'Premium finish, designer-grade materials',
-    };
-  });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isReadOnly, store]);
 
   // Debounce ref for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -357,8 +390,17 @@ export function QuoteEditor({
 
   // Save function
   const saveQuote = useCallback(async () => {
+    // Read latest state from store at save time
+    const storeState = useQuoteEditorStore.getState();
+    const currentLineItems = storeState.lineItems;
+    const currentTierMode = storeState.tierMode;
+    const currentTieredLineItems = storeState.tieredLineItems;
+    const currentAssumptions = storeState.assumptions;
+    const currentExclusions = storeState.exclusions;
+    const currentContingency = storeState.contingencyPercent;
+
     // In tiered mode, use the better tier for line_items (backward compat)
-    const itemsToSave = tierMode === 'tiered' ? tieredLineItems.better : lineItems;
+    const itemsToSave = currentTierMode === 'tiered' ? currentTieredLineItems.better : currentLineItems;
     if (itemsToSave.length === 0) return;
 
     setIsSaving(true);
@@ -366,17 +408,20 @@ export function QuoteEditor({
 
     try {
       const payload: Record<string, unknown> = {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         line_items: itemsToSave.map(({ id, ...item }) => item),
-        assumptions: assumptions.split('\n').filter((a) => a.trim()),
-        exclusions: exclusions.split('\n').filter((e) => e.trim()),
-        contingency_percent: contingencyPercent,
+        assumptions: currentAssumptions.split('\n').filter((a) => a.trim()),
+        exclusions: currentExclusions.split('\n').filter((e) => e.trim()),
+        contingency_percent: currentContingency,
       };
 
-      if (tierMode === 'tiered') {
+      if (currentTierMode === 'tiered') {
         payload['tier_mode'] = 'tiered';
-        payload['tier_good'] = tieredLineItems.good.map(({ id, ...item }) => item);
-        payload['tier_better'] = tieredLineItems.better.map(({ id, ...item }) => item);
-        payload['tier_best'] = tieredLineItems.best.map(({ id, ...item }) => item);
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        payload['tier_good'] = currentTieredLineItems.good.map(({ id, ...item }) => item);
+        payload['tier_better'] = currentTieredLineItems.better.map(({ id, ...item }) => item);
+        payload['tier_best'] = currentTieredLineItems.best.map(({ id, ...item }) => item);
+        /* eslint-enable @typescript-eslint/no-unused-vars */
       } else {
         payload['tier_mode'] = 'single';
       }
@@ -400,7 +445,7 @@ export function QuoteEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [leadId, lineItems, assumptions, exclusions, contingencyPercent, tierMode, tieredLineItems]);
+  }, [leadId]);
 
   // Auto-save on changes (debounced)
   useEffect(() => {
@@ -426,7 +471,7 @@ export function QuoteEditor({
     setHasChanges(true);
   }
 
-  // Line item handlers
+  // Line item handlers — delegate to store, then mark changed for auto-save
   function handleAddItem() {
     const newItem: LineItem = {
       id: generateId(),
@@ -438,7 +483,7 @@ export function QuoteEditor({
       total: 0,
       isFromAI: false,
     };
-    setLineItems([...lineItems, newItem]);
+    store.addItem(newItem);
     markChanged();
   }
 
@@ -454,55 +499,28 @@ export function QuoteEditor({
       total: item.quantity * item.unit_price,
       isFromAI: false,
     }));
-    setLineItems([...lineItems, ...newItems]);
+    store.insertTemplate(newItems);
     markChanged();
   }
 
   function handleUpdateItem(index: number, updatedItem: LineItem) {
-    const newItems = [...lineItems];
-    newItems[index] = updatedItem;
-    setLineItems(newItems);
+    store.updateItem(index, updatedItem);
     markChanged();
   }
 
   function handleDeleteItem(index: number) {
-    const newItems = lineItems.filter((_, i) => i !== index);
-    setLineItems(newItems);
+    store.deleteItem(index);
     markChanged();
   }
 
   function handleDuplicateItem(index: number) {
-    const itemToDuplicate = lineItems[index];
-    if (!itemToDuplicate) return;
-
-    const duplicatedItem: LineItem = {
-      ...itemToDuplicate,
-      id: generateId(),
-      description: `${itemToDuplicate.description} (copy)`,
-      isFromAI: false, // Duplicates are manual
-      isModified: false,
-      isAccepted: false,
-    };
-
-    const newItems = [...lineItems];
-    newItems.splice(index + 1, 0, duplicatedItem);
-    setLineItems(newItems);
+    store.duplicateItem(index);
     markChanged();
   }
 
-  // Tier switching — save current tier, load new tier
+  // Tier switching
   function handleSwitchTier(newTier: TierName) {
-    if (newTier === activeTier) return;
-
-    // Save current line items to the active tier
-    setTieredLineItems((prev) => ({
-      ...prev,
-      [activeTier]: lineItems,
-    }));
-
-    // Load new tier's items
-    setLineItems(tieredLineItems[newTier]);
-    setActiveTier(newTier);
+    store.switchTier(newTier);
     markChanged();
   }
 
@@ -513,24 +531,16 @@ export function QuoteEditor({
       setShowTierConfirm(true);
     } else {
       // Switching to single — no confirmation needed
-      setTierMode('single');
-      // Save current active tier first
-      setTieredLineItems((prev) => ({
-        ...prev,
-        [activeTier]: lineItems,
-      }));
+      store.toggleTierMode();
       markChanged();
     }
   }
 
   // Actually execute the tier mode switch after confirmation
   function executeToggleToTiered() {
-    setTierMode('tiered');
+    store.toggleTierMode(); // single -> tiered
     if (tieredLineItems.good.length === 0 && tieredLineItems.better.length === 0) {
       handleRegenerateAIQuote(undefined, true);
-    } else {
-      setLineItems(tieredLineItems.better);
-      setActiveTier('better');
     }
     markChanged();
   }
@@ -538,11 +548,12 @@ export function QuoteEditor({
   // Keep tieredLineItems in sync when lineItems changes in tiered mode
   useEffect(() => {
     if (tierMode === 'tiered') {
-      setTieredLineItems((prev) => ({
-        ...prev,
+      store.setTieredLineItems({
+        ...tieredLineItems,
         [activeTier]: lineItems,
-      }));
+      });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lineItems, tierMode, activeTier]);
 
   async function handleRegenerateAIQuote(guidance?: string, forceTiered?: boolean) {
@@ -565,37 +576,31 @@ export function QuoteEditor({
       const data = await response.json();
       setAiQuote(data.aiQuote);
 
+      const newAssumptions = data.aiQuote?.assumptions?.length > 0
+        ? data.aiQuote.assumptions.join('\n')
+        : assumptions;
+      const newExclusions = data.aiQuote?.exclusions?.length > 0
+        ? data.aiQuote.exclusions.join('\n')
+        : exclusions;
+
       if (shouldTier && data.aiTieredQuote) {
-        // Populate all three tiers
+        // Populate all three tiers via store
         const newTiered: Record<TierName, LineItem[]> = {
           good: aiItemsToLineItems(data.aiTieredQuote.tiers.good.lineItems),
           better: aiItemsToLineItems(data.aiTieredQuote.tiers.better.lineItems),
           best: aiItemsToLineItems(data.aiTieredQuote.tiers.best.lineItems),
         };
-        setTieredLineItems(newTiered);
-        setTieredDescriptions({
+        const newDescs: Record<TierName, string> = {
           good: data.aiTieredQuote.tiers.good.description,
           better: data.aiTieredQuote.tiers.better.description,
           best: data.aiTieredQuote.tiers.best.description,
-        });
-
-        // Load the active tier (default to better)
-        setActiveTier('better');
-        setLineItems(newTiered.better);
-        setTierMode('tiered');
+        };
+        store.loadFromAI(newTiered.better, newTiered, newDescs, newAssumptions, newExclusions, 'tiered');
       } else if (data.aiQuote) {
-        // Single tier — replace line items directly
         const newItems = aiItemsToLineItems(data.aiQuote.lineItems);
-        setLineItems(newItems);
+        store.loadFromAI(newItems, null, null, newAssumptions, newExclusions, tierMode);
       }
 
-      // Update assumptions/exclusions from AI
-      if (data.aiQuote?.assumptions?.length > 0) {
-        setAssumptions(data.aiQuote.assumptions.join('\n'));
-      }
-      if (data.aiQuote?.exclusions?.length > 0) {
-        setExclusions(data.aiQuote.exclusions.join('\n'));
-      }
       markChanged();
     } catch (err) {
       console.error('Error regenerating quote:', err);
@@ -617,25 +622,26 @@ export function QuoteEditor({
     if (!aiQuote) return;
 
     const aiItems = aiItemsToLineItems(aiQuote.lineItems);
-    setLineItems(aiItems);
 
     // Also reset tiered data if available
     const tieredAI = extractTieredAIQuote(initialEstimate);
+    let resetTiered: Record<TierName, LineItem[]> | null = null;
     if (tieredAI && tierMode === 'tiered') {
-      setTieredLineItems({
+      resetTiered = {
         good: aiItemsToLineItems(tieredAI.tiers.good.lineItems),
         better: aiItemsToLineItems(tieredAI.tiers.better.lineItems),
         best: aiItemsToLineItems(tieredAI.tiers.best.lineItems),
-      });
+      };
     }
 
-    if (aiQuote.assumptions.length > 0) {
-      setAssumptions(aiQuote.assumptions.join('\n'));
-    }
-    if (aiQuote.exclusions.length > 0) {
-      setExclusions(aiQuote.exclusions.join('\n'));
-    }
+    const resetAssumptions = aiQuote.assumptions.length > 0
+      ? aiQuote.assumptions.join('\n')
+      : assumptions;
+    const resetExclusions = aiQuote.exclusions.length > 0
+      ? aiQuote.exclusions.join('\n')
+      : exclusions;
 
+    store.resetToAI(aiItems, resetTiered, resetAssumptions, resetExclusions);
     markChanged();
   }
 
@@ -792,7 +798,7 @@ export function QuoteEditor({
       total: gap.suggestedItem.estimatedTotal,
       isFromAI: false,
     };
-    setLineItems([...lineItems, newItem]);
+    store.addScopeGapItem(newItem);
     markChanged();
   }
 
@@ -935,6 +941,7 @@ export function QuoteEditor({
                 Saving...
               </span>
             )}
+            {!isReadOnly && <UndoRedoToolbar />}
             <Button onClick={saveQuote} disabled={isSaving || !hasChanges || !!isReadOnly} size="sm">
               <Save className="h-4 w-4 mr-1" />
               Save
@@ -1008,32 +1015,12 @@ export function QuoteEditor({
             </div>
           )}
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[200px]">Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="w-[80px]">Qty</TableHead>
-                  <TableHead className="w-[80px]">Unit</TableHead>
-                  <TableHead className="w-[120px]">Unit Price</TableHead>
-                  <TableHead className="text-right w-[120px]">Total</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lineItems.map((item, index) => (
-                  <QuoteLineItem
-                    key={item.id}
-                    item={item}
-                    onChange={(updated) => handleUpdateItem(index, updated)}
-                    onDelete={() => handleDeleteItem(index)}
-                    onDuplicate={() => handleDuplicateItem(index)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <QuoteLineItemsLayout
+            items={lineItems}
+            onChangeItem={handleUpdateItem}
+            onDeleteItem={handleDeleteItem}
+            onDuplicateItem={handleDuplicateItem}
+          />
 
           <div className="flex items-center gap-2 mt-4">
             <Button
@@ -1091,7 +1078,7 @@ export function QuoteEditor({
                   step="1"
                   value={contingencyPercent}
                   onChange={(e) => {
-                    setContingencyPercent(parseFloat(e.target.value) || 0);
+                    store.setContingency(parseFloat(e.target.value) || 0);
                     markChanged();
                   }}
                   className="w-[70px] h-8"
@@ -1140,7 +1127,7 @@ export function QuoteEditor({
                 id="assumptions"
                 value={assumptions}
                 onChange={(e) => {
-                  setAssumptions(e.target.value);
+                  store.setAssumptions(e.target.value);
                   markChanged();
                 }}
                 placeholder="Enter assumptions..."
@@ -1163,7 +1150,7 @@ export function QuoteEditor({
                 id="exclusions"
                 value={exclusions}
                 onChange={(e) => {
-                  setExclusions(e.target.value);
+                  store.setExclusions(e.target.value);
                   markChanged();
                 }}
                 placeholder="Enter exclusions..."
