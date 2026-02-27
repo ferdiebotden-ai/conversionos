@@ -10,7 +10,7 @@ Next.js 16.1.6 (App Router) • React 19 • TypeScript 5 (strict) • Supabase 
 
 ## AI Stack
 - **Chat/Vision:** OpenAI GPT-5.2
-- **Image generation:** Google Gemini 3 Pro Image
+- **Image generation:** Google Gemini 3.1 Flash Image (Nano Banana 2)
 - **Voice agent:** ElevenLabs (single Emma persona, context-aware) — Dominate tier only
 - **Validation:** Zod schemas on all AI outputs
 

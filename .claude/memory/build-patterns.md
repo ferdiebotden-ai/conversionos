@@ -52,5 +52,5 @@ Understanding them tells you exactly what the AI knowledge base needs.
 ## Image Generation
 - Use specific, detailed prompts (style, lighting, materials, room type)
 - Every prompt should reference the target's actual service specialties
-- Gemini `gemini-3-pro-image-preview` with `responseModalities: ['image', 'text']`
+- Gemini `gemini-3.1-flash-image-preview` (Nano Banana 2) with `responseModalities: ['image', 'text']`
 - Script: `scripts/generate-image.mjs --prompt "..." --output path/to/file.png`

@@ -109,7 +109,7 @@ async function generateImage(item: typeof IMAGES[0]): Promise<Buffer | null> {
   console.log(`Generating ${item.filename} (${item.section})...`);
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3-pro-image-preview',
+    model: 'gemini-3.1-flash-image-preview',
     generationConfig: {
       // @ts-expect-error - responseModalities is valid but not in type definitions
       responseModalities: ['Text', 'Image'],

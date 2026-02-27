@@ -2,7 +2,7 @@
 
 /**
  * Reusable Gemini Image Generator
- * Generates photorealistic images using gemini-3-pro-image-preview
+ * Generates photorealistic images using gemini-3.1-flash-image-preview (Nano Banana 2)
  *
  * Usage:
  *   node scripts/generate-image.mjs --prompt "A stunning kitchen..." --output public/images/demo/hero.png
@@ -66,7 +66,7 @@ async function generateImage() {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3-pro-image-preview',
+    model: 'gemini-3.1-flash-image-preview',
     generationConfig: {
       responseModalities: ['image', 'text'],
     },

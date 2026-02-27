@@ -156,9 +156,9 @@ Single ElevenLabs agent per tenant, dynamic prompts via session overrides based 
 
 Fires at upload time. Detects room type, layout, dimensions, ceiling height, fixtures, structural elements, condition. Cached by FNV-1a hash (10-min TTL). Auto-fills room type selector and reused by generation.
 
-### Image Generation (Gemini 3 Pro Image)
+### Image Generation (Nano Banana 2 — Gemini 3.1 Flash Image)
 
-`gemini-3-pro-image-preview` → 4 concepts at 2048x2048. Structure preservation: 0.90, style application: 0.40. Pipeline: compressed photo → 6-part prompt → 4 parallel Gemini calls → Supabase Storage → SSE events → GPT-5.2 description enrichment → concept pricing analysis (fire-and-forget). Timeouts: 75s/concept, 110s server total, 150s client abort.
+`gemini-3.1-flash-image-preview` → 4 concepts at 2048x2048. Pro-level quality at 2-3x faster generation, ~25% cheaper. Structure preservation: 0.90, style application: 0.40. Pipeline: compressed photo → 6-part prompt → 4 parallel Gemini calls → Supabase Storage → SSE events → GPT-5.2 description enrichment → concept pricing analysis (fire-and-forget). Timeouts: 75s/concept, 110s server total, 150s client abort.
 
 ### SSE Streaming
 
@@ -406,6 +406,20 @@ All tenant branding via `admin_settings` JSONB: business info, logo (SVG/PNG URL
 **Compliance:** `/privacy` (PIPEDA), `/terms` (Ontario law), `/data-deletion` (30-day processing). CASL consent on email capture. Deny-by-default tier = `'elevate'`.
 
 **CI/CD:** `.github/workflows/ci.yml` — lint → typecheck → test → build. Husky + lint-staged pre-commit.
+
+---
+
+## Demo Mode
+
+ConversionOS supports a demo mode for prospect previews. Demo instances let potential clients explore the full platform — including the admin dashboard — without authentication.
+
+**Auth bypass:** Authentication is bypassed in `src/proxy.ts`. The proxy resolves tenants from hostname and sets `x-site-id`, but does not enforce Supabase auth or role checks. All admin routes are publicly accessible on demo instances. When landing the first production client, re-enable auth in `proxy.ts` and move admin to an `app.*` subdomain. See git history for the full auth implementation (Supabase SSR session refresh + admin role check).
+
+**Admin button:** The public header (`src/components/header.tsx`) includes an "Admin" link gated by `canAccess('admin_dashboard')` — renders only for Accelerate and Dominate tiers. Desktop: ghost button with `LayoutDashboard` icon left of customer CTAs. Mobile: in hamburger menu with separator from customer navigation.
+
+**Demo interstitial:** On first admin visit per browser session, a full-screen overlay explains this is a preview and production would be login-protected. Implementation in `src/app/admin/admin-layout-client.tsx`. Shows tenant logo, `ShieldCheck` icon, "Admin Dashboard Preview" heading, and a "Continue to Dashboard" button. Uses `sessionStorage` key `conversionos-demo-splash-seen` — does not re-show on same-session navigation. Animated with framer-motion (fade + scale).
+
+**Sample data:** `scripts/seed-demo-data.mjs` populates the demo tenant (`site_id='demo'`) with realistic sample data: 8 leads (spread across 30 days, mixed statuses and project types), 4 quote drafts (linked to leads, $18k–$92k range), 3 invoices (paid/sent/draft), and 1 payment. Run `node scripts/seed-demo-data.mjs` after configuring `.env.local`. Idempotent — clears existing demo data before inserting.
 
 ---
 

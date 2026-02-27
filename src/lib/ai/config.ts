@@ -11,7 +11,7 @@ export const AI_CONFIG = {
     moderation: 'omni-moderation-latest',
   },
   google: {
-    imageGeneration: 'gemini-3-pro-image-preview', // Image generation model
+    imageGeneration: 'gemini-3.1-flash-image-preview', // Nano Banana 2 — Pro quality at Flash speed
   },
   replicate: {
     depthModel: 'depth-anything/depth-anything-v3-metric',

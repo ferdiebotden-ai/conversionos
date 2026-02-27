@@ -261,7 +261,7 @@ When `style === 'other'`, the prompt builder adapts (`prompt-builder.ts:217-228`
 | Design Intent Extraction | `gpt-5.2` | OpenAI | ~$0.005/call |
 | Depth Estimation | `depth-anything-v3-metric` | Replicate | ~$0.002/call (DISABLED) |
 | Edge Detection | `sharp` (local) | Local npm | $0 |
-| Image Generation | `gemini-3-pro-image-preview` | Google AI | ~$0.10/concept |
+| Image Generation | `gemini-3.1-flash-image-preview` | Google AI | ~$0.075/concept |
 | Structure Validation | `gpt-5.2` (multimodal) | OpenAI | ~$0.01/call |
 | Voice Summarization | `gpt-5.2` | OpenAI | ~$0.005/call |
 | **Total per 4-concept generation** | | | **~$0.475** |
@@ -277,7 +277,7 @@ export const AI_CONFIG = {
     vision: 'gpt-5.2',      // 86.3% spatial reasoning accuracy
   },
   google: {
-    imageGeneration: 'gemini-3-pro-image-preview',
+    imageGeneration: 'gemini-3.1-flash-image-preview',
   },
   pipeline: {
     enableDepthEstimation: false,   // REPLICATE_API_TOKEN not configured
@@ -288,7 +288,7 @@ export const AI_CONFIG = {
 
 // File: src/lib/ai/gemini.ts
 export const VISUALIZATION_CONFIG = {
-  model: 'gemini-3-pro-image-preview',
+  model: 'gemini-3.1-flash-image-preview',
   structureReferenceStrength: 0.90,  // How much to preserve room layout
   styleStrength: 0.40,               // How aggressively to apply style
   outputCount: 4,

@@ -15,8 +15,8 @@ export const google = createGoogleGenerativeAI({});
 const apiKey = process.env['GOOGLE_GENERATIVE_AI_API_KEY'];
 export const googleNativeAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-// Image generation model (Gemini 3 Pro Image for high-quality transformations)
-export const imageModel = 'gemini-3-pro-image-preview';
+// Image generation model (Nano Banana 2 — Pro quality at Flash speed, ~25% cheaper, 2-3x faster)
+export const imageModel = 'gemini-3.1-flash-image-preview';
 
 // Configuration for visualization generation
 export const VISUALIZATION_CONFIG = {
@@ -78,7 +78,7 @@ async function withTimeout<T>(
 
 /**
  * Generate an image using Gemini's native image generation capability
- * Uses gemini-2.0-flash-exp with responseModalities: ["Text", "Image"]
+ * Uses gemini-3.1-flash-image-preview (Nano Banana 2) with responseModalities: ["Text", "Image"]
  * @throws Error if API key not configured or generation fails
  */
 export async function generateImageWithGemini(

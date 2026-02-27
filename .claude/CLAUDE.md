@@ -59,7 +59,7 @@ Pipeline: score → scrape → upload images → provision DB → verify. Checkp
 - Single env var: `ELEVENLABS_AGENT_EMMA` per Vercel project
 
 ## Gemini Image Generation
-- Model: `gemini-3-pro-image-preview` (configured in `src/lib/ai/gemini.ts`)
+- Model: `gemini-3.1-flash-image-preview` (Nano Banana 2 — Pro quality at Flash speed, configured in `src/lib/ai/gemini.ts`)
 - Script: `scripts/generate-image.mjs` — reusable, takes prompt + output path
 - Every image must be stunning. These demos replace real contractor websites.
 

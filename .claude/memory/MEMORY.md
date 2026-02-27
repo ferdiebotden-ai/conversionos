@@ -27,7 +27,7 @@
 ## Target #1: McCarty Squared (London, ON)
 - 73 files modified from base template
 - ElevenLabs agents duplicated and customized (Emma, Marcus, Mia)
-- All images regenerated with Gemini gemini-3-pro-image-preview
+- All images regenerated with Gemini gemini-3.1-flash-image-preview (Nano Banana 2)
 - Exact testimonials from Ziad A., Megan E., Jenny K. S.
 - RenoMark certified, LHBA, NetZero Home, Houzz Pro
 - Principals: Garnet (lead builder) + Carisa (business manager)

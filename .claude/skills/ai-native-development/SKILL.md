@@ -55,7 +55,7 @@ export const google = createGoogleGenerativeAI({
 // Model shortcuts — ConversionOS defaults
 export const gpt5 = openai('gpt-5.2')
 export const claude = anthropic('claude-opus-4-6')
-export const geminiImage = google('gemini-3-pro-image')
+export const geminiImage = google('gemini-3.1-flash-image')
 ```
 
 ---
@@ -283,7 +283,7 @@ import { google } from '@/lib/ai/providers'
 import { generateText } from 'ai'
 
 const { text, files } = await generateText({
-  model: google('gemini-3-pro-image'),
+  model: google('gemini-3.1-flash-image'),
   providerOptions: { google: { responseModalities: ['TEXT', 'IMAGE'] } },
   prompt: 'Generate a photorealistic kitchen renovation concept...',
 })

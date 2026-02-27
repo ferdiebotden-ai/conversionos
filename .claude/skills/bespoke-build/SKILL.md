@@ -43,7 +43,7 @@ Build a complete bespoke demo for a target contractor from their website URL.
 8. **Verify:** `grep -r "ConversionOS Demo" src/` must return zero results
 
 ### Stage 3: Generate Images
-1. Use `scripts/generate-image.mjs` with Gemini `gemini-3-pro-image-preview`
+1. Use `scripts/generate-image.mjs` with Gemini `gemini-3.1-flash-image-preview` (Nano Banana 2)
 2. Generate at minimum:
    - Hero image reflecting target's primary service type
    - "Why Choose Us" / craftsmanship detail image
