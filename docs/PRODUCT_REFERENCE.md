@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 27, 2026 | **Updated by:** Claude Code (Sentry + Upstash provisioning, enterprise hardening E2E verification — 31 Playwright tests, env var deployment to all 3 Vercel projects)
+**Last updated:** February 27, 2026 | **Updated by:** Claude Code (QE V2 final 3 deferred features — F12 undo/redo, F13 settings preview, M3 mobile cards — plus project folder cleanup)
 
 ---
 
@@ -947,10 +947,62 @@ Every aspect of the contractor's experience is configurable per tenant:
 - `src/components/ui/confirm-dialog.tsx` — Reusable confirmation dialog with optional destructive styling and confirmation checkbox
 - `src/components/ui/sr-announce.tsx` — Screen reader announcement component (`aria-live="polite"`)
 
-### Remaining Items (3 deferred)
-- F12: Undo/redo for quote editor (1+ day, snapshot-based)
-- F13: Settings live preview (2-3 hr, iframe/preview)
-- M3: Mobile card layout for line items (2-3 hr, responsive breakpoint)
+### Previously Deferred Items (ALL COMPLETE — Feb 27, 2026)
+- F12: Undo/redo for quote editor — DONE (Zustand store + history manager)
+- F13: Settings live preview — DONE (iframe side panel + postMessage)
+- M3: Mobile card layout for line items — DONE (useMediaQuery + card component)
+
+---
+
+## Undo/Redo System (Feb 27, 2026)
+
+The quote editor supports full undo/redo via a Zustand store with snapshot-based history.
+
+**Store:** `src/stores/quote-editor-store.ts` — reuses `src/components/cad/state/history-manager.ts` (JSON-serialised snapshots, 50-entry cap, undo/redo stacks).
+
+**Undoable state:** lineItems, tieredLineItems, tieredDescriptions, tierMode, activeTier, assumptions, exclusions, contingencyPercent. Non-undoable UI state (isSaving, modals, etc.) remains as local useState.
+
+**Keyboard shortcuts:** `Cmd+Z` (undo), `Shift+Cmd+Z` (redo) — registered via `useEffect` keydown listener, only active when not in read-only version-viewing mode.
+
+**Toolbar:** `UndoRedoToolbar` (`src/components/admin/undo-redo-toolbar.tsx`) — Undo2/Redo2 icons with tooltips showing keyboard shortcuts. Disabled when stack is empty.
+
+**Debounce behaviour:** Text field edits (assumptions, exclusions, line item descriptions) debounce 1 second before creating a history entry. Structural actions (add/delete/duplicate item, tier switch, template insert, reset-to-AI) flush any pending debounce then push immediately.
+
+---
+
+## Settings Live Preview (Feb 27, 2026)
+
+Admin settings page includes a split-screen iframe preview of the public homepage that shows unsaved branding changes in real-time.
+
+**Toggle:** Eye/EyeOff button in settings page header. Persists across tab switches. Lazy-loads iframe only when active.
+
+**Layout:** When active, form takes `w-1/2 min-w-[480px]`, preview panel takes `flex-1`.
+
+**Communication:** `postMessage` from settings form to iframe (500ms debounce). Message type `conversionos-settings-preview` with branding data (company name, primary colour, logo, tagline). Origin-validated for security.
+
+**Receiver:** `BrandingProvider` (`src/components/branding-provider.tsx`) listens for preview messages only when: (1) `__preview=1` query param present, (2) loaded inside an iframe (`window.self !== window.top`), (3) message origin matches `window.location.origin`.
+
+**Viewport selector:** Desktop (1280px), Tablet (768px), Mobile (375px) — resizes the iframe wrapper.
+
+**Scope:** Previews visual branding only (name, colour, logo, tagline). Does not preview pricing or quote assistance mode changes (those have existing text previews in the Quoting tab).
+
+**Files:** `src/components/admin/settings-preview.tsx`, `src/hooks/use-settings-preview.ts`
+
+---
+
+## Mobile Card Layout for Line Items (Feb 27, 2026)
+
+Below 768px viewport width, the quote editor's line items switch from a 7-column table to a card-based layout optimised for touch.
+
+**Hook:** `useMediaQuery` (`src/hooks/use-media-query.ts`) — SSR-safe via `useSyncExternalStore`. Returns `false` during SSR (server snapshot), syncs with `window.matchMedia` on client.
+
+**Card component:** `QuoteLineItemCard` (`src/components/admin/quote-line-item-card.tsx`) — memo'd, same props as `QuoteLineItem`.
+- **Collapsed:** Category badge (colour-coded left border), total (bold), AI/Adjusted badges, description, "qty × price/unit" line, action buttons (transparency, duplicate, delete)
+- **Expanded:** Tap to expand. 2-column edit grid: description, category + unit, quantity + unit price. "Done" button to collapse. Auto-recalculates total.
+
+**Layout wrapper:** `QuoteLineItemsLayout` (`src/components/admin/quote-line-items-layout.tsx`) — conditionally renders table or cards based on `useMediaQuery('(max-width: 767px)')`. Drop-in replacement in the editor.
+
+**Touch targets:** All interactive elements min 40px height (h-10). Contractor price match badge and AI badges carry forward from table layout.
 
 ---
 
