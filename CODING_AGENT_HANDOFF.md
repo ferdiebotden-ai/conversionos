@@ -364,6 +364,52 @@ After the nightly pipeline runs, email drafts need to be created in Ferdie's Gma
 
 ---
 
+## PART 5.5: OUTREACH PIPELINE (Built Feb 27, 2026)
+
+The "last mile" after a demo is built: personalised Gmail drafts + automated call booking.
+
+### What Was Built (12 files, 1742 lines)
+
+| File | Purpose |
+|------|---------|
+| `scripts/outreach/generate-email.mjs` | Fills Ferdie's exact email template with target data |
+| `scripts/outreach/create-draft.mjs` | Gmail IMAP APPEND via raw TLS (zero npm deps) |
+| `scripts/outreach/outreach-pipeline.mjs` | Orchestrator: select targets, generate, validate, create drafts |
+| `scripts/outreach/send-monitor.mjs` | Cron: detect sends in Gmail Sent, book calendar, generate call scripts |
+| `scripts/outreach/calendar.mjs` | Apple Calendar AppleScript (query events, book 30-min slots) |
+| `scripts/outreach/rescore-all.mjs` | Batch ICP re-scoring (6 dimensions, 100 pts) |
+| `scripts/outreach/schemas/email-output.json` | Template variable schema |
+| `scripts/outreach/tests/test-email-template.mjs` | 35 mock data tests |
+| `scripts/outreach/tests/test-imap.mjs` | IMAP connectivity test |
+| `com.norbot.send-monitor.plist` | macOS LaunchAgent (every 15 min, 6am-9pm weekdays) |
+
+### Architecture Decisions
+
+- **Raw IMAP over TLS** (not nodemailer/googleapis): Zero dependencies, 189 lines, full control over Message-ID tracking. Gmail API would require OAuth token refresh; raw IMAP with app password is simpler and more reliable for this use case.
+- **AppleScript for calendar** (not Google Calendar API): Ferdie uses Apple Calendar "Work" calendar. AppleScript is native, instant, no auth flow. Trade-off: macOS-only.
+- **Template filling, not AI copy**: Ferdie's exact words in `BODY_TEMPLATE`. AI only fills `{variables}`. This preserves his voice and avoids the "sounds like a robot" problem.
+- **Message-ID tracking**: RFC 2822 Message-ID stored in Turso. Send monitor matches by searching `[Gmail]/Sent Mail` HEADER. This decouples draft creation from send detection.
+- **Sentinel name filtering**: Owner names like "Not specified", "N/A" → "there" to avoid "Hey Not specified," emails.
+
+### Integration
+
+- `tenant-builder/orchestrate.mjs` Step 6 auto-runs outreach after QA passes (`--skip-outreach` to skip)
+- Mission Control: Upcoming Calls panel in Pipeline page shows targets with `status = 'email_1_sent'`
+- Send monitor LaunchAgent runs independently (no dependency on Claude Code sessions)
+
+### Test Coverage
+
+- 35 mock data tests: template filling, quality gates, HTML conversion, MIME structure, calendar slots, sentinel names
+- IMAP connectivity test (real Gmail connection)
+- No Playwright tests for outreach (not a web UI)
+
+### Known Limitations
+
+- Calendar integration is macOS-only (AppleScript)
+- IMAP connections use `rejectUnauthorized: false` (Node 25 TLS strictness)
+- Send monitor checks every 15 min — minimum delay between Ferdie clicking Send and call being booked
+- Call script generation requires Claude CLI (`callClaude()`) — falls back to static template if unavailable
+
 ## PART 6: RULES YOU MUST FOLLOW
 
 These are non-negotiable architectural rules. Violating them will break multi-tenancy or pricing.

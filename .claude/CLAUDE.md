@@ -146,6 +146,28 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - **Feasibility distribution:** Mini bar chart (scores 1-5) in metrics widget
 - **Feasibility badges:** Colour-coded dots on leads table (green 4-5, yellow 3, red 1-2, grey unscored)
 
+## Outreach Pipeline (Feb 27, 2026)
+
+Automated outreach after demo builds pass QA. Fills Ferdie's exact email template, creates Gmail drafts, monitors for sends, books calls.
+
+**Key scripts:**
+- `scripts/outreach/generate-email.mjs` — template filler (Ferdie's words, not AI copy)
+- `scripts/outreach/create-draft.mjs` — raw IMAP APPEND to Gmail Drafts (zero npm deps)
+- `scripts/outreach/outreach-pipeline.mjs` — orchestrator (batch/single/dry-run)
+- `scripts/outreach/send-monitor.mjs` — cron: detect send -> book calendar -> call script
+- `scripts/outreach/calendar.mjs` — Apple Calendar AppleScript (query + book slots)
+- `scripts/outreach/rescore-all.mjs` — ICP re-scoring in batches
+
+**Turso columns added:** `demo_url`, `demo_built_at`, `email_draft_id`, `email_message_id`, `follow_up_slot`, `call_script`
+
+**LaunchAgent:** `com.norbot.send-monitor` — every 15 min, 6am-9pm weekdays
+
+**Testing:** `node scripts/outreach/tests/test-email-template.mjs` — 35 tests (template filling, quality gates, HTML, MIME, calendar slots)
+
+**Rules:** `.claude/rules/outreach.md` — CASL compliance, template integrity, sentinel names, call slot constraints
+
+**Integration:** `tenant-builder/orchestrate.mjs` Step 6 auto-runs outreach after QA. Use `--skip-outreach` to skip.
+
 ## Implementation Tracking
 - **Status doc:** `docs/IMPLEMENTATION_STATUS.md` — tracks all 6 phases
 - **Multi-session:** Each session reads this file first to pick up where the last left off

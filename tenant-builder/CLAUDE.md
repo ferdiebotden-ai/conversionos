@@ -243,6 +243,22 @@ Integration tests require all 5 env vars to be set. They skip gracefully via `re
 - Claude CLI calls strip CLAUDECODE env var to avoid nested sessions
 - env-loader handles both `KEY=VALUE` and `export KEY=VALUE` formats
 
+## Step 6: Outreach Pipeline Hook
+
+After QA passes (Step 5), `orchestrate.mjs` automatically runs the outreach pipeline:
+
+1. Selects targets where QA passed from the current batch
+2. Runs `scripts/outreach/outreach-pipeline.mjs --target-ids {ids}`
+3. Each target gets: email template filled -> quality gate -> Gmail draft created -> Turso updated
+
+**Skip with:** `--skip-outreach` flag on orchestrate.mjs
+
+**What it does NOT do:** Send emails. Drafts only. Ferdie reviews and clicks Send.
+
+**Dependencies:** `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `~/pipeline/scripts/.env`. Without these, the outreach step errors but the build itself still succeeds.
+
+**Full outreach docs:** `scripts/outreach/README.md`
+
 ## Self-Improving Documentation
 
 After any feature, schema, config, or workflow change in tenant-builder:

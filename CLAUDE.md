@@ -146,5 +146,31 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 - **Desktop UI:** Existing drag-and-drop zone unchanged
 - **Quality check:** Min 640x640 pixels after compression
 
+## Outreach Pipeline
+Automated last-mile outreach after demo builds. Fills Ferdie's exact email template with target data, creates Gmail drafts via raw IMAP, monitors for sends, and auto-books follow-up calls in Apple Calendar.
+
+- **Scripts:** `scripts/outreach/` — 6 scripts + tests
+- **Skill:** `/outreach-pipeline` — create drafts from CLI
+- **Rules:** `.claude/rules/outreach.md` — CASL, template integrity, call slots
+- **Full docs:** `scripts/outreach/README.md`
+- **Tests:** `node scripts/outreach/tests/test-email-template.mjs` (35 tests)
+- **Send monitor:** LaunchAgent `com.norbot.send-monitor` (every 15 min, 6am-9pm weekdays)
+- **Turso columns:** `demo_url`, `demo_built_at`, `email_draft_id`, `email_message_id`, `follow_up_slot`, `call_script`
+- **Status flow:** `demo_built` -> `draft_ready` -> `email_1_sent`
+
+```bash
+# Preview email (dry run)
+node scripts/outreach/outreach-pipeline.mjs --target-id 42 --dry-run
+
+# Create Gmail draft
+node scripts/outreach/outreach-pipeline.mjs --target-id 42
+
+# All ready targets
+node scripts/outreach/outreach-pipeline.mjs
+
+# Top 30 by ICP score
+node scripts/outreach/rescore-all.mjs --report
+```
+
 ## Business Constants
 HST: 13% • Deposit: 15% • Contingency: 10% • Estimate Variance: ±15%
