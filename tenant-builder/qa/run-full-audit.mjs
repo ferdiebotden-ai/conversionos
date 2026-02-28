@@ -56,7 +56,7 @@ const siteId = args['site-id'];
 const siteUrl = args.url;
 const tier = args.tier;
 const today = new Date().toISOString().slice(0, 10);
-const outputDir = args.output || resolve(import.meta.dirname, `../results/${today}/${siteId}`);
+const outputDir = resolve(args.output || resolve(import.meta.dirname, `../results/${today}/${siteId}`));
 mkdirSync(outputDir, { recursive: true });
 
 const DEMO_ROOT = resolve(import.meta.dirname, '../..');
@@ -77,7 +77,7 @@ try {
     '--site-id', siteId,
     '--output', outputDir,
   ];
-  if (args['scraped-data']) ciArgs.push('--scraped-data', args['scraped-data']);
+  if (args['scraped-data']) ciArgs.push('--scraped-data', resolve(args['scraped-data']));
 
   try {
     execFileSync('node', ciArgs, {
