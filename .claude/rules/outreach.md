@@ -41,9 +41,9 @@ When adding new sentinel values, add them to `SENTINEL_NAMES` in `generate-email
 - **No double-booking:** `calendar.mjs` checks "Work" calendar for conflicts before booking
 - **Look-ahead:** 10 business days
 
-## One Contractor Per Territory
+## City Exclusivity
 
-Never email competing contractors in the same city/territory. The Turso DB enforces territory exclusivity. If two targets share a city, only the highest-ICP-scored one gets outreach.
+City exclusivity is **Dominate tier only** ($2,500/mo). For Elevate and Accelerate outreach, multiple contractors in the same city is fine — there is no territory restriction at those tiers. Only enforce one-per-city when selling Dominate.
 
 ## Phone Clause
 
