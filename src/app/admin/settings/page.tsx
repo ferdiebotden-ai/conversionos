@@ -430,40 +430,50 @@ export default function SettingsPage() {
       )}
 
       <Tabs defaultValue="pricing" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="pricing" className="gap-2">
-            <DollarSign className="h-4 w-4" />
-            Pricing
-          </TabsTrigger>
-          <TabsTrigger value="rates" className="gap-2">
-            <Settings2 className="h-4 w-4" />
-            Rates & Defaults
-          </TabsTrigger>
-          <TabsTrigger value="quoting" className="gap-2">
-            <MessageSquareQuote className="h-4 w-4" />
-            Quoting
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="business" className="gap-2">
-            <Building className="h-4 w-4" />
-            Business Info
-          </TabsTrigger>
-          {canAccess('csv_price_upload') && (
-            <TabsTrigger value="price-list" className="gap-2">
-              <Upload className="h-4 w-4" />
-              Price List
-            </TabsTrigger>
-          )}
-          {canAccess('assembly_templates') && (
-            <TabsTrigger value="templates" className="gap-2">
-              <Layers className="h-4 w-4" />
-              Templates
-            </TabsTrigger>
-          )}
-        </TabsList>
+        <div className="relative">
+          {/* Fade indicators for scroll overflow */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 md:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-background to-transparent z-10 md:hidden" />
+          <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <TabsList className="inline-flex w-auto min-w-full md:w-full">
+              <TabsTrigger value="pricing" className="gap-2 shrink-0">
+                <DollarSign className="h-4 w-4" />
+                Pricing
+              </TabsTrigger>
+              <TabsTrigger value="rates" className="gap-2 shrink-0">
+                <Settings2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Rates &</span> Defaults
+              </TabsTrigger>
+              <TabsTrigger value="quoting" className="gap-2 shrink-0">
+                <MessageSquareQuote className="h-4 w-4" />
+                Quoting
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2 shrink-0">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notifications</span>
+                <span className="sm:hidden">Notify</span>
+              </TabsTrigger>
+              <TabsTrigger value="business" className="gap-2 shrink-0">
+                <Building className="h-4 w-4" />
+                <span className="hidden sm:inline">Business Info</span>
+                <span className="sm:hidden">Business</span>
+              </TabsTrigger>
+              {canAccess('csv_price_upload') && (
+                <TabsTrigger value="price-list" className="gap-2 shrink-0">
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline">Price List</span>
+                  <span className="sm:hidden">Prices</span>
+                </TabsTrigger>
+              )}
+              {canAccess('assembly_templates') && (
+                <TabsTrigger value="templates" className="gap-2 shrink-0">
+                  <Layers className="h-4 w-4" />
+                  Templates
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
+        </div>
 
         {/* Pricing Tab */}
         <TabsContent value="pricing" className="space-y-6">

@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import type { Lead, LeadStatus, ProjectType } from '@/types/database';
 import {
   ArrowUpDown,
@@ -44,6 +45,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronRightIcon,
   Eye,
   Loader2,
 } from 'lucide-react';
@@ -236,6 +238,61 @@ function FeasibilityDot({ score }: { score?: number | undefined }) {
   );
 }
 
+/** Mobile card view for a single lead */
+function LeadCard({
+  lead,
+  feasibilityScore,
+  onClick,
+}: {
+  lead: Lead;
+  feasibilityScore?: number | undefined;
+  onClick: () => void;
+}) {
+  const status = lead.status as LeadStatus;
+  const style = STATUS_STYLES[status];
+  const projectType = lead.project_type as ProjectType | null;
+  const source = (lead as Record<string, unknown>)['source'] as string | null | undefined;
+  const SOURCE_LABELS: Record<string, { label: string; className: string }> = {
+    'contractor_intake': { label: 'Intake', className: 'bg-blue-100 text-blue-800' },
+    'phone': { label: 'Phone', className: 'bg-orange-100 text-orange-800' },
+    'referral': { label: 'Referral', className: 'bg-violet-100 text-violet-800' },
+    'ai_chat': { label: 'AI Chat', className: 'bg-emerald-100 text-emerald-800' },
+    'website': { label: 'Website', className: '' },
+  };
+  const sourceStyle = (source && SOURCE_LABELS[source]) || { label: 'Website', className: '' };
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left flex items-center gap-3 p-4 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors active:bg-muted"
+    >
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <FeasibilityDot score={feasibilityScore} />
+          <span className="font-medium truncate">{lead.name}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="secondary" className={cn('text-xs', style.className)}>
+            {style.label}
+          </Badge>
+          {projectType && (
+            <span className="text-xs text-muted-foreground">
+              {PROJECT_TYPE_LABELS[projectType]}
+            </span>
+          )}
+          <Badge variant="secondary" className={cn('text-xs', sourceStyle.className)}>
+            {sourceStyle.label}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {lead.email} &middot; {formatRelativeTime(lead.created_at)}
+        </p>
+      </div>
+      <ChevronRightIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+    </button>
+  );
+}
+
 interface LeadsTableProps {
   initialLeads: Lead[];
   initialPagination: {
@@ -251,6 +308,7 @@ export function LeadsTable({ initialLeads, initialPagination, initialFeasibility
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   // State
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
@@ -444,60 +502,83 @@ export function LeadsTable({ initialLeads, initialPagination, initialFeasibility
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => router.push(`/admin/leads/${row.original.id}`)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+      {/* Table (desktop) / Cards (mobile) */}
+      {isMobile ? (
+        <div className="space-y-2">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : leads.length > 0 ? (
+            leads.map((lead) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                feasibilityScore={feasibilityMap[lead.id]}
+                onClick={() => router.push(`/admin/leads/${lead.id}`)}
+              />
+            ))
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No leads found.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No leads found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => router.push(`/admin/leads/${row.original.id}`)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No leads found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between px-2">

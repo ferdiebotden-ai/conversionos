@@ -31,10 +31,10 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border bg-muted/30">
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="container mx-auto px-4 py-8 md:py-16">
+        <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Company Info */}
-          <div className="space-y-4">
+          <div className="col-span-2 lg:col-span-1 space-y-4">
             {branding.logoUrl ? (
               <Image
                 src={branding.logoUrl}
@@ -155,7 +155,7 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 text-sm text-muted-foreground md:flex-row">
+        <div className="mt-8 md:mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 md:pt-8 text-sm text-muted-foreground md:flex-row">
           <p>&copy; {currentYear} {branding.name.replace(/\.\s*$/, '')}. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-muted-foreground/60 hover:text-primary transition-colors">

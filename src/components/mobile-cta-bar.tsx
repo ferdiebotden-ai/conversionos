@@ -4,10 +4,13 @@
  * Sticky Mobile CTA Bar
  * Fixed bottom bar on mobile (<768px) with Call + Get Estimate buttons.
  * Hidden on /estimate, /visualizer, /admin/* routes.
+ *
+ * Sets --mobile-cta-bar-height CSS custom property on <html> so the
+ * ReceptionistWidget FAB can offset itself above this bar.
  */
 
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,10 +25,10 @@ export function MobileCTABar() {
   const branding = useBranding();
   const mobileCta = getMobileCTA(useCopyContext());
   const [visible, setVisible] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Show after first scroll or 2s delay
-    let timeout: ReturnType<typeof setTimeout>;
     let shown = false;
 
     function show() {
@@ -43,7 +46,7 @@ export function MobileCTABar() {
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    timeout = setTimeout(show, 2000);
+    const timeout = setTimeout(show, 2000);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
@@ -53,12 +56,43 @@ export function MobileCTABar() {
 
   // Hide on specific routes
   const isHidden = HIDDEN_PATHS.some(p => pathname.startsWith(p));
+
+  // Set CSS custom property for FAB coordination
+  useEffect(() => {
+    if (isHidden || !visible) {
+      document.documentElement.style.removeProperty('--mobile-cta-bar-height');
+      return;
+    }
+
+    const el = barRef.current;
+    if (!el) return;
+
+    const update = () => {
+      document.documentElement.style.setProperty(
+        '--mobile-cta-bar-height',
+        `${el.offsetHeight}px`
+      );
+    };
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--mobile-cta-bar-height');
+    };
+  }, [isHidden, visible]);
+
   if (isHidden || !visible) return null;
 
   const phoneDigits = branding.phone.replace(/\D/g, '');
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:hidden">
+    <div
+      ref={barRef}
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:hidden"
+    >
       <div className="flex gap-2">
         <Button
           asChild

@@ -41,7 +41,7 @@ export default async function ContactPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="border-b border-border bg-muted/30 px-4 py-12 md:py-16">
+      <section className="border-b border-border bg-muted/30 px-4 py-8 md:py-16">
         <div className="container mx-auto">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
@@ -56,7 +56,7 @@ export default async function ContactPage() {
       </section>
 
       {/* Main Content */}
-      <section className="px-4 py-12 md:py-16">
+      <section className="px-4 py-8 md:py-16">
         <div className="container mx-auto">
           <div className="grid gap-12 lg:grid-cols-3">
             {/* Contact Form */}
@@ -148,8 +148,8 @@ export default async function ContactPage() {
                 </CardContent>
               </Card>
 
-              {/* Map Placeholder */}
-              <Card>
+              {/* Map Placeholder — hidden on mobile */}
+              <Card className="hidden lg:block">
                 <CardContent className="p-0">
                   <div className="aspect-square w-full rounded-lg bg-muted flex items-center justify-center">
                     <p className="text-sm text-muted-foreground">

@@ -129,3 +129,14 @@
   }
   button, a, [role="button"], select, summary { cursor: pointer; }
 }
+
+@layer utilities {
+  /* Hide scrollbar while allowing scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

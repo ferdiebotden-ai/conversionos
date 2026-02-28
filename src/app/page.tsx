@@ -128,7 +128,7 @@ export default async function Home() {
       <SocialProofBar metrics={config.trustMetrics} />
 
       {/* Visualizer Teaser */}
-      <section className="px-4 py-16 md:py-20">
+      <section className="px-4 py-10 md:py-20">
         <div className="container mx-auto">
           <FadeInUp>
             <VisualizerTeaser portfolioImages={config.portfolio} />
@@ -138,7 +138,7 @@ export default async function Home() {
 
       {/* Services Section */}
       {config.services.length > 0 && (
-        <section className="border-t border-border px-4 py-16 md:py-20">
+        <section className="border-t border-border px-4 py-10 md:py-20">
           <div className="container mx-auto">
             <FadeInUp className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -164,7 +164,7 @@ export default async function Home() {
       )}
 
       {/* How It Works */}
-      <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">
+      <section className="border-t border-border bg-muted/30 px-4 py-10 md:py-20">
         <div className="container mx-auto">
           <FadeInUp className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -203,7 +203,7 @@ export default async function Home() {
 
       {/* Why Choose Us */}
       {config.whyChooseUs.length > 0 && (
-        <section className="border-t border-border px-4 py-16 md:py-20">
+        <section className="border-t border-border px-4 py-10 md:py-20">
           <div className="container mx-auto">
             <div className="grid gap-12 md:grid-cols-2 md:items-center">
               <FadeInUp>
@@ -260,7 +260,7 @@ export default async function Home() {
 
       {/* Testimonials Section */}
       {testimonials.length >= 2 && (
-        <section className="border-t border-border bg-muted/30 px-4 py-16 md:py-20">
+        <section className="border-t border-border bg-muted/30 px-4 py-10 md:py-20">
           <div className="container mx-auto">
             <FadeInUp className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -279,7 +279,7 @@ export default async function Home() {
       )}
 
       {/* Final CTA Section */}
-      <section className="border-t border-border bg-primary px-4 py-16 md:py-20">
+      <section className="border-t border-border bg-primary px-4 py-10 md:py-20">
         <FadeInUp className="container mx-auto text-center">
           <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
             Ready to See Your Renovation?

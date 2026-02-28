@@ -174,9 +174,10 @@ export function ChatInput({
         </Button>
       </div>
 
-      {/* Helper text */}
+      {/* Helper text — adaptive for desktop vs mobile */}
       <p className="text-xs text-muted-foreground mt-2">
-        Press Enter to send, Shift+Enter for new line
+        <span className="hidden sm:inline">Press Enter to send, Shift+Enter for new line</span>
+        <span className="sm:hidden">Tap send to message Emma</span>
         {canAttachMore && images.length > 0 && ` • ${3 - images.length} more image${3 - images.length !== 1 ? 's' : ''} allowed`}
       </p>
     </div>

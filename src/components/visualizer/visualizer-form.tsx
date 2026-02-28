@@ -87,9 +87,11 @@ function VisualizerFormInner() {
   }, [voiceTranscript]);
 
   // Auto-scroll with offset — keeps the selected item visible above the fold
-  const scrollToWithOffset = useCallback((el: HTMLElement | null, offset = 120) => {
+  // Smaller offset on mobile where header is shorter
+  const scrollToWithOffset = useCallback((el: HTMLElement | null, offset?: number) => {
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    const effectiveOffset = offset ?? (window.innerWidth < 768 ? 80 : 120);
+    const top = el.getBoundingClientRect().top + window.scrollY - effectiveOffset;
     window.scrollTo({ top, behavior: 'smooth' });
   }, []);
 

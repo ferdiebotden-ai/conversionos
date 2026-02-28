@@ -103,11 +103,12 @@ export function ReceptionistWidget() {
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={panelSpring}
             className={cn(
-              'fixed bottom-20 right-4 z-40',
+              'fixed right-4 z-50',
               'w-[calc(100vw-2rem)] max-w-[400px] h-[520px]',
               'bg-background rounded-2xl shadow-2xl border border-border',
               'flex flex-col overflow-hidden'
             )}
+            style={{ bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))' }}
           >
             {/* Chat Content — wrapped in VoiceProvider */}
             <VoiceProvider>
@@ -129,20 +130,23 @@ export function ReceptionistWidget() {
             exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className={cn(
-              'fixed bottom-20 right-4 z-40',
+              'fixed right-4 z-50',
               'max-w-[260px] px-4 py-3 rounded-2xl rounded-br-md',
               'bg-background border border-border shadow-lg',
               'text-sm text-foreground',
               'cursor-pointer'
             )}
+            style={{ bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))' }}
             onClick={handleFABClick}
           >
             <button
               onClick={handleTeaserDismiss}
-              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+              className="absolute -top-2 -right-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Dismiss"
             >
-              <X className="h-3 w-3" />
+              <span className="h-5 w-5 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" />
+              </span>
             </button>
             {teaserMessage}
           </motion.div>
@@ -154,7 +158,7 @@ export function ReceptionistWidget() {
         onClick={handleFABClick}
         {...(!shouldReduce && { whileHover: { scale: 1.08 }, whileTap: { scale: 0.92 } })}
         className={cn(
-          'fixed bottom-4 right-4 z-40',
+          'fixed right-4 z-50',
           'h-14 w-14 rounded-full',
           'bg-primary text-primary-foreground shadow-lg',
           'flex items-center justify-center',
@@ -162,6 +166,7 @@ export function ReceptionistWidget() {
           'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2',
           !hasAnimated && !isOpen && 'animate-pulse'
         )}
+        style={{ bottom: 'calc(1rem + var(--mobile-cta-bar-height, 0px))' }}
         aria-label={isOpen ? 'Close chat' : 'Chat with Emma'}
         title={isOpen ? 'Close chat' : 'Chat with Emma'}
       >
