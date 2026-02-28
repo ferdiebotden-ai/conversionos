@@ -5,8 +5,10 @@
  * [DEV-089]
  */
 
+/* eslint-disable jsx-a11y/alt-text -- @react-pdf/renderer Image component does not support alt prop */
 import {
   Document,
+  Image,
   Page,
   Text,
   View,
@@ -14,25 +16,8 @@ import {
 } from '@react-pdf/renderer';
 import type { Invoice, Payment, QuoteLineItem } from '@/types/database';
 import type { Branding } from '@/lib/branding';
-
-const STATIC_COLORS = {
-  secondary: '#1a1a1a',
-  muted: '#666666',
-  border: '#e5e5e5',
-  white: '#ffffff',
-};
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-CA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toISOString().split('T')[0] ?? '';
-}
+import { STATIC_COLORS } from './shared-pdf-styles';
+import { formatCurrency, formatDate, resolveImageUrl } from './pdf-utils';
 
 export interface InvoicePdfProps {
   invoice: Invoice;
@@ -48,6 +33,11 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
   const amountPaid = Number(invoice.amount_paid) || 0;
   const balanceDue = Number(invoice.balance_due) || 0;
   const primaryColor = branding.primaryColor;
+
+  // Logo handling — react-pdf Image does not support SVG
+  const logoUrl = branding.logoUrl || null;
+  const isSvgLogo = logoUrl ? logoUrl.toLowerCase().endsWith('.svg') : false;
+  const resolvedLogoUrl = logoUrl && !isSvgLogo ? resolveImageUrl(logoUrl) : null;
 
   const minRows = 10;
   const emptyRowsNeeded = Math.max(0, minRows - lineItems.length - 3);
@@ -290,7 +280,11 @@ export function InvoicePdfDocument({ invoice, payments, branding }: InvoicePdfPr
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: primaryColor }}>{branding.name}</Text>
+            {resolvedLogoUrl ? (
+              <Image src={resolvedLogoUrl} style={{ width: 180, height: 60, objectFit: 'contain' as const, marginRight: 12 }} />
+            ) : (
+              <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: primaryColor, marginRight: 12 }}>{branding.name}</Text>
+            )}
             <View style={styles.companyInfo}>
               <Text style={styles.companyAddress}>{branding.address}</Text>
               <Text style={styles.companyAddress}>{branding.city}, {branding.province} {branding.postal}</Text>

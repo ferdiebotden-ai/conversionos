@@ -43,14 +43,16 @@ export function groupLineItemsByCategory(
 
 /**
  * Format quote reference number.
- * Pattern: DEMO-{year}-{first 8 chars of lead ID uppercase}
+ * Pattern: {prefix}-{year}-{first 8 chars of lead ID uppercase}
+ * Default prefix is 'QE' (Quote Estimate). Callers may override.
  */
 export function formatQuoteNumber(
   quoteCreatedAt: string,
-  leadId: string
+  leadId: string,
+  prefix = 'QE'
 ): string {
   const year = new Date(quoteCreatedAt).getFullYear();
-  return `DEMO-${year}-${leadId.slice(0, 8).toUpperCase()}`;
+  return `${prefix}-${year}-${leadId.slice(0, 8).toUpperCase()}`;
 }
 
 /** Format a number as Canadian currency (no $ prefix — caller adds context) */

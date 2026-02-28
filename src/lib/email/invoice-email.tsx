@@ -13,6 +13,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Preview,
   Row,
   Section,
@@ -232,6 +233,9 @@ export function InvoiceEmailTemplate({ invoice, customMessage, branding }: Invoi
         <Container style={container}>
           {/* Header */}
           <Section style={headerSection}>
+            {branding.logoUrl && !branding.logoUrl.toLowerCase().endsWith('.svg') && (
+              <Img src={branding.logoUrl} width="180" height="48" alt={branding.name} style={{ marginBottom: '12px', objectFit: 'contain' as const }} />
+            )}
             <Text style={brandNameStyle}>{branding.name}</Text>
             <Text style={taglineStyle}>{branding.tagline}</Text>
           </Section>

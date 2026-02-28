@@ -24,6 +24,9 @@ interface TransparencyCardProps {
 }
 
 export function TransparencyCard({ data }: TransparencyCardProps) {
+  const rowSum = data.costBreakdown.reduce((sum, line) => sum + line.total, 0);
+  const hasUnlistedCosts = Math.abs(rowSum - data.totalBeforeMarkup) > 0.01;
+
   return (
     <div className="mx-2 my-2 p-4 bg-gradient-to-br from-primary/5 to-muted/30 border border-primary/10 rounded-lg space-y-3">
       {/* Room Analysis */}
@@ -67,6 +70,16 @@ export function TransparencyCard({ data }: TransparencyCardProps) {
                 <td className="text-right py-1.5 pl-2 tabular-nums">{formatCurrency(line.total)}</td>
               </tr>
             ))}
+            {hasUnlistedCosts && (
+              <tr className="border-b border-primary/5">
+                <td colSpan={4} className="py-1.5 pr-4 text-muted-foreground italic">
+                  Additional labour, fasteners &amp; sundries
+                </td>
+                <td className="text-right py-1.5 pl-2 tabular-nums text-muted-foreground italic">
+                  {formatCurrency(data.totalBeforeMarkup - rowSum)}
+                </td>
+              </tr>
+            )}
             {/* Subtotal row */}
             <tr className="border-t border-primary/10">
               <td colSpan={4} className="py-1.5 text-right text-muted-foreground font-medium">Subtotal</td>

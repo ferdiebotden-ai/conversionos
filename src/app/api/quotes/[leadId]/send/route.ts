@@ -157,9 +157,9 @@ export async function POST(
       QuotePdfDocument({ lead, quote, branding })
     );
 
-    // Create filename
-    const quoteDate = new Date(quote.created_at);
-    const quoteNumber = `DEMO-${quoteDate.getFullYear()}-${String(lead.id).slice(0, 8).toUpperCase()}`;
+    // Create filename (reuse shared formatter)
+    const { formatQuoteNumber } = await import('@/lib/pdf/pdf-utils');
+    const quoteNumber = formatQuoteNumber(quote.created_at, String(lead.id));
     const filename = `${quoteNumber}-Quote-${lead.name.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
 
     // Get project type for subject

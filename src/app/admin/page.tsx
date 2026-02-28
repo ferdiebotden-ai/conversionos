@@ -65,10 +65,10 @@ async function getDashboardData() {
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .eq('site_id', siteId)
-      .eq('status', 'sent'),
+      .in('status', ['sent', 'won']),
   ]);
 
-  // Calculate conversion rate
+  // Calculate conversion rate (sent + won = converted)
   const conversionRate = totalLeads && sentQuotes
     ? Math.round((sentQuotes / totalLeads) * 100)
     : 0;

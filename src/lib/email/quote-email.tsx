@@ -10,7 +10,6 @@ import {
   Container,
   Column,
   Head,
-  Heading,
   Hr,
   Html,
   Img,
@@ -22,6 +21,7 @@ import {
 } from '@react-email/components';
 import type { Lead, QuoteDraft } from '@/types/database';
 import type { Branding } from '@/lib/branding';
+import { formatQuoteNumber } from '@/lib/pdf/pdf-utils';
 
 // Static colors (non-brand)
 const STATIC_COLORS = {
@@ -75,8 +75,8 @@ export function QuoteEmailTemplate({ lead, quote, customMessage, branding, accep
   const quoteDate = new Date(quote.created_at);
   const expiresAt = quote.expires_at
     ? new Date(quote.expires_at)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const quoteNumber = `DEMO-${quoteDate.getFullYear()}-${String(lead.id).slice(0, 8).toUpperCase()}`;
+    : new Date(quoteDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const quoteNumber = formatQuoteNumber(quote.created_at, String(lead.id));
   const lineItemCount = Array.isArray(quote.line_items) ? quote.line_items.length : 0;
   const primaryColor = branding.primaryColor;
 
@@ -264,6 +264,9 @@ export function QuoteEmailTemplate({ lead, quote, customMessage, branding, accep
         <Container style={container}>
           {/* Header */}
           <Section style={headerSection}>
+            {branding.logoUrl && !branding.logoUrl.toLowerCase().endsWith('.svg') && (
+              <Img src={branding.logoUrl} width="180" height="48" alt={branding.name} style={{ marginBottom: '12px', objectFit: 'contain' as const }} />
+            )}
             <Text style={brandNameStyle}>{branding.name}</Text>
             <Text style={taglineStyle}>{branding.tagline}</Text>
           </Section>

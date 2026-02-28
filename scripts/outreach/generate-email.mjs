@@ -246,11 +246,12 @@ export function textToHtml(body, signature, caslFooter) {
 
   // Signature block (table-based for cross-client reliability)
   const sigHtml = `
-<table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #9ca3af;padding-top:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-<tr><td>
-<strong style="font-size:14px">Ferdie Botden, CPA</strong><br>
-<span style="font-size:13px;opacity:0.7">Founder, NorBot Systems Inc.</span><br>
-<span style="font-size:13px;opacity:0.7">226-444-3478</span>
+<table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #d1d5db;padding-top:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+<tr><td style="line-height:1.5">
+<strong style="font-size:14px;color:#1a1a1a">Ferdie Botden, CPA</strong><br>
+<span style="font-size:13px;color:#6b7280">Founder, NorBot Systems Inc.</span><br>
+<span style="font-size:13px;color:#6b7280">226-444-3478</span><br>
+<a href="https://www.norbotsystems.com" style="font-size:13px;color:#2563eb;text-decoration:none">norbotsystems.com</a>
 </td></tr>
 </table>`;
 

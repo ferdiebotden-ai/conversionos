@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
-import { DollarSign, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { DollarSign, AlertCircle } from 'lucide-react';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-CA', {
@@ -25,7 +25,7 @@ async function getInvoiceMetrics() {
   ] = await Promise.all([
     supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('site_id', siteId).neq('status', 'cancelled'),
     supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('site_id', siteId).in('status', ['sent', 'partially_paid', 'overdue']),
-    supabase.from('invoices').select('amount_paid').eq('site_id', siteId).eq('status', 'paid'),
+    supabase.from('invoices').select('amount_paid').eq('site_id', siteId).in('status', ['paid', 'partially_paid']),
     supabase.from('invoices').select('balance_due').eq('site_id', siteId).in('status', ['sent', 'partially_paid', 'overdue']),
   ]);
 

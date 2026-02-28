@@ -41,6 +41,7 @@ White-label AI renovation platform for Ontario contractors. Single codebase, thr
 | Contractor lead intake (voice dictation, text, form) | — | Yes | Yes |
 | Invoicing + payment tracking (Create Invoice from quote) | — | Yes | Yes |
 | Architecture drawings management | — | Yes | Yes |
+| Live design refinement (chat re-renders starred concept) | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
 | Quote assistance (admin-configurable) | — | Yes | Yes |
 | CSV price upload (contractor's own pricing) | — | Yes | Yes |
@@ -61,7 +62,7 @@ Feature gating: `canAccess(tier, feature)` in `src/lib/entitlements.ts`. Server:
 **Framework:** Next.js 16.1.6 (App Router, Turbopack dev, `proxy.ts` tenant routing) • React 19 • TypeScript 5 (strict) • Tailwind v4 (OKLCH) • shadcn/ui • Zustand 5 • Framer Motion
 **AI:** OpenAI GPT-5.2 (chat, vision, quotes, extraction) • Gemini 3.1 Flash Image / Nano Banana 2 (4 concepts/gen) • ElevenLabs (voice, all tiers web) • Vercel AI SDK v6 • Zod validation on all AI outputs
 **Data:** Supabase PostgreSQL (ca-central-1, RLS) • Supabase Storage • Resend (email) • Upstash Redis (rate limiting)
-**Quality:** Sentry (`norbot-systems-inc/javascript-nextjs`) • Vitest (799 unit tests) • Playwright (7 E2E suites) • Husky + lint-staged
+**Quality:** Sentry (`norbot-systems-inc/javascript-nextjs`) • Vitest (859 unit tests) • Playwright (8 E2E suites) • Husky + lint-staged
 **PDF:** @react-pdf/renderer (multi-page quotes) + jspdf (invoices) • Sharp (image processing) • heic2any (iOS)
 
 ---
@@ -178,6 +179,26 @@ Customers can star/favourite individual concepts on the visualizer results page 
 - **Admin indicator:** `src/components/admin/lead-visualization-panel.tsx` — gold star badge on concept thumbnails the customer favourited (reads `client_favourited_concepts` from visualization record).
 - **Share API:** `POST /api/visualizations/[id]/share` — emails selected concepts to the customer.
 - **Handoff:** `clientFavouritedConcepts: number[]` in `HandoffContext` (`src/lib/chat/handoff.ts`). Serialized from visualizer form, reconstructed from DB via `buildHandoffFromVisualization()`. Emma's prompt includes "The customer favourited: Concept 1, Concept 3".
+
+### Live Design Refinement (Accelerate+)
+
+During the estimate chat, Emma can detect when the homeowner describes design changes and automatically re-render the starred concept to reflect those changes. This closes the loop between conversation and visualisation — the homeowner sees their words become images in real time.
+
+**Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring across six categories: material (25pts), structural (25pts), finish (15pts), budget (15pts), dimensions (10pts), scope (10pts). Threshold: 50 points to trigger a refinement. Zero LLM cost — pure string matching.
+
+**Refinement API:** `POST /api/ai/visualize/refine` — re-generates the starred concept using Gemini multi-image reference (original photo for geometry, starred concept for aesthetic direction). Zod-validated request/response. Tier-gated (Accelerate+). Max 3 refinements per session with 30-second cooldown between requests.
+
+**Rendering panel:** `src/components/chat/rendering-panel.tsx` — persistent image panel showing the starred concept alongside the chat. Desktop: sidebar positioned above `EstimateSidebar`. Mobile: collapsible compact card. Four states: idle (static image), generating (pulse animation), updated (crossfade transition), hidden (no starred concept).
+
+**Enlarged dialog:** `RenderingEnlargedDialog` — full-size rendering view with signal summary and refinement badge showing which refinement iteration is displayed.
+
+**Chat integration:** `chat-interface.tsx` — extracts signals from user messages, checks readiness via `useEffect`, fires refinement as fire-and-forget fetch to `/api/ai/visualize/refine`, injects a system message when the rendering updates so Emma can acknowledge the change.
+
+**Emma awareness:** Emma's estimate page prompt includes a "Live Design Rendering" section instructing her to acknowledge rendering updates briefly, focus on closing toward estimate submission, and avoid encouraging endless design iteration.
+
+**Cost:** ~$0.10 per refinement (Gemini image generation), max $0.30/session (3 refinements). Zero LLM cost for signal detection.
+
+**Tests:** 41 rendering-gate unit tests, 19 rendering-panel unit tests, 5 E2E tests (desktop panel visibility, no panel without starred concept, enlarge dialog interaction, sidebar accessibility, mobile compact card).
 
 ---
 
@@ -318,11 +339,11 @@ Eye toggle in settings header opens iframe side panel (`/?__preview=1`). `postMe
 
 ---
 
-## API Routes (48 endpoints)
+## API Routes (49 endpoints)
 
 | Group | Count | Key Routes |
 |-------|-------|------------|
-| **AI** | 7 | `/api/ai/chat` (streaming), `/api/ai/visualize/stream` (SSE), `/api/ai/analyze-photo` (GPT Vision), `/api/ai/receptionist`, `/api/ai/summarize-voice`, `/api/ai/visualizer-chat` |
+| **AI** | 8 | `/api/ai/chat` (streaming), `/api/ai/visualize/stream` (SSE), `/api/ai/visualize/refine` (live design refinement), `/api/ai/analyze-photo` (GPT Vision), `/api/ai/receptionist`, `/api/ai/summarize-voice`, `/api/ai/visualizer-chat` |
 | **Leads** | 6 | CRUD + `/api/leads/intake` (contractor intake), `/api/transcribe` (Whisper) |
 | **Quotes** | 8 | CRUD + `/api/quotes/[leadId]/pdf`, `/regenerate`, `/send`, `/versions`, `/api/quotes/accept/[token]` (public e-signature) |
 | **Invoices** | 6 | CRUD + PDF, payments, send, Sage 50 CSV export |
@@ -376,9 +397,9 @@ All tenant branding via `admin_settings` JSONB: business info, logo (SVG/PNG URL
 | Check | Status |
 |-------|--------|
 | `npm run build` | Passing (TypeScript strict + Next.js) |
-| `npm run test` | 799 passing (27 test files) |
+| `npm run test` | 859 passing (29 test files) |
 | `npm run lint` | Passing |
-| E2E suites | 7 (quote-editor-core, transparency, tiers, CSV, templates, public, enterprise) |
+| E2E suites | 8 (quote-editor-core, transparency, tiers, CSV, templates, public, enterprise, live-design-refinement) |
 
 ---
 

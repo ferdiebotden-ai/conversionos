@@ -131,7 +131,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
       <MetricCard
         title="Conversion Rate"
         value={`${metrics.conversionRate}%`}
-        description="Leads to quotes sent"
+        description="Sent or won"
         icon={TrendingUp}
       />
       <MetricCard

@@ -24,12 +24,20 @@ import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
 import { VoiceIndicator } from '@/components/voice/voice-indicator';
 import { VoiceTranscriptMessage } from '@/components/voice/voice-transcript-message';
 import { compressImage, fileToBase64 } from '@/lib/utils/image';
-import { readHandoffContext, clearHandoffContext, buildHandoffPromptPrefix, type HandoffContext } from '@/lib/chat/handoff';
+import { readHandoffContext, clearHandoffContext, type HandoffContext } from '@/lib/chat/handoff';
 import { Save, FileText, Send } from 'lucide-react';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 import { useBranding } from '@/components/branding-provider';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
 import { getChatWelcome, getChatHandoffWelcome, getChatSkipText } from '@/lib/copy/site-copy';
+import {
+  extractDesignSignals,
+  calculateRenderingReadiness,
+  buildSignalSummary,
+  RENDERING_CONFIG,
+  type DesignSignal,
+} from '@/lib/ai/rendering-gate';
+import { RenderingPanel, RenderingEnlargedDialog } from './rendering-panel';
 
 // Helper to extract text content from UIMessage parts
 function getMessageContent(message: UIMessage): string {
@@ -110,19 +118,41 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
   const [voiceTranscriptMessages, setVoiceTranscriptMessages] = useState<ChatMessage[]>([]);
   const [handoffContext, setHandoffContext] = useState<HandoffContext | null>(propHandoffContext ?? null);
 
+  // ── Live rendering refinement state ────────────────────────────────────────
+  const [currentRendering, setCurrentRendering] = useState<string | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
+  const [refinementCount, setRefinementCount] = useState(0);
+  const [accumulatedSignals, setAccumulatedSignals] = useState<DesignSignal[]>([]);
+  const [lastRefinementTime, setLastRefinementTime] = useState<number | null>(null);
+  const [signalSummary, setSignalSummary] = useState<string | null>(null);
+  const [showRenderingEnlarged, setShowRenderingEnlarged] = useState(false);
+
   // Read handoff context from sessionStorage if not provided via prop
   useEffect(() => {
     if (propHandoffContext) return; // DB-backed context takes priority
     const ctx = readHandoffContext();
     if (ctx && ctx.toPersona === 'quote-specialist') {
-      setHandoffContext(ctx);
+      setHandoffContext(ctx); // eslint-disable-line react-hooks/set-state-in-effect
       clearHandoffContext();
     }
   }, [propHandoffContext]);
 
+  // Initialise rendering from starred concept in handoff context
+  useEffect(() => {
+    const ctx = handoffContext;
+    if (!ctx?.clientFavouritedConcepts?.length || !ctx.visualizationData?.concepts) return;
+    const starredIdx = ctx.clientFavouritedConcepts[0];
+    if (starredIdx == null) return;
+    const concept = ctx.visualizationData.concepts[starredIdx];
+    if (concept?.imageUrl) {
+      setCurrentRendering(concept.imageUrl); // eslint-disable-line react-hooks/set-state-in-effect
+    }
+  }, [handoffContext]);
+
   // Subscribe to voice transcript from VoiceProvider
   const { transcript: voiceTranscript } = useVoice();
   const processedVoiceIdsRef = useRef<Set<string>>(new Set());
+  const parseEstimateRef = useRef<(content: string, role?: 'user' | 'assistant') => void>(() => {});
 
   // Sync voice transcript entries into voiceTranscriptMessages (and parse estimate data)
   useEffect(() => {
@@ -136,8 +166,8 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
           createdAt: entry.timestamp,
           source: 'voice',
         };
-        setVoiceTranscriptMessages((prev) => [...prev, msg]);
-        parseEstimateFromResponse(entry.content, entry.role);
+        setVoiceTranscriptMessages((prev) => [...prev, msg]); // eslint-disable-line react-hooks/set-state-in-effect
+        parseEstimateRef.current(entry.content, entry.role);
       }
     }
   }, [voiceTranscript]);
@@ -223,13 +253,14 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
   }), [handoffContext, estimateData.projectType, estimateData.areaSqft, estimateData.finishLevel, estimateData.timeline, estimateData.goals, uploadedImages]);
 
   // Convert initial messages to UIMessage format for useChat
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const initialUIMessages = useMemo(() => {
     return startingMessages.map(msg => ({
       id: msg.id,
       role: msg.role as 'user' | 'assistant',
       parts: [{ type: 'text' as const, text: msg.content }],
     }));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     messages,
@@ -243,6 +274,9 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
+  // Track which message IDs we've already extracted signals from
+  const extractedSignalIdsRef = useRef<Set<string>>(new Set());
+
   // Sync local messages with chat messages and add image data
   useEffect(() => {
     const messagesWithImages: ChatMessage[] = messages.map((msg) => ({
@@ -252,12 +286,23 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       images: uploadedImages.get(msg.id) || undefined,
       createdAt: undefined,
     }));
-    setLocalMessages(messagesWithImages);
+    setLocalMessages(messagesWithImages); // eslint-disable-line react-hooks/set-state-in-effect
 
     // Parse estimate data from recent messages (both user and assistant)
     const recentMessages = messagesWithImages.slice(-4);
     for (const msg of recentMessages) {
-      parseEstimateFromResponse(msg.content, msg.role);
+      parseEstimateRef.current(msg.content, msg.role);
+    }
+
+    // Extract design signals from new user messages (for rendering refinement)
+    for (const msg of messagesWithImages) {
+      if (msg.role === 'user' && !extractedSignalIdsRef.current.has(msg.id)) {
+        extractedSignalIdsRef.current.add(msg.id);
+        const newSignals = extractDesignSignals(msg.content);
+        if (newSignals.length > 0) {
+          setAccumulatedSignals(prev => [...prev, ...newSignals]);
+        }
+      }
     }
 
     // Update progress step based on conversation
@@ -280,6 +325,58 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
     }
   }, [localMessages, voiceTranscriptMessages, isLoading]);
 
+  // ── Rendering readiness check + auto-trigger ────────────────────────────────
+  useEffect(() => {
+    if (!currentRendering || isRefining) return;
+    const vizId = handoffContext?.visualizationData?.id ?? visualizationContext?.id;
+    if (!vizId) return;
+
+    const readiness = calculateRenderingReadiness(accumulatedSignals, refinementCount, lastRefinementTime);
+    if (!readiness.isReady) return;
+
+    setIsRefining(true); // eslint-disable-line react-hooks/set-state-in-effect
+    const starredIdx = handoffContext?.clientFavouritedConcepts?.[0] ?? 0;
+
+    fetch('/api/ai/visualize/refine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visualizationId: vizId,
+        starredConceptIndex: starredIdx,
+        designSignals: readiness.signals,
+        estimateData: {
+          projectType: estimateData.projectType,
+          areaSqft: estimateData.areaSqft,
+          finishLevel: estimateData.finishLevel,
+          timeline: estimateData.timeline,
+          goals: estimateData.goals ? [estimateData.goals] : undefined,
+        },
+        refinementNumber: refinementCount + 1,
+      }),
+    })
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => {
+        setCurrentRendering(data.imageUrl);
+        setRefinementCount(prev => prev + 1);
+        setAccumulatedSignals([]);
+        setLastRefinementTime(Date.now());
+        setSignalSummary(buildSignalSummary(readiness.signals));
+
+        // Inject acknowledgement message
+        const ackMessage: ChatMessage = {
+          id: `rendering-ack-${Date.now()}`,
+          role: 'assistant',
+          content: `I see your vision is taking shape! Your design rendering has been updated based on your preferences.`,
+          createdAt: new Date(),
+        };
+        setLocalMessages(prev => [...prev, ackMessage]);
+      })
+      .catch(err => {
+        console.error('Rendering refinement failed:', err);
+      })
+      .finally(() => setIsRefining(false));
+  }, [accumulatedSignals, currentRendering, isRefining, refinementCount, lastRefinementTime, handoffContext, visualizationContext, estimateData]);  
+
   // Handle voice transcript entries — parse estimate data in real-time
   const handleVoiceMessage = useCallback((entry: VoiceTranscriptEntry) => {
     const msg: ChatMessage = {
@@ -290,7 +387,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       source: 'voice',
     };
     setVoiceTranscriptMessages((prev) => [...prev, msg]);
-    parseEstimateFromResponse(entry.content, entry.role);
+    parseEstimateRef.current(entry.content, entry.role);
   }, []);
 
   // Parse estimate data from AI response and user messages
@@ -403,6 +500,11 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       }
     }
   }, []);
+
+  // Keep ref in sync for early callers (useEffect avoids render-phase ref write)
+  useEffect(() => {
+    parseEstimateRef.current = parseEstimateFromResponse;
+  }, [parseEstimateFromResponse]);
 
   const handleSend = async (message: string, images: File[]) => {
     let imageDataUrls: string[] = [];
@@ -680,6 +782,21 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         {/* Voice Indicator — inline when voice active */}
         <VoiceIndicator context="estimate" />
 
+        {/* Mobile rendering panel */}
+        {currentRendering && (
+          <div data-testid="rendering-panel-mobile" className="lg:hidden px-4 py-2 border-t border-border flex-shrink-0">
+            <RenderingPanel
+              imageUrl={currentRendering}
+              isGenerating={isRefining}
+              refinementCount={refinementCount}
+              maxRefinements={RENDERING_CONFIG.maxRefinements}
+              signalSummary={signalSummary}
+              onEnlarge={() => setShowRenderingEnlarged(true)}
+              compact
+            />
+          </div>
+        )}
+
         {/* Mobile estimate card */}
         {(sidebarData.projectType || photosCount > 0) && (
           <div className="lg:hidden px-4 py-2 border-t border-border flex-shrink-0">
@@ -724,13 +841,27 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       </div>
 
       {/* Estimate sidebar - desktop only */}
-      <div className="hidden lg:block w-80 border-l border-border p-4 overflow-y-auto">
-        <EstimateSidebar
-          data={sidebarData}
-          isLoading={isLoading}
-          onDataChange={handleEstimateDataChange}
-          onSubmitRequest={() => setShowSubmitModal(true)}
-        />
+      <div className="hidden lg:flex lg:flex-col w-80 border-l border-border overflow-hidden">
+        {currentRendering && (
+          <div data-testid="rendering-panel-desktop" className="flex-shrink-0 p-4 border-b border-border">
+            <RenderingPanel
+              imageUrl={currentRendering}
+              isGenerating={isRefining}
+              refinementCount={refinementCount}
+              maxRefinements={RENDERING_CONFIG.maxRefinements}
+              signalSummary={signalSummary}
+              onEnlarge={() => setShowRenderingEnlarged(true)}
+            />
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto p-4">
+          <EstimateSidebar
+            data={sidebarData}
+            isLoading={isLoading}
+            onDataChange={handleEstimateDataChange}
+            onSubmitRequest={() => setShowSubmitModal(true)}
+          />
+        </div>
       </div>
 
       {/* Save Progress Modal */}
@@ -755,6 +886,16 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         onClose={() => setShowFormModal(false)}
         initialData={sidebarData}
         onSubmit={handleFormSubmit}
+      />
+
+      {/* Enlarged rendering dialog */}
+      <RenderingEnlargedDialog
+        open={showRenderingEnlarged}
+        onOpenChange={setShowRenderingEnlarged}
+        imageUrl={currentRendering}
+        signalSummary={signalSummary}
+        refinementCount={refinementCount}
+        maxRefinements={RENDERING_CONFIG.maxRefinements}
       />
     </div>
   );
