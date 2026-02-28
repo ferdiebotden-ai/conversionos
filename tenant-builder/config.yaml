@@ -108,3 +108,14 @@ nightly:
   limit: 10
   concurrency: 4
   skip_provisioned: true    # Skip targets that already have a demo tenant
+
+# Go-Live Audit
+audit:
+  wcag_contrast_threshold: 4.5    # WCAG AA normal text ratio
+  original_match_threshold: 80    # Minimum original-vs-demo match score (%)
+  pdf_check_enabled: true
+  email_check_enabled: true
+  viewports:
+    - { width: 1440, height: 900, label: "desktop" }
+    - { width: 768, height: 1024, label: "tablet" }
+    - { width: 390, height: 844, label: "mobile" }

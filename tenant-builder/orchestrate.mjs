@@ -47,6 +47,7 @@ const { values: args } = parseArgs({
     'skip-qa': { type: 'boolean', default: false },
     'skip-git': { type: 'boolean', default: false },
     'skip-outreach': { type: 'boolean', default: false },
+    'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
   },
@@ -62,13 +63,15 @@ Modes:
   --url URL --site-id ID --tier TIER  Direct URL (bypass pipeline)
   --discover --cities "A,B" --limit N Firecrawl search + build
   --nightly                           Nightly run (batch, limit 10)
+  --audit-only --site-id ID --url URL QA-only audit on existing tenant
 
 Options:
   --concurrency N    Max parallel workers (default: 4)
   --timeout-multiplier N  Scale all timeouts (default: 1)
   --dry-run          Score + scrape only, no provisioning
   --skip-qa          Skip QA checks
-  --skip-git         Skip git commit + push`);
+  --skip-git         Skip git commit + push
+  --skip-outreach    Skip outreach email drafts`);
   process.exit(0);
 }
 
@@ -76,6 +79,14 @@ const limit = parseInt(args.limit, 10);
 const concurrency = parseInt(args.concurrency, 10);
 const dryRun = args['dry-run'];
 const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
+const auditOnly = args['audit-only'];
+
+if (auditOnly) {
+  if (!args['site-id'] || !args.url) {
+    logger.error('--audit-only requires --site-id and --url');
+    process.exit(1);
+  }
+}
 
 // ──────────────────────────────────────────────────────────
 // Step 1: Select targets
@@ -121,7 +132,7 @@ if (args.nightly) {
 } else if (args.discover) {
   targets = await runDiscovery();
 } else {
-  logger.error('No mode specified. Use --batch, --target-id, --url, --discover, or --nightly');
+  logger.error('No mode specified. Use --batch, --target-id, --url, --discover, --audit-only, or --nightly');
   process.exit(1);
 }
 
@@ -176,6 +187,18 @@ if (!args.url) { // Skip scoring for direct URL mode
 // Step 3: Process targets (scrape + provision)
 // ──────────────────────────────────────────────────────────
 
+let results;
+
+if (auditOnly) {
+  // Audit-only: skip scrape/provision, create synthetic results
+  results = targets.map(t => ({
+    status: 'fulfilled',
+    value: { siteId: t.slug, targetId: t.id },
+  }));
+  logger.info(`Audit-only mode: ${targets.length} tenant(s)`);
+}
+
+if (!auditOnly) {
 logger.info(`Processing ${targets.length} target(s) with concurrency ${concurrency}`);
 
 const tasks = targets.map(target => async () => {
@@ -246,13 +269,14 @@ const tasks = targets.map(target => async () => {
   return { siteId, targetId: target.id };
 });
 
-const results = await pool(tasks, concurrency);
+results = await pool(tasks, concurrency);
+}
 
 // ──────────────────────────────────────────────────────────
 // Step 4: Merge proxy fragments + git + deploy
 // ──────────────────────────────────────────────────────────
 
-if (!dryRun) {
+if (!dryRun && !auditOnly) {
   // Merge proxy fragments
   logger.info('Merging proxy fragments...');
   try {
@@ -313,7 +337,7 @@ if (!dryRun) {
 // Step 4b: Verify tenant URLs are reachable
 // ──────────────────────────────────────────────────────────
 
-if (!dryRun && !args['skip-qa'] && !args['skip-git']) {
+if (!dryRun && !auditOnly && !args['skip-qa'] && !args['skip-git']) {
   const tenantUrls = results
     .filter(r => r.status === 'fulfilled')
     .map(r => `https://${r.value.siteId}.norbotsystems.com`);
@@ -331,11 +355,11 @@ if (!dryRun && !args['skip-qa'] && !args['skip-git']) {
 
 const qaResults = [];
 
-if (!dryRun && !args['skip-qa']) {
+if ((!dryRun || auditOnly) && !args['skip-qa']) {
   for (const r of results) {
     if (r.status !== 'fulfilled') continue;
     const { siteId, targetId } = r.value;
-    const siteUrl = `https://${siteId}.norbotsystems.com`;
+    const siteUrl = auditOnly ? args.url : `https://${siteId}.norbotsystems.com`;
     const outputDir = resolve(TB_ROOT, `results/${TODAY}/${siteId}`);
     const scrapedPath = resolve(outputDir, 'scraped.json');
 
@@ -378,7 +402,29 @@ if (!dryRun && !args['skip-qa']) {
         }
       }
 
-      // 5b. Screenshots
+      // 5b. Live site audit (non-blocking)
+      try {
+        logger.info(`[${siteId}] Running live site audit...`);
+        const { runLiveSiteAudit } = await import('./qa/live-site-audit.mjs');
+        const auditTier = auditOnly ? (args.tier || 'accelerate') : (args.tier || CONFIG.provisioning.default_tier);
+        await runLiveSiteAudit(siteUrl, siteId, { outputPath: outputDir, tier: auditTier });
+      } catch (e) {
+        logger.warn(`[${siteId}] Live site audit failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5c. Original vs demo comparison (non-blocking, only if scraped.json exists)
+      if (existsSync(scrapedPath)) {
+        try {
+          logger.info(`[${siteId}] Running original vs demo comparison...`);
+          const scrapedData = JSON.parse(readFileSync(scrapedPath, 'utf-8'));
+          const { runOriginalVsDemo } = await import('./qa/original-vs-demo.mjs');
+          await runOriginalVsDemo(siteUrl, scrapedData, { outputPath: outputDir });
+        } catch (e) {
+          logger.warn(`[${siteId}] Original vs demo comparison failed: ${e.message?.slice(0, 100)}`);
+        }
+      }
+
+      // 5d. Screenshots
       try {
         execFileSync('node', [
           resolve(TB_ROOT, 'qa/screenshot.mjs'),
@@ -390,7 +436,7 @@ if (!dryRun && !args['skip-qa']) {
         });
       } catch { /* screenshots may fail if not deployed yet */ }
 
-      // 5c. Visual QA with refinement
+      // 5e. Visual QA with refinement
       const maxIter = CONFIG.qa.max_refinement_iterations || 3;
       const qaTimeoutMs = (maxIter * 250 + 120) * 1000 * timeoutMultiplier;
       const qaArgs = [
@@ -406,12 +452,30 @@ if (!dryRun && !args['skip-qa']) {
         maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      // 5d. Generate audit report
+      // 5f. PDF branding check (non-blocking)
+      try {
+        logger.info(`[${siteId}] Running PDF branding check...`);
+        const { runPdfBrandingCheck } = await import('./qa/pdf-branding-check.mjs');
+        await runPdfBrandingCheck(siteId, { outputPath: outputDir });
+      } catch (e) {
+        logger.warn(`[${siteId}] PDF branding check failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5g. Email branding check (non-blocking)
+      try {
+        logger.info(`[${siteId}] Running email branding check...`);
+        const { runEmailBrandingCheck } = await import('./qa/email-branding-check.mjs');
+        await runEmailBrandingCheck(siteId, { outputPath: outputDir });
+      } catch (e) {
+        logger.warn(`[${siteId}] Email branding check failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5h. Generate audit report
       let qaStatus = 'complete';
       try {
         const { generateAuditReport } = await import('./qa/audit-report.mjs');
         const report = generateAuditReport(siteId, outputDir);
-        qaStatus = report.status; // 'complete' or 'review'
+        qaStatus = report.verdict === 'NOT READY' ? 'not_ready' : report.verdict === 'REVIEW' ? 'review' : 'complete';
       } catch (e) {
         logger.warn(`[${siteId}] Audit report generation failed: ${e.message?.slice(0, 100)}`);
       }
@@ -435,7 +499,7 @@ if (!dryRun && !args['skip-qa']) {
 // Step 6: Outreach (email drafts for passed QA targets)
 // ──────────────────────────────────────────────────────────
 
-if (!dryRun && !args['skip-outreach'] && qaResults.length > 0) {
+if (!dryRun && !auditOnly && !args['skip-outreach'] && qaResults.length > 0) {
   const passed = qaResults.filter(r => r.pass);
   if (passed.length > 0) {
     logger.info(`Creating outreach drafts for ${passed.length} target(s)`);

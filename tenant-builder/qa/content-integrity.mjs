@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import * as logger from '../lib/logger.mjs';
+import { parseOklch, hexToOklch, deltaE_oklch } from '../lib/colour-utils.mjs';
 
 // ──────────────────────────────────────────────────────────
 // Leakage definitions
@@ -212,90 +213,6 @@ async function checkDemoImages(page, pageUrl) {
   }
 
   return violations;
-}
-
-/**
- * Parse an OKLCH string like "oklch(0.588 0.108 180)" into { L, C, H }.
- * @param {string} oklchStr
- * @returns {{ L: number, C: number, H: number } | null}
- */
-function parseOklch(oklchStr) {
-  const match = oklchStr.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
-  if (!match) return null;
-  return { L: parseFloat(match[1]), C: parseFloat(match[2]), H: parseFloat(match[3]) };
-}
-
-/**
- * Parse a hex colour string into { r, g, b } (0-255).
- * @param {string} hex
- * @returns {{ r: number, g: number, b: number } | null}
- */
-function parseHex(hex) {
-  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (!m) return null;
-  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-}
-
-/**
- * Convert sRGB (0-255) to linear RGB.
- */
-function srgbToLinear(c) {
-  c = c / 255;
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-/**
- * Convert linear RGB to OKLAB { L, a, b }.
- * Uses the standard sRGB -> OKLAB conversion via LMS intermediary.
- */
-function rgbToOklab(r, g, b) {
-  const lr = srgbToLinear(r);
-  const lg = srgbToLinear(g);
-  const lb = srgbToLinear(b);
-
-  const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
-  const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
-  const s = 0.0883024619 * lr + 0.2220049174 * lg + 0.6896926208 * lb;
-
-  const l_ = Math.cbrt(l);
-  const m_ = Math.cbrt(m);
-  const s_ = Math.cbrt(s);
-
-  return {
-    L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-    a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-    b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
-  };
-}
-
-/**
- * Convert hex colour to OKLCH { L, C, H }.
- */
-function hexToOklch(hex) {
-  const rgb = parseHex(hex);
-  if (!rgb) return null;
-  const lab = rgbToOklab(rgb.r, rgb.g, rgb.b);
-  const C = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
-  let H = Math.atan2(lab.b, lab.a) * (180 / Math.PI);
-  if (H < 0) H += 360;
-  return { L: lab.L, C, H };
-}
-
-/**
- * Compute Delta-E (OKLCH) between two colours.
- * Uses simple Euclidean distance in OKLCH space with hue wrapping.
- * @returns {number} - distance (< 5 is a close match)
- */
-function deltaE_oklch(a, b) {
-  const dL = (a.L - b.L) * 100; // Scale L from 0-1 to 0-100 for comparable magnitude
-  const dC = (a.C - b.C) * 100;
-  let dH = a.H - b.H;
-  if (dH > 180) dH -= 360;
-  if (dH < -180) dH += 360;
-  // Hue contribution weighted by chroma (low chroma = hue doesn't matter)
-  const avgC = (a.C + b.C) / 2;
-  const hueWeight = avgC * 100 * (dH / 180);
-  return Math.sqrt(dL * dL + dC * dC + hueWeight * hueWeight);
 }
 
 /**

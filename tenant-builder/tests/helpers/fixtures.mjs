@@ -177,6 +177,140 @@ export const mockContentIntegrityFail = {
   },
 };
 
+/** Mock live site audit result (passing) */
+export const mockLiveSiteAuditPass = {
+  passed: true,
+  checks: [
+    { check: 'cross_page_branding', passed: true, violations: [] },
+    { check: 'navigation_integrity', passed: true, links_checked: 12, violations: [] },
+    { check: 'responsive_layout', passed: true, violations: [] },
+    { check: 'wcag_contrast', passed: true, primary: '#2563eb', contrast_white: 4.56, wcag_aa_normal: true, wcag_aa_large: true, violations: [] },
+    { check: 'seo_meta', passed: true, violations: [] },
+    { check: 'image_performance', passed: true, total_images: 8, violations: [] },
+    { check: 'footer_consistency', passed: true, violations: [] },
+    { check: 'admin_route_gating', passed: true, tier: 'accelerate', violations: [] },
+  ],
+  violations: [],
+  summary: { checks_run: 8, checks_passed: 8 },
+};
+
+/** Mock live site audit result (failing) */
+export const mockLiveSiteAuditFail = {
+  passed: false,
+  checks: [
+    { check: 'cross_page_branding', passed: false, violations: [{ issue: 'primary_mismatch', page: '/about' }] },
+    { check: 'navigation_integrity', passed: true, links_checked: 10, violations: [] },
+    { check: 'responsive_layout', passed: true, violations: [] },
+    { check: 'wcag_contrast', passed: false, primary: '#ff0', contrast_white: 1.07, wcag_aa_normal: false, wcag_aa_large: false, violations: [{ issue: 'low_contrast', level: 'fail' }] },
+    { check: 'seo_meta', passed: true, violations: [] },
+    { check: 'image_performance', passed: true, total_images: 6, violations: [] },
+    { check: 'footer_consistency', passed: false, violations: [{ issue: 'missing_business_name' }] },
+    { check: 'admin_route_gating', passed: true, tier: 'accelerate', violations: [] },
+  ],
+  violations: [
+    { check: 'cross_page_branding', issue: 'primary_mismatch', page: '/about' },
+    { check: 'wcag_contrast', issue: 'low_contrast', level: 'fail' },
+    { check: 'footer_consistency', issue: 'missing_business_name' },
+  ],
+  summary: { checks_run: 8, checks_passed: 5 },
+};
+
+/** Mock original-vs-demo result (passing) */
+export const mockOriginalVsDemoPass = {
+  passed: true,
+  matchScore: 86,
+  comparisons: [
+    { field: 'business_name', match: true, expected: 'Test Reno Inc.', live: 'Test Reno Inc.', score: 100 },
+    { field: 'phone', match: true, expected: '519-555-0100', live: '519-555-0100', score: 100 },
+    { field: 'email', match: true, expected: 'info@testreno.com', live: 'info@testreno.com', score: 100 },
+    { field: 'service_count', match: true, expected: 2, live: 2, score: 100 },
+    { field: 'testimonials', match: true, expected_authors: 2, found_count: 1, score: 100 },
+    { field: 'primary_colour', match: true, expected: '#2563eb', live: 'oklch(0.588 0.108 180)', delta_e: 1.2, score: 100 },
+    { field: 'logo_presence', match: false, type: 'none', score: 0 },
+  ],
+  summary: { total_comparisons: 7, matched: 6, failed: 1, skipped: 0 },
+};
+
+/** Mock original-vs-demo result (failing) */
+export const mockOriginalVsDemoFail = {
+  passed: false,
+  matchScore: 43,
+  comparisons: [
+    { field: 'business_name', match: false, expected: 'Test Reno Inc.', live: 'ConversionOS Demo', score: 0 },
+    { field: 'phone', match: false, expected: '519-555-0100', live: '', score: 0 },
+    { field: 'email', match: true, expected: 'info@testreno.com', live: 'info@testreno.com', score: 100 },
+    { field: 'service_count', match: true, expected: 2, live: 3, score: 100 },
+    { field: 'testimonials', match: false, expected_authors: 2, found_count: 0, score: 0 },
+    { field: 'primary_colour', match: true, expected: '#2563eb', live: 'oklch(0.588 0.108 180)', delta_e: 1.2, score: 100 },
+    { field: 'logo_presence', match: true, type: 'image', score: 100 },
+  ],
+  summary: { total_comparisons: 7, matched: 4, failed: 3, skipped: 0 },
+};
+
+/** Mock PDF branding check result (passing) */
+export const mockPdfBrandingPass = {
+  passed: true,
+  violations: [],
+  summary: {
+    site_id: 'test-reno',
+    has_data: true,
+    has_logo: true,
+    logo_is_svg: false,
+    has_primary_colour: true,
+    critical_violations: 0,
+    warning_violations: 0,
+  },
+};
+
+/** Mock PDF branding check result (failing) */
+export const mockPdfBrandingFail = {
+  passed: false,
+  violations: [
+    { check: 'demo_leakage', severity: 'critical', field: 'name', value: 'ConversionOS Demo' },
+    { check: 'missing_field', severity: 'critical', field: 'phone', expected: 'non-empty' },
+  ],
+  summary: {
+    site_id: 'test-reno',
+    has_data: true,
+    has_logo: false,
+    logo_is_svg: false,
+    has_primary_colour: true,
+    critical_violations: 2,
+    warning_violations: 0,
+  },
+};
+
+/** Mock email branding check result (passing) */
+export const mockEmailBrandingPass = {
+  passed: true,
+  violations: [],
+  summary: {
+    site_id: 'test-reno',
+    has_data: true,
+    templates_scanned: 3,
+    outreach_scanned: true,
+    critical_violations: 0,
+    warning_violations: 0,
+  },
+};
+
+/** Mock email branding check result (failing) */
+export const mockEmailBrandingFail = {
+  passed: false,
+  violations: [
+    { check: 'source_anti_pattern', severity: 'critical', template: 'quote-email', pattern: 'DEMO-' },
+    { check: 'missing_field', severity: 'critical', field: 'name', expected: 'non-empty' },
+  ],
+  summary: {
+    site_id: 'test-reno',
+    has_data: true,
+    templates_scanned: 3,
+    outreach_scanned: true,
+    critical_violations: 2,
+    warning_violations: 0,
+  },
+};
+
 /** Mock audit report input */
 export const mockAuditInput = {
   contentIntegrity: mockContentIntegrityPass,

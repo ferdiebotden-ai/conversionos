@@ -182,6 +182,69 @@ export function assertAutoFixCoverage(profile, fieldsToFix) {
 }
 
 /**
+ * Assert valid live site audit result.
+ * @param {object} result - Live site audit result object
+ */
+export function assertValidLiveSiteAudit(result) {
+  expect(result).toBeDefined();
+  expect(typeof result.passed).toBe('boolean');
+  expect(Array.isArray(result.checks)).toBe(true);
+  expect(result.checks.length).toBe(8);
+
+  const expectedChecks = [
+    'cross_page_branding', 'navigation_integrity', 'responsive_layout',
+    'wcag_contrast', 'seo_meta', 'image_performance',
+    'footer_consistency', 'admin_route_gating',
+  ];
+  const checkNames = result.checks.map(c => c.check);
+  for (const name of expectedChecks) {
+    expect(checkNames).toContain(name);
+  }
+
+  expect(result.summary).toBeDefined();
+  expect(result.summary.checks_run).toBe(8);
+  expect(result.summary.checks_passed).toBeLessThanOrEqual(result.summary.checks_run);
+}
+
+/**
+ * Assert valid original-vs-demo comparison result.
+ * @param {object} result - Original-vs-demo result object
+ */
+export function assertValidOriginalVsDemo(result) {
+  expect(result).toBeDefined();
+  expect(typeof result.passed).toBe('boolean');
+  expect(typeof result.matchScore).toBe('number');
+  expect(result.matchScore).toBeGreaterThanOrEqual(0);
+  expect(result.matchScore).toBeLessThanOrEqual(100);
+  expect(Array.isArray(result.comparisons)).toBe(true);
+  expect(result.comparisons.length).toBe(7);
+
+  const expectedFields = [
+    'business_name', 'phone', 'email', 'service_count',
+    'testimonials', 'primary_colour', 'logo_presence',
+  ];
+  const fields = result.comparisons.map(c => c.field);
+  for (const name of expectedFields) {
+    expect(fields).toContain(name);
+  }
+}
+
+/**
+ * Assert valid go-live readiness JSON structure.
+ * @param {object} readiness - Go-live readiness object
+ */
+export function assertValidGoLiveReadiness(readiness) {
+  expect(readiness).toBeDefined();
+  expect(readiness.site_id).toBeDefined();
+  expect(readiness.date).toBeTruthy();
+  expect(['READY', 'REVIEW', 'NOT READY']).toContain(readiness.verdict);
+  expect(readiness.human_review_required).toBe(true);
+  expect(readiness.checks).toBeDefined();
+  expect(Array.isArray(readiness.critical_failures)).toBe(true);
+  expect(Array.isArray(readiness.warnings)).toBe(true);
+}
+
+/**
  * Assert valid visual QA result.
  * @param {object} result - Visual QA result object
  */
