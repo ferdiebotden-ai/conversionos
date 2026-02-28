@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "to": { "type": "string", "description": "Recipient email address" },
+    "subject": { "type": "string", "description": "Email subject line" },
+    "textBody": { "type": "string", "description": "Plain text email body" },
+    "htmlBody": { "type": "string", "description": "HTML email body" },
+    "callDay": { "type": "string", "description": "Day label for the call (tomorrow, Monday, etc.)" },
+    "callTime": { "type": "string", "description": "Time label for the call (10:30am, 2pm, etc.)" },
+    "firstName": { "type": "string", "description": "First name used in greeting" },
+    "demoUrl": { "type": "string", "description": "Demo URL for this target" },
+    "siteId": { "type": "string", "description": "Site ID used in the demo URL" }
+  },
+  "required": ["to", "subject", "textBody", "htmlBody", "callDay", "callTime", "firstName", "demoUrl", "siteId"]
+}

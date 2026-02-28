@@ -46,6 +46,7 @@ const { values: args } = parseArgs({
     'dry-run': { type: 'boolean', default: false },
     'skip-qa': { type: 'boolean', default: false },
     'skip-git': { type: 'boolean', default: false },
+    'skip-outreach': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
   },
@@ -431,7 +432,34 @@ if (!dryRun && !args['skip-qa']) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Step 6: Summary
+// Step 6: Outreach (email drafts for passed QA targets)
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun && !args['skip-outreach'] && qaResults.length > 0) {
+  const passed = qaResults.filter(r => r.pass);
+  if (passed.length > 0) {
+    logger.info(`Creating outreach drafts for ${passed.length} target(s)`);
+    try {
+      // Get target IDs for passed QA results
+      const passedIds = [];
+      for (const r of passed) {
+        const rows = await query('SELECT id FROM targets WHERE slug = ?', [r.siteId]);
+        if (rows.length > 0) passedIds.push(rows[0].id);
+      }
+      if (passedIds.length > 0) {
+        execFileSync('node', [
+          resolve(DEMO_ROOT, 'scripts/outreach/outreach-pipeline.mjs'),
+          '--target-ids', passedIds.join(','),
+        ], { cwd: DEMO_ROOT, env: process.env, timeout: 300000, stdio: 'inherit' });
+      }
+    } catch (e) {
+      logger.warn(`Outreach step failed: ${e.message?.slice(0, 200)}`);
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Step 7: Summary
 // ──────────────────────────────────────────────────────────
 
 const succeeded = results.filter(r => r.status === 'fulfilled').length;

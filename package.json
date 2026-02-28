@@ -18,6 +18,11 @@
     "pipeline:dry": "node scripts/nightly-pipeline.mjs --dry-run",
     "setup:candidates": "node scripts/setup-candidates-table.mjs",
     "gmail:drafts": "node scripts/create-gmail-drafts.mjs",
+    "outreach": "node scripts/outreach/outreach-pipeline.mjs",
+    "outreach:dry": "node scripts/outreach/outreach-pipeline.mjs --dry-run",
+    "rescore": "node scripts/outreach/rescore-all.mjs",
+    "rescore:report": "node scripts/outreach/rescore-all.mjs --report",
+    "send-monitor": "node scripts/outreach/send-monitor.mjs",
     "prepare": "husky"
   },
   "dependencies": {
