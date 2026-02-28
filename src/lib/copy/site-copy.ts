@@ -332,7 +332,7 @@ export function getChatHandoffWelcome(
 
   if (hasQuotes(ctx)) {
     const followUp = dimensionsNote
-      ? `\n\nI can see from the analysis that the space is approximately ${dimensionsNote}. When are you hoping to start this project, and do you have a budget range in mind?`
+      ? `\n\nI can see from the analysis that the space is approximately ${dimensionsNote.replace(/\.+$/, '')}. When are you hoping to start this project, and do you have a budget range in mind?`
       : `\n\nTo get you an accurate estimate, could you tell me about the size of the space and when you're hoping to start?`;
     return `${greeting} Let's turn that vision into real numbers.${followUp}`;
   }

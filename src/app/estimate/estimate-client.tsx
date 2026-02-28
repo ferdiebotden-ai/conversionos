@@ -32,6 +32,14 @@ export function EstimatePageClient() {
 
           // Build rich handoff from DB record
           const dbHandoff = buildHandoffFromVisualization(data);
+
+          // Merge client-side data from sessionStorage that the DB doesn't have
+          // (e.g. clientFavouritedConcepts — starring is client-side only)
+          const ssContext = readHandoffContext();
+          if (ssContext?.clientFavouritedConcepts?.length && !dbHandoff.clientFavouritedConcepts?.length) {
+            dbHandoff.clientFavouritedConcepts = ssContext.clientFavouritedConcepts;
+          }
+
           setHandoffContext(dbHandoff);
 
           // Also set legacy visualization context for backward compat

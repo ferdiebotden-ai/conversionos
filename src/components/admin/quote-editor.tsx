@@ -251,12 +251,14 @@ export function QuoteEditor({
       initExclusions = (initialQuote?.exclusions || DEFAULT_EXCLUSIONS).join('\n');
     }
 
-    // Tier mode
-    const initTierMode = initialQuoteRecord?.['tier_mode'] === 'tiered' ? 'tiered' as const : 'single' as const;
+    // Tier mode — inferred from presence of saved tier arrays (tier_mode column doesn't exist in DB)
+    const hasTierData = Array.isArray(initialQuoteRecord?.['tier_good'])
+      && (initialQuoteRecord['tier_good'] as unknown[]).length > 0;
+    const initTierMode = hasTierData ? 'tiered' as const : 'single' as const;
 
     // Tiered line items
     let initTieredLineItems: Record<TierName, LineItem[]>;
-    if (initialQuoteRecord?.['tier_mode'] === 'tiered') {
+    if (hasTierData) {
       initTieredLineItems = {
         good: parseLineItems(initialQuoteRecord['tier_good'] as Json ?? null),
         better: parseLineItems(initialQuoteRecord['tier_better'] as Json ?? null),

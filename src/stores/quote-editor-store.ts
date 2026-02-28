@@ -234,7 +234,12 @@ export const useQuoteEditorStore = create<StoreState & StoreActions>()(
             },
           });
         } else {
-          pushAndSet({ tierMode: 'tiered' });
+          // Entering tiered mode — load the active tier's items if available
+          const tierItems = state.tieredLineItems[state.activeTier];
+          pushAndSet({
+            tierMode: 'tiered',
+            ...(tierItems && tierItems.length > 0 ? { lineItems: tierItems } : {}),
+          });
         }
         return newMode;
       },
