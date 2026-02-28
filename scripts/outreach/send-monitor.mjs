@@ -5,7 +5,7 @@
  * 2. Generates a call script via Claude CLI
  * 3. Updates Turso with status, slot, and script
  *
- * Runs every 15 minutes via LaunchAgent (6am-9pm weekdays).
+ * Runs every 15 minutes via LaunchAgent (6am-9pm daily).
  *
  * Usage:
  *   node scripts/outreach/send-monitor.mjs          # Normal run
@@ -34,18 +34,13 @@ const { values: args } = parseArgs({
 });
 
 // ──────────────────────────────────────────────────────────
-// Time guard: only run 6am–9pm weekdays (ET)
+// Time guard: only run 6am–9pm daily (ET)
 // ──────────────────────────────────────────────────────────
 
 const now = new Date();
 const hour = now.getHours();
-const day = now.getDay();
 
 if (!args.force) {
-  if (day === 0 || day === 6) {
-    logger.debug('Weekend — skipping send monitor');
-    process.exit(0);
-  }
   if (hour < 6 || hour >= 21) {
     logger.debug('Outside 6am-9pm — skipping send monitor');
     process.exit(0);
