@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 /**
- * Gmail draft creator via IMAP APPEND.
- * Creates drafts only — never sends email.
+ * Gmail draft creator via Gmail REST API (OAuth2).
+ * Creates real Gmail drafts that appear in the Drafts folder.
  *
- * Ported from ~/pipeline/scripts/create_mail_drafts.py
+ * Requires: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN
+ * One-time setup: node scripts/outreach/gmail-auth-setup.mjs
  *
  * Usage:
  *   import { createGmailDraft } from './create-draft.mjs';
- *   const { messageId, success } = await createGmailDraft({ to, subject, textBody, htmlBody });
+ *   const { messageId, draftId, success } = await createGmailDraft({ to, subject, textBody, htmlBody });
  */
 
 import { randomUUID } from 'node:crypto';
-import * as tls from 'node:tls';
-import { resolve } from 'node:path';
 
 // ──────────────────────────────────────────────────────────
 // MIME message builder (RFC 2822)
@@ -82,107 +81,85 @@ function quotedPrintableEncode(str) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Raw IMAP client (minimal, draft-append only)
+// Gmail REST API (OAuth2)
 // ──────────────────────────────────────────────────────────
 
 /**
- * Append a MIME message to Gmail's Drafts folder via IMAP.
- * Returns { success, error }.
+ * Exchange a refresh token for an access token.
  */
-export async function appendToGmailDrafts(mimeString, { user, password }) {
-  return new Promise((resolve, reject) => {
-    const socket = tls.connect(993, 'imap.gmail.com', { rejectUnauthorized: false }, () => {
-      let tag = 0;
-      let buffer = '';
-      let state = 'greeting';
-      let literalReady = false;
-
-      function send(cmd) {
-        tag++;
-        const line = `A${tag} ${cmd}\r\n`;
-        socket.write(line);
-        return `A${tag}`;
-      }
-
-      socket.on('data', (data) => {
-        buffer += data.toString();
-
-        // Process complete lines
-        const lines = buffer.split('\r\n');
-        buffer = lines.pop(); // Keep incomplete line
-
-        for (const line of lines) {
-          if (state === 'greeting') {
-            // Wait for server greeting
-            if (line.startsWith('* OK')) {
-              state = 'login';
-              // Quote credentials for IMAP (handles special chars in passwords)
-              send(`LOGIN "${user.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" "${password.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
-            }
-          } else if (state === 'login') {
-            if (line.includes('OK') && line.startsWith(`A${tag}`)) {
-              state = 'append';
-              const mimeBytes = Buffer.from(mimeString, 'utf-8');
-              // APPEND command with literal size
-              tag++;
-              socket.write(`A${tag} APPEND "[Gmail]/Drafts" (\\Draft) {${mimeBytes.length}}\r\n`);
-              state = 'append-wait';
-            } else if (line.includes('NO') || line.includes('BAD')) {
-              socket.destroy();
-              resolve({ success: false, error: `Login failed: ${line}` });
-            }
-          } else if (state === 'append-wait') {
-            // Server sends + to indicate readiness for literal
-            if (line.startsWith('+')) {
-              const mimeBytes = Buffer.from(mimeString, 'utf-8');
-              socket.write(mimeBytes);
-              socket.write('\r\n');
-              state = 'append-done';
-            }
-          } else if (state === 'append-done') {
-            if (line.startsWith(`A${tag}`)) {
-              if (line.includes('OK')) {
-                state = 'logout';
-                send('LOGOUT');
-              } else {
-                socket.destroy();
-                resolve({ success: false, error: `APPEND failed: ${line}` });
-              }
-            }
-          } else if (state === 'logout') {
-            if (line.startsWith(`A${tag}`) || line.startsWith('* BYE')) {
-              socket.destroy();
-              resolve({ success: true });
-            }
-          }
-        }
-      });
-
-      socket.on('error', (err) => {
-        resolve({ success: false, error: err.message });
-      });
-
-      socket.on('close', () => {
-        if (state !== 'logout') {
-          resolve({ success: false, error: 'Connection closed unexpectedly' });
-        }
-      });
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        socket.destroy();
-        resolve({ success: false, error: 'IMAP timeout (30s)' });
-      }, 30000);
-    });
+async function getAccessToken(clientId, clientSecret, refreshToken) {
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
   });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`OAuth2 token refresh failed (${resp.status}): ${err}`);
+  }
+
+  const data = await resp.json();
+  return data.access_token;
 }
 
 /**
- * Create a Gmail draft for the given email data.
- * Returns { messageId, success, error }.
+ * Create a Gmail draft via the REST API.
+ * Returns { success, messageId, draftId, gmailMessageId, error }.
  */
 export async function createGmailDraft(email, credentials) {
   const { mimeString, messageId } = buildMimeMessage(email);
-  const result = await appendToGmailDrafts(mimeString, credentials);
-  return { ...result, messageId };
+
+  const { clientId, clientSecret, refreshToken } = credentials;
+  if (!clientId || !clientSecret || !refreshToken) {
+    return {
+      success: false,
+      messageId,
+      error: 'Missing Gmail API credentials (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN). Run: node scripts/outreach/gmail-auth-setup.mjs',
+    };
+  }
+
+  try {
+    const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
+
+    // base64url encode the MIME message (Gmail API requirement)
+    const raw = Buffer.from(mimeString).toString('base64url');
+
+    const resp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: { raw } }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      return {
+        success: false,
+        messageId,
+        error: `Gmail API ${resp.status}: ${err}`,
+      };
+    }
+
+    const data = await resp.json();
+    return {
+      success: true,
+      messageId,
+      draftId: data.id,
+      gmailMessageId: data.message?.id,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      messageId,
+      error: e.message,
+    };
+  }
 }

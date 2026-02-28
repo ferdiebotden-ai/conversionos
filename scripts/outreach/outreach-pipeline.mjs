@@ -26,6 +26,11 @@ import { findNextSlot, formatSlotForEmail } from './calendar.mjs';
 
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
 
+// Gmail API credentials (OAuth2) — required for draft creation
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+
 const { values: args } = parseArgs({
   options: {
     'target-id': { type: 'string' },
@@ -79,11 +84,9 @@ logger.info(`Processing ${targets.length} target(s) for outreach${args['dry-run'
 // Get Gmail credentials
 // ──────────────────────────────────────────────────────────
 
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-
-if (!args['dry-run'] && (!GMAIL_USER || !GMAIL_APP_PASSWORD)) {
-  logger.error('Missing GMAIL_USER or GMAIL_APP_PASSWORD — cannot create drafts');
+if (!args['dry-run'] && (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN)) {
+  logger.error('Missing Gmail API credentials (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)');
+  logger.error('Run: node scripts/outreach/gmail-auth-setup.mjs');
   process.exit(1);
 }
 
@@ -148,8 +151,9 @@ for (const target of targets) {
 
     // Create Gmail draft
     const result = await createGmailDraft(email, {
-      user: GMAIL_USER,
-      password: GMAIL_APP_PASSWORD,
+      clientId: GMAIL_CLIENT_ID,
+      clientSecret: GMAIL_CLIENT_SECRET,
+      refreshToken: GMAIL_REFRESH_TOKEN,
     });
 
     if (!result.success) {
@@ -170,9 +174,10 @@ for (const target of targets) {
       `UPDATE targets
        SET status = 'draft_ready',
            email_message_id = ?,
+           email_draft_id = ?,
            updated_at = datetime('now')
        WHERE id = ?`,
-      [result.messageId, target.id]
+      [result.messageId, result.draftId || null, target.id]
     );
 
     logger.info(`Draft created for ${name} → ${email.to} (Message-ID: ${result.messageId})`);

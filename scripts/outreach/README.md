@@ -1,6 +1,6 @@
 # Outreach Pipeline
 
-Automated last-mile outreach for ConversionOS demos. After the tenant builder provisions a bespoke demo site, this pipeline fills Ferdie's exact email template with target data, creates a Gmail draft via raw IMAP, and monitors for sends — auto-booking follow-up calls in Apple Calendar.
+Automated last-mile outreach for ConversionOS demos. After the tenant builder provisions a bespoke demo site, this pipeline fills Ferdie's exact email template with target data, creates a Gmail draft via the Gmail REST API (OAuth2), and monitors for sends — auto-booking follow-up calls in Apple Calendar.
 
 ## Flow
 
@@ -11,13 +11,13 @@ Target with built demo (Turso: demo_url IS NOT NULL)
 generate-email.mjs — Fill Ferdie's template with target data
   |
   v
-create-draft.mjs — IMAP APPEND to [Gmail]/Drafts
+create-draft.mjs — Gmail REST API draft creation (OAuth2)
   |
   v
 Ferdie reviews + clicks Send (manual, CASL golden rule)
   |
   v
-send-monitor.mjs (every 15 min, 6am-9pm weekdays)
+send-monitor.mjs (every 15 min, 6am-9pm daily)
   |-- IMAP SEARCH [Gmail]/Sent Mail by Message-ID
   |-- calendar.mjs — Book 30-min slot in "Work" calendar (AppleScript)
   |-- Claude CLI — Generate 5-bullet call script
@@ -29,7 +29,8 @@ send-monitor.mjs (every 15 min, 6am-9pm weekdays)
 | File | Lines | Purpose |
 |------|-------|---------|
 | `generate-email.mjs` | 278 | Fill email template with target data (Ferdie's exact words) |
-| `create-draft.mjs` | 189 | Gmail IMAP APPEND — raw TLS, no external deps |
+| `create-draft.mjs` | 145 | Gmail REST API draft creation (OAuth2, no npm deps) |
+| `gmail-auth-setup.mjs` | 130 | One-time OAuth2 setup (consent flow → refresh token) |
 | `outreach-pipeline.mjs` | 203 | Orchestrator: select targets, generate, validate, create drafts |
 | `send-monitor.mjs` | 284 | Cron: detect sends, book calendar, generate call scripts |
 | `calendar.mjs` | 205 | Apple Calendar via AppleScript (query events, book slots) |
@@ -168,7 +169,7 @@ tail -50 /tmp/com.norbot.send-monitor.stdout.log
 tail -50 /tmp/com.norbot.send-monitor.stderr.log
 ```
 
-Runs every 900 seconds (15 min). Time guard in script: exits silently outside 6am-9pm weekdays.
+Runs every 900 seconds (15 min). Time guard in script: exits silently outside 6am-9pm daily.
 Use `--force` to bypass the time guard for testing.
 
 ## Environment Variables
@@ -179,12 +180,29 @@ From `~/pipeline/scripts/.env` (loaded by env-loader.mjs):
 |----------|-------------|
 | `TURSO_DATABASE_URL` | All scripts |
 | `TURSO_AUTH_TOKEN` | All scripts |
-| `GMAIL_USER` | create-draft, send-monitor |
-| `GMAIL_APP_PASSWORD` | create-draft, send-monitor |
+| `GMAIL_CLIENT_ID` | create-draft (Gmail API OAuth2) |
+| `GMAIL_CLIENT_SECRET` | create-draft (Gmail API OAuth2) |
+| `GMAIL_REFRESH_TOKEN` | create-draft (Gmail API OAuth2) |
+| `GMAIL_USER` | send-monitor (IMAP sent detection) |
+| `GMAIL_APP_PASSWORD` | send-monitor (IMAP sent detection) |
+
+### Gmail API Setup (One-Time)
+
+```bash
+# 1. Create OAuth2 credentials at https://console.cloud.google.com/apis/credentials
+#    → Enable Gmail API → Create "Desktop app" OAuth2 client
+# 2. Add client ID and secret to ~/pipeline/scripts/.env:
+#      GMAIL_CLIENT_ID=<your-client-id>
+#      GMAIL_CLIENT_SECRET=<your-client-secret>
+# 3. Run the setup script to get a refresh token:
+node scripts/outreach/gmail-auth-setup.mjs
+# 4. Add the printed refresh token to ~/pipeline/scripts/.env:
+#      GMAIL_REFRESH_TOKEN=<your-refresh-token>
+```
 
 ## Dependencies
 
-**Zero npm dependencies.** All IMAP operations use Node.js built-in `tls` module. Calendar uses macOS `osascript`. MIME building uses built-in `crypto` for UUIDs.
+**Zero npm dependencies.** Gmail API uses built-in `fetch`. IMAP operations (send-monitor) use built-in `tls` module. Calendar uses macOS `osascript`. MIME building uses built-in `crypto` for UUIDs.
 
 ## Integration with Tenant Builder
 
@@ -200,7 +218,12 @@ node tenant-builder/orchestrate.mjs --target-id 42 --skip-outreach
 
 ## Troubleshooting
 
-**IMAP auth fails:**
+**Gmail API draft creation fails:**
+- Verify `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` in `~/pipeline/scripts/.env`
+- If token expired, re-run: `node scripts/outreach/gmail-auth-setup.mjs`
+- Ensure Gmail API is enabled: https://console.cloud.google.com/apis/library/gmail.googleapis.com
+
+**IMAP auth fails (send-monitor):**
 - Verify `GMAIL_USER` and `GMAIL_APP_PASSWORD` in `~/pipeline/scripts/.env`
 - App passwords: https://myaccount.google.com/apppasswords
 - Must be an app-specific password, not the Gmail login password
