@@ -102,6 +102,18 @@ test('trims whitespace', () => {
   assert.equal(getFirstName('  Mike  Smith '), 'Mike');
 });
 
+test('rejects "Not specified" sentinel', () => {
+  assert.equal(getFirstName('Not specified'), 'there');
+});
+
+test('rejects "Not applicable" sentinel', () => {
+  assert.equal(getFirstName('Not applicable'), 'there');
+});
+
+test('rejects "N/A" sentinel', () => {
+  assert.equal(getFirstName('N/A'), 'there');
+});
+
 // ──────────────────────────────────────────────────────────
 // Tests: Call Day Logic
 // ──────────────────────────────────────────────────────────

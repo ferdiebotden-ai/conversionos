@@ -97,9 +97,18 @@ export function formatSlotTime(slot) {
 /**
  * Extract first name from owner_name, or default to "there".
  */
+const SENTINEL_NAMES = new Set([
+  'not specified', 'not applicable', 'not provided', 'n/a', 'na', 'unknown', 'none', 'owner',
+]);
+
 export function getFirstName(ownerName) {
   if (!ownerName || ownerName.trim().length === 0) return 'there';
-  return ownerName.trim().split(/\s+/)[0];
+  const trimmed = ownerName.trim();
+  if (SENTINEL_NAMES.has(trimmed.toLowerCase())) return 'there';
+  const first = trimmed.split(/\s+/)[0];
+  // Reject single-char names or names that look like placeholders
+  if (first.length <= 1) return 'there';
+  return first;
 }
 
 /**
