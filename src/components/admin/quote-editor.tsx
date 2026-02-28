@@ -44,7 +44,9 @@ import {
   X,
   RefreshCw,
   AlertTriangle,
+  Receipt,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Business constants
@@ -316,11 +318,13 @@ export function QuoteEditor({
   const [failedOperation, setFailedOperation] = useState<'save' | 'load' | null>(null);
 
   // PDF and send quote state
+  const router = useRouter();
   const [isDownloading, setIsDownloading] = useState(false);
   const [showSendWizard, setShowSendWizard] = useState(false);
   const [sentAt] = useState<Date | null>(
     initialQuote?.sent_at ? new Date(initialQuote.sent_at) : null
   );
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
 
   // Version history state
   const latestVersion = versions?.[0]?.version ?? (initialQuote?.version ?? 1);
@@ -719,6 +723,35 @@ export function QuoteEditor({
   // Handle send complete - refresh the page
   function handleSendComplete() {
     window.location.reload();
+  }
+
+  // Create invoice from sent quote
+  async function handleCreateInvoice() {
+    if (!initialQuote?.id) return;
+
+    setIsCreatingInvoice(true);
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: leadId,
+          quote_draft_id: initialQuote.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to create invoice');
+      }
+
+      const result = await response.json();
+      router.push(`/admin/invoices/${result.data.id}`);
+    } catch (err) {
+      console.error('Error creating invoice:', err);
+    } finally {
+      setIsCreatingInvoice(false);
+    }
   }
 
   // Average confidence across AI items
@@ -1224,6 +1257,22 @@ export function QuoteEditor({
                 >
                   <Send className="h-4 w-4 mr-2" />
                   {sentAt ? 'Resend Quote' : 'Send Quote'}
+                </Button>
+              )}
+
+              {sentAt && initialQuote?.id && (
+                <Button
+                  variant="outline"
+                  onClick={handleCreateInvoice}
+                  disabled={isCreatingInvoice}
+                  className="border-green-200 text-green-700 hover:bg-green-50"
+                >
+                  {isCreatingInvoice ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Receipt className="h-4 w-4 mr-2" />
+                  )}
+                  Create Invoice
                 </Button>
               )}
             </div>

@@ -81,6 +81,8 @@ export interface HandoffContext {
     materialPreferences: string[];
     preservationNotes: string[];
   } | undefined;
+  /** Indices of concepts the customer starred/favourited (0-based) */
+  clientFavouritedConcepts?: number[] | undefined;
   timestamp: number;
 }
 
@@ -231,8 +233,9 @@ export function buildHandoffFromVisualization(
     }
   }
 
-  // Extract voice preferences from conversation context
+  // Extract voice preferences and favourited concepts from conversation context
   const voiceExtractedPreferences = conversationCtx['voiceExtractedPreferences'] as HandoffContext['voiceExtractedPreferences'] | undefined;
+  const clientFavouritedConcepts = (conversationCtx['clientFavouritedConcepts'] as number[] | undefined) ?? undefined;
   const designIntent = conversationCtx['designIntent'] as Record<string, unknown> | undefined;
 
   return {
@@ -263,6 +266,7 @@ export function buildHandoffFromVisualization(
     photoAnalysis,
     costSignals,
     voiceExtractedPreferences,
+    clientFavouritedConcepts,
     quoteAssistanceMode: (conversationCtx['quoteAssistanceMode'] as QuoteAssistanceMode) ?? undefined,
     timestamp: Date.now(),
   };
@@ -309,6 +313,11 @@ ${context.summary}`;
   if (context.visualizationData) {
     const vd = context.visualizationData;
     prefix += `\nVisualization: ${vd.concepts.length} concepts generated (ID: ${vd.id})`;
+  }
+
+  if (context.clientFavouritedConcepts?.length) {
+    const labels = context.clientFavouritedConcepts.map(i => `Concept ${i + 1}`).join(', ');
+    prefix += `\nThe customer favourited: ${labels}`;
   }
 
   // Structural and spatial data from photo analysis

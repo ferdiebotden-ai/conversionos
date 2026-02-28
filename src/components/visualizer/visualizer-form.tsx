@@ -69,6 +69,7 @@ function VisualizerFormInner() {
   const [visualization, setVisualization] = useState<VisualizationResponse | null>(null);
   const [error, setError] = useState<VisualizationError | null>(null);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [favouritedIndices, setFavouritedIndices] = useState<Set<number>>(new Set());
 
   // SSE streaming hook for real-time generation progress
   const stream = useVisualizationStream();
@@ -90,6 +91,19 @@ function VisualizerFormInner() {
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top, behavior: 'smooth' });
+  }, []);
+
+  // Toggle a concept in/out of favourites
+  const toggleFavourite = useCallback((index: number) => {
+    setFavouritedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
   }, []);
 
   // Auto-scroll: room → style, style → preferences
@@ -240,6 +254,7 @@ function VisualizerFormInner() {
     });
     setVisualization(null);
     setError(null);
+    setFavouritedIndices(new Set());
     setCurrentStep('photo');
   }, []);
 
@@ -260,6 +275,7 @@ function VisualizerFormInner() {
       };
     });
     setVisualization(null);
+    setFavouritedIndices(new Set());
     setCurrentStep('form');
   }, []);
 
@@ -332,6 +348,9 @@ function VisualizerFormInner() {
             roomType: visualization.roomType,
             style: visualization.style,
           } : undefined,
+          clientFavouritedConcepts: favouritedIndices.size > 0
+            ? Array.from(favouritedIndices)
+            : undefined,
           photoAnalysis: photoAnalysisHandoff,
           voiceExtractedPreferences: voiceExtracted,
           // quoteAssistanceMode and costSignals will be injected server-side
@@ -349,7 +368,7 @@ function VisualizerFormInner() {
       params.set('visualization', visualization.id);
     }
     router.push(`/estimate?${params.toString()}`);
-  }, [formData, visualization, router, canAccess]);
+  }, [formData, visualization, router, canAccess, favouritedIndices]);
 
   const handleRetry = useCallback(() => {
     handleGenerate();
@@ -422,6 +441,8 @@ function VisualizerFormInner() {
         onStartOver={handleStartOver}
         onGetQuote={handleGetQuote}
         onTryAnotherStyle={handleTryAnotherStyle}
+        favouritedIndices={favouritedIndices}
+        onToggleFavourite={toggleFavourite}
       />
     );
   }

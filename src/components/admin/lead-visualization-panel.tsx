@@ -106,6 +106,7 @@ interface Visualization {
   created_at: string;
   is_primary?: boolean;
   admin_selected?: boolean;
+  client_favourited_concepts?: number[];
 }
 
 interface LeadVisualizationPanelProps {
@@ -269,7 +270,7 @@ export function LeadVisualizationPanel({
         <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="font-medium text-lg">No Visualizations</h3>
         <p className="text-muted-foreground mt-1">
-          This lead doesn't have any AI visualizations yet.
+          This lead doesn&apos;t have any AI visualizations yet.
         </p>
       </div>
     );
@@ -348,6 +349,11 @@ export function LeadVisualizationPanel({
                       <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] py-0.5 text-center">
                         Concept {index + 1}
                       </div>
+                      {currentViz.client_favourited_concepts?.includes(index) && (
+                        <div className="absolute top-0.5 right-0.5" title="Customer favourited this concept">
+                          <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 drop-shadow" />
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>

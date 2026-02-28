@@ -28,6 +28,7 @@ White-label AI renovation platform for Ontario contractors. Single codebase, thr
 |---------|:---:|:---:|:---:|
 | Branded website (all public pages) | Yes | Yes | Yes |
 | AI Visualizer (4 concepts, SSE streaming) | Yes | Yes | Yes |
+| Concept starring + email favourites | Yes | Yes | Yes |
 | Lead capture + email notification | Yes | Yes | Yes |
 | Emma text chat widget | Yes | Yes | Yes |
 | Photo pre-analysis (GPT Vision at upload) | Yes | Yes | Yes |
@@ -38,7 +39,7 @@ White-label AI renovation platform for Ontario contractors. Single codebase, thr
 | E-signature (public acceptance page, token-gated) | — | Yes | Yes |
 | Quote versioning (snapshot on send, version history) | — | Yes | Yes |
 | Contractor lead intake (voice dictation, text, form) | — | Yes | Yes |
-| Invoicing + payment tracking | — | Yes | Yes |
+| Invoicing + payment tracking (Create Invoice from quote) | — | Yes | Yes |
 | Architecture drawings management | — | Yes | Yes |
 | Cost range indicator (visualizer) | — | Yes | Yes |
 | Quote assistance (admin-configurable) | — | Yes | Yes |
@@ -58,7 +59,7 @@ Feature gating: `canAccess(tier, feature)` in `src/lib/entitlements.ts`. Server:
 ## Tech Stack
 
 **Framework:** Next.js 16.1.6 (App Router, Turbopack dev, `proxy.ts` tenant routing) • React 19 • TypeScript 5 (strict) • Tailwind v4 (OKLCH) • shadcn/ui • Zustand 5 • Framer Motion
-**AI:** OpenAI GPT-5.2 (chat, vision, quotes, extraction) • Gemini 3 Pro Image (4 concepts/gen) • ElevenLabs (voice, all tiers web) • Vercel AI SDK v6 • Zod validation on all AI outputs
+**AI:** OpenAI GPT-5.2 (chat, vision, quotes, extraction) • Gemini 3.1 Flash Image / Nano Banana 2 (4 concepts/gen) • ElevenLabs (voice, all tiers web) • Vercel AI SDK v6 • Zod validation on all AI outputs
 **Data:** Supabase PostgreSQL (ca-central-1, RLS) • Supabase Storage • Resend (email) • Upstash Redis (rate limiting)
 **Quality:** Sentry (`norbot-systems-inc/javascript-nextjs`) • Vitest (799 unit tests) • Playwright (7 E2E suites) • Husky + lint-staged
 **PDF:** @react-pdf/renderer (multi-page quotes) + jspdf (invoices) • Sharp (image processing) • heic2any (iOS)
@@ -100,7 +101,7 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 1. **Homepage** (`/`) — DB-driven branded page: Hero → Social Proof Bar → Visualizer Teaser (before/after slider) → Services → How It Works → Why Us → Testimonials → CTA. Sticky mobile CTA bar < 768px. All CTAs adapt via copy system (tier + quote mode).
 2. **Visualizer** (`/visualizer`) — Upload photo (drag-drop desktop, camera/gallery mobile). GPT Vision pre-analysis fires at upload (room type, dimensions, fixtures, condition). 8 room types × 6 styles. Optional voice input via Emma.
 3. **Generation** — SSE streaming, 4 Gemini concepts in parallel (~41s). Progressive reveal with skeleton cards.
-4. **Results** — Before/after slider, AI-enriched descriptions, cost range (Accelerate+). CTA adapts: "Get a Personalised Estimate" or "Request a Callback from [Contractor]". Email capture creates lead.
+4. **Results** — Before/after slider, AI-enriched descriptions, cost range (Accelerate+). **Concept starring:** gold star toggle on each concept thumbnail — starred concepts tracked in `favouritedIndices: Set<number>`. "Email My Favourites (N)" button opens email capture modal with starred concept indices. CTA adapts: "Get a Personalised Estimate" or "Request a Callback from [Contractor]". Email capture creates lead. Favourited indices passed to Emma via `clientFavouritedConcepts` in handoff context.
 5. **Estimate** (`/estimate`) — Emma receives full handoff context (photo analysis, preferences, cost signals, quote mode) via DB-backed reconstruction (`buildHandoffFromVisualization()`). Skips discovery, goes to refinement. Project summary sidebar auto-populates from conversation. Goals extracted from user messages only.
 6. **Lead capture** — Multi-step modal: project review → contact info → Ontario-specific property details. Lead created with full context. Contractor notified by email.
 
@@ -108,8 +109,8 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 1. **Dashboard** (`/admin`) — Leads overview, visualization metrics, pipeline health
 2. **Leads** (`/admin/leads`) — Table with feasibility badges, source badges (Intake/Website), "+ New Lead" intake dialog (voice dictation/text/form, Accelerate+)
-3. **Quotes** (`/admin/quotes`) — Full AI quote engine (see Quote Engine V2 section)
-4. **Invoices** (`/admin/invoices`) — Create from quotes, payment tracking, PDF, 4-step send wizard (review → preview PDF → compose email → confirm), Sage 50 CSV export
+3. **Quotes** (`/admin/quotes`) — Full AI quote engine (see Quote Engine V2 section). "Create Invoice" button appears when quote is sent — creates invoice directly from quote items via `POST /api/invoices` and navigates to invoice detail.
+4. **Invoices** (`/admin/invoices`) — Create from quotes (via "Create Invoice" button on Quote tab), payment tracking, PDF, 4-step send wizard (review → preview PDF → compose email → confirm), Sage 50 CSV export
 5. **Drawings** (`/admin/drawings`) — CAD-style drawing management
 6. **Settings** (`/admin/settings`) — Business info, branding, pricing, quote assistance mode, category markups, price list (CSV), templates, live preview
 7. **Analytics** (`/admin/analytics`, Dominate only) — Recharts: daily trends, room types, generation times, conversions
@@ -138,7 +139,7 @@ ConversionOS uses a single AI persona — **Emma** — across all pages. Emma ad
 
 ### Context Pipeline
 
-Visualizer → estimate handoff includes: photo analysis (GPT Vision), design preferences, cost signals (Ontario DB), quote assistance mode. Context reconstructed from DB via `buildHandoffFromVisualization()` (survives tab switches, refreshes). Emma skips discovery and goes straight to refinement.
+Visualizer → estimate handoff includes: photo analysis (GPT Vision), design preferences, cost signals (Ontario DB), quote assistance mode, **client favourited concepts** (0-based indices). Context reconstructed from DB via `buildHandoffFromVisualization()` (survives tab switches, refreshes). Emma skips discovery and goes straight to refinement. Favourited concepts are surfaced in Emma's prompt as "The customer favourited: Concept 1, Concept 3".
 
 ### Voice (All Tiers — Web)
 
@@ -165,6 +166,18 @@ Fires at upload time. Detects room type, layout, dimensions, ceiling height, fix
 `POST /api/ai/visualize/stream` — events: `status`, `concept`, `complete`, `error`. Heartbeat `:\n\n` every 15s. Client: `useVisualizationStream()` via `ReadableStream.getReader()`. Headers: `X-Accel-Buffering: no`, `Content-Encoding: none`.
 
 The non-streaming endpoint (`POST /api/ai/visualize`) remains available for backward compatibility.
+
+### Concept Starring + Email Favourites (All Tiers)
+
+Customers can star/favourite individual concepts on the visualizer results page and email starred concepts to themselves.
+
+**UI components:**
+- **Star toggle:** `src/components/visualizer/concept-thumbnails.tsx` — gold star overlay (top-right) on each concept thumbnail. Hollow star (unstarred) → filled gold star (starred). `favouritedIndices: Set<number>` tracked in parent.
+- **Email button:** `src/components/visualizer/result-display.tsx` — "Email My Favourites (N)" when concepts are starred, "Email Me These Designs" when none starred. Opens `EmailCaptureModal`.
+- **Email capture:** `src/components/visualizer/email-capture-modal.tsx` — sends `favouritedConceptIndices` to `POST /api/visualizations`.
+- **Admin indicator:** `src/components/admin/lead-visualization-panel.tsx` — gold star badge on concept thumbnails the customer favourited (reads `client_favourited_concepts` from visualization record).
+- **Share API:** `POST /api/visualizations/[id]/share` — emails selected concepts to the customer.
+- **Handoff:** `clientFavouritedConcepts: number[]` in `HandoffContext` (`src/lib/chat/handoff.ts`). Serialized from visualizer form, reconstructed from DB via `buildHandoffFromVisualization()`. Emma's prompt includes "The customer favourited: Concept 1, Concept 3".
 
 ---
 
@@ -314,7 +327,7 @@ Eye toggle in settings header opens iframe side panel (`/?__preview=1`). `postMe
 | **Quotes** | 8 | CRUD + `/api/quotes/[leadId]/pdf`, `/regenerate`, `/send`, `/versions`, `/api/quotes/accept/[token]` (public e-signature) |
 | **Invoices** | 6 | CRUD + PDF, payments, send, Sage 50 CSV export |
 | **Admin** | 13 | Settings CRUD, prices (CSV), templates CRUD, visualizations (review, metrics, trends), quote-assistance |
-| **Other** | 8 | Visualizations CRUD, drawings CRUD, voice (signed-url, check), sessions (save/resume) |
+| **Other** | 9 | Visualizations CRUD, `/api/visualizations/[id]/share` (email concepts), drawings CRUD, voice (signed-url, check), sessions (save/resume) |
 
 ---
 
@@ -328,7 +341,7 @@ Eye toggle in settings header opens iframe side panel (`/?__preview=1`). `postMe
 
 ## External Integrations
 
-OpenAI GPT-5.2 (chat, vision, quotes), GPT-4o-mini (intake extraction, Whisper transcription), Gemini 3 Pro Image (concept generation), ElevenLabs (voice), Supabase (DB + storage + RLS), Resend (email), Sentry (monitoring), Upstash Redis (rate limiting), Vercel (hosting), Firecrawl (onboarding scraper, devDep).
+OpenAI GPT-5.2 (chat, vision, quotes), GPT-4o-mini (intake extraction, Whisper transcription), Gemini 3.1 Flash Image / Nano Banana 2 (concept generation), ElevenLabs (voice), Supabase (DB + storage + RLS), Resend (email), Sentry (monitoring), Upstash Redis (rate limiting), Vercel (hosting), Firecrawl (onboarding scraper, devDep).
 
 ---
 
@@ -419,7 +432,14 @@ ConversionOS supports a demo mode for prospect previews. Demo instances let pote
 
 **Demo interstitial:** On first admin visit per browser session, a full-screen overlay encourages exploration. Implementation in `src/app/admin/admin-layout-client.tsx`. Shows tenant logo, `Sparkles` icon with gradient ring, "Your AI Command Centre is Ready" heading, subtitle inviting test-driving of AI quotes and invoicing, three feature highlight pills (AI-Powered Quotes, Smart Invoicing, 24/7 Lead Capture), and a "Start Exploring" CTA with arrow. Footer: "Demo data for illustration — your real account starts fresh". Uses `sessionStorage` key `conversionos-demo-splash-seen` — does not re-show on same-session navigation. Animated with framer-motion staggered reveal (container + per-element `fadeUp` variants).
 
-**Sample data:** `scripts/seed-demo-data.mjs` populates the demo tenant (`site_id='demo'`) with 3 leads across 10 tables, designed to showcase every tab, feature, and lead lifecycle stage: (1) **Mike Thompson** — kitchen (165 sqft, standard), `sent` status, contractor intake via voice dictation, no chat, no visualisations, 8-item quote ($26,396.35); (2) **Robert Kowalski** — basement (900 sqft, premium), `won` status, full customer journey with 12-message Emma chat, 2 visualisation sessions, 2 quote versions (v1 AI-generated $83,604.18, v2 contractor-refined $101,876.28), accepted quote, deposit invoice (paid $15,281.44), 2 architecture drawings (floor plan approved, egress detail submitted), 7 audit log entries; (3) **Priya Sharma** — bathroom (85 sqft, premium), `new` status, 18-message accessibility-focused chat, 1 visualisation session with 4 AI concepts, 11-item quote ($36,432.33). Tables populated: `leads` (3), `visualizations` (3), `lead_visualizations` (3), `chat_sessions` (2), `quote_drafts` (4), `invoices` (1), `payments` (1), `drawings` (2), `audit_log` (12). All images use local Gemini-generated files from `public/images/demo/`. Run `node scripts/seed-demo-data.mjs` after configuring `.env.local`. Idempotent — clears existing demo data before inserting.
+**Demo data:** Created via **real Playwright-driven workflows** through the live platform (not programmatic seed inserts). Every lead was generated by actually using the AI visualizer (Gemini), Emma chat (GPT-5.2), admin intake, quote engine, and invoice flow — producing authentic AI-generated content indistinguishable from a real contractor using the platform. Cleanup script: `scripts/clean-demo-data.mjs` (deletes all `site_id='demo'` data in FK dependency order across 10 tables).
+
+Three leads with classic Ontario names:
+1. **Sarah Mitchell** — Bathroom (85 sqft, accessible), `new` status, source: `ai_chat`. Website visitor → AI visualizer (4 modern bathroom concepts, starred 2) → Emma chat (9 messages about accessible bathroom for mother-in-law with walker) → lead captured. Contact: 42 Maple Drive, Mississauga. AI auto-generated quote draft present (Accelerate+ behaviour — status manually reset to `new` for demo).
+2. **Dave Miller** — Kitchen (165 sqft, standard), `sent` status, source: `contractor_intake`. Contractor phone call → admin "+ New Lead" intake → AI-generated 8-item quote ($51,604) → quote sent. Contact: 88 Queen Street, Stratford. No visualizations (contractor intake path).
+3. **Jim & Karen Crawford** — Basement (900 sqft, premium), `won` status, source: `ai_chat`. Full lifecycle: AI visualizer (4 contemporary concepts, starred 1) → Emma chat (12 messages about home theatre + wet bar) → lead captured → AI quote (8 items) → contractor added 2 items (Fire Safety Package, Building Permit Fees) → quote sent ($68,539.02) → invoice created (INV-2026-001) → deposit paid ($10,280.85 E-Transfer, Partially Paid) → 2 drawings (Basement Floor Plan, Egress Window Detail). Quote math verified: $55,140 subtotal → $5,514 contingency (10%) → $7,885.02 HST (13%) → $68,539.02 total → $10,280.85 deposit (15%).
+
+QA findings documented in `docs/QA_NOTES.md`. All admin pages verified with zero console errors. `npm run build` clean.
 
 **UX polish:** Leads table rows are fully clickable (cursor + onClick navigates to detail). "New Lead" button has contextual hint text ("Phone calls, walk-ins & referrals"). Global `cursor-pointer` fix applied for Tailwind v4 regression (button.tsx CVA + globals.css base layer).
 

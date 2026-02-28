@@ -24,6 +24,7 @@ interface EmailCaptureModalProps {
   onOpenChange: (open: boolean) => void;
   visualizationId: string;
   onEmailSubmitted: () => void;
+  favouritedIndices?: Set<number> | undefined;
 }
 
 export function EmailCaptureModal({
@@ -31,6 +32,7 @@ export function EmailCaptureModal({
   onOpenChange,
   visualizationId,
   onEmailSubmitted,
+  favouritedIndices,
 }: EmailCaptureModalProps) {
   const branding = useBranding();
   const [email, setEmail] = useState('');
@@ -64,6 +66,9 @@ export function EmailCaptureModal({
           share: false,
           marketingOptIn,
           consentTimestamp: marketingOptIn ? new Date().toISOString() : undefined,
+          favouritedConceptIndices: favouritedIndices?.size
+            ? Array.from(favouritedIndices)
+            : undefined,
         }),
       });
 

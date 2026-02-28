@@ -6,13 +6,15 @@
  */
 
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import type { GeneratedConcept } from '@/lib/schemas/visualization';
 
 interface ConceptThumbnailsProps {
   concepts: GeneratedConcept[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  favouritedIndices?: Set<number> | undefined;
+  onToggleFavourite?: ((index: number) => void) | undefined;
   className?: string;
 }
 
@@ -20,6 +22,8 @@ export function ConceptThumbnails({
   concepts,
   selectedIndex,
   onSelect,
+  favouritedIndices,
+  onToggleFavourite,
   className,
 }: ConceptThumbnailsProps) {
   return (
@@ -58,6 +62,28 @@ export function ConceptThumbnails({
           <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center font-medium">
             {index + 1}
           </div>
+
+          {/* Favourite star toggle */}
+          {onToggleFavourite && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavourite(index);
+              }}
+              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition-colors"
+              aria-label={favouritedIndices?.has(index) ? `Unfavourite concept ${index + 1}` : `Favourite concept ${index + 1}`}
+            >
+              <Star
+                className={cn(
+                  'w-3.5 h-3.5 transition-colors',
+                  favouritedIndices?.has(index)
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'text-white/80'
+                )}
+              />
+            </button>
+          )}
         </button>
       ))}
     </div>

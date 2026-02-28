@@ -30,6 +30,7 @@ import {
   Phone,
   Palette,
   Mail,
+  Star,
 } from 'lucide-react';
 
 interface ResultDisplayProps {
@@ -38,6 +39,8 @@ interface ResultDisplayProps {
   onStartOver: () => void;
   onGetQuote: () => void;
   onTryAnotherStyle?: () => void;
+  favouritedIndices: Set<number>;
+  onToggleFavourite: (index: number) => void;
   className?: string;
 }
 
@@ -47,6 +50,8 @@ export function ResultDisplay({
   onStartOver,
   onGetQuote,
   onTryAnotherStyle,
+  favouritedIndices,
+  onToggleFavourite,
   className,
 }: ResultDisplayProps) {
   const { canAccess } = useTier();
@@ -151,6 +156,8 @@ export function ResultDisplay({
             concepts={visualization.concepts}
             selectedIndex={selectedConceptIndex}
             onSelect={setSelectedConceptIndex}
+            favouritedIndices={favouritedIndices}
+            onToggleFavourite={onToggleFavourite}
           />
         </FadeInUp>
       )}
@@ -222,8 +229,17 @@ export function ResultDisplay({
             onClick={() => setEmailCaptureOpen(true)}
             className="gap-2"
           >
-            <Mail className="w-4 h-4" />
-            Email Me These Designs
+            {favouritedIndices.size > 0 ? (
+              <>
+                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                Email My Favourites ({favouritedIndices.size})
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4" />
+                Email Me These Designs
+              </>
+            )}
           </Button>
         )}
         {onTryAnotherStyle && (
@@ -257,6 +273,7 @@ export function ResultDisplay({
         onOpenChange={setEmailCaptureOpen}
         visualizationId={visualization.id}
         onEmailSubmitted={handleEmailSubmitted}
+        favouritedIndices={favouritedIndices}
       />
 
       {/* Sticky "Get a Quote" CTA bar */}
