@@ -130,7 +130,7 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       processSteps: (profile['processSteps'] as CompanyConfig['processSteps']) || FALLBACK_CONFIG.processSteps,
       teamMembers: (profile['teamMembers'] as CompanyConfig['teamMembers']) || FALLBACK_CONFIG.teamMembers,
       portfolio: (profile['portfolio'] as CompanyConfig['portfolio']) || FALLBACK_CONFIG.portfolio,
-      trustMetrics: (profile['trust_metrics'] as CompanyConfig['trustMetrics']) || FALLBACK_CONFIG.trustMetrics,
+      trustMetrics: (profile['trustMetrics'] as CompanyConfig['trustMetrics']) || FALLBACK_CONFIG.trustMetrics,
     };
   } catch {
     return FALLBACK_CONFIG;
