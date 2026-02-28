@@ -154,16 +154,17 @@ function createColumns(feasibilityMap: Record<string, number>): ColumnDef<Lead>[
     header: 'Source',
     cell: ({ row }) => {
       const source = (row.original as Record<string, unknown>)['source'] as string | null | undefined;
-      if (source === 'contractor_intake') {
-        return (
-          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-100">
-            Intake
-          </Badge>
-        );
-      }
+      const SOURCE_STYLES: Record<string, { label: string; className: string }> = {
+        'contractor_intake': { label: 'Intake', className: 'bg-blue-100 text-blue-800 hover:bg-blue-100' },
+        'phone': { label: 'Phone', className: 'bg-orange-100 text-orange-800 hover:bg-orange-100' },
+        'referral': { label: 'Referral', className: 'bg-violet-100 text-violet-800 hover:bg-violet-100' },
+        'ai_chat': { label: 'AI Chat', className: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100' },
+        'website': { label: 'Website', className: '' },
+      };
+      const style = (source && SOURCE_STYLES[source]) || { label: 'Website', className: '' };
       return (
-        <Badge variant="secondary" className="text-xs">
-          Website
+        <Badge variant="secondary" className={cn('text-xs', style.className)}>
+          {style.label}
         </Badge>
       );
     },

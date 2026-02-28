@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
 import { MetricsCards } from '@/components/admin/metrics-cards';
@@ -22,9 +23,10 @@ async function getDashboardData() {
   const siteId = getSiteId();
 
   const [
-    { count: todayCount },
+    { count: _todayCount },
     { count: weekCount },
     { count: monthCount },
+    { count: newStatusCount },
     { data: recentLeads },
     { count: totalLeads },
     { count: sentQuotes },
@@ -44,6 +46,11 @@ async function getDashboardData() {
       .select('*', { count: 'exact', head: true })
       .eq('site_id', siteId)
       .gte('created_at', monthAgo.toISOString()),
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('status', 'new'),
     supabase
       .from('leads')
       .select('*')
@@ -83,7 +90,7 @@ async function getDashboardData() {
   return {
     metrics: {
       newLeads: {
-        today: todayCount || 0,
+        today: newStatusCount || 0,
         week: weekCount || 0,
         month: monthCount || 0,
         trend: 0, // TODO: Calculate week-over-week trend
@@ -126,7 +133,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-card rounded-lg border border-border p-6">
           <h3 className="font-semibold mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <a
+            <Link
               href="/admin/leads?status=new"
               className="block p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
@@ -134,8 +141,8 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-muted-foreground">
                 {metrics.newLeads.today} leads need attention
               </p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/leads?status=draft_ready"
               className="block p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
@@ -143,7 +150,7 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-muted-foreground">
                 Quotes ready to be sent to customers
               </p>
-            </a>
+            </Link>
             <a
               href="/estimate"
               target="_blank"
