@@ -124,7 +124,7 @@ export function generateEmail(target, options = {}) {
   const firstName = getFirstName(target.owner_name);
   const city = target.city || 'your area';
   const siteId = options.siteId || target.slug;
-  const demoUrl = `https://${siteId}.norbotsystems.com`;
+  const demoUrl = target.demo_url || `https://${siteId}.norbotsystems.com`;
   const callDay = getCallDayLabel();
   const callTime = options.previewSlot || '10:30am';
 
