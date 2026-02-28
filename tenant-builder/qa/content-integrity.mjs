@@ -63,9 +63,10 @@ const MIN_SECTION_BODY_LENGTH = 20;
  * @param {import('playwright').Page} page
  * @param {string} pageUrl
  * @param {string} siteId
+ * @param {string} [tenantCity] - Tenant's actual city (from scraped data) to avoid false positives
  * @returns {Promise<Array<{ page: string, leaked_string: string, context: string }>>}
  */
-async function checkDemoLeakage(page, pageUrl, siteId) {
+async function checkDemoLeakage(page, pageUrl, siteId, tenantCity) {
   const violations = [];
   const bodyText = await page.textContent('body') || '';
   const htmlSource = await page.content();
@@ -109,9 +110,10 @@ async function checkDemoLeakage(page, pageUrl, siteId) {
       continue;
     }
 
-    // "Stratford" is allowed if the site-id suggests the contractor is in Stratford
+    // "Stratford" is allowed if the contractor is actually based in Stratford
+    // (detected via site-id OR tenant city from scraped/provisioned data)
     if (needle === 'Stratford') {
-      const stratfordRelated = siteId.toLowerCase().includes('stratford');
+      const stratfordRelated = siteId.toLowerCase().includes('stratford') || tenantCity === 'Stratford';
       if (!stratfordRelated) {
         const idx = bodyText.indexOf(needle);
         const surrounding = bodyText.slice(Math.max(0, idx - 40), idx + needle.length + 40).replace(/\s+/g, ' ').trim();
@@ -458,14 +460,9 @@ export async function autoFixViolations(siteId, violations) {
     }
   }
 
-  // Fix trustMetrics if demo leakage detected
-  if (hasDemoLeakage) {
-    if (profile.trustMetrics && Object.keys(profile.trustMetrics).length > 0) {
-      profile.trustMetrics = {};
-      changed = true;
-      fixes.push({ fix: 'Cleared trustMetrics (demo leakage)', success: true });
-    }
-  }
+  // NOTE: trustMetrics are NOT auto-cleared on demo leakage.
+  // Trust metrics (Google rating, years in business) come from real data.
+  // False positives (e.g., city name matching NorBot's location) would destroy valid data.
 
   // Fix placeholder text in text fields
   if (hasPlaceholders) {
@@ -528,6 +525,15 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
     copyright_format: 0,
   };
 
+  // Extract tenant city from scraped data (for context-aware demo leakage checks)
+  let tenantCity;
+  if (scrapedDataPath && existsSync(scrapedDataPath)) {
+    try {
+      const scraped = JSON.parse(readFileSync(scrapedDataPath, 'utf-8'));
+      tenantCity = scraped.city || scraped.address;
+    } catch { /* ignore parse errors */ }
+  }
+
   // Fabrication check (reads scraped.json, not browser)
   if (scrapedDataPath && existsSync(scrapedDataPath)) {
     const fabricationViolations = checkFabrication(scrapedDataPath);
@@ -571,7 +577,7 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
         summary.pages_checked++;
 
         // 1. Demo leakage check
-        const leakageViolations = await checkDemoLeakage(page, pageUrl, siteId);
+        const leakageViolations = await checkDemoLeakage(page, pageUrl, siteId, tenantCity);
         for (const v of leakageViolations) {
           allViolations.push({ check: 'demo_leakage', ...v });
         }
