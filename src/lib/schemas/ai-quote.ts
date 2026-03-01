@@ -99,6 +99,22 @@ export const QuoteGenerationInputSchema = z.object({
   /** Customer location for regional pricing */
   city: z.string().optional(),
   province: z.string().optional(),
+
+  /** AI concept pricing from visualization analysis */
+  conceptPricing: z.object({
+    identifiedMaterials: z.array(z.object({
+      name: z.string(),
+      category: z.string(),
+      estimatedQuantity: z.string(),
+      priceRange: z.object({ low: z.number(), high: z.number() }),
+      unit: z.string(),
+    })),
+    inferredFinishLevel: z.enum(['economy', 'standard', 'premium']),
+    materialCostRange: z.object({ low: z.number(), high: z.number() }),
+    labourCostRange: z.object({ low: z.number(), high: z.number() }),
+    totalEstimate: z.object({ low: z.number(), high: z.number() }),
+    visibleChanges: z.array(z.string()),
+  }).optional(),
 });
 
 export type QuoteGenerationInput = z.infer<typeof QuoteGenerationInputSchema>;

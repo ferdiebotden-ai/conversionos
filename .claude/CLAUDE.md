@@ -38,8 +38,9 @@ Pipeline: score → scrape → upload images → provision DB → verify. Checkp
 1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
 3. Insert into `tenants` table with domain and plan tier
-4. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
-5. Push to `main` → deploy (wildcard DNS handles the subdomain automatically)
+4. Run `node scripts/onboarding/add-domain.mjs --domain {site-id}.norbotsystems.com --site-id {site-id}` (registers with Vercel + issues SSL cert)
+5. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
+6. Push to `main` → deploy (wildcard DNS handles the subdomain automatically)
 
 ## Onboarding Pipeline
 - **Scripts:** `scripts/onboarding/` — 9 scripts (score, scrape, schema, convert-color, upload-images, provision, onboard, verify, README)
@@ -178,7 +179,7 @@ Automated outreach after demo builds pass QA. Fills Ferdie's exact email templat
 
 **Key scripts:**
 - `scripts/outreach/generate-email.mjs` — template filler (Ferdie's words, not AI copy)
-- `scripts/outreach/create-draft.mjs` — raw IMAP APPEND to Gmail Drafts (zero npm deps)
+- `scripts/outreach/create-draft.mjs` — Gmail REST API (OAuth2) draft creation
 - `scripts/outreach/outreach-pipeline.mjs` — orchestrator (batch/single/dry-run)
 - `scripts/outreach/send-monitor.mjs` — cron: detect send -> book calendar -> call script
 - `scripts/outreach/calendar.mjs` — Apple Calendar AppleScript (query + book slots)

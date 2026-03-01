@@ -95,7 +95,7 @@ export default async function Home() {
                 <StaggerItem>
                   <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <Button asChild size="lg" className="h-14 w-full rounded-full px-8 text-lg sm:w-auto">
-                      <Link href="/visualizer">See Your Renovation</Link>
+                      <Link href="/visualizer">Visualise Your Dream Space</Link>
                     </Button>
                     <a
                       href={`tel:${branding.phone.replace(/\D/g, '')}`}

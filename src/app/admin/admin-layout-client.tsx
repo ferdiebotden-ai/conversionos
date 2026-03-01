@@ -7,7 +7,7 @@
  * this is a preview (production would be login-protected).
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,11 +58,17 @@ export function AdminLayoutClient({
   const pathname = usePathname();
   const branding = useBranding();
 
-  // Demo interstitial — show once per browser session (lazy init avoids effect)
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !sessionStorage.getItem(SPLASH_KEY);
-  });
+  // Demo interstitial — show once per browser session
+  // Initialise to false on both server and client to avoid hydration mismatch,
+  // then check sessionStorage after mount
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem(SPLASH_KEY)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage unavailable during SSR, must check after mount
+      setShowSplash(true);
+    }
+  }, []);
 
   const dismissSplash = useCallback(() => {
     sessionStorage.setItem(SPLASH_KEY, '1');
@@ -212,13 +218,13 @@ export function AdminLayoutClient({
       </Sheet>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex flex-col lg:pl-64 h-screen">
         <AdminHeader
           onMenuClick={() => setMobileMenuOpen(true)}
           title={getPageTitle()}
         />
 
-        <main className="p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>
       </div>

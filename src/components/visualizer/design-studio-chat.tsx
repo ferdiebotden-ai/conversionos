@@ -22,7 +22,10 @@ import {
   Sparkles,
   ArrowRight,
   Mail,
+  Mic,
+  MicOff,
 } from 'lucide-react';
+import { useDictation } from '@/hooks/use-dictation';
 import { extractDesignSignals, type DesignSignal } from '@/lib/ai/rendering-gate';
 import { RENDERING_CONFIG } from '@/lib/ai/rendering-gate';
 import { buildDesignStudioPrompt } from '@/lib/ai/personas/emma';
@@ -154,6 +157,26 @@ export function DesignStudioChat({
   const [refinementCount, setRefinementCount] = useState(0);
   const [isRefining, setIsRefining] = useState(false);
   const [accumulatedSignals, setAccumulatedSignals] = useState<DesignSignal[]>([]);
+  const [prevStarredIndex, setPrevStarredIndex] = useState(starredIndex);
+  const { status: dictationStatus, transcript, startDictation, stopDictation, clearTranscript } = useDictation();
+
+  // Sync dictation transcript into input field
+  useEffect(() => {
+    if (transcript) {
+      setInputValue(transcript);
+    }
+  }, [transcript]);
+
+  // Handle mic toggle
+  const handleMicToggle = useCallback(() => {
+    if (dictationStatus === 'recording') {
+      stopDictation();
+      clearTranscript();
+    } else {
+      clearTranscript();
+      startDictation();
+    }
+  }, [dictationStatus, startDictation, stopDictation, clearTranscript]);
 
   // Notify parent of refining state changes
   const updateRefining = useCallback((refining: boolean) => {
@@ -238,6 +261,15 @@ export function DesignStudioChat({
     }]);
   }, []);
 
+  // Inject divider when user switches active concept
+  useEffect(() => {
+    if (starredIndex !== prevStarredIndex && exchangeCount > 0) {
+      injectAssistantMessage(`Switching to **Concept ${starredIndex + 1}** — let's explore this one!`);
+    }
+    setPrevStarredIndex(starredIndex);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [starredIndex]);
+
   // Extract design signals from user messages
   const handleSend = useCallback(async (text?: string) => {
     const messageText = text ?? inputValue;
@@ -249,8 +281,10 @@ export function DesignStudioChat({
     }
 
     setInputValue('');
+    clearTranscript();
+    if (dictationStatus === 'recording') stopDictation();
     await sendMessage({ text: messageText });
-  }, [inputValue, isLoading, sendMessage]);
+  }, [inputValue, isLoading, sendMessage, clearTranscript, dictationStatus, stopDictation]);
 
   // Handle refinement
   const handleRefine = useCallback(async () => {
@@ -266,6 +300,10 @@ export function DesignStudioChat({
           visualizationId,
           starredConceptIndex: starredIndex,
           designSignals: accumulatedSignals,
+          conversationMessages: allMessages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .slice(-10)
+            .map(m => ({ role: m.role, content: getTextContent(m) })),
           refinementNumber: refinementCount + 1,
         }),
       });
@@ -295,7 +333,7 @@ export function DesignStudioChat({
     } finally {
       updateRefining(false);
     }
-  }, [isRefining, refinementCount, visualizationId, starredIndex, accumulatedSignals, onConceptRefined, injectAssistantMessage, updateRefining]);
+  }, [isRefining, refinementCount, visualizationId, starredIndex, accumulatedSignals, allMessages, onConceptRefined, injectAssistantMessage, updateRefining]);
 
   // Handle quick action clicks
   const handleQuickAction = useCallback((action: QuickAction['action']) => {
@@ -323,7 +361,7 @@ export function DesignStudioChat({
     const actions: QuickAction[] = [];
 
     if (canRefine && (hasSignals || exchangeCount >= 1)) {
-      actions.push({ label: 'Refine My Design', icon: 'refine', action: 'refine', variant: 'secondary' });
+      actions.push({ label: 'Apply My Feedback', icon: 'refine', action: 'refine', variant: 'secondary' });
     }
 
     if (exchangeCount >= 2) {
@@ -349,6 +387,20 @@ export function DesignStudioChat({
       className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col"
       data-testid="design-studio-chat"
     >
+      {/* Concept header — shows which concept is being discussed */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/30">
+        {concepts[starredIndex]?.imageUrl && (
+          <img
+            src={concepts[starredIndex].imageUrl}
+            alt={`Concept ${starredIndex + 1}`}
+            className="w-8 h-8 rounded-md object-cover border border-border"
+          />
+        )}
+        <span className="text-sm font-medium text-foreground">
+          Discussing Concept {starredIndex + 1}
+        </span>
+      </div>
+
       {/* Chat messages — scrollable area with inline suggestion chips */}
       <div
         ref={scrollRef}
@@ -421,15 +473,23 @@ export function DesignStudioChat({
           })}
         </AnimatePresence>
 
-        {/* Refining indicator */}
+        {/* Refining indicator — enhanced with staged messages */}
         {isRefining && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2 text-sm text-muted-foreground"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10"
           >
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Refining your design...
+            <div className="relative w-8 h-8 shrink-0">
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Applying your feedback...</p>
+              <p className="text-xs text-muted-foreground">Regenerating Concept {starredIndex + 1} with your preferences</p>
+            </div>
           </motion.div>
         )}
 
@@ -476,6 +536,7 @@ export function DesignStudioChat({
                       className="rounded-full gap-1.5 text-xs min-h-[32px]"
                       onClick={() => handleQuickAction(action.action)}
                       disabled={isRefining}
+                      title={action.action === 'refine' ? 'Regenerate the design using your conversation feedback' : undefined}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {action.label}
@@ -487,10 +548,10 @@ export function DesignStudioChat({
           )}
         </AnimatePresence>
 
-        {/* Chat input — always at the bottom */}
+        {/* Chat input — always at the bottom: [Input] [Mic] [Send] */}
         <div className="p-3">
           <form
-            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            onSubmit={(e) => { e.preventDefault(); if (dictationStatus === 'recording') { stopDictation(); clearTranscript(); } handleSend(); }}
             className="flex gap-2"
           >
             <Input
@@ -501,6 +562,26 @@ export function DesignStudioChat({
               disabled={isLoading || isRefining}
               className="flex-1 rounded-full bg-muted border-0"
             />
+            {dictationStatus !== 'unsupported' && (
+              <Button
+                type="button"
+                size="icon"
+                variant={dictationStatus === 'recording' ? 'destructive' : 'ghost'}
+                className={cn(
+                  'rounded-full shrink-0 h-10 w-10',
+                  dictationStatus === 'recording' && 'animate-pulse',
+                )}
+                onClick={handleMicToggle}
+                disabled={isLoading || isRefining}
+                title={dictationStatus === 'recording' ? 'Stop dictation' : 'Dictate your feedback'}
+              >
+                {dictationStatus === 'recording' ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </Button>
+            )}
             <Button
               type="submit"
               size="icon"

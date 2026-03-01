@@ -84,12 +84,21 @@ export function buildDesignStudioPrompt(context: {
     if (pa.layoutType) parts.push(`Layout: ${pa.layoutType}`);
   }
 
-  // Starred concepts
+  // Active concept — emphatic so Emma stays on topic
   if (context.starredConcepts.length > 0) {
-    parts.push(`\nThe customer has starred concept(s): ${context.starredConcepts.map(i => `#${i + 1}`).join(', ')}.`);
+    const activeIdx = context.starredConcepts[0] ?? 0;
+    const activeDesc = context.conceptDescriptions?.[activeIdx];
+    parts.push(`\n## ACTIVE CONCEPT — IMPORTANT`);
+    parts.push(`The customer is currently viewing and discussing **Concept ${activeIdx + 1}**.`);
+    if (activeDesc) {
+      parts.push(`Description: ${activeDesc}`);
+    }
+    parts.push(`ALWAYS reference "your design" or "Concept ${activeIdx + 1}" when discussing changes.`);
+    parts.push(`All feedback and refinement requests apply to Concept ${activeIdx + 1} specifically.`);
+    parts.push(`If the customer switches concepts, you will be told — until then, stay on Concept ${activeIdx + 1}.`);
   }
   if (context.conceptDescriptions?.length) {
-    parts.push(`Concept descriptions:`);
+    parts.push(`\nAll concept descriptions for reference:`);
     context.conceptDescriptions.forEach((d, i) => {
       if (d) parts.push(`- Concept ${i + 1}: ${d}`);
     });

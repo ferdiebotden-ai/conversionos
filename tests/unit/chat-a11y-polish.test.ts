@@ -122,13 +122,7 @@ describe('A4: SRAnnounce wired into chat', () => {
     expect(chatSource).toContain("'Emma is typing...'");
   });
 
-  test('srMessage includes voice active state', () => {
-    expect(chatSource).toContain("'Voice mode active'");
-  });
-
-  test('srMessage includes processing state', () => {
-    expect(chatSource).toContain("'Processing voice input...'");
-  });
+  // Voice mode tests removed — voice chat feature removed from receptionist
 });
 
 describe('M7: Chat height on short phones', () => {

@@ -6,16 +6,16 @@ All tenants deploy from one Vercel project (`conversionos`) via proxy-based doma
 
 - `src/proxy.ts` resolves tenant from hostname via `DOMAIN_TO_SITE` map
 - Sets `x-site-id` request header → `getSiteIdAsync()` reads it
-- Wildcard DNS (`*.norbotsystems.com → cname.vercel-dns.com`) on Cloudflare handles all subdomains
-- Wildcard domain `*.norbotsystems.com` registered on Vercel for SSL cert provisioning
+- **DNS:** Domain registered on Namecheap, nameservers pointed to Cloudflare. Wildcard CNAME `*.norbotsystems.com → cname.vercel-dns.com` (DNS only, grey cloud). No per-tenant DNS needed.
+- **SSL:** Vercel does NOT auto-provision wildcard certs on third-party DNS. Each subdomain needs explicit registration + cert issuance via `add-domain.mjs` (which handles both).
 - One push to `main` = one build = all tenants updated
 
 ## Adding a New Tenant
 
 1. Seed `admin_settings` rows in Supabase (business_info, branding, company_profile, plan, pricing)
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
-3. Push to `main` — wildcard DNS resolves the subdomain automatically
-4. Optionally run `node scripts/onboarding/add-domain.mjs --domain X --site-id Y` to explicitly register the domain with Vercel for SSL cert provisioning (wildcard cert covers this, but explicit registration is faster)
+3. Run `node scripts/onboarding/add-domain.mjs --domain X.norbotsystems.com --site-id X` — registers domain with Vercel + issues SSL cert + verifies HTTPS. Requires `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` in `~/pipeline/scripts/.env`.
+4. Push to `main` — wildcard DNS resolves the subdomain, Vercel serves it with SSL
 
 ## Rules
 

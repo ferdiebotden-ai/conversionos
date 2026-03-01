@@ -8,11 +8,9 @@ import { generateObject } from 'ai';
 import { openai } from './providers';
 import {
   AIGeneratedQuoteSchema,
-  AITieredQuoteSchema,
   QuoteGenerationInputSchema,
   LINE_ITEM_TEMPLATES,
   type AIGeneratedQuote,
-  type AITieredQuote,
   type QuoteGenerationInput,
 } from '../schemas/ai-quote';
 import {
@@ -226,6 +224,33 @@ function buildUserPrompt(
     }
   }
 
+  // AI concept pricing from visualization analysis
+  if (input.conceptPricing) {
+    const cp = input.conceptPricing;
+    parts.push(`\n## AI Vision Analysis of Customer's Selected Concept`);
+    parts.push(`The AI identified these materials and costs from the customer's chosen design concept:`);
+    parts.push(`- Finish Level: ${cp.inferredFinishLevel}`);
+    parts.push(`- Material Cost Range: $${cp.materialCostRange.low.toLocaleString()} - $${cp.materialCostRange.high.toLocaleString()}`);
+    parts.push(`- Labour Cost Range: $${cp.labourCostRange.low.toLocaleString()} - $${cp.labourCostRange.high.toLocaleString()}`);
+    parts.push(`- Total Estimate: $${cp.totalEstimate.low.toLocaleString()} - $${cp.totalEstimate.high.toLocaleString()}`);
+
+    if (cp.identifiedMaterials.length > 0) {
+      parts.push(`\nIdentified Materials:`);
+      for (const mat of cp.identifiedMaterials) {
+        parts.push(`- ${mat.name} (${mat.category}): ${mat.estimatedQuantity} ${mat.unit} @ $${mat.priceRange.low}-$${mat.priceRange.high}/${mat.unit}`);
+      }
+    }
+
+    if (cp.visibleChanges.length > 0) {
+      parts.push(`\nVisible Changes in Design:`);
+      for (const change of cp.visibleChanges) {
+        parts.push(`- ${change}`);
+      }
+    }
+
+    parts.push(`\nUse this analysis to inform your line items — the customer expects materials and costs consistent with this design.`);
+  }
+
   // Contractor's own prices (override Ontario DB defaults)
   if (contractorPrices && contractorPrices.length > 0) {
     parts.push(buildContractorPricesSection(contractorPrices));
@@ -292,94 +317,6 @@ Please regenerate the quote incorporating this feedback.`;
     prompt: userPrompt,
     temperature: 0.3,
     maxOutputTokens: 4096,
-  });
-
-  return object;
-}
-
-/**
- * Generate a tiered (Good/Better/Best) AI quote
- */
-export async function generateTieredAIQuote(
-  input: QuoteGenerationInput,
-  markups?: CategoryMarkupsConfig,
-  contractorPrices?: ContractorPrice[],
-): Promise<AITieredQuote> {
-  const validatedInput = QuoteGenerationInputSchema.parse(input);
-
-  const tieredSystemPrompt = QUOTE_GENERATION_SYSTEM_PROMPT + `
-
-## Good/Better/Best Tier Definitions
-Generate THREE tiers of pricing for this project:
-
-### Good (Economy)
-- Stock/builder-grade materials
-- Basic fixtures and finishes
-- Standard installation methods
-- Functional but minimal design
-
-### Better (Standard) — RECOMMENDED
-- Mid-range, quality materials
-- Upgraded fixtures and finishes
-- Professional installation with attention to detail
-- Good design with some custom elements
-
-### Best (Premium)
-- Designer-grade or custom materials
-- High-end fixtures, premium finishes
-- Expert installation with custom detailing
-- Full design integration, luxury feel
-
-## Tier Pricing Rules
-- Better should be 20-30% above Good
-- Best should be 40-60% above Good
-- Descriptions must genuinely differ per tier (not just higher numbers)
-- Each tier must be a complete, self-contained quote
-- All three tiers must include transparency data for every item`;
-
-  const { object } = await generateObject({
-    model: openai('gpt-4o'),
-    schema: AITieredQuoteSchema,
-    system: tieredSystemPrompt,
-    prompt: buildUserPrompt(validatedInput, markups, contractorPrices),
-    temperature: 0.3,
-    maxOutputTokens: 6144,
-  });
-
-  return object;
-}
-
-/**
- * Regenerate a tiered quote with admin guidance
- */
-export async function regenerateTieredAIQuote(
-  input: QuoteGenerationInput,
-  adminGuidance: string,
-  markups?: CategoryMarkupsConfig,
-  contractorPrices?: ContractorPrice[],
-): Promise<AITieredQuote> {
-  const validatedInput = QuoteGenerationInputSchema.parse(input);
-
-  const tieredSystemPrompt = QUOTE_GENERATION_SYSTEM_PROMPT + `
-
-## Good/Better/Best Tier Definitions
-Generate THREE tiers: Good (economy), Better (standard, recommended), Best (premium).
-Better 20-30% above Good, Best 40-60% above Good. Descriptions must differ per tier.`;
-
-  const userPrompt = buildUserPrompt(validatedInput, markups, contractorPrices) + `
-
-## Admin Guidance
-${adminGuidance}
-
-Please regenerate all three tiers incorporating this feedback.`;
-
-  const { object } = await generateObject({
-    model: openai('gpt-4o'),
-    schema: AITieredQuoteSchema,
-    system: tieredSystemPrompt,
-    prompt: userPrompt,
-    temperature: 0.3,
-    maxOutputTokens: 6144,
   });
 
   return object;

@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, ExternalLink, Clock, CheckCircle2, XCircle, Send } from 'lucide-react';
+import { FileText, Clock, CheckCircle2, XCircle, Send } from 'lucide-react';
 import type { QuoteDraft } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -219,7 +218,6 @@ function QuotesTable({ quotes, currentStatus }: { quotes: QuoteWithLead[]; curre
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,12 +227,14 @@ function QuotesTable({ quotes, currentStatus }: { quotes: QuoteWithLead[]; curre
               const StatusIcon = config.icon;
 
               return (
-                <TableRow key={quote.id}>
+                <TableRow key={quote.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell className="font-medium">
-                    {quote.leads?.name || 'Unknown'}
-                    <p className="text-sm text-muted-foreground">
-                      {quote.leads?.email}
-                    </p>
+                    <Link href={`/admin/leads/${quote.lead_id}`} className="block">
+                      {quote.leads?.name || 'Unknown'}
+                      <p className="text-sm text-muted-foreground">
+                        {quote.leads?.email}
+                      </p>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     {quote.leads?.project_type
@@ -252,14 +252,6 @@ function QuotesTable({ quotes, currentStatus }: { quotes: QuoteWithLead[]; curre
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {quote.sent_at ? formatDate(quote.sent_at) : formatDate(quote.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/admin/leads/${quote.lead_id}`}>
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        View Lead
-                      </Link>
-                    </Button>
                   </TableCell>
                 </TableRow>
               );

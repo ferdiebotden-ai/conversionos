@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Add domain to Vercel project for SSL cert provisioning.
+ * Add domain to Vercel project and issue SSL cert.
  * DNS is handled by wildcard CNAME (*.norbotsystems.com → cname.vercel-dns.com) on Cloudflare.
- * No per-tenant DNS step needed — just register the domain with Vercel for SSL.
+ * No per-tenant DNS step needed — just register the domain with Vercel + issue cert.
  *
  * Usage: node add-domain.mjs --domain contractor.norbotsystems.com --site-id contractor
  *
  * Environment variables required (in ~/pipeline/scripts/.env):
  *   VERCEL_TOKEN          — Vercel API token
  *   VERCEL_PROJECT_ID     — Vercel project ID for ConversionOS
+ *   VERCEL_TEAM_ID        — Vercel team ID (required — project lives under a team)
  */
 
 import { parseArgs } from 'node:util';
@@ -53,6 +54,12 @@ const domain = args.domain;
 const siteId = args['site-id'];
 const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
 const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID;
+const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
+
+/** Build query string with teamId if available */
+function teamQuery(base) {
+  return VERCEL_TEAM_ID ? `${base}${base.includes('?') ? '&' : '?'}teamId=${VERCEL_TEAM_ID}` : base;
+}
 
 console.log(`\nDomain Setup: ${domain} → ${siteId}`);
 console.log('─'.repeat(50));
@@ -67,17 +74,15 @@ async function addVercelDomain() {
 
   console.log('\n  Step 1: Adding domain to Vercel...');
   try {
-    const res = await fetch(
-      `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${VERCEL_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: domain }),
-      }
-    );
+    const url = teamQuery(`https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains`);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: domain }),
+    });
 
     if (res.status === 409) {
       console.log('  ✓ Domain already exists in Vercel (idempotent)');
@@ -99,37 +104,82 @@ async function addVercelDomain() {
   }
 }
 
-// ─── Step 2: Poll Vercel for domain verification ────────────────────────────
-async function pollVerification() {
-  if (!VERCEL_TOKEN || !VERCEL_PROJECT_ID) return;
+// ─── Step 2: Issue SSL cert ─────────────────────────────────────────────────
+async function issueCert() {
+  if (!VERCEL_TOKEN) return false;
 
-  console.log('\n  Step 2: Waiting for domain verification...');
-  const maxAttempts = 20; // 20 × 30s = 10 minutes
-  for (let i = 1; i <= maxAttempts; i++) {
+  console.log('\n  Step 2: Issuing SSL certificate...');
+  try {
+    const url = teamQuery('https://api.vercel.com/v7/certs');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ domains: [domain] }),
+    });
+
+    if (res.ok || res.status === 409) {
+      console.log('  ✓ SSL certificate issued (or already exists)');
+      return true;
+    }
+
+    const err = await res.json().catch(() => ({}));
+    // Cert may already exist or be auto-provisioned — not a hard failure
+    console.log(`  ⚠ Cert API response (${res.status}): ${err.error?.message || JSON.stringify(err)}`);
+    console.log('  → Vercel may auto-provision on first HTTPS request. Falling back to CLI if available.');
+
+    // Fallback: try vercel CLI
+    return await issueCertViaCli();
+  } catch (e) {
+    console.log(`  ⚠ Cert API call failed: ${e.message}`);
+    return await issueCertViaCli();
+  }
+}
+
+async function issueCertViaCli() {
+  try {
+    const { execFileSync } = await import('node:child_process');
+    execFileSync('vercel', ['certs', 'issue', domain], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 60_000,
+    });
+    console.log('  ✓ SSL certificate issued via Vercel CLI');
+    return true;
+  } catch (e) {
+    console.log(`  ⚠ Vercel CLI cert issue failed: ${e.message?.slice(0, 200)}`);
+    console.log('  → Site will work on HTTP. HTTPS cert will auto-provision on first request.');
+    return false;
+  }
+}
+
+// ─── Step 3: Verify domain is serving ───────────────────────────────────────
+async function verifyServing() {
+  console.log('\n  Step 3: Verifying domain is serving...');
+
+  // Wait a few seconds for cert propagation
+  await new Promise(r => setTimeout(r, 5_000));
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(
-        `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${domain}`,
-        { headers: { Authorization: `Bearer ${VERCEL_TOKEN}` } }
-      );
-      const data = await res.json();
-
-      if (data.verified) {
-        console.log(`  ✓ Domain verified after ${i * 30}s`);
+      const res = await fetch(`https://${domain}`, {
+        method: 'HEAD',
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) {
+        console.log(`  ✓ https://${domain} is live (${res.status})`);
         return true;
       }
-
-      if (i < maxAttempts) {
-        console.log(`    Attempt ${i}/${maxAttempts} — waiting for DNS propagation... (${data.verification?.[0]?.reason || 'pending'})`);
-        await new Promise(r => setTimeout(r, 30_000));
-      }
+      console.log(`    Attempt ${attempt}/3 — status ${res.status}`);
     } catch (e) {
-      console.log(`    Poll error: ${e.message}`);
-      if (i < maxAttempts) await new Promise(r => setTimeout(r, 30_000));
+      console.log(`    Attempt ${attempt}/3 — ${e.message?.slice(0, 100)}`);
     }
+    if (attempt < 3) await new Promise(r => setTimeout(r, 10_000));
   }
 
-  console.log('  ⚠ Verification timed out after 10 minutes — DNS may still be propagating');
-  console.log('    The site will work once DNS propagates (usually within 30 minutes)');
+  console.log('  ⚠ HTTPS not yet responding — cert may still be propagating (usually < 2 minutes)');
   return false;
 }
 
@@ -137,7 +187,8 @@ async function pollVerification() {
 const vercelOk = await addVercelDomain();
 
 if (vercelOk) {
-  await pollVerification();
+  await issueCert();
+  await verifyServing();
 }
 
 console.log('\nDomain setup complete.');

@@ -6,7 +6,7 @@
  * and exposes real-time generation progress, partial concepts, and final result.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { GeneratedConcept, VisualizationResponse } from '@/lib/schemas/visualization';
 
 interface VisualizationRequest {
@@ -40,7 +40,7 @@ export interface UseVisualizationStreamReturn {
 /** Parse a single SSE frame from the buffer, returning { event, data } or null */
 function parseSSEFrame(frame: string): { event: string; data: string } | null {
   let event = 'message';
-  let dataLines: string[] = [];
+  const dataLines: string[] = [];
   for (const line of frame.split('\n')) {
     if (line.startsWith('event: ')) {
       event = line.slice(7).trim();
@@ -57,11 +57,42 @@ function parseSSEFrame(frame: string): { event: string; data: string } | null {
 export function useVisualizationStream(): UseVisualizationStreamReturn {
   const [status, setStatus] = useState<StreamStatus>('idle');
   const [stage, setStage] = useState('');
-  const [progress, setProgress] = useState(0);
+  const [rawProgress, setRawProgress] = useState(0);
+  const [smoothProgress, setSmoothProgress] = useState(0);
   const [concepts, setConcepts] = useState<GeneratedConcept[]>([]);
   const [visualization, setVisualization] = useState<VisualizationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // RAF-based smooth progress interpolation
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (rawProgress <= smoothProgress && rawProgress !== 100) return;
+    if (rawProgress === 100) {
+      setSmoothProgress(100); // eslint-disable-line react-hooks/set-state-in-effect -- RAF animation sync
+      return;
+    }
+
+    let current = smoothProgress;
+    const target = rawProgress;
+    const step = () => {
+      const diff = target - current;
+      if (diff < 0.5) {
+        current = target;
+        setSmoothProgress(target);
+        return;
+      }
+      // Ease towards target: move 8% of remaining distance per frame
+      current += diff * 0.08;
+      setSmoothProgress(Math.round(current * 10) / 10);
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [rawProgress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
@@ -69,11 +100,13 @@ export function useVisualizationStream(): UseVisualizationStreamReturn {
     setStatus('idle');
   }, []);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- intentionally empty deps, refs are stable
   const startGeneration = useCallback((request: VisualizationRequest) => {
     // Reset state
     setStatus('connecting');
     setStage('');
-    setProgress(0);
+    setRawProgress(0);
+    setSmoothProgress(0);
     setConcepts([]);
     setVisualization(null);
     setError(null);
@@ -148,7 +181,7 @@ export function useVisualizationStream(): UseVisualizationStreamReturn {
               switch (parsed.event) {
                 case 'status':
                   setStage(data.stage || '');
-                  setProgress(data.progress || 0);
+                  setRawProgress(data.progress || 0);
                   break;
 
                 case 'concept':
@@ -176,7 +209,7 @@ export function useVisualizationStream(): UseVisualizationStreamReturn {
                   if (data.visualization) {
                     setVisualization(data.visualization as VisualizationResponse);
                   }
-                  setProgress(100);
+                  setRawProgress(100);
                   setStatus('complete');
                   break;
 
@@ -221,7 +254,7 @@ export function useVisualizationStream(): UseVisualizationStreamReturn {
     startGeneration,
     cancel,
     stage,
-    progress,
+    progress: smoothProgress,
     concepts,
     visualization,
     error,

@@ -8,7 +8,7 @@
  * slider track at the bottom of the image.
  *
  * Intro animation sequence (Framer Motion `animate()`):
- *   0 → 100% over 1.5s, hold 0.8s, settle to 50% over 0.8s
+ *   0 → 100% over 1.5s, hold 0.8s, settle to 85% over 0.8s
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -31,7 +31,7 @@ export function BeforeAfterSlider({
   className,
 }: BeforeAfterSliderProps) {
   const shouldReduce = useReducedMotion();
-  const [sliderPosition, setSliderPosition] = useState(shouldReduce ? 50 : 0);
+  const [sliderPosition, setSliderPosition] = useState(shouldReduce ? 85 : 0);
   const [isDragging, setIsDragging] = useState(false);
   const [hasRevealed, setHasRevealed] = useState(!!shouldReduce);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -65,9 +65,9 @@ export function BeforeAfterSlider({
       await new Promise((r) => setTimeout(r, 800));
       if (cancelled) return;
 
-      // 4. Animate 100% → 50% over 0.8s
+      // 4. Animate 100% → 85% over 0.8s
       await new Promise<void>((resolve) => {
-        const ctrl = animate(100, 50, {
+        const ctrl = animate(100, 85, {
           duration: 0.8,
           ease: [0.25, 0.46, 0.45, 0.94],
           onUpdate: (v) => {

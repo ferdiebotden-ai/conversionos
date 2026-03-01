@@ -145,10 +145,16 @@ export function ResultDisplay({
               </div>
             )}
 
-            {/* Refinement overlay */}
+            {/* Refinement overlay — shimmer + spinner */}
             {isRefining && (
-              <div className="absolute inset-0 top-6 bg-background/50 flex items-center justify-center z-10 rounded-lg">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <div className="absolute inset-0 top-6 bg-background/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 rounded-lg gap-3">
+                <div className="relative w-10 h-10">
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-foreground">Applying feedback...</p>
               </div>
             )}
           </div>

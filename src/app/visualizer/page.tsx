@@ -23,7 +23,7 @@ export default function VisualizerPage() {
         <div className="relative container mx-auto px-4 py-14 sm:py-16 text-center">
           <FadeInUp>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              Visualize Your{' '}
+              Visualise Your{' '}
               <span className="text-primary">Dream Space</span>
             </h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">

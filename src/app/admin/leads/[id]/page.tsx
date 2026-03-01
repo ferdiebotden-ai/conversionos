@@ -67,7 +67,32 @@ async function getLeadData(id: string) {
     };
   });
 
-  return { lead, quote, versions };
+  // Fetch primary visualization for featured concept
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- client_favourited_concepts not in generated types
+  const { data: vizRows } = await (supabase as any)
+    .from('visualizations')
+    .select('generated_concepts, client_favourited_concepts')
+    .eq('lead_id', id)
+    .eq('site_id', getSiteId())
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  let featuredConceptUrl: string | null = null;
+  const viz = vizRows?.[0];
+  if (viz) {
+    const concepts = Array.isArray(viz.generated_concepts)
+      ? (viz.generated_concepts as { imageUrl?: string }[])
+      : [];
+    const favourited = Array.isArray(viz.client_favourited_concepts)
+      ? (viz.client_favourited_concepts as number[])
+      : [];
+    const starredIdx = favourited[0];
+    if (starredIdx != null && concepts[starredIdx]?.imageUrl) {
+      featuredConceptUrl = concepts[starredIdx].imageUrl;
+    }
+  }
+
+  return { lead, quote, versions, featuredConceptUrl };
 }
 
 export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
@@ -78,7 +103,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
     notFound();
   }
 
-  const { lead, quote, versions } = data;
+  const { lead, quote, versions, featuredConceptUrl } = data;
   const depositPercent = await getDepositPercent();
 
   return (
@@ -117,6 +142,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <PhotoGallery
                 uploadedPhotos={lead.uploaded_photos}
                 generatedConcepts={lead.generated_concepts}
+                featuredConceptUrl={featuredConceptUrl}
               />
             </div>
           </div>
@@ -124,7 +150,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
         {/* Visualizations Tab */}
         <TabsContent value="visualizations">
-          <LeadVisualizationPanel leadId={lead.id} />
+          <LeadVisualizationPanel leadId={lead.id} chatTranscript={lead.chat_transcript} />
         </TabsContent>
 
         {/* Quote Tab */}

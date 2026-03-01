@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** March 2, 2026
+**Last updated:** March 1, 2026
 
 ---
 
@@ -66,10 +66,11 @@ The homeowner is the end-user of the platform — the person uploading photos an
 
 **All tiers:**
 - Fully branded website (company name, colours, logo, services, testimonials)
-- AI Design Studio (4 photorealistic concepts per upload, before/after slider)
-- Emma AI assistant (text + voice, design guidance, context-aware)
+- AI Design Studio (4 photorealistic concepts per upload, before/after slider at 85% opacity)
+- Emma AI text chat (design guidance, context-aware, concept-specific awareness)
+- Dictation input (Web Speech API — speak instead of type, review before sending)
 - Concept starring + email favourites
-- Lead capture + email notification
+- Lead capture + email notification (with optional "anything else" free-text field)
 - Mobile camera capture (take a photo, get concepts instantly)
 
 **Accelerate adds:**
@@ -98,10 +99,10 @@ The entire homeowner experience happens on a single page — no clicking between
 The homeowner takes a photo of their kitchen, bathroom, or basement (camera on mobile, drag-and-drop on desktop). AI immediately analyses the photo — detecting room type, dimensions, layout, fixtures, and condition.
 
 ### Step 2: Choose a Style
-Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones") or speak them via voice.
+Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones") or use dictation to speak them.
 
 ### Step 3: AI Generates 4 Concepts (~30 seconds)
-Four photorealistic concepts stream in progressively via SSE. Each concept preserves the actual room geometry while applying the chosen style. The homeowner sees their space transformed — not a stock photo.
+Four photorealistic concepts stream in progressively via SSE with a smooth, dopamine-inducing loading experience. A RAF-based progress bar interpolates smoothly (no 20% jumps), staged status messages explain what's happening ("Analysing your space...", "Designing concepts..."), and each concept cross-fades from blur to sharp as it arrives. A concept counter ("2 of 4 concepts ready!") keeps the homeowner engaged. Each concept preserves the actual room geometry while applying the chosen style.
 
 ### Step 4: Explore and Refine
 
@@ -110,16 +111,18 @@ Four photorealistic concepts stream in progressively via SSE. Each concept prese
 - **Single active concept:** The homeowner taps one concept to work on — this selects AND stars it in a single action (only one active at a time). The active concept gets a prominent ring and filled star badge; others are slightly dimmed. This is the concept Emma discusses and refinement targets.
 - **Before/after slider:** Drag to compare original vs. concept. During refinement, an "Updating..." overlay appears on the slider. After refinement, the slider label updates to show the version (e.g., "Concept 2 — V2").
 - **Version badges:** When a concept is refined, its thumbnail updates to show the new image with a version badge (V2, V3) in the bottom-left corner.
-- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "Tap the concept that catches your eye — I'll help you refine it" and waits for the homeowner to engage — no buttons until they do.
+- **Concept awareness header:** A subtle header bar above the chat shows the active concept thumbnail and "Discussing Concept N". When the user switches concepts, a divider appears in the conversation. Emma's prompt includes an emphatic ACTIVE CONCEPT section — she always references the correct concept number.
+- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "Tap the concept that catches your eye — I'll help you refine it" and waits for the homeowner to engage — no buttons until they do. A dictation button beside the text input lets users speak instead of type (Web Speech API, live transcription, review before sending).
 - **Suggestion chips:** After each response, Emma offers 2 short clickable suggestions (max 8 words each) inline below her message. They scroll naturally with the conversation. Clicking sends the suggestion as a message.
 - **Quick action toolbar:** A compact fixed toolbar sits above the chat input with contextual actions:
-  - After the 1st exchange: "Refine My Design" — AI re-renders the active concept incorporating design signals from the conversation
+  - After the 1st exchange: "Apply My Feedback" (with tooltip explaining it refines the active concept based on the conversation)
   - After the 2nd exchange: "Get My Estimate" (Accelerate+) or "Email My Designs" (Elevate)
-- **Up to 3 refinements:** The "Refine" button silently disappears after the 3rd use. No counter, no pressure.
+- **Up to 3 refinements:** The "Apply My Feedback" button silently disappears after the 3rd use. No counter, no pressure.
+- **Refinement loading:** A styled overlay replaces the grey spinner — "Applying your feedback..." with backdrop blur and progress animation. The refine endpoint now receives the last 10 user messages (not just keyword signals) so Gemini produces visually distinct results.
 - **Try a Different Style:** A prominent button below the chat lets the homeowner return to style selection while keeping their original photo.
 
 ### Step 5: Connect
-- **Accelerate+:** An inline lead capture form slides in below the chat (name, email, phone, timeline). On submit, the contractor receives the lead with full context and an AI-generated quote draft.
+- **Accelerate+:** An inline lead capture form slides in below the chat (name, email, phone, timeline, optional "Anything else we should know?" free-text field). On submit, the contractor receives the lead with full context and an AI-generated quote draft.
 - **Elevate:** The homeowner can email their starred designs to themselves or request a callback.
 
 The homeowner never navigates away from the page. Each phase builds below the previous one — a natural scroll through their design journey.
@@ -131,16 +134,18 @@ The homeowner never navigates away from the page. Each phase builds below the pr
 Available on Accelerate and Dominate tiers.
 
 ### Leads
-Every lead arrives with full context: the homeowner's original photo, AI-generated concepts, starred favourites, Emma's chat transcript, room analysis (dimensions, condition, layout), and design preferences. On Accelerate+, an AI-generated quote draft is automatically created.
+Every lead arrives with full context: the homeowner's original photo, AI-generated concepts, starred favourites, Emma's chat transcript, room analysis (dimensions, condition, layout), and design preferences. On Accelerate+, an AI-generated quote draft is automatically created — incorporating concept pricing data (materials identified by AI vision, finish level, cost estimates).
+
+The lead detail page shows the homeowner's preferred concept prominently with a gold star badge, and the Visualizations tab includes a collapsible Design Studio Chat section showing the full conversation in message bubble format.
 
 ### Quoting
-The AI Quote Engine generates structured quotes with transparency cards showing the math behind every line item — materials, labour rates, Ontario pricing sources. Contractors can:
+The AI Quote Engine generates structured quotes with transparency cards showing the math behind every line item — materials, labour rates, Ontario pricing sources, and AI confidence score (colour-coded badge). Contractors can:
 - Review and customise AI-generated quotes
-- Toggle Good/Better/Best pricing tiers
 - Upload their own price list (CSV) — AI prioritises contractor prices over defaults
 - Use assembly templates (reusable line item bundles for common work)
 - Detect scope gaps (20+ rules check for missing items like waterproofing, permits, demolition)
 - Send multi-page PDFs with e-signature acceptance
+- Click any row in the Quotes list to navigate directly to that quote
 
 ### Invoicing
 Create invoices directly from accepted quotes. Payment tracking, PDF generation, Sage 50 CSV export.
@@ -159,7 +164,9 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 **Personality:** Warm, concise (2-3 sentences), conversational. Uses "we" language. Guides without pushing — never says "2 refinements remaining" or creates urgency.
 
-**Voice:** Available on all tiers via ElevenLabs (web). Phone/Twilio on Dominate only.
+**Voice:** Voice chat removed from the visualizer (ElevenLabs unreliable — to be reintroduced later). Voice infrastructure (API routes, provider) retained but UI disconnected. Phone/Twilio on Dominate only.
+
+**Dictation:** Web Speech API dictation available in Design Studio chat input. Mic button shows live transcription; text populates the input field for review before sending (never auto-sends). Hidden on unsupported browsers (Firefox).
 
 **Tier awareness:**
 - **Elevate:** Emma never discusses dollar amounts. Routes pricing questions to the contractor's contact page.
@@ -176,8 +183,9 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 | Chat + Vision | GPT-5.2 | Emma's conversations, photo analysis, quote generation | ~$0.01-0.05 |
 | Image generation | Gemini 3.1 Flash Image (Nano Banana 2) | 4 photorealistic concepts | ~$0.27 |
 | Refinement | Gemini 3.1 Flash Image | Re-render starred concept | ~$0.07 |
-| Voice | ElevenLabs Conversational AI | Emma's voice (all tiers, web) | ElevenLabs pricing |
-| Transcription | GPT-4o-mini (Whisper) | Voice input, contractor dictation | ~$0.01 |
+| Voice | ElevenLabs Conversational AI | Emma's voice (infra retained, UI removed) | ElevenLabs pricing |
+| Dictation | Web Speech API (browser-native) | Speak-to-type in Design Studio chat | Free |
+| Transcription | GPT-4o-mini (Whisper) | Contractor dictation (admin side) | ~$0.01 |
 
 **Total cost per session:** ~$0.36 (no refinements) to ~$0.56 (3 refinements). Well within the $150/mo API cap at 50 sessions/month.
 
@@ -185,7 +193,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 ## Tech Stack
 
-Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (856 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
+Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (852 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
 
 ---
 
@@ -231,7 +239,7 @@ Contractors configure this in Settings → Quoting. All website copy adapts auto
 
 ## Database
 
-Supabase PostgreSQL (ca-central-1) with Row-Level Security. 14 tables covering admin settings, leads (with contractor intake fields), quote drafts (versioned, tiered, e-signature), contractor prices (CSV upload), assembly templates, visualizations, invoices, payments, drawings, chat sessions, and audit logging.
+Supabase PostgreSQL (ca-central-1) with Row-Level Security. 14 tables covering admin settings, leads (with contractor intake fields), quote drafts (versioned, e-signature), contractor prices (CSV upload), assembly templates, visualizations (with concept_pricing JSONB), invoices, payments, drawings, chat sessions, and audit logging. Tiered quoting DB columns (tier_good/tier_better/tier_best) remain but are unused.
 
 30+ API routes handle AI operations, lead management, quoting, invoicing, and admin settings. All routes enforce tenant isolation via `site_id` and tier-based access control.
 
@@ -277,6 +285,9 @@ All demo data was created through real platform workflows (Gemini image generati
 
 - Stripe not integrated — payments recorded manually
 - Phone/Twilio voice agent not yet deployed (Dominate feature)
+- Voice chat UI removed from visualizer (ElevenLabs unreliable) — infrastructure retained for future re-enablement
+- Tiered quoting (Good/Better/Best) removed from UI — DB columns remain, unused
+- Dictation uses Web Speech API only (no Whisper fallback) — hidden on Firefox
 - Style History Gallery and Session linking not built
 - E-signature acceptance page untested in QA
 - Depth estimation disabled (Sharp fallback works)

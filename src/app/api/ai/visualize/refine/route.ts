@@ -33,6 +33,10 @@ const refineRequestSchema = z.object({
   visualizationId: z.string().min(1),
   starredConceptIndex: z.number().int().min(0),
   designSignals: z.array(designSignalSchema).default([]),
+  conversationMessages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).default([]),
   estimateData: z.object({
     projectType: z.string().optional(),
     areaSqft: z.number().optional(),
@@ -71,6 +75,7 @@ function buildRefinementSummary(signals: DesignSignal[]): string {
  */
 function buildRefinementAddendum(
   signals: DesignSignal[],
+  conversationMessages: { role: string; content: string }[],
   estimateData?: z.infer<typeof refineRequestSchema>['estimateData'],
 ): string {
   const sections: string[] = [];
@@ -78,6 +83,14 @@ function buildRefinementAddendum(
   sections.push(`=== CONVERSATIONAL REFINEMENT ===
 Use the STYLE reference image as your starting aesthetic. Apply the following refinements
 while preserving room structure from the SOURCE reference image.`);
+
+  // Include conversation context so Gemini understands what the homeowner wants
+  if (conversationMessages.length > 0) {
+    const recentMessages = conversationMessages.slice(-10);
+    sections.push(`Recent conversation between the homeowner and design assistant:
+${recentMessages.map(m => `${m.role === 'user' ? 'Homeowner' : 'Assistant'}: ${m.content}`).join('\n')}`);
+    sections.push(`Pay close attention to the homeowner's requests above. Apply any design preferences, material choices, or changes they mentioned.`);
+  }
 
   const materials = signals.filter(s => s.category === 'material');
   if (materials.length > 0) {
@@ -159,7 +172,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { visualizationId, starredConceptIndex, designSignals, estimateData, refinementNumber } = parseResult.data;
+  const { visualizationId, starredConceptIndex, designSignals, conversationMessages, estimateData, refinementNumber } = parseResult.data;
   const siteId = getSiteId();
 
   // 3. Fetch visualization record
@@ -244,7 +257,7 @@ export async function POST(request: NextRequest) {
   };
 
   const basePrompt = buildRenovationPrompt(promptData);
-  const refinementAddendum = buildRefinementAddendum(designSignals, estimateData);
+  const refinementAddendum = buildRefinementAddendum(designSignals, conversationMessages, estimateData);
   const fullPrompt = `${basePrompt}\n\n${refinementAddendum}`;
 
   // 8. Generate with Gemini

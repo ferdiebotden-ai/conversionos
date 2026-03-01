@@ -60,9 +60,6 @@ const SEND_STEPS = [
   { label: 'Delivering to customer...' },
 ];
 
-type TierMode = 'single' | 'tiered';
-type TierName = 'good' | 'better' | 'best';
-
 interface QuoteSendWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -76,8 +73,6 @@ interface QuoteSendWizardProps {
   goalsText?: string | undefined;
   sentAt?: Date | null | undefined;
   onSendComplete: () => void;
-  tierMode?: TierMode | undefined;
-  tierTotals?: Record<TierName, number> | undefined;
 }
 
 type WizardStep = 'review' | 'preview' | 'email' | 'confirm';
@@ -113,8 +108,6 @@ export function QuoteSendWizard({
   goalsText,
   sentAt,
   onSendComplete,
-  tierMode,
-  tierTotals,
 }: QuoteSendWizardProps) {
   const branding = useBranding();
   const [currentStep, setCurrentStep] = useState<WizardStep>('review');
@@ -396,29 +389,6 @@ The ${branding.name} Team`);
                     </div>
                   </div>
                   <div className="pt-3 border-t space-y-2">
-                    {tierMode === 'tiered' && tierTotals ? (
-                      <>
-                        <div className="text-xs font-medium text-muted-foreground mb-2">
-                          All three tiers will be included in the quote
-                        </div>
-                        {(['good', 'better', 'best'] as TierName[]).map((tier) => (
-                          <div key={tier} className="flex justify-between">
-                            <span className={tier === 'better' ? 'font-medium text-primary' : 'text-muted-foreground'}>
-                              {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                              {tier === 'better' && ' (Recommended)'}
-                            </span>
-                            <span className={tier === 'better' ? 'font-bold' : 'font-medium'}>
-                              {formatCurrency(tierTotals[tier])}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between text-primary pt-1 border-t">
-                          <span className="font-medium">Deposit Required (15%)</span>
-                          <span className="font-bold">{formatCurrency(depositRequired)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Total</span>
                           <span className="font-bold text-lg">{formatCurrency(quoteTotal)}</span>
@@ -427,8 +397,6 @@ The ${branding.name} Team`);
                           <span className="font-medium">Deposit Required (15%)</span>
                           <span className="font-bold">{formatCurrency(depositRequired)}</span>
                         </div>
-                      </>
-                    )}
                   </div>
                 </CardContent>
               </Card>

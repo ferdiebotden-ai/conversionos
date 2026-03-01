@@ -10,6 +10,7 @@ import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -58,6 +59,7 @@ export function LeadCaptureForm({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [timeline, setTimeline] = useState<Timeline | ''>('');
+  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +83,7 @@ export function LeadCaptureForm({
           phone: phone.trim() || undefined,
           projectType: roomType.replace(/\s+/g, '_').toLowerCase(),
           timeline: timeline || undefined,
+          goalsText: notes.trim() || undefined,
           visualizationId,
           uploadedPhotos: originalPhotoUrl ? [originalPhotoUrl] : undefined,
         }),
@@ -98,7 +101,7 @@ export function LeadCaptureForm({
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, email, phone, timeline, roomType, visualizationId, originalPhotoUrl, isValid, isSubmitting, onSubmitted]);
+  }, [name, email, phone, timeline, notes, roomType, visualizationId, originalPhotoUrl, isValid, isSubmitting, onSubmitted]);
 
   // Success state
   if (isSuccess) {
@@ -208,6 +211,22 @@ export function LeadCaptureForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="lead-notes" className="text-sm font-medium">
+            Anything else? <span className="text-muted-foreground font-normal">(optional)</span>
+          </Label>
+          <Textarea
+            id="lead-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Budget, special requirements, materials you love..."
+            disabled={isSubmitting}
+            rows={3}
+            maxLength={2000}
+            className="mt-1 resize-none"
+          />
         </div>
 
         {error && (

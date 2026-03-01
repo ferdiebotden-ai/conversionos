@@ -11,11 +11,12 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PhotoLightbox } from './photo-lightbox';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Star } from 'lucide-react';
 
 interface PhotoGalleryProps {
   uploadedPhotos: string[] | null;
   generatedConcepts: string[] | null;
+  featuredConceptUrl?: string | null | undefined;
 }
 
 interface GalleryImage {
@@ -26,6 +27,7 @@ interface GalleryImage {
 export function PhotoGallery({
   uploadedPhotos,
   generatedConcepts,
+  featuredConceptUrl,
 }: PhotoGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
 
@@ -62,6 +64,37 @@ export function PhotoGallery({
           <CardTitle className="text-lg">Photos & Visualizations</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Featured concept — customer's starred pick */}
+          {featuredConceptUrl && (
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-sm font-medium">Customer&apos;s Favourite</span>
+              </div>
+              <button
+                onClick={() =>
+                  setSelectedImage({ url: featuredConceptUrl, type: 'generated' })
+                }
+                className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all group"
+              >
+                <Image
+                  src={featuredConceptUrl}
+                  alt="Customer's favourite concept"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                <Badge
+                  variant="secondary"
+                  className="absolute top-2 left-2 text-xs bg-yellow-100 text-yellow-800"
+                >
+                  <Star className="h-3 w-3 mr-1 fill-yellow-600" />
+                  Starred
+                </Badge>
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {images.map((image, index) => (
               <button

@@ -130,8 +130,9 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 | FIRECRAWL_API_KEY | pipeline .env | Discovery, scraping |
 | NEXT_PUBLIC_SUPABASE_URL | demo .env.local | Provisioning, screenshots |
 | SUPABASE_SERVICE_ROLE_KEY | demo .env.local | Provisioning, screenshots |
-| VERCEL_TOKEN | pipeline .env | Domain SSL cert provisioning (optional — pipeline works without it) |
-| VERCEL_PROJECT_ID | pipeline .env | Domain SSL cert provisioning (optional — pipeline works without it) |
+| VERCEL_TOKEN | pipeline .env | Domain registration + SSL cert provisioning (optional — pipeline works without it) |
+| VERCEL_PROJECT_ID | pipeline .env | Domain registration + SSL cert provisioning (optional — pipeline works without it) |
+| VERCEL_TEAM_ID | pipeline .env | Required with VERCEL_TOKEN — project lives under a team, all API calls need `?teamId=` |
 
 ## Pipeline Flow
 
@@ -344,7 +345,7 @@ After QA passes (Step 5), `orchestrate.mjs` automatically runs the outreach pipe
 
 **What it does NOT do:** Send emails. Drafts only. Ferdie reviews and clicks Send.
 
-**Dependencies:** `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `~/pipeline/scripts/.env`. Without these, the outreach step errors but the build itself still succeeds.
+**Dependencies:** `GMAIL_CLIENT_ID` + `GMAIL_CLIENT_SECRET` + `GMAIL_REFRESH_TOKEN` in `~/pipeline/scripts/.env` (OAuth2 — Google Cloud project "NorBot Outreach" under ferdie@norbotsystems.com). Without these, the outreach step errors but the build itself still succeeds.
 
 **Full outreach docs:** `scripts/outreach/README.md`
 

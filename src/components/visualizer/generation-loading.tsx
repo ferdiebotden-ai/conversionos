@@ -2,13 +2,15 @@
 
 /**
  * Generation Loading
- * Engaging loading experience during AI visualization generation
- * Supports progressive concept previews via SSE streaming
+ * Engaging loading experience during AI visualization generation.
+ * Features: staged status messages, concept counter, blur-to-sharp reveals,
+ * shimmer progress bar, and tips carousel.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Lightbulb } from 'lucide-react';
 import type { GeneratedConcept } from '@/lib/schemas/visualization';
 
@@ -26,16 +28,34 @@ interface GenerationLoadingProps {
   originalImage?: string | undefined;
 }
 
+// Staged status messages by progress range
+const STATUS_MESSAGES: { threshold: number; message: string }[] = [
+  { threshold: 10, message: 'Analysing your room...' },
+  { threshold: 25, message: 'Understanding the layout and lighting...' },
+  { threshold: 40, message: 'Applying design principles...' },
+  { threshold: 60, message: 'Generating concept variations...' },
+  { threshold: 75, message: 'Refining textures and materials...' },
+  { threshold: 90, message: 'Adding finishing touches...' },
+  { threshold: 100, message: 'Almost there...' },
+];
+
+function getStatusMessage(progress: number): string {
+  for (const { threshold, message } of STATUS_MESSAGES) {
+    if (progress < threshold) return message;
+  }
+  return 'Finishing up...';
+}
+
 // Tips to display while generating
 const TIPS = [
-  'AI is analyzing the structure and lighting of your room',
+  'AI is analysing the structure and lighting of your room',
   'Applying design principles for the selected style',
   'Generating multiple concept variations',
   'Ensuring realistic textures and materials',
   'Pro tip: Take wide-angle shots from corners for best results',
   'The AI preserves your room\'s layout and dimensions',
-  'Generated visualizations help communicate your vision',
-  'Share your favorite concept with family for feedback',
+  'Generated visualisations help communicate your vision',
+  'Share your favourite concept with family for feedback',
 ];
 
 export function GenerationLoading({
@@ -46,7 +66,6 @@ export function GenerationLoading({
   className,
   stage,
   concepts,
-  originalImage,
 }: GenerationLoadingProps) {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [tipFading, setTipFading] = useState(false);
@@ -69,14 +88,16 @@ export function GenerationLoading({
     return type.replace(/_/g, ' ');
   };
 
-  // Calculate estimated time remaining based on progress
-  const getTimeEstimate = (): string => {
-    if (progress >= 92) return 'Finishing up...';
-    if (progress >= 75) return 'Generating final concepts...';
-    if (progress >= 50) return 'About 30 seconds...';
-    if (progress >= 20) return 'About 45 seconds...';
-    return 'About 60 seconds...';
-  };
+  // Count ready concepts
+  const readyCount = concepts?.length ?? 0;
+  const statusMessage = stage || getStatusMessage(progress);
+
+  // Concept counter text
+  const counterText = useMemo(() => {
+    if (readyCount === 0) return null;
+    if (readyCount === 4) return 'All 4 concepts ready!';
+    return `${readyCount} of 4 concepts ready!`;
+  }, [readyCount]);
 
   return (
     <div className={cn('flex flex-col items-center justify-center py-12 px-4', className)}>
@@ -100,57 +121,99 @@ export function GenerationLoading({
         </div>
       </div>
 
-      {/* Main heading */}
-      <h2 className="text-2xl font-bold text-center">
-        {stage || 'Creating Your Vision'}
-      </h2>
+      {/* Main heading with animated status message */}
+      <AnimatePresence mode="wait">
+        <motion.h2
+          key={statusMessage}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3 }}
+          className="text-2xl font-bold text-center"
+        >
+          {statusMessage}
+        </motion.h2>
+      </AnimatePresence>
       <p className="text-muted-foreground mt-2 text-center max-w-md">
         Reimagining your {formatRoomType(roomType)} in the{' '}
         <span className="font-medium capitalize">{style}</span> style
       </p>
 
-      {/* Progress bar */}
+      {/* Concept counter */}
+      <AnimatePresence>
+        {counterText && (
+          <motion.p
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-3 text-sm font-medium text-primary"
+          >
+            {counterText}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* Progress bar with shimmer */}
       <div className="w-full max-w-md mt-8">
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <span className="text-muted-foreground">Progress</span>
-          <span className="text-muted-foreground">{getTimeEstimate()}</span>
-        </div>
-        <div className="h-3 bg-muted rounded-full overflow-hidden">
+        <div className="h-3 bg-muted rounded-full overflow-hidden relative">
           <div
-            className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-            style={{ width: `${progress}%` }}
-          />
+            className="h-full bg-primary rounded-full relative overflow-hidden"
+            style={{
+              width: `${progress}%`,
+              transition: 'width 0.3s ease-out',
+            }}
+          >
+            {/* Shimmer overlay */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                animation: 'shimmer 2s infinite',
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Progressive concept preview grid (SSE streaming) */}
-      {stage && (
-        <div className="w-full max-w-lg mt-8 grid grid-cols-4 gap-3">
-          {Array.from({ length: 4 }, (_, i) => {
-            const concept = concepts?.[i];
-            return (
-              <div
-                key={i}
-                className="relative aspect-square rounded-lg overflow-hidden border border-border"
-              >
+      {/* Progressive concept preview grid (SSE streaming) with blur-to-sharp */}
+      <div className="w-full max-w-lg mt-8 grid grid-cols-4 gap-3">
+        {Array.from({ length: 4 }, (_, i) => {
+          const concept = concepts?.[i];
+          return (
+            <div
+              key={i}
+              className="relative aspect-square rounded-lg overflow-hidden border border-border"
+            >
+              <AnimatePresence mode="wait">
                 {concept ? (
-                  <img
+                  <motion.img
+                    key={`concept-${i}`}
                     src={concept.imageUrl}
                     alt={concept.description || `Concept ${i + 1}`}
-                    className="w-full h-full object-cover transition-opacity duration-500 opacity-0 animate-fade-in"
-                    style={{ animationFillMode: 'forwards' }}
-                    onLoad={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '1';
-                    }}
+                    className="w-full h-full object-cover"
+                    initial={{ filter: 'blur(20px)', opacity: 0 }}
+                    animate={{ filter: 'blur(0px)', opacity: 1 }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 ) : (
-                  <div className="w-full h-full animate-pulse bg-muted" />
+                  <motion.div
+                    key={`skeleton-${i}`}
+                    className="w-full h-full bg-muted"
+                    animate={{
+                      opacity: [0.4, 0.7, 0.4],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: i * 0.2,
+                    }}
+                  />
                 )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Tips carousel */}
       <div className="mt-8 w-full max-w-md">
@@ -203,9 +266,17 @@ export function GenerationLoading({
 
       {/* Disclaimer */}
       <p className="text-xs text-center text-muted-foreground mt-8 max-w-sm">
-        AI visualization uses advanced image generation to show design possibilities.
+        AI visualisation uses advanced image generation to show design possibilities.
         Results are for inspiration purposes.
       </p>
+
+      {/* Inline keyframes for shimmer */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }

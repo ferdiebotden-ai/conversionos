@@ -31,14 +31,6 @@ import {
 // Types
 // ────────────────────────────────────────────────────────────
 
-type TierName = 'good' | 'better' | 'best';
-
-interface TierData {
-  items: QuoteLineItem[];
-  total: number;
-  label: string;
-}
-
 export interface QuotePdfProps {
   lead: Lead;
   quote: QuoteDraft;
@@ -60,10 +52,6 @@ export function QuotePdfDocument({
 }: QuotePdfProps) {
   const primaryColor = branding.primaryColor;
   const base = createBaseStyles(primaryColor);
-
-  // Tiered quote detection
-  const quoteRecord = quote as unknown as Record<string, unknown>;
-  const isTiered = quoteRecord['tier_mode'] === 'tiered';
 
   const lineItems = (quote.line_items as unknown as QuoteLineItem[]) || [];
   const quoteDate = new Date(quote.created_at);
@@ -104,33 +92,6 @@ export function QuotePdfDocument({
 
   // Group line items by category
   const grouped = groupLineItemsByCategory(lineItems);
-
-  // Tier data
-  const tierData: Record<TierName, TierData> | null = isTiered
-    ? {
-        good: {
-          items: (quoteRecord['tier_good'] as QuoteLineItem[] | null) || [],
-          total: (
-            (quoteRecord['tier_good'] as QuoteLineItem[] | null) || []
-          ).reduce((s, i) => s + i.total, 0),
-          label: 'Good — Economy',
-        },
-        better: {
-          items: (quoteRecord['tier_better'] as QuoteLineItem[] | null) || [],
-          total: (
-            (quoteRecord['tier_better'] as QuoteLineItem[] | null) || []
-          ).reduce((s, i) => s + i.total, 0),
-          label: 'Better — Standard',
-        },
-        best: {
-          items: (quoteRecord['tier_best'] as QuoteLineItem[] | null) || [],
-          total: (
-            (quoteRecord['tier_best'] as QuoteLineItem[] | null) || []
-          ).reduce((s, i) => s + i.total, 0),
-          label: 'Best — Premium',
-        },
-      }
-    : null;
 
   // Quote-template-specific styles (extend base)
   const styles = StyleSheet.create({
@@ -368,21 +329,6 @@ export function QuotePdfDocument({
       color: STATIC_COLORS.muted,
     },
 
-    /* ── Tier comparison (kept from original) ───────────── */
-    tierSection: {
-      marginBottom: 15,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: STATIC_COLORS.border,
-      borderRadius: 4,
-    },
-    tierSectionHighlighted: {
-      marginBottom: 15,
-      padding: 12,
-      borderWidth: 2,
-      borderColor: primaryColor,
-      borderRadius: 4,
-    },
   });
 
   // Shared fixed footer rendered on every page (inline JSX, not a component — avoids react-hooks/static-components)
@@ -675,179 +621,6 @@ export function QuotePdfDocument({
 
         {pageFooterJsx}
       </Page>
-
-      {/* ━━ Tier Comparison Page (conditional) ━━━━━━━━━━━━ */}
-      {isTiered && tierData && (
-        <Page size="LETTER" style={styles.itemsPage}>
-          <View style={base.header}>
-            <View style={base.logoSection}>
-              <Text style={base.companyName}>{branding.name}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' as const }}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontFamily: 'Helvetica-Bold',
-                  color: STATIC_COLORS.secondary,
-                }}
-              >
-                PRICING OPTIONS
-              </Text>
-            </View>
-          </View>
-
-          <Text
-            style={{
-              fontSize: 11,
-              color: STATIC_COLORS.muted,
-              marginBottom: 20,
-            }}
-          >
-            We have prepared three options at different price points. Each tier
-            includes the same scope of work with different materials and
-            finishes.
-          </Text>
-
-          {(['good', 'better', 'best'] as TierName[]).map((tierName) => {
-            const tier = tierData[tierName];
-            const tierSubtotal = tier.total;
-            const tierHst = tierSubtotal * 0.13;
-            const tierTotal = tierSubtotal + tierHst;
-            const isBetter = tierName === 'better';
-
-            return (
-              <View
-                key={tierName}
-                style={
-                  isBetter
-                    ? styles.tierSectionHighlighted
-                    : styles.tierSection
-                }
-              >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: 8,
-                  }}
-                >
-                  <View
-                    style={{ flexDirection: 'row', alignItems: 'center' }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontFamily: 'Helvetica-Bold',
-                        color: STATIC_COLORS.secondary,
-                      }}
-                    >
-                      {tier.label}
-                    </Text>
-                    {isBetter && (
-                      <Text
-                        style={{
-                          fontSize: 9,
-                          color: primaryColor,
-                          fontFamily: 'Helvetica-Bold',
-                          marginLeft: 8,
-                        }}
-                      >
-                        RECOMMENDED
-                      </Text>
-                    )}
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontFamily: 'Helvetica-Bold',
-                      color: STATIC_COLORS.secondary,
-                    }}
-                  >
-                    ${formatCurrency(tierTotal)}
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: 4,
-                  }}
-                >
-                  <Text
-                    style={{ fontSize: 9, color: STATIC_COLORS.muted }}
-                  >
-                    {tier.items.length} items — Subtotal: $
-                    {formatCurrency(tierSubtotal)}
-                  </Text>
-                  <Text
-                    style={{ fontSize: 9, color: STATIC_COLORS.muted }}
-                  >
-                    HST (13%): ${formatCurrency(tierHst)}
-                  </Text>
-                </View>
-
-                {tier.items.slice(0, 5).map((item, idx) => (
-                  <View
-                    key={idx}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      paddingVertical: 2,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 9,
-                        color: STATIC_COLORS.secondary,
-                        flex: 3,
-                      }}
-                    >
-                      {item.description}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 9,
-                        color: STATIC_COLORS.secondary,
-                        textAlign: 'right' as const,
-                        flex: 1,
-                      }}
-                    >
-                      ${formatCurrency(item.total)}
-                    </Text>
-                  </View>
-                ))}
-                {tier.items.length > 5 && (
-                  <Text
-                    style={{
-                      fontSize: 8,
-                      color: STATIC_COLORS.muted,
-                      marginTop: 2,
-                    }}
-                  >
-                    + {tier.items.length - 5} more items (see detailed
-                    breakdown)
-                  </Text>
-                )}
-              </View>
-            );
-          })}
-
-          <Text
-            style={{
-              fontSize: 9,
-              color: STATIC_COLORS.muted,
-              marginTop: 10,
-              textAlign: 'center' as const,
-            }}
-          >
-            All options include the same scope of work. Deposit of{' '}
-            {quote.deposit_percent}% required to schedule.
-          </Text>
-
-          {pageFooterJsx}
-        </Page>
-      )}
 
       {/* ━━ FINAL PAGE: Terms + Signature ━━━━━━━━━━━━━━━━━ */}
       <Page size="LETTER" style={styles.termsPage}>

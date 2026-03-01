@@ -382,7 +382,7 @@ function QuoteLineItemCardInner({
       {/* Transparency card (collapsible) */}
       {showTransparency && item.transparencyData && (
         <div className="mt-1">
-          <TransparencyCard data={item.transparencyData} />
+          <TransparencyCard data={item.transparencyData} confidenceScore={item.confidenceScore} />
         </div>
       )}
     </Card>

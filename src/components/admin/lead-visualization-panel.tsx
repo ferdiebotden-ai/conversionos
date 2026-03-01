@@ -38,8 +38,12 @@ import {
   CheckCircle,
   Loader2,
   DollarSign,
+  Bot,
+  User,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCAD } from '@/lib/ai/knowledge/pricing-data';
+import type { Json } from '@/types/database';
 
 interface GeneratedConcept {
   id: string;
@@ -109,13 +113,21 @@ interface Visualization {
   client_favourited_concepts?: number[];
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
 interface LeadVisualizationPanelProps {
   leadId: string;
+  chatTranscript?: Json | null | undefined;
   className?: string;
 }
 
 export function LeadVisualizationPanel({
   leadId,
+  chatTranscript,
   className,
 }: LeadVisualizationPanelProps) {
   const [visualizations, setVisualizations] = useState<Visualization[]>([]);
@@ -127,6 +139,7 @@ export function LeadVisualizationPanel({
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showConversation, setShowConversation] = useState(false);
   const [showCostAnalysis, setShowCostAnalysis] = useState(false);
+  const [showChatTranscript, setShowChatTranscript] = useState(false);
 
   // Local state for editable fields
   const [adminNotes, setAdminNotes] = useState('');
@@ -581,6 +594,80 @@ export function LeadVisualizationPanel({
                 </Card>
               </Collapsible>
             )}
+
+            {/* Design Studio Chat (collapsible) */}
+            {(() => {
+              const chatMessages: ChatMessage[] = Array.isArray(chatTranscript)
+                ? (chatTranscript as unknown as ChatMessage[]).filter((m) => m.role !== 'system')
+                : [];
+              if (chatMessages.length === 0) return null;
+              return (
+                <Collapsible open={showChatTranscript} onOpenChange={setShowChatTranscript}>
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="py-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="text-sm flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Design Studio Chat
+                            <Badge variant="secondary" className="text-xs">
+                              {chatMessages.length} messages
+                            </Badge>
+                          </span>
+                          {showChatTranscript ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <ScrollArea className="h-[300px]">
+                          <div className="space-y-3 pr-4">
+                            {chatMessages.map((msg, i) => (
+                              <div
+                                key={i}
+                                className={cn(
+                                  'flex gap-2',
+                                  msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                                )}
+                              >
+                                <div
+                                  className={cn(
+                                    'flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center',
+                                    msg.role === 'user'
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-muted'
+                                  )}
+                                >
+                                  {msg.role === 'user' ? (
+                                    <User className="h-3 w-3" />
+                                  ) : (
+                                    <Bot className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <div
+                                  className={cn(
+                                    'max-w-[85%] rounded-lg px-3 py-2 text-xs',
+                                    msg.role === 'user'
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-muted'
+                                  )}
+                                >
+                                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })()}
 
             {/* AI Cost Analysis (collapsible) */}
             {currentViz.concept_pricing && (

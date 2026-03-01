@@ -17,7 +17,6 @@ import { type LineItem } from './quote-line-item';
 import { QuoteLineItemsLayout } from './quote-line-items-layout';
 import { RegenerateQuoteDialog } from './regenerate-quote-dialog';
 import { QuoteSendWizard } from './quote-send-wizard';
-import { TierComparison, type TierName } from './tier-comparison';
 import { ScopeGapRecommendations } from './scope-gap-recommendations';
 import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
 import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
@@ -27,7 +26,7 @@ import { SRAnnounce } from '@/components/ui/sr-announce';
 import { countPriceMatches } from '@/lib/pricing/fuzzy-match';
 import { useQuoteEditorStore } from '@/stores/quote-editor-store';
 import type { QuoteDraft, Json, AssemblyTemplate, ContractorPrice } from '@/types/database';
-import type { AIGeneratedQuote, AIQuoteLineItem, AITieredQuote } from '@/lib/schemas/ai-quote';
+import type { AIGeneratedQuote, AIQuoteLineItem } from '@/lib/schemas/ai-quote';
 import {
   Plus,
   Save,
@@ -40,7 +39,6 @@ import {
   Sparkles,
   RotateCcw,
   Layers,
-  Minus,
   X,
   RefreshCw,
   AlertTriangle,
@@ -148,15 +146,6 @@ function extractAIQuote(estimate: Json | null): AIGeneratedQuote | null {
   return obj.aiQuote || null;
 }
 
-// Extract tiered AI quote from initialEstimate
-function extractTieredAIQuote(estimate: Json | null): AITieredQuote | null {
-  if (!estimate || typeof estimate !== 'object' || Array.isArray(estimate)) {
-    return null;
-  }
-  const obj = estimate as { aiTieredQuote?: AITieredQuote };
-  return obj.aiTieredQuote || null;
-}
-
 // Convert AI line items to editor line items
 function aiItemsToLineItems(items: AIQuoteLineItem[]): LineItem[] {
   return items.map((item) => ({
@@ -197,18 +186,11 @@ export function QuoteEditor({
   const assumptions = store.assumptions;
   const exclusions = store.exclusions;
   const contingencyPercent = store.contingencyPercent;
-  const tierMode = store.tierMode;
-  const activeTier = store.activeTier;
-  const tieredLineItems = store.tieredLineItems;
-  const tieredDescriptions = store.tieredDescriptions;
-
   // Initialise the store once from props
   const storeInitialised = useRef(false);
   useEffect(() => {
     if (storeInitialised.current) return;
     storeInitialised.current = true;
-
-    const initialQuoteRecord = initialQuote as unknown as Record<string, unknown> | null;
 
     // Line items
     let initLineItems: LineItem[];
@@ -251,46 +233,8 @@ export function QuoteEditor({
       initExclusions = (initialQuote?.exclusions || DEFAULT_EXCLUSIONS).join('\n');
     }
 
-    // Tier mode — inferred from presence of saved tier arrays (tier_mode column doesn't exist in DB)
-    const hasTierData = Array.isArray(initialQuoteRecord?.['tier_good'])
-      && (initialQuoteRecord['tier_good'] as unknown[]).length > 0;
-    const initTierMode = hasTierData ? 'tiered' as const : 'single' as const;
-
-    // Tiered line items
-    let initTieredLineItems: Record<TierName, LineItem[]>;
-    if (hasTierData) {
-      initTieredLineItems = {
-        good: parseLineItems(initialQuoteRecord['tier_good'] as Json ?? null),
-        better: parseLineItems(initialQuoteRecord['tier_better'] as Json ?? null),
-        best: parseLineItems(initialQuoteRecord['tier_best'] as Json ?? null),
-      };
-    } else {
-      const tieredAI = extractTieredAIQuote(initialEstimate);
-      if (tieredAI) {
-        initTieredLineItems = {
-          good: aiItemsToLineItems(tieredAI.tiers.good.lineItems),
-          better: aiItemsToLineItems(tieredAI.tiers.better.lineItems),
-          best: aiItemsToLineItems(tieredAI.tiers.best.lineItems),
-        };
-      } else {
-        initTieredLineItems = { good: [], better: [], best: [] };
-      }
-    }
-
-    // Tiered descriptions
-    const tieredAI = extractTieredAIQuote(initialEstimate);
-    const initTieredDescriptions: Record<TierName, string> = {
-      good: tieredAI?.tiers.good.description || 'Economy finish, stock materials',
-      better: tieredAI?.tiers.better.description || 'Standard finish, mid-range materials',
-      best: tieredAI?.tiers.best.description || 'Premium finish, designer-grade materials',
-    };
-
     store.init({
       lineItems: initLineItems,
-      tieredLineItems: initTieredLineItems,
-      tieredDescriptions: initTieredDescriptions,
-      tierMode: initTierMode,
-      activeTier: 'better',
       assumptions: initAssumptions,
       exclusions: initExclusions,
       contingencyPercent: initialQuote?.contingency_percent ?? DEFAULT_CONTINGENCY_PERCENT,
@@ -309,9 +253,6 @@ export function QuoteEditor({
 
   // V9: Subtotal sanity check dismissal
   const [sanityDismissed, setSanityDismissed] = useState(false);
-
-  // F7: Tier mode toggle confirmation
-  const [showTierConfirm, setShowTierConfirm] = useState(false);
 
   // C4: Reset to AI confirmation
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -399,15 +340,11 @@ export function QuoteEditor({
     // Read latest state from store at save time
     const storeState = useQuoteEditorStore.getState();
     const currentLineItems = storeState.lineItems;
-    const currentTierMode = storeState.tierMode;
-    const currentTieredLineItems = storeState.tieredLineItems;
     const currentAssumptions = storeState.assumptions;
     const currentExclusions = storeState.exclusions;
     const currentContingency = storeState.contingencyPercent;
 
-    // In tiered mode, use the better tier for line_items (backward compat)
-    const itemsToSave = currentTierMode === 'tiered' ? currentTieredLineItems.better : currentLineItems;
-    if (itemsToSave.length === 0) return;
+    if (currentLineItems.length === 0) return;
 
     setIsSaving(true);
     setError(null);
@@ -415,22 +352,11 @@ export function QuoteEditor({
     try {
       const payload: Record<string, unknown> = {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        line_items: itemsToSave.map(({ id, ...item }) => item),
+        line_items: currentLineItems.map(({ id, ...item }) => item),
         assumptions: currentAssumptions.split('\n').filter((a) => a.trim()),
         exclusions: currentExclusions.split('\n').filter((e) => e.trim()),
         contingency_percent: currentContingency,
       };
-
-      if (currentTierMode === 'tiered') {
-        payload['tier_mode'] = 'tiered';
-        /* eslint-disable @typescript-eslint/no-unused-vars */
-        payload['tier_good'] = currentTieredLineItems.good.map(({ id, ...item }) => item);
-        payload['tier_better'] = currentTieredLineItems.better.map(({ id, ...item }) => item);
-        payload['tier_best'] = currentTieredLineItems.best.map(({ id, ...item }) => item);
-        /* eslint-enable @typescript-eslint/no-unused-vars */
-      } else {
-        payload['tier_mode'] = 'single';
-      }
 
       const response = await fetch(`/api/quotes/${leadId}`, {
         method: 'PUT',
@@ -524,46 +450,7 @@ export function QuoteEditor({
     markChanged();
   }
 
-  // Tier switching
-  function handleSwitchTier(newTier: TierName) {
-    store.switchTier(newTier);
-    markChanged();
-  }
-
-  // Toggle tier mode — F7: Confirm before generating tiers
-  function handleToggleTierMode() {
-    if (tierMode === 'single') {
-      // Show confirmation before generating tiers
-      setShowTierConfirm(true);
-    } else {
-      // Switching to single — no confirmation needed
-      store.toggleTierMode();
-      markChanged();
-    }
-  }
-
-  // Actually execute the tier mode switch after confirmation
-  function executeToggleToTiered() {
-    store.toggleTierMode(); // single -> tiered
-    if (tieredLineItems.good.length === 0 && tieredLineItems.better.length === 0) {
-      handleRegenerateAIQuote(undefined, true);
-    }
-    markChanged();
-  }
-
-  // Keep tieredLineItems in sync when lineItems changes in tiered mode
-  useEffect(() => {
-    if (tierMode === 'tiered') {
-      store.setTieredLineItems({
-        ...tieredLineItems,
-        [activeTier]: lineItems,
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineItems, tierMode, activeTier]);
-
-  async function handleRegenerateAIQuote(guidance?: string, forceTiered?: boolean) {
-    const shouldTier = forceTiered || tierMode === 'tiered';
+  async function handleRegenerateAIQuote(guidance?: string) {
     setIsRegenerating(true);
     setError(null);
 
@@ -571,7 +458,7 @@ export function QuoteEditor({
       const response = await fetch(`/api/quotes/${leadId}/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guidance, tiered: shouldTier }),
+        body: JSON.stringify({ guidance }),
       });
 
       if (!response.ok) {
@@ -589,22 +476,9 @@ export function QuoteEditor({
         ? data.aiQuote.exclusions.join('\n')
         : exclusions;
 
-      if (shouldTier && data.aiTieredQuote) {
-        // Populate all three tiers via store
-        const newTiered: Record<TierName, LineItem[]> = {
-          good: aiItemsToLineItems(data.aiTieredQuote.tiers.good.lineItems),
-          better: aiItemsToLineItems(data.aiTieredQuote.tiers.better.lineItems),
-          best: aiItemsToLineItems(data.aiTieredQuote.tiers.best.lineItems),
-        };
-        const newDescs: Record<TierName, string> = {
-          good: data.aiTieredQuote.tiers.good.description,
-          better: data.aiTieredQuote.tiers.better.description,
-          best: data.aiTieredQuote.tiers.best.description,
-        };
-        store.loadFromAI(newTiered.better, newTiered, newDescs, newAssumptions, newExclusions, 'tiered');
-      } else if (data.aiQuote) {
+      if (data.aiQuote) {
         const newItems = aiItemsToLineItems(data.aiQuote.lineItems);
-        store.loadFromAI(newItems, null, null, newAssumptions, newExclusions, tierMode);
+        store.loadFromAI(newItems, newAssumptions, newExclusions);
       }
 
       markChanged();
@@ -629,17 +503,6 @@ export function QuoteEditor({
 
     const aiItems = aiItemsToLineItems(aiQuote.lineItems);
 
-    // Also reset tiered data if available
-    const tieredAI = extractTieredAIQuote(initialEstimate);
-    let resetTiered: Record<TierName, LineItem[]> | null = null;
-    if (tieredAI && tierMode === 'tiered') {
-      resetTiered = {
-        good: aiItemsToLineItems(tieredAI.tiers.good.lineItems),
-        better: aiItemsToLineItems(tieredAI.tiers.better.lineItems),
-        best: aiItemsToLineItems(tieredAI.tiers.best.lineItems),
-      };
-    }
-
     const resetAssumptions = aiQuote.assumptions.length > 0
       ? aiQuote.assumptions.join('\n')
       : assumptions;
@@ -647,7 +510,7 @@ export function QuoteEditor({
       ? aiQuote.exclusions.join('\n')
       : exclusions;
 
-    store.resetToAI(aiItems, resetTiered, resetAssumptions, resetExclusions);
+    store.resetToAI(aiItems, resetAssumptions, resetExclusions);
     markChanged();
   }
 
@@ -756,36 +619,6 @@ export function QuoteEditor({
     }
   }
 
-  // Average confidence across AI items
-  const aiConfidence = aiItemCount > 0
-    ? lineItems
-        .filter((item) => item.isFromAI && item.confidenceScore != null)
-        .reduce((sum, item) => sum + (item.confidenceScore || 0), 0) /
-      Math.max(1, lineItems.filter((item) => item.isFromAI && item.confidenceScore != null).length)
-    : 0;
-
-  // Tier comparison data
-  const tierComparisonData = useMemo(() => {
-    if (tierMode !== 'tiered') return null;
-    return {
-      good: {
-        label: 'Good',
-        description: tieredDescriptions.good,
-        items: tieredLineItems.good,
-      },
-      better: {
-        label: 'Better',
-        description: tieredDescriptions.better,
-        items: tieredLineItems.better,
-      },
-      best: {
-        label: 'Best',
-        description: tieredDescriptions.best,
-        items: tieredLineItems.best,
-      },
-    };
-  }, [tierMode, tieredLineItems, tieredDescriptions]);
-
   // V9: Subtotal sanity check
   const isSanityWarning = subtotal > 0 && (subtotal < 500 || subtotal > 500000);
 
@@ -837,22 +670,6 @@ export function QuoteEditor({
     markChanged();
   }
 
-  // Tier totals for send wizard
-  const tierTotals = useMemo(() => {
-    if (tierMode !== 'tiered') return undefined;
-    const calcTotal = (items: LineItem[]) => {
-      const sub = items.reduce((sum, item) => sum + item.total, 0);
-      const cont = sub * (contingencyPercent / 100);
-      const subCont = sub + cont;
-      return subCont + subCont * (HST_PERCENT / 100);
-    };
-    return {
-      good: calcTotal(tieredLineItems.good),
-      better: calcTotal(tieredLineItems.better),
-      best: calcTotal(tieredLineItems.best),
-    };
-  }, [tierMode, tieredLineItems, contingencyPercent]);
-
   return (
     <div className="space-y-6">
       <SRAnnounce
@@ -862,57 +679,13 @@ export function QuoteEditor({
           lastSaved ? 'Quote saved' : ''
         }
       />
-      {/* Tier Mode Toggle */}
-      {aiQuote && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={tierMode === 'single' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => tierMode !== 'single' && handleToggleTierMode()}
-              disabled={isRegenerating}
-            >
-              <Minus className="h-4 w-4 mr-1" />
-              Single Tier
-            </Button>
-            <Button
-              variant={tierMode === 'tiered' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => tierMode !== 'tiered' && handleToggleTierMode()}
-              disabled={isRegenerating}
-            >
-              <Layers className="h-4 w-4 mr-1" />
-              Three Tiers
-            </Button>
-          </div>
-          {isRegenerating && (
-            <span className="text-sm text-muted-foreground flex items-center gap-1">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Generating...
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Tier Comparison Bar */}
-      {tierMode === 'tiered' && tierComparisonData && (
-        <TierComparison
-          tiers={tierComparisonData}
-          activeTier={activeTier}
-          onSelectTier={handleSwitchTier}
-        />
-      )}
-
       {/* AI Info Banner */}
       {aiQuote && aiItemCount > 0 && (
         <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50/50 border border-purple-200/50">
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <Sparkles className="h-4 w-4 text-purple-600" />
             <span className="text-purple-700">
-              AI-generated quote
-              {tierMode === 'tiered' && ` — ${activeTier.charAt(0).toUpperCase() + activeTier.slice(1)} tier`}
-              {tierMode === 'single' && ` — ${aiItemCount} items`}
-              {aiConfidence > 0 && ` — ${Math.round(aiConfidence * 100)}% avg confidence`}
+              AI-generated quote — {aiItemCount} items
             </span>
             {contractorPriceMatchCount > 0 && (
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
@@ -1148,7 +921,7 @@ export function QuoteEditor({
       </Card>
 
       {/* Assumptions & Exclusions */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Assumptions</CardTitle>
@@ -1296,8 +1069,6 @@ export function QuoteEditor({
         goalsText={goalsText}
         sentAt={sentAt}
         onSendComplete={handleSendComplete}
-        tierMode={tierMode}
-        tierTotals={tierTotals}
       />
 
       {/* Regenerate Quote Dialog */}
@@ -1313,16 +1084,6 @@ export function QuoteEditor({
         open={showTemplatePicker}
         onOpenChange={setShowTemplatePicker}
         onInsert={handleInsertTemplate}
-      />
-
-      {/* F7: Tier mode toggle confirmation */}
-      <ConfirmDialog
-        open={showTierConfirm}
-        onOpenChange={setShowTierConfirm}
-        title="Generate Pricing Tiers"
-        description="Generate Good/Better/Best tiers? This will take ~10 seconds and create three pricing options."
-        confirmLabel="Generate"
-        onConfirm={executeToggleToTiered}
       />
 
       {/* C4: Reset to AI confirmation */}

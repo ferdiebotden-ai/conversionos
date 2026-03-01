@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
-import { regenerateAIQuote, generateAIQuote, generateTieredAIQuote, regenerateTieredAIQuote } from '@/lib/ai/quote-generation';
+import { regenerateAIQuote, generateAIQuote } from '@/lib/ai/quote-generation';
+import type { QuoteGenerationInput } from '@/lib/schemas/ai-quote';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import type { Json } from '@/types/database';
@@ -13,7 +14,6 @@ import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pric
  */
 const RegenerateSchema = z.object({
   guidance: z.string().max(1000).optional(),
-  tiered: z.boolean().optional(),
 });
 
 type RouteContext = { params: Promise<{ leadId: string }> };
@@ -56,7 +56,7 @@ export async function POST(
       );
     }
 
-    const { guidance, tiered } = validationResult.data;
+    const { guidance } = validationResult.data;
 
     const supabase = createServiceClient();
 
@@ -91,7 +91,7 @@ export async function POST(
     }
 
     // Build quote generation input
-    const quoteInput = {
+    const quoteInput: QuoteGenerationInput = {
       projectType: lead.project_type as 'kitchen' | 'bathroom' | 'basement' | 'flooring' | 'painting' | 'exterior' | 'other',
       areaSqft: lead.area_sqft ?? undefined,
       finishLevel: lead.finish_level as 'economy' | 'standard' | 'premium' | undefined,
@@ -111,29 +111,40 @@ export async function POST(
     const markups: CategoryMarkupsConfig = (markupsRow?.value as unknown as CategoryMarkupsConfig) || DEFAULT_CATEGORY_MARKUPS;
 
     // Fetch contractor prices for AI prompt injection
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contractor_prices not in generated types
     const { data: contractorPrices } = await (supabase as any).from('contractor_prices')
       .select('*')
       .eq('site_id', getSiteId());
 
-    // Generate new AI quote (single or tiered)
-    let aiQuote;
-    let aiTieredQuote;
-    if (tiered) {
-      if (guidance) {
-        aiTieredQuote = await regenerateTieredAIQuote(quoteInput, guidance, markups, contractorPrices ?? []);
-      } else {
-        aiTieredQuote = await generateTieredAIQuote(quoteInput, markups, contractorPrices ?? []);
-      }
-      // Use the "better" tier as the primary quote for backward compat
-      aiQuote = {
-        lineItems: aiTieredQuote.tiers.better.lineItems,
-        assumptions: aiTieredQuote.assumptions,
-        exclusions: aiTieredQuote.exclusions,
-        professionalNotes: aiTieredQuote.professionalNotes,
-        overallConfidence: aiTieredQuote.overallConfidence,
-        calculationSummary: aiTieredQuote.calculationSummary,
+    // Fetch concept pricing from visualization for richer AI context
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- concept_pricing not in generated types
+    const { data: vizRows } = await (supabase as any)
+      .from('visualizations')
+      .select('concept_pricing')
+      .eq('lead_id', leadId)
+      .eq('site_id', getSiteId())
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const conceptPricingRaw = vizRows?.[0]?.concept_pricing;
+    if (conceptPricingRaw && typeof conceptPricingRaw === 'object') {
+      quoteInput.conceptPricing = {
+        identifiedMaterials: Array.isArray(conceptPricingRaw.identifiedMaterials)
+          ? conceptPricingRaw.identifiedMaterials
+          : [],
+        inferredFinishLevel: conceptPricingRaw.inferredFinishLevel || 'standard',
+        materialCostRange: conceptPricingRaw.materialCostRange || { low: 0, high: 0 },
+        labourCostRange: conceptPricingRaw.labourCostRange || { low: 0, high: 0 },
+        totalEstimate: conceptPricingRaw.totalEstimate || { low: 0, high: 0 },
+        visibleChanges: Array.isArray(conceptPricingRaw.visibleChanges)
+          ? conceptPricingRaw.visibleChanges
+          : [],
       };
-    } else if (guidance) {
+    }
+
+    // Generate new AI quote
+    let aiQuote;
+    if (guidance) {
       aiQuote = await regenerateAIQuote(quoteInput, guidance, markups, contractorPrices ?? []);
     } else {
       aiQuote = await generateAIQuote(quoteInput, markups, contractorPrices ?? []);
@@ -144,7 +155,6 @@ export async function POST(
     const updatedDraftJson = {
       ...existingDraftJson,
       aiQuote,
-      ...(aiTieredQuote ? { aiTieredQuote } : {}),
       regeneratedAt: new Date().toISOString(),
       regenerationGuidance: guidance || null,
     };
@@ -180,7 +190,6 @@ export async function POST(
     return NextResponse.json({
       success: true,
       aiQuote,
-      ...(aiTieredQuote ? { aiTieredQuote } : {}),
     });
   } catch (error) {
     console.error('Quote regeneration error:', error);

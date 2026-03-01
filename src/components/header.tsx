@@ -104,7 +104,7 @@ export function Header() {
                       size="lg"
                       className="h-12 w-full"
                     >
-                      <Link href="/visualizer">Visualize</Link>
+                      <Link href="/visualizer">Visualise</Link>
                     </Button>
                   </SheetClose>
                 </div>
@@ -157,7 +157,7 @@ export function Header() {
               variant="outline"
               className="h-10"
             >
-              <Link href="/visualizer">Visualize</Link>
+              <Link href="/visualizer">Visualise</Link>
             </Button>
             <Button asChild className="h-10">
               <Link href={cta.href}>{cta.label}</Link>

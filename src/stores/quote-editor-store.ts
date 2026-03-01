@@ -8,7 +8,6 @@
 
 import { create } from 'zustand';
 import type { LineItem } from '@/components/admin/quote-line-item';
-import type { TierName } from '@/components/admin/tier-comparison';
 import {
   createHistoryState,
   pushHistory as pushHistoryFn,
@@ -19,15 +18,9 @@ import {
   type HistoryState,
 } from '@/components/cad/state/history-manager';
 
-export type TierMode = 'single' | 'tiered';
-
 /** The subset of editor state that is undoable */
 export interface UndoableState {
   lineItems: LineItem[];
-  tieredLineItems: Record<TierName, LineItem[]>;
-  tieredDescriptions: Record<TierName, string>;
-  tierMode: TierMode;
-  activeTier: TierName;
   assumptions: string;
   exclusions: string;
   contingencyPercent: number;
@@ -46,20 +39,14 @@ interface StoreActions {
   deleteItem: (index: number) => void;
   duplicateItem: (index: number) => void;
 
-  // Tier mutations
-  switchTier: (tier: TierName) => void;
-  toggleTierMode: () => TierMode;
-  setTieredLineItems: (items: Record<TierName, LineItem[]>) => void;
-  setTieredDescriptions: (descs: Record<TierName, string>) => void;
-
   // Text field mutations (debounced history push)
   setAssumptions: (value: string) => void;
   setExclusions: (value: string) => void;
   setContingency: (value: number) => void;
 
   // Bulk operations (immediate history push)
-  resetToAI: (items: LineItem[], tiered: Record<TierName, LineItem[]> | null, assumptions: string, exclusions: string) => void;
-  loadFromAI: (items: LineItem[], tiered: Record<TierName, LineItem[]> | null, descriptions: Record<TierName, string> | null, assumptions: string, exclusions: string, tierMode: TierMode) => void;
+  resetToAI: (items: LineItem[], assumptions: string, exclusions: string) => void;
+  loadFromAI: (items: LineItem[], assumptions: string, exclusions: string) => void;
   insertTemplate: (items: LineItem[]) => void;
   addScopeGapItem: (item: LineItem) => void;
   setLineItems: (items: LineItem[]) => void;
@@ -77,10 +64,6 @@ interface StoreActions {
 function snapshotUndoable(state: StoreState): string {
   return JSON.stringify({
     lineItems: state.lineItems,
-    tieredLineItems: state.tieredLineItems,
-    tieredDescriptions: state.tieredDescriptions,
-    tierMode: state.tierMode,
-    activeTier: state.activeTier,
     assumptions: state.assumptions,
     exclusions: state.exclusions,
     contingencyPercent: state.contingencyPercent,
@@ -97,13 +80,6 @@ function restoreSnapshot(snapshot: string): UndoableState | null {
 }
 
 const DEBOUNCE_MS = 1000;
-
-const DEFAULT_TIERED: Record<TierName, LineItem[]> = { good: [], better: [], best: [] };
-const DEFAULT_DESCRIPTIONS: Record<TierName, string> = {
-  good: 'Economy finish, stock materials',
-  better: 'Standard finish, mid-range materials',
-  best: 'Premium finish, designer-grade materials',
-};
 
 export const useQuoteEditorStore = create<StoreState & StoreActions>()(
   (set, get) => {
@@ -158,10 +134,6 @@ export const useQuoteEditorStore = create<StoreState & StoreActions>()(
     return {
       // Initial state
       lineItems: [],
-      tieredLineItems: { ...DEFAULT_TIERED },
-      tieredDescriptions: { ...DEFAULT_DESCRIPTIONS },
-      tierMode: 'single',
-      activeTier: 'better',
       assumptions: '',
       exclusions: '',
       contingencyPercent: 10,
@@ -204,54 +176,6 @@ export const useQuoteEditorStore = create<StoreState & StoreActions>()(
         pushAndSet({ lineItems: newItems });
       },
 
-      // --- Tier mutations ---
-      switchTier: (newTier) => {
-        const state = get();
-        if (newTier === state.activeTier) return;
-
-        // Save current line items to the active tier, load new tier
-        const updatedTiered = {
-          ...state.tieredLineItems,
-          [state.activeTier]: state.lineItems,
-        };
-        pushAndSet({
-          tieredLineItems: updatedTiered,
-          lineItems: updatedTiered[newTier],
-          activeTier: newTier,
-        });
-      },
-
-      toggleTierMode: () => {
-        const state = get();
-        const newMode: TierMode = state.tierMode === 'single' ? 'tiered' : 'single';
-        if (newMode === 'single') {
-          // Save current tier first
-          pushAndSet({
-            tierMode: 'single',
-            tieredLineItems: {
-              ...state.tieredLineItems,
-              [state.activeTier]: state.lineItems,
-            },
-          });
-        } else {
-          // Entering tiered mode — load the active tier's items if available
-          const tierItems = state.tieredLineItems[state.activeTier];
-          pushAndSet({
-            tierMode: 'tiered',
-            ...(tierItems && tierItems.length > 0 ? { lineItems: tierItems } : {}),
-          });
-        }
-        return newMode;
-      },
-
-      setTieredLineItems: (items) => {
-        set({ tieredLineItems: items });
-      },
-
-      setTieredDescriptions: (descs) => {
-        set({ tieredDescriptions: descs });
-      },
-
       // --- Text field mutations (debounced) ---
       setAssumptions: (value) => {
         debouncedPushAndSet({ assumptions: value });
@@ -266,29 +190,20 @@ export const useQuoteEditorStore = create<StoreState & StoreActions>()(
       },
 
       // --- Bulk operations ---
-      resetToAI: (items, tiered, assumptions, exclusions) => {
-        const updates: Partial<StoreState> = {
+      resetToAI: (items, assumptions, exclusions) => {
+        pushAndSet({
           lineItems: items,
           assumptions,
           exclusions,
-        };
-        if (tiered) {
-          updates.tieredLineItems = tiered;
-        }
-        pushAndSet(updates);
+        });
       },
 
-      loadFromAI: (items, tiered, descriptions, assumptions, exclusions, newTierMode) => {
-        const updates: Partial<StoreState> = {
+      loadFromAI: (items, assumptions, exclusions) => {
+        pushAndSet({
           lineItems: items,
           assumptions,
           exclusions,
-          tierMode: newTierMode,
-        };
-        if (tiered) updates.tieredLineItems = tiered;
-        if (descriptions) updates.tieredDescriptions = descriptions;
-        if (newTierMode === 'tiered') updates.activeTier = 'better';
-        pushAndSet(updates);
+        });
       },
 
       insertTemplate: (items) => {

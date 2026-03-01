@@ -36,10 +36,6 @@ const QuoteUpdateSchema = z.object({
   special_notes: z.string().optional().nullable(),
   contingency_percent: z.number().min(0).max(50).optional(),
   validity_days: z.number().min(1).max(365).optional(),
-  tier_mode: z.enum(['single', 'tiered']).optional(),
-  tier_good: z.array(LineItemSchema).optional().nullable(),
-  tier_better: z.array(LineItemSchema).optional().nullable(),
-  tier_best: z.array(LineItemSchema).optional().nullable(),
 });
 
 type RouteContext = { params: Promise<{ leadId: string }> };
@@ -211,10 +207,6 @@ export async function PUT(
       special_notes,
       contingency_percent = 10,
       validity_days = 30,
-      tier_mode,
-      tier_good,
-      tier_better,
-      tier_best,
     } = validationResult.data;
 
     const supabase = createServiceClient();
@@ -273,13 +265,6 @@ export async function PUT(
         updated_at: now.toISOString(),
         ...totals,
       };
-      // Tier data (JSONB columns — tier_good/better/best exist in DB)
-      // Note: tier_mode is NOT stored in DB — inferred from tier arrays on read
-      if (tier_mode) {
-        updateData['tier_good'] = (tier_good ?? null) as Json;
-        updateData['tier_better'] = (tier_better ?? null) as Json;
-        updateData['tier_best'] = (tier_best ?? null) as Json;
-      }
 
       const { data: updatedQuote, error: updateError } = await supabase
         .from('quote_drafts')
@@ -327,12 +312,6 @@ export async function PUT(
         expires_at: expiresAt.toISOString(),
         ...totals,
       };
-      // Tier data — tier_mode NOT stored in DB (inferred from tier arrays)
-      if (tier_mode) {
-        insertData['tier_good'] = (tier_good ?? null) as Json;
-        insertData['tier_better'] = (tier_better ?? null) as Json;
-        insertData['tier_best'] = (tier_best ?? null) as Json;
-      }
 
       const { data: newQuote, error: insertError } = await (supabase
         .from('quote_drafts') as ReturnType<typeof supabase.from>)

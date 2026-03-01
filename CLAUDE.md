@@ -87,9 +87,10 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 
 ## Deployment
 - **Single Vercel project** (`conversionos`) with proxy-based domain routing — all tenants
-- **Wildcard DNS:** `*.norbotsystems.com → cname.vercel-dns.com` on Cloudflare
+- **DNS:** Domain registered on Namecheap, nameservers pointed to Cloudflare. Wildcard CNAME `*.norbotsystems.com → cname.vercel-dns.com` (DNS only, grey cloud). No per-tenant DNS needed.
+- **SSL:** `add-domain.mjs` registers subdomain with Vercel + issues SSL cert. Requires `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` in `~/pipeline/scripts/.env`.
 - Push to `main` → single build → all tenants updated
-- New tenant = seed DB + add to `DOMAIN_TO_SITE` in proxy.ts + push
+- New tenant = seed DB + add to `DOMAIN_TO_SITE` in proxy.ts + run `add-domain.mjs` + push
 - Never create per-tenant branches or separate Vercel projects
 
 ## Supabase
@@ -102,7 +103,7 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 |---------|--------|------|---------|
 | `demo` | `conversionos-demo.norbotsystems.com` | Accelerate | NorBot base template |
 | `mccarty-squared` | `mccarty.norbotsystems.com` | Dominate | McCarty Squared demo |
-| `redwhitereno` | `redwhite.norbotsystems.com` | Accelerate | Red White Reno demo |
+| `red-white-reno` | `redwhite.norbotsystems.com` | Accelerate | Red White Reno demo |
 
 ## Adding a New Tenant
 
@@ -154,7 +155,7 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 - **Quality check:** Min 640x640 pixels after compression
 
 ## Outreach Pipeline
-Automated last-mile outreach after demo builds. Fills Ferdie's exact email template with target data, creates Gmail drafts via raw IMAP, monitors for sends, and auto-books follow-up calls in Apple Calendar.
+Automated last-mile outreach after demo builds. Fills Ferdie's exact email template with target data, creates Gmail drafts via Gmail REST API (OAuth2), monitors for sends, and auto-books follow-up calls in Apple Calendar.
 
 - **Scripts:** `scripts/outreach/` — 6 scripts + tests
 - **Skill:** `/outreach-pipeline` — create drafts from CLI

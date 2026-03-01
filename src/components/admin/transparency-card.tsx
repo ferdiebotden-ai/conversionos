@@ -21,9 +21,17 @@ function formatCurrency(value: number): string {
 
 interface TransparencyCardProps {
   data: TransparencyBreakdown;
+  confidenceScore?: number | undefined;
 }
 
-export function TransparencyCard({ data }: TransparencyCardProps) {
+function getConfidenceConfig(score: number) {
+  const pct = Math.round(score * 100);
+  if (pct >= 80) return { label: `${pct}%`, colour: 'bg-green-50 text-green-700 border-green-200' };
+  if (pct >= 60) return { label: `${pct}%`, colour: 'bg-amber-50 text-amber-700 border-amber-200' };
+  return { label: `${pct}%`, colour: 'bg-red-50 text-red-700 border-red-200' };
+}
+
+export function TransparencyCard({ data, confidenceScore }: TransparencyCardProps) {
   const rowSum = data.costBreakdown.reduce((sum, line) => sum + line.total, 0);
   const hasUnlistedCosts = Math.abs(rowSum - data.totalBeforeMarkup) > 0.01;
 
@@ -98,12 +106,22 @@ export function TransparencyCard({ data }: TransparencyCardProps) {
         </div>
       )}
 
-      {/* Footer: data source + total */}
+      {/* Footer: data source + confidence + total */}
       <div className="flex items-center justify-between pt-1 border-t border-primary/10">
-        <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-muted">
-          <Database className="h-3 w-3 mr-1" />
-          {data.dataSource}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-muted">
+            <Database className="h-3 w-3 mr-1" />
+            {data.dataSource}
+          </Badge>
+          {confidenceScore != null && confidenceScore > 0 && (() => {
+            const conf = getConfidenceConfig(confidenceScore);
+            return (
+              <Badge variant="outline" className={conf.colour}>
+                Confidence: {conf.label}
+              </Badge>
+            );
+          })()}
+        </div>
         <span className="text-primary font-semibold">
           {formatCurrency(data.totalAfterMarkup)}
         </span>

@@ -149,45 +149,7 @@ describe('Quote Editor Store — Undo/Redo', () => {
     });
   });
 
-  describe('switchTier', () => {
-    it('switches tier and allows undo', () => {
-      initStore();
-      const store = useQuoteEditorStore.getState();
-      // Set up tiered mode
-      store.init({
-        ...useQuoteEditorStore.getState(),
-        tierMode: 'tiered',
-        activeTier: 'better',
-        lineItems: [makeItem({ description: 'Better item' })],
-        tieredLineItems: {
-          good: [makeItem({ description: 'Good item' })],
-          better: [makeItem({ description: 'Better item' })],
-          best: [makeItem({ description: 'Best item' })],
-        },
-      });
-
-      useQuoteEditorStore.getState().switchTier('good');
-      expect(useQuoteEditorStore.getState().activeTier).toBe('good');
-      expect(useQuoteEditorStore.getState().lineItems[0]?.description).toBe('Good item');
-
-      useQuoteEditorStore.getState().undo();
-      expect(useQuoteEditorStore.getState().activeTier).toBe('better');
-      expect(useQuoteEditorStore.getState().lineItems[0]?.description).toBe('Better item');
-    });
-  });
-
-  describe('toggleTierMode', () => {
-    it('toggles to tiered and allows undo back to single', () => {
-      initStore([makeItem()]);
-
-      const newMode = useQuoteEditorStore.getState().toggleTierMode();
-      expect(newMode).toBe('tiered');
-      expect(useQuoteEditorStore.getState().tierMode).toBe('tiered');
-
-      useQuoteEditorStore.getState().undo();
-      expect(useQuoteEditorStore.getState().tierMode).toBe('single');
-    });
-  });
+  // switchTier and toggleTierMode tests removed — tiered quoting feature removed
 
   describe('setAssumptions / setExclusions', () => {
     it('undoes assumption text changes (debounced)', () => {
@@ -286,7 +248,7 @@ describe('Quote Editor Store — Undo/Redo', () => {
 
       const aiItem = makeItem({ description: 'AI item', isFromAI: true });
       useQuoteEditorStore.getState().resetToAI(
-        [aiItem], null, 'AI assumptions', 'AI exclusions'
+        [aiItem], 'AI assumptions', 'AI exclusions'
       );
 
       expect(useQuoteEditorStore.getState().lineItems[0]?.description).toBe('AI item');

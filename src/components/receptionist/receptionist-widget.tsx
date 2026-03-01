@@ -11,12 +11,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MessageCircle, X, AudioLines } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { ReceptionistChat } from './receptionist-chat';
-import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
 import { panelSpring } from '@/lib/animations';
 import { useBranding } from '@/components/branding-provider';
-import { useTier } from '@/components/tier-provider';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
 import { getHomepageTeaser } from '@/lib/copy/site-copy';
 
@@ -40,7 +38,6 @@ const DEFAULT_TEASER = 'Hi! I\'m Emma. Need help with a renovation project?';
 
 export function ReceptionistWidget() {
   const branding = useBranding();
-  const { canAccess } = useTier();
   const copyCtx = useCopyContext();
   const pathname = usePathname();
   const shouldReduce = useReducedMotion();
@@ -110,13 +107,10 @@ export function ReceptionistWidget() {
             )}
             style={{ bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))' }}
           >
-            {/* Chat Content — wrapped in VoiceProvider */}
-            <VoiceProvider>
-              <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
-              <div className="flex-1 min-h-0">
-                <ReceptionistChat />
-              </div>
-            </VoiceProvider>
+            <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
+            <div className="flex-1 min-h-0">
+              <ReceptionistChat />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -180,29 +174,17 @@ export function ReceptionistWidget() {
   );
 }
 
-/**
- * Panel header with Emma info and close button.
- * Uses VoiceProvider context to show voice status.
- */
+/** Panel header with Emma info and close button. */
 function WidgetPanelHeader({ onClose, companyName }: { onClose: () => void; companyName: string }) {
-  const { status } = useVoice();
-  const isVoiceActive = status === 'connected' || status === 'connecting';
-
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary text-primary-foreground rounded-t-2xl">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-          {isVoiceActive ? (
-            <AudioLines className="h-4 w-4 animate-pulse" />
-          ) : (
-            <MessageCircle className="h-4 w-4" />
-          )}
+          <MessageCircle className="h-4 w-4" />
         </div>
         <div>
           <p className="text-sm font-semibold">Emma</p>
-          <p className="text-xs opacity-80">
-            {isVoiceActive ? 'Listening...' : companyName}
-          </p>
+          <p className="text-xs opacity-80">{companyName}</p>
         </div>
       </div>
       <button

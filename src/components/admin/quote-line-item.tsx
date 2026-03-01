@@ -366,7 +366,7 @@ function QuoteLineItemInner({
       {showTransparency && item.transparencyData && (
         <tr>
           <td colSpan={isDraggable ? 8 : 7} className="p-0">
-            <TransparencyCard data={item.transparencyData} />
+            <TransparencyCard data={item.transparencyData} confidenceScore={item.confidenceScore} />
           </td>
         </tr>
       )}
