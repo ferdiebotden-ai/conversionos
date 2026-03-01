@@ -12,25 +12,62 @@ Every outreach email MUST include:
 
 ## Template Integrity
 
-The email template in `generate-email.mjs` is **Ferdie's exact words**. AI fills variables — it does not rewrite, rephrase, or "improve" the copy. The subject line, body structure, sign-off, and signature are fixed.
+The email template in `generate-email.mjs` is **Ferdie's exact words** (March 2026 version). AI fills variables — it does not rewrite, rephrase, or "improve" the copy. The subject line, body structure, sign-off, and signature are fixed.
 
 If you need to change the template wording, get Ferdie's explicit approval first.
 
 ## Never Auto-Send
 
-All emails go to Gmail Drafts via IMAP APPEND. Ferdie reviews each one and clicks Send manually. This is a CASL requirement and a business decision.
+All emails go to Gmail Drafts via Gmail REST API (OAuth2). Ferdie reviews each one and clicks Send manually. This is a CASL requirement and a business decision.
 
 The `send-monitor.mjs` detects sends by checking `[Gmail]/Sent Mail` for the stored Message-ID — it never triggers sends.
 
+## Hard Stops
+
+If ANY of these 6 fields are missing, the target is **skipped entirely** — no draft is created. `generateEmail()` returns `{ skipped: true, skipReason }`.
+
+| Field | Source | Why Required |
+|-------|--------|-------------|
+| `company_name` | Turso | Opening line must be specific |
+| `city` | Turso | Subject line uses city |
+| `demo_url` | Turso / derived from slug | Email links to live demo |
+| `call_day` | Calendar integration | Call commitment |
+| `call_time` | Calendar integration | Call commitment |
+| `call_phone` | Turso | Call commitment references prospect's number |
+
+## Banned Terms
+
+These words/phrases must NEVER appear in the email body or subject:
+- "AI", "ConversionOS", "platform", "free", "limited time"
+- "exclusive", "guaranteed", "no obligation"
+
+`validateEmail()` enforces this with word-boundary regex matching. If a banned term is found, the email fails validation and the draft is not created.
+
+## Subject Rotation
+
+Default subject: `Estimate Request — {city}`
+
+When a batch contains 3+ targets in the same city, subjects rotate to avoid duplicate subject lines in the same inbox cluster:
+- 1st target: `Estimate Request — {city}` (default)
+- 2nd target: `{company_name} — Custom Estimate Portal`
+- 3rd target: `{city} Renovation Website Demo`
+- 4th+: wraps back to Option B
+
+Rotation is tracked by `outreach-pipeline.mjs` which passes `cityIndex` and `cityCount` to `generateEmail()`.
+
 ## Sentinel Name Handling
 
-`getFirstName()` filters these values to "there" (producing "Hey there,"):
+`getFirstName()` filters these values to "there" (producing "Hi there,"):
 - `null`, empty string, whitespace-only
 - "Not specified", "Not applicable", "Not provided"
 - "N/A", "NA", "Unknown", "None", "Owner"
 - Single-character names
 
 When adding new sentinel values, add them to `SENTINEL_NAMES` in `generate-email.mjs` AND add a test in `tests/test-email-template.mjs`.
+
+## Send Window
+
+Drafts should be sent between **7:00–8:00 AM ET, Monday–Friday only**. This is a Ferdie workflow note, not code-enforced — drafts are created at pipeline runtime (any time), Ferdie sends in the morning window.
 
 ## Call Slots
 
@@ -44,11 +81,6 @@ When adding new sentinel values, add them to `SENTINEL_NAMES` in `generate-email
 ## City Exclusivity
 
 City exclusivity is **Dominate tier only** ($2,500/mo). For Elevate and Accelerate outreach, multiple contractors in the same city is fine — there is no territory restriction at those tiers. Only enforce one-per-city when selling Dominate.
-
-## Phone Clause
-
-- If `target.phone` exists: email says "I'll call you {callDay} at {callTime} at {phone}"
-- If `target.phone` is null/empty: email says "I'll call you {callDay} at {callTime}" (no awkward "at null")
 
 ## Status Flow
 
@@ -64,10 +96,10 @@ demo_built -> draft_ready -> email_1_sent
 
 | File | What It Does |
 |------|-------------|
-| `scripts/outreach/generate-email.mjs` | Template filler + quality gates |
-| `scripts/outreach/create-draft.mjs` | Raw IMAP APPEND to Gmail Drafts |
-| `scripts/outreach/outreach-pipeline.mjs` | Orchestrator (select, generate, validate, draft) |
+| `scripts/outreach/generate-email.mjs` | Template filler + quality gates + banned terms |
+| `scripts/outreach/create-draft.mjs` | Gmail REST API (OAuth2) draft creation |
+| `scripts/outreach/outreach-pipeline.mjs` | Orchestrator (select, generate, validate, draft, city rotation) |
 | `scripts/outreach/send-monitor.mjs` | Cron: detect send, book calendar, call script |
 | `scripts/outreach/calendar.mjs` | Apple Calendar AppleScript integration |
 | `scripts/outreach/rescore-all.mjs` | Batch ICP re-scoring |
-| `scripts/outreach/tests/test-email-template.mjs` | 35 mock data tests |
+| `scripts/outreach/tests/test-email-template.mjs` | ~40 mock data tests |

@@ -74,12 +74,13 @@ node scripts/outreach/outreach-pipeline.mjs --target-id {id}
 
 This will:
 1. Load target from Turso
-2. Fill Ferdie's email template with target data
-3. Run quality gates (CASL, no unfilled vars, word count)
-4. Build MIME multipart/alternative message (text + HTML)
-5. IMAP APPEND to `[Gmail]/Drafts`
-6. Store Message-ID in Turso (`email_message_id`)
-7. Update status to `draft_ready`
+2. Check hard stops (phone, company_name, city, demo_url — skip if missing)
+3. Fill Ferdie's email template with target data (subject rotation for same-city batches)
+4. Run quality gates (CASL, banned terms, no unfilled vars, subject checks)
+5. Build MIME multipart/alternative message (text + HTML)
+6. Create Gmail draft via REST API (OAuth2)
+7. Store Message-ID + draft ID in Turso (`email_message_id`, `email_draft_id`)
+8. Update status to `draft_ready`
 
 ### Batch (all ready targets)
 
@@ -114,14 +115,17 @@ Output:
 
 - **Never auto-send.** Drafts only. Ferdie reviews and clicks Send.
 - **CASL compliance** is mandatory — every email includes: sender name, business name, PO Box address, "Reply STOP" unsubscribe.
-- **Template is sacred** — the words are Ferdie's, not AI-generated. Only variables get filled.
-- **Sentinel names** — "Not specified", "N/A", "Unknown" etc. become "there" ("Hey there,").
-- **Phone clause** — omitted gracefully if target has no phone number.
+- **Template is sacred** — the words are Ferdie's (March 2026), not AI-generated. Only variables get filled.
+- **Hard stops** — phone, company_name, city, demo_url are all mandatory. Missing any = target skipped.
+- **Banned terms** — "AI", "ConversionOS", "platform", "free", "limited time", "exclusive", "guaranteed", "no obligation" must never appear.
+- **Subject rotation** — 3+ targets in same city get varied subject lines to avoid inbox clustering.
+- **Sentinel names** — "Not specified", "N/A", "Unknown" etc. become "there" ("Hi there,").
 - **Quality gates block** — if validation fails, the target is skipped (not force-sent).
+- **Send window** — Ferdie sends drafts 7–8am ET, Mon–Fri (workflow convention).
 
 ## Related
 
 - Full docs: `scripts/outreach/README.md`
-- Tests: `node scripts/outreach/tests/test-email-template.mjs` (35 tests)
+- Tests: `node scripts/outreach/tests/test-email-template.mjs` (~40 tests)
 - Send monitor: runs automatically via LaunchAgent every 15 min
 - ICP re-scoring: `node scripts/outreach/rescore-all.mjs`

@@ -107,6 +107,15 @@ try {
   previewSlot = '10:30am';
 }
 
+// Build city counts for subject rotation (3+ targets in same city get varied subjects)
+const cityMap = new Map();
+for (const t of targets) {
+  const city = (t.city || '').trim().toLowerCase();
+  if (!city) continue;
+  if (!cityMap.has(city)) cityMap.set(city, []);
+  cityMap.get(city).push(t.id);
+}
+
 for (const target of targets) {
   const name = target.company_name;
 
@@ -119,8 +128,28 @@ for (const target of targets) {
       detail: `Generating email for ${name}`,
     });
 
+    // Compute city rotation index for subject line variation
+    const city = (target.city || '').trim().toLowerCase();
+    const cityGroup = cityMap.get(city) || [target.id];
+    const cityIndex = cityGroup.indexOf(target.id);
+    const cityCount = cityGroup.length;
+
     // Generate email from template
-    const email = generateEmail(target, { previewSlot });
+    const email = generateEmail(target, { previewSlot, cityIndex, cityCount });
+
+    // Handle hard-stop skips (missing phone, company_name, city, etc.)
+    if (email.skipped) {
+      logger.warn(`Skipped ${name}: ${email.skipReason}`);
+      skipped++;
+      logger.progress({
+        stage: 'outreach',
+        target_id: target.id,
+        site_id: target.slug,
+        status: 'skipped',
+        detail: email.skipReason,
+      });
+      continue;
+    }
 
     // Validate
     const validation = validateEmail(email);

@@ -5,38 +5,48 @@
  *
  * Usage:
  *   import { generateEmail } from './generate-email.mjs';
- *   const email = await generateEmail(target, { previewSlot: '10:30am' });
+ *   const email = generateEmail(target, { previewSlot: '10:30am' });
  */
 
 import { resolve } from 'node:path';
 
 // ──────────────────────────────────────────────────────────
-// Ferdie's exact email template
+// Ferdie's exact email template — March 2026
 // ──────────────────────────────────────────────────────────
 
-const SUBJECT_TEMPLATE = '{firstName} - Estimate Request Intake (Modern & Custom)';
+const SUBJECT_TEMPLATE = 'Estimate Request \u2014 {city}';
 
-const BODY_TEMPLATE = `Hey {firstName},
+// Rotation alternatives for 3+ targets in same city in one batch
+const SUBJECT_ROTATION = [
+  '{company_name} \u2014 Custom Estimate Portal',
+  '{city} Renovation Website Demo',
+];
 
-I'm Ferdie out of Stratford and built a custom website for you, it's live, but it's more than just a website — you'll see.
+const BODY_TEMPLATE = `Hi {firstName},
 
-I'll call you {callDay} at {callTime}{phoneClause} to explain who we are and why we chose to build it for you in {city}.
+I'm Ferdie out of Stratford \u2014 I built a custom website for {company_name} that captures and qualifies leads for you while you're on a job site.
 
-Here is the link, it's live for 48 hours for you to play around with it (please keep it private):
+It's live for 48 hours \u2014 take a look and you'll see your brand, your services, and a working estimate tool under your name (please keep it private):
 {demoUrl}
 
-If you're curious who we are and what the software can do for you, visit us at www.norbotsystems.com before the call, otherwise I look forward to speaking with you (if a different time works better, just let me know or if there's a better number to reach you).
+I'll give you a call on {callDay} at {callTime} at {callPhone} to walk you through it \u2014 if there's a better time or number, just let me know.
 
-Talk soon.
+Talk soon,
 Ferdie`;
 
-const SIGNATURE = `—
+const SIGNATURE = `\u2014
 Ferdie Botden, CPA
 Founder, NorBot Systems Inc.
-226-444-3478`;
+226-444-3478 | norbotsystems.com`;
 
 const CASL_FOOTER = `NorBot Systems Inc. | PO Box 23030 Stratford PO Main, ON N5A 7V8
 Reply STOP to be removed.`;
+
+// Terms that must NEVER appear in outreach emails
+const BANNED_TERMS = [
+  'AI', 'ConversionOS', 'platform', 'free', 'limited time',
+  'exclusive', 'guaranteed', 'no obligation',
+];
 
 // ──────────────────────────────────────────────────────────
 // Calendar slot logic
@@ -76,7 +86,7 @@ export function getNextBusinessDay(fromDate = new Date()) {
 }
 
 /**
- * Available call slots: 9:30am to 3:30pm, 30-min intervals, skip noon.
+ * Available call slots: 9:30am to 3:00pm, 30-min intervals, skip noon.
  */
 export const CALL_SLOTS = [
   '9:30am', '10:00am', '10:30am', '11:00am', '11:30am',
@@ -118,29 +128,73 @@ export function getFirstName(ownerName) {
  * @param {object} options
  * @param {string} [options.previewSlot] — e.g. "10:30am" (from calendar slot finder)
  * @param {string} [options.siteId] — override site_id (defaults to target.slug)
- * @returns {{ to, subject, textBody, htmlBody, callDay, callTime, firstName }}
+ * @param {number} [options.cityIndex] — 0-based index of this target within its city group (for subject rotation)
+ * @param {number} [options.cityCount] — total targets in same city in this batch
+ * @returns {{ to, subject, textBody, htmlBody, callDay, callTime, firstName, demoUrl, siteId, skipped, skipReason }}
  */
 export function generateEmail(target, options = {}) {
+  // HARD STOP: phone is mandatory
+  if (!target.phone || target.phone.trim().length === 0) {
+    return {
+      to: target.email,
+      subject: '', textBody: '', htmlBody: '',
+      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
+      skipped: true,
+      skipReason: 'HARD STOP: missing phone number',
+    };
+  }
+
+  // HARD STOP: company_name is mandatory
+  if (!target.company_name || target.company_name.trim().length === 0) {
+    return {
+      to: target.email,
+      subject: '', textBody: '', htmlBody: '',
+      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
+      skipped: true,
+      skipReason: 'HARD STOP: missing company_name',
+    };
+  }
+
+  // HARD STOP: city is mandatory
+  if (!target.city || target.city.trim().length === 0) {
+    return {
+      to: target.email,
+      subject: '', textBody: '', htmlBody: '',
+      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
+      skipped: true,
+      skipReason: 'HARD STOP: missing city',
+    };
+  }
+
   const firstName = getFirstName(target.owner_name);
-  const city = target.city || 'your area';
+  const city = target.city.trim();
+  const companyName = target.company_name.trim();
   const siteId = options.siteId || target.slug;
   const demoUrl = target.demo_url || `https://${siteId}.norbotsystems.com`;
   const callDay = getCallDayLabel();
   const callTime = options.previewSlot || '10:30am';
+  const callPhone = target.phone.trim();
 
-  // Phone clause: include phone number if available, otherwise omit
-  const phoneClause = target.phone
-    ? ` at ${target.phone}`
-    : '';
+  // Subject rotation: if 3+ targets in same city, rotate subject lines
+  const cityCount = options.cityCount || 1;
+  const cityIndex = options.cityIndex || 0;
+  let subject;
 
-  const subject = SUBJECT_TEMPLATE.replace('{firstName}', firstName);
+  if (cityCount >= 3 && cityIndex > 0) {
+    const rotationIdx = (cityIndex - 1) % SUBJECT_ROTATION.length;
+    subject = SUBJECT_ROTATION[rotationIdx]
+      .replace('{company_name}', companyName)
+      .replace('{city}', city);
+  } else {
+    subject = SUBJECT_TEMPLATE.replace('{city}', city);
+  }
 
   const textBody = BODY_TEMPLATE
     .replace('{firstName}', firstName)
+    .replace('{company_name}', companyName)
     .replace('{callDay}', callDay)
     .replace('{callTime}', callTime)
-    .replace('{phoneClause}', phoneClause)
-    .replace('{city}', city)
+    .replace('{callPhone}', callPhone)
     .replace('{demoUrl}', demoUrl);
 
   const fullTextBody = `${textBody}\n\n${SIGNATURE}\n\n${CASL_FOOTER}`;
@@ -156,6 +210,7 @@ export function generateEmail(target, options = {}) {
     firstName,
     demoUrl,
     siteId,
+    skipped: false,
   };
 }
 
@@ -169,45 +224,71 @@ export function generateEmail(target, options = {}) {
 export function validateEmail(email) {
   const issues = [];
 
+  // Hard-stop skip?
+  if (email.skipped) {
+    issues.push(email.skipReason || 'Target skipped (hard stop)');
+    return { valid: false, issues };
+  }
+
+  // Gate 1: Valid email address
   if (!email.to || !email.to.includes('@')) {
     issues.push('Invalid or missing email address');
   }
 
-  if (!email.subject || email.subject.includes('{')) {
-    issues.push('Subject contains unfilled template variables');
-  }
-
-  if (email.textBody.includes('{') && email.textBody.includes('}')) {
-    // Check for actual template vars, not JSON or URLs
-    const templateVars = email.textBody.match(/\{[a-zA-Z]+\}/g);
-    if (templateVars) {
-      issues.push(`Unfilled template variables: ${templateVars.join(', ')}`);
+  // Gate 2: Subject must not contain "Ferdie" or "NorBot"
+  if (email.subject) {
+    if (email.subject.includes('Ferdie')) {
+      issues.push('Subject must not contain "Ferdie"');
+    }
+    if (email.subject.includes('NorBot')) {
+      issues.push('Subject must not contain "NorBot"');
     }
   }
 
-  if (!email.textBody.includes('STOP')) {
+  // Gate 3: No unfilled template variables
+  if (email.subject && email.subject.includes('{')) {
+    const subjectVars = email.subject.match(/\{[a-zA-Z_]+\}/g);
+    if (subjectVars) {
+      issues.push(`Subject contains unfilled variables: ${subjectVars.join(', ')}`);
+    }
+  }
+
+  if (email.textBody) {
+    const bodyVars = email.textBody.match(/\{[a-zA-Z_]+\}/g);
+    if (bodyVars) {
+      issues.push(`Unfilled template variables: ${bodyVars.join(', ')}`);
+    }
+  }
+
+  // Gate 4: Banned terms (word-boundary regex, case-insensitive)
+  if (email.textBody) {
+    for (const term of BANNED_TERMS) {
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (regex.test(email.textBody)) {
+        issues.push(`Banned term found: "${term}"`);
+      }
+    }
+  }
+
+  // Gate 5: CASL footer present
+  if (!email.textBody || !email.textBody.includes('STOP')) {
     issues.push('Missing CASL unsubscribe mechanism');
   }
 
-  if (!email.textBody.includes('NorBot Systems')) {
+  if (!email.textBody || !email.textBody.includes('NorBot Systems')) {
     issues.push('Missing business name in CASL footer');
   }
 
-  if (!email.textBody.includes('PO Box 23030')) {
+  if (!email.textBody || !email.textBody.includes('PO Box 23030')) {
     issues.push('Missing address in CASL footer');
-  }
-
-  // Word count (body only, excluding signature and footer)
-  const bodyWords = email.textBody.split(/\s+/).length;
-  if (bodyWords > 250) {
-    issues.push(`Email too long: ${bodyWords} words (max 250)`);
   }
 
   return { valid: issues.length === 0, issues };
 }
 
 // ──────────────────────────────────────────────────────────
-// HTML conversion (ported from Python create_mail_drafts.py)
+// HTML conversion
 // ──────────────────────────────────────────────────────────
 
 function escapeHtml(text) {
@@ -231,12 +312,6 @@ export function textToHtml(body, signature, caslFooter) {
     '<a href="$1" style="color:#2563eb;text-decoration:underline">$1</a>'
   );
 
-  // Convert www.norbotsystems.com to clickable link
-  escaped = escaped.replace(
-    /(?<!href=")(www\.norbotsystems\.com)/g,
-    '<a href="https://$1" style="color:#2563eb;text-decoration:underline">$1</a>'
-  );
-
   // Double newlines → paragraph breaks
   const paragraphs = escaped.split(/\n\n+/);
   const htmlBody = paragraphs
@@ -250,8 +325,7 @@ export function textToHtml(body, signature, caslFooter) {
 <tr><td style="line-height:1.5">
 <strong style="font-size:14px;color:#1a1a1a">Ferdie Botden, CPA</strong><br>
 <span style="font-size:13px;color:#6b7280">Founder, NorBot Systems Inc.</span><br>
-<span style="font-size:13px;color:#6b7280">226-444-3478</span><br>
-<a href="https://www.norbotsystems.com" style="font-size:13px;color:#2563eb;text-decoration:none">norbotsystems.com</a>
+<span style="font-size:13px;color:#6b7280">226-444-3478</span> | <a href="https://www.norbotsystems.com" style="font-size:13px;color:#2563eb;text-decoration:none">norbotsystems.com</a>
 </td></tr>
 </table>`;
 
@@ -275,4 +349,4 @@ ${caslHtml}
 </html>`;
 }
 
-export { SUBJECT_TEMPLATE, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER };
+export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS };

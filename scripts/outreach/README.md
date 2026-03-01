@@ -36,7 +36,7 @@ send-monitor.mjs (every 15 min, 6am-9pm daily)
 | `calendar.mjs` | 205 | Apple Calendar via AppleScript (query events, book slots) |
 | `rescore-all.mjs` | 159 | ICP re-scoring in batches (calls tenant-builder/icp-score.mjs) |
 | `schemas/email-output.json` | — | Template variable schema |
-| `tests/test-email-template.mjs` | 338 | 35 mock data tests (no real APIs) |
+| `tests/test-email-template.mjs` | ~350 | ~40 mock data tests (no real APIs) |
 | `tests/test-imap.mjs` | — | IMAP connectivity test |
 
 ## Usage
@@ -69,61 +69,68 @@ node scripts/outreach/rescore-all.mjs --report
 node scripts/outreach/tests/test-imap.mjs
 ```
 
-## Email Template
+## Email Template (March 2026)
 
 Ferdie's exact words — AI fills variables, never rewrites:
 
-**Subject:** `{firstName} - Estimate Request Intake (Modern & Custom)`
+**Subject (primary):** `Estimate Request — {city}`
+**Subject (rotation B):** `{company_name} — Custom Estimate Portal`
+**Subject (rotation C):** `{city} Renovation Website Demo`
+
+Subject rotation applies when 3+ targets are in the same city in one batch.
 
 ```
-Hey {firstName},
+Hi {firstName},
 
-I'm Ferdie out of Stratford and built a custom website for you, it's live,
-but it's more than just a website — you'll see.
+I'm Ferdie out of Stratford — I built a custom website for {company_name}
+that captures and qualifies leads for you while you're on a job site.
 
-I'll call you {callDay} at {callTime}{phoneClause} to explain who we are
-and why we chose to build it for you in {city}.
-
-Here is the link, it's live for 48 hours for you to play around with it
-(please keep it private):
+It's live for 48 hours — take a look and you'll see your brand, your
+services, and a working estimate tool under your name (please keep it
+private):
 {demoUrl}
 
-If you're curious who we are and what the software can do for you, visit us
-at www.norbotsystems.com before the call, otherwise I look forward to
-speaking with you (if a different time works better, just let me know or
-if there's a better number to reach you).
+I'll give you a call on {callDay} at {callTime} at {callPhone} to walk you
+through it — if there's a better time or number, just let me know.
 
-Talk soon.
+Talk soon,
 Ferdie
 
 —
 Ferdie Botden, CPA
 Founder, NorBot Systems Inc.
-226-444-3478
+226-444-3478 | norbotsystems.com
 
 NorBot Systems Inc. | PO Box 23030 Stratford PO Main, ON N5A 7V8
 Reply STOP to be removed.
 ```
 
 **Variables:**
-- `{firstName}` — from `owner_name` (first word), "there" if unknown/sentinel
-- `{callDay}` — "tomorrow" if next biz day, else weekday name ("Monday")
-- `{callTime}` — from calendar slot finder (e.g., "10:30am")
-- `{phoneClause}` — ` at 519-555-1234` if phone exists, empty string if not
-- `{city}` — from Turso, falls back to "your area"
-- `{demoUrl}` — `https://{slug}.norbotsystems.com`
+
+| Variable | Source | Fallback | Required |
+|----------|--------|----------|----------|
+| `{firstName}` | `owner_name` (first word) | "there" | No |
+| `{company_name}` | Turso | HARD STOP | Yes |
+| `{city}` | Turso | HARD STOP | Yes |
+| `{demoUrl}` | Turso `demo_url` or `https://{slug}.norbotsystems.com` | HARD STOP | Yes |
+| `{callDay}` | Calendar integration | HARD STOP | Yes |
+| `{callTime}` | Calendar slot finder | HARD STOP | Yes |
+| `{callPhone}` | Turso `phone` | HARD STOP | Yes |
+
+**Hard stops:** If any required variable is missing, the target is skipped entirely (no draft created). `generateEmail()` returns `{ skipped: true, skipReason }`.
 
 ## Quality Gates
 
 `validateEmail()` checks before any draft is created:
 
-1. Valid email address (contains `@`)
-2. Subject has no unfilled `{variables}`
-3. Body has no unfilled `{variables}`
-4. CASL footer present ("STOP" keyword)
-5. Business name in footer ("NorBot Systems")
-6. Mailing address in footer ("PO Box 23030")
-7. Body under 250 words
+1. Not a hard-stop skip (`email.skipped !== true`)
+2. Valid email address (contains `@`)
+3. Subject must not contain "Ferdie" or "NorBot"
+4. No unfilled `{variables}` in subject or body
+5. No banned terms in body: "AI", "ConversionOS", "platform", "free", "limited time", "exclusive", "guaranteed", "no obligation"
+6. CASL footer present ("STOP", "NorBot Systems", "PO Box 23030")
+
+**Send window:** Ferdie sends drafts 7–8am ET, Mon–Fri (workflow convention, not code-enforced).
 
 ## Calendar Booking
 

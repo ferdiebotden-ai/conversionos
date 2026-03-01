@@ -295,6 +295,15 @@ function checkOutreachTemplate() {
     });
   }
 
+  // Banned terms validation defined
+  if (!source.includes('BANNED_TERMS')) {
+    violations.push({
+      check: 'outreach_no_banned_terms_check',
+      detail: 'Outreach template should define BANNED_TERMS array for quality gates',
+      severity: 'warning',
+    });
+  }
+
   return violations;
 }
 
