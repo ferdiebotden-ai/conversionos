@@ -105,16 +105,18 @@ Four photorealistic concepts stream in progressively via SSE. Each concept prese
 
 ### Step 4: Explore and Refine
 
-**Side-by-side layout (desktop):** The before/after slider sits on the left with a vertical stack of concept thumbnails on the right. On mobile, these stack vertically — full-width slider above, thumbnails in a horizontal row below.
+**Side-by-side layout (desktop):** The before/after slider ("Your Photo" vs. "Concept N") sits on the left with a vertical stack of concept thumbnails on the right. On mobile, these stack vertically — full-width slider above, thumbnails in a horizontal row below.
 
-- **Before/after slider:** Drag to compare original vs. concept
-- **Star favourites:** Gold star toggle on each concept thumbnail
-- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "These look amazing! What would you like to explore?" and waits for the homeowner to speak first — no buttons until they engage.
-- **Suggestion chips:** After each response, Emma offers 2-3 clickable design suggestions parsed from her message (e.g., "Swap to white quartz countertop", "Add floating shelves with under-shelf LED"). Clicking a chip sends it as a message — the homeowner can explore without typing.
-- **Contextual quick actions:** Buttons appear only when relevant:
-  - After the 1st exchange: "Refine My Design" — AI re-renders the starred concept incorporating all design signals from the conversation
+- **Single active concept:** The homeowner taps one concept to work on — this selects AND stars it in a single action (only one active at a time). The active concept gets a prominent ring and filled star badge; others are slightly dimmed. This is the concept Emma discusses and refinement targets.
+- **Before/after slider:** Drag to compare original vs. concept. During refinement, an "Updating..." overlay appears on the slider. After refinement, the slider label updates to show the version (e.g., "Concept 2 — V2").
+- **Version badges:** When a concept is refined, its thumbnail updates to show the new image with a version badge (V2, V3) in the bottom-left corner.
+- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "Tap the concept that catches your eye — I'll help you refine it" and waits for the homeowner to engage — no buttons until they do.
+- **Suggestion chips:** After each response, Emma offers 2 short clickable suggestions (max 8 words each) inline below her message. They scroll naturally with the conversation. Clicking sends the suggestion as a message.
+- **Quick action toolbar:** A compact fixed toolbar sits above the chat input with contextual actions:
+  - After the 1st exchange: "Refine My Design" — AI re-renders the active concept incorporating design signals from the conversation
   - After the 2nd exchange: "Get My Estimate" (Accelerate+) or "Email My Designs" (Elevate)
 - **Up to 3 refinements:** The "Refine" button silently disappears after the 3rd use. No counter, no pressure.
+- **Try a Different Style:** A prominent button below the chat lets the homeowner return to style selection while keeping their original photo.
 
 ### Step 5: Connect
 - **Accelerate+:** An inline lead capture form slides in below the chat (name, email, phone, timeline). On submit, the contractor receives the lead with full context and an AI-generated quote draft.
@@ -163,7 +165,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 - **Elevate:** Emma never discusses dollar amounts. Routes pricing questions to the contractor's contact page.
 - **Accelerate+:** Emma provides preliminary cost ranges when asked, using the Ontario pricing database.
 
-**Design Studio integration:** After concepts generate, Emma appears inline below the results. Her prompt includes the full room analysis, design preferences, starred concepts, and tier-specific pricing rules — she already knows the space. She ends responses with 2-3 concrete suggestion chips that the homeowner can click to explore ideas without typing. Quick action buttons (Refine, Estimate) appear contextually as the conversation deepens, not upfront.
+**Design Studio integration:** After concepts generate, Emma appears inline below the results. Her prompt includes the full room analysis, design preferences, the active concept, and tier-specific pricing rules — she already knows the space. She ends responses with exactly 2 short suggestion chips (max 8 words each) that appear inline below her message. A compact action toolbar above the input shows contextual buttons (Refine, Estimate) as the conversation deepens.
 
 ---
 

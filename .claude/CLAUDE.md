@@ -104,17 +104,24 @@ The entire homeowner journey now happens on a single page (`/visualizer`). The `
 **Flow:** Upload photo → AI analysis → select style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture (inline form).
 
 **Key components:**
-- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with contextual quick actions + AI-parsed suggestion chips. Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
+- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with compact action toolbar + inline suggestion chips. Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
 - `src/components/visualizer/lead-capture-form.tsx` — inline lead capture (not modal). Slides in below chat when user clicks "Get My Estimate".
-- `src/components/visualizer/result-display.tsx` — orchestrates results: side-by-side slider + thumbnails (desktop), concept descriptions, chat panel, sticky CTA bar.
+- `src/components/visualizer/result-display.tsx` — orchestrates results: side-by-side slider + thumbnails (desktop), version tracking, refinement overlay, chat panel, sticky CTA bar.
+- `src/components/visualizer/concept-thumbnails.tsx` — single active concept model. Click = select + star. Shows refined images + version badges (V2/V3).
 
 **Layout:** Desktop: `lg:grid lg:grid-cols-[1fr_180px]` — slider left, thumbnails stacked right. Mobile: stacked (full-width slider, 4-col thumbnail row). `max-w-4xl` container.
 
-**Quick action buttons:** Contextual pill buttons — staged by conversation depth. 0 exchanges = no buttons. 1+ exchange = "Refine My Design" (triggers `/api/ai/visualize/refine`). 2+ exchanges = tier-aware CTA ("Get My Estimate" / "Email My Designs"). Refine button silently disappears after 3 uses — no counter.
+**Single active concept:** Clicking a thumbnail selects AND stars it (single action, one at a time). Active concept: ring + filled star badge, others dimmed. `toggleFavourite` in `visualizer-form.tsx` enforces `new Set([index])`.
 
-**Suggestion chips:** Emma's system prompt instructs her to end responses with `[Suggestions: A | B | C]`. `parseSuggestions()` regex strips this from display and renders clickable pill buttons. Clicking sends the text as a user message.
+**Version tracking:** `refinedVersions: Map<number, number>` in `result-display.tsx`. On refinement, thumbnails update in-place with version badge (V2/V3). Slider label: "Your Photo" → "Concept N — VN".
 
-**Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, design preferences, starred concepts, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through chat API.
+**Chat layout (ChatGPT/Claude pattern):** Messages (scroll) → inline suggestion chips below last assistant message (scroll) → border → compact action toolbar (fixed) → input (fixed at bottom).
+
+**Quick action toolbar:** Compact row above input — staged by conversation depth. 0 exchanges = no buttons. 1+ = "Refine My Design". 2+ = tier-aware CTA. Refine silently disappears after 3 uses.
+
+**Suggestion chips:** 2 max, 8 words each. Inline below assistant message in scroll area. `parseSuggestions()` regex strips `[Suggestions: A | B]` from display.
+
+**Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, design preferences, active concept, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through chat API.
 
 **Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring (material, structural, finish, budget, dimensions, scope). Signals accumulated from conversation, used when user clicks "Refine My Design".
 
@@ -123,7 +130,7 @@ The entire homeowner journey now happens on a single page (`/visualizer`). The `
 - **Accelerate+:** "Get My Estimate" — scrolls to inline lead capture form
 - Gated by `canAccess('ai_quote_engine')` — Elevate doesn't have this entitlement
 - Sticky CTA bar adapts per tier, hidden after lead submission
-- "Try Another Style" button keeps photo + room type, resets style/preferences
+- "Try a Different Style" button (prominent outline, primary colour accent) keeps photo + room type, resets style/preferences
 
 ## Photo Pre-Analysis (New — Session 3)
 - **Endpoint:** `/api/ai/analyze-photo` — runs GPT Vision on upload before room type selection
