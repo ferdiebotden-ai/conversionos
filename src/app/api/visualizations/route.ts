@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Generate share URL
     const shareUrl = data.share_token
-      ? `${process.env['NEXT_PUBLIC_APP_URL'] || ''}/visualizer/share/${data.share_token}`
+      ? `https://${request.headers.get('host') || ''}/visualizer/share/${data.share_token}`
       : null;
 
     return NextResponse.json({

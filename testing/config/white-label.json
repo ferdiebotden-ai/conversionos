@@ -1,7 +1,7 @@
 {
   "demo": {
     "name": "ConversionOS Demo",
-    "targetUrl": "https://ai-reno-demo.vercel.app",
+    "targetUrl": "https://conversionos-demo.norbotsystems.com",
     "adminEmail": "admin@airenodemo.com",
     "adminPassword": "testpassword123",
     "companyName": "AI Reno Demo",
@@ -18,7 +18,7 @@
   },
   "redwhitereno": {
     "name": "Red White Reno",
-    "targetUrl": "https://leadquoteenginev2.vercel.app",
+    "targetUrl": "https://redwhite.norbotsystems.com",
     "adminEmail": "admin@redwhitereno.com",
     "adminPassword": "testpassword123",
     "companyName": "Red White Reno",

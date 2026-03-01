@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate resume URL
-    const baseUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'https://leadquoteenginev2.vercel.app';
+    const host = request.headers.get('host');
+    const baseUrl = host ? `https://${host}` : (process.env['NEXT_PUBLIC_APP_URL'] || '');
     const resumeUrl = `${baseUrl}/estimate/resume?session=${sessionId}`;
 
     // Send magic link email

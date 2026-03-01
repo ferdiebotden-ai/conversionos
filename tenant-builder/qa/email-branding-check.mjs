@@ -28,7 +28,7 @@ const EMAIL_TEMPLATES = [
 // Anti-patterns in email templates
 const SOURCE_ANTI_PATTERNS = [
   { pattern: 'DEMO-', description: 'Hard-coded DEMO- prefix' },
-  { pattern: 'leadquoteenginev2.vercel.app', description: 'Hard-coded Vercel URL' },
+  { pattern: '.vercel.app', description: 'Hard-coded Vercel preview URL' },
   { pattern: 'ConversionOS Demo', description: 'Demo tenant name leak' },
   { pattern: "'ferdie@norbotsystems.com'", description: 'Hard-coded NorBot email' },
   { pattern: "'(226) 444-3478'", description: 'Hard-coded NorBot phone' },
@@ -202,7 +202,7 @@ function checkTemplateSource() {
 
     // Check NEXT_PUBLIC_APP_URL usage in notification email
     if (tmpl.name === 'new-lead-notification') {
-      if (source.includes('leadquoteenginev2.vercel.app')) {
+      if (source.includes('.vercel.app')) {
         violations.push({
           check: 'hardcoded_url',
           template: tmpl.name,

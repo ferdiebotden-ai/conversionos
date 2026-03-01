@@ -16,7 +16,7 @@ completed_units=$(state_get '.pipeline.completedUnits')
 failed_units=$(state_get '.pipeline.failedUnits')
 
 # Determine report filename based on target
-if echo "$target_url" | grep -q "redwhitereno\|leadquoteenginev2"; then
+if echo "$target_url" | grep -q "redwhite"; then
   report_file="$REPORTS_DIR/TEST_REPORT-redwhitereno.md"
 else
   report_file="$REPORTS_DIR/TEST_REPORT-demo.md"

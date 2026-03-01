@@ -23,7 +23,7 @@ const DEMO_LEAKAGE_PATTERNS = [
   'DEMO-',
   'ferdie@norbotsystems.com',
   '(226) 444-3478',
-  'leadquoteenginev2.vercel.app',
+  '.vercel.app',
   '1 Ontario Street',
   'N5A 3H1',
 ];
