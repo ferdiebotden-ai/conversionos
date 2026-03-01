@@ -104,11 +104,15 @@ The entire homeowner journey now happens on a single page (`/visualizer`). The `
 **Flow:** Upload photo → AI analysis → select style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture (inline form).
 
 **Key components:**
-- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with quick action buttons (Refine/Discuss/Estimate). Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
+- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with contextual quick actions + AI-parsed suggestion chips. Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
 - `src/components/visualizer/lead-capture-form.tsx` — inline lead capture (not modal). Slides in below chat when user clicks "Get My Estimate".
-- `src/components/visualizer/result-display.tsx` — orchestrates results: before/after slider, concept thumbnails, starring, chat panel, sticky CTA bar.
+- `src/components/visualizer/result-display.tsx` — orchestrates results: side-by-side slider + thumbnails (desktop), concept descriptions, chat panel, sticky CTA bar.
 
-**Quick action buttons:** Pill buttons below Emma's messages: "Refine My Design" (triggers `/api/ai/visualize/refine`), "Keep Discussing" (focuses input), "Get My Estimate" / "Email My Designs" (tier-aware). Refine button silently disappears after 3 uses — no counter.
+**Layout:** Desktop: `lg:grid lg:grid-cols-[1fr_180px]` — slider left, thumbnails stacked right. Mobile: stacked (full-width slider, 4-col thumbnail row). `max-w-4xl` container.
+
+**Quick action buttons:** Contextual pill buttons — staged by conversation depth. 0 exchanges = no buttons. 1+ exchange = "Refine My Design" (triggers `/api/ai/visualize/refine`). 2+ exchanges = tier-aware CTA ("Get My Estimate" / "Email My Designs"). Refine button silently disappears after 3 uses — no counter.
+
+**Suggestion chips:** Emma's system prompt instructs her to end responses with `[Suggestions: A | B | C]`. `parseSuggestions()` regex strips this from display and renders clickable pill buttons. Clicking sends the text as a user message.
 
 **Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, design preferences, starred concepts, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through chat API.
 

@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** March 1, 2026
+**Last updated:** March 2, 2026
 
 ---
 
@@ -104,12 +104,16 @@ Eight room types and six design styles (Modern, Traditional, Contemporary, Trans
 Four photorealistic concepts stream in progressively via SSE. Each concept preserves the actual room geometry while applying the chosen style. The homeowner sees their space transformed — not a stock photo.
 
 ### Step 4: Explore and Refine
+
+**Side-by-side layout (desktop):** The before/after slider sits on the left with a vertical stack of concept thumbnails on the right. On mobile, these stack vertically — full-width slider above, thumbnails in a horizontal row below.
+
 - **Before/after slider:** Drag to compare original vs. concept
-- **Star favourites:** Gold star toggle on each concept
-- **Chat with Emma:** An inline AI design advisor appears below the concepts. Emma asks "What would you like to do?" with quick action buttons:
-  - "Refine My Design" — AI re-renders the starred concept with accumulated design signals (e.g., "try marble countertops")
-  - "Keep Discussing" — continue chatting about materials, colours, layout
-  - "Get My Estimate" (Accelerate+) or "Email My Designs" (Elevate)
+- **Star favourites:** Gold star toggle on each concept thumbnail
+- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "These look amazing! What would you like to explore?" and waits for the homeowner to speak first — no buttons until they engage.
+- **Suggestion chips:** After each response, Emma offers 2-3 clickable design suggestions parsed from her message (e.g., "Swap to white quartz countertop", "Add floating shelves with under-shelf LED"). Clicking a chip sends it as a message — the homeowner can explore without typing.
+- **Contextual quick actions:** Buttons appear only when relevant:
+  - After the 1st exchange: "Refine My Design" — AI re-renders the starred concept incorporating all design signals from the conversation
+  - After the 2nd exchange: "Get My Estimate" (Accelerate+) or "Email My Designs" (Elevate)
 - **Up to 3 refinements:** The "Refine" button silently disappears after the 3rd use. No counter, no pressure.
 
 ### Step 5: Connect
@@ -159,7 +163,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 - **Elevate:** Emma never discusses dollar amounts. Routes pricing questions to the contractor's contact page.
 - **Accelerate+:** Emma provides preliminary cost ranges when asked, using the Ontario pricing database.
 
-**Design Studio integration:** After concepts generate, Emma appears inline with quick action buttons. Her prompt includes the full room analysis, design preferences, starred concepts, and tier-specific pricing rules. She doesn't need to "discover" anything — she already knows the space.
+**Design Studio integration:** After concepts generate, Emma appears inline below the results. Her prompt includes the full room analysis, design preferences, starred concepts, and tier-specific pricing rules — she already knows the space. She ends responses with 2-3 concrete suggestion chips that the homeowner can click to explore ideas without typing. Quick action buttons (Refine, Estimate) appear contextually as the conversation deepens, not upfront.
 
 ---
 
@@ -179,7 +183,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 ## Tech Stack
 
-Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (856 tests) | Playwright (8 E2E suites) | Husky + lint-staged CI
+Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (856 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
 
 ---
 

@@ -129,7 +129,8 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 - **Single-page journey:** `/visualizer` — upload → generate → refine → lead capture. `/estimate` redirects here.
 - **Design Studio Chat:** `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with quick action buttons (Refine/Discuss/Estimate). Purpose-built, NOT reusing ChatInterface.
 - **Lead capture form:** `src/components/visualizer/lead-capture-form.tsx` — inline form (not modal), slides in below chat.
-- **Quick actions:** Pill buttons guide homeowner: "Refine My Design", "Keep Discussing", "Get My Estimate" (Accelerate+) / "Email My Designs" (Elevate). Refine button silently disappears after 3 uses.
+- **Quick actions:** Contextual pill buttons staged by conversation depth. 0 exchanges = no buttons. 1+ = "Refine My Design". 2+ = "Get My Estimate" (Accelerate+) / "Email My Designs" (Elevate). Refine silently disappears after 3 uses.
+- **Suggestion chips:** Emma ends responses with `[Suggestions: A | B | C]` — parsed and rendered as clickable pills. Clicking sends the text as a user message.
 - **Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, preferences, starred concepts, tier-specific pricing rules.
 
 ## SSE Streaming Visualization
