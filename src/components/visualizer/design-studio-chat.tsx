@@ -3,7 +3,8 @@
 /**
  * Design Studio Chat
  * Purpose-built inline chat for the post-generation phase.
- * Quick action buttons guide the homeowner through refinement → estimate.
+ * Contextual quick actions + AI-parsed suggestion chips guide
+ * the homeowner through refinement → estimate.
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from 'react';
@@ -34,9 +35,9 @@ import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
 
 interface QuickAction {
   label: string;
-  icon: 'refine' | 'chat' | 'estimate' | 'email';
-  action: 'refine' | 'chat' | 'estimate' | 'email';
-  variant: 'primary' | 'secondary' | 'ghost';
+  icon: 'refine' | 'estimate' | 'email';
+  action: 'refine' | 'estimate' | 'email';
+  variant: 'primary' | 'secondary';
 }
 
 interface DesignStudioChatProps {
@@ -61,6 +62,20 @@ function getTextContent(message: UIMessage): string {
     .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
     .map(part => part.text)
     .join('');
+}
+
+/** Parse [Suggestions: A | B | C] from the end of a message */
+function parseSuggestions(text: string): { cleanText: string; suggestions: string[] } {
+  const match = text.match(/\[Suggestions?:\s*(.+?)\]\s*$/i);
+  if (!match?.[1]) return { cleanText: text, suggestions: [] };
+
+  const suggestions = match[1]
+    .split('|')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  const cleanText = text.slice(0, match.index).trimEnd();
+  return { cleanText, suggestions };
 }
 
 /** Parse inline markdown: **bold** and *italic* */
@@ -113,7 +128,6 @@ function formatChatMessage(text: string): ReactNode {
 
 const ICON_MAP = {
   refine: Sparkles,
-  chat: MessageCircle,
   estimate: ArrowRight,
   email: Mail,
 } as const;
@@ -183,7 +197,7 @@ export function DesignStudioChat({
     {
       id: 'welcome',
       role: 'assistant',
-      parts: [{ type: 'text', text: 'These look amazing! What would you like to do?' }],
+      parts: [{ type: 'text', text: 'These look amazing! What would you like to explore — colours, materials, layout changes? Just tell me what catches your eye.' }],
     },
   ];
 
@@ -196,6 +210,12 @@ export function DesignStudioChat({
   // Extra messages injected by the system (refinement ack, etc.)
   const [systemMessages, setSystemMessages] = useState<UIMessage[]>([]);
   const allMessages = useMemo(() => [...messages, ...systemMessages], [messages, systemMessages]);
+
+  // Count user messages for contextual actions
+  const exchangeCount = useMemo(
+    () => allMessages.filter(m => m.role === 'user').length,
+    [allMessages],
+  );
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -214,18 +234,18 @@ export function DesignStudioChat({
   }, []);
 
   // Extract design signals from user messages
-  const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSend = useCallback(async (text?: string) => {
+    const messageText = text ?? inputValue;
+    if (!messageText.trim() || isLoading) return;
 
     // Extract signals before sending
-    const signals = extractDesignSignals(inputValue);
+    const signals = extractDesignSignals(messageText);
     if (signals.length > 0) {
       setAccumulatedSignals(prev => [...prev, ...signals]);
     }
 
-    const text = inputValue;
     setInputValue('');
-    await sendMessage({ text });
+    await sendMessage({ text: messageText });
   }, [inputValue, isLoading, sendMessage]);
 
   // Handle refinement
@@ -246,7 +266,11 @@ export function DesignStudioChat({
         }),
       });
 
-      if (!res.ok) throw new Error('Refinement failed');
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Refine API error:', res.status, errorBody);
+        throw new Error(errorBody.error || `Refinement failed (${res.status})`);
+      }
 
       const data = await res.json();
       const newCount = refinementCount + 1;
@@ -262,8 +286,9 @@ export function DesignStudioChat({
       } else {
         injectAssistantMessage("I've updated your design — take a look! What's next?");
       }
-    } catch {
-      injectAssistantMessage("I had trouble updating the design. Want to try again, or keep discussing?");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      injectAssistantMessage(`I had trouble updating the design: ${message}. Want to try again?`);
     } finally {
       setIsRefining(false);
     }
@@ -275,9 +300,6 @@ export function DesignStudioChat({
       case 'refine':
         handleRefine();
         break;
-      case 'chat':
-        inputRef.current?.focus();
-        break;
       case 'estimate':
         onRequestEstimate();
         break;
@@ -287,43 +309,43 @@ export function DesignStudioChat({
     }
   }, [handleRefine, onRequestEstimate, onEmailDesigns]);
 
-  // Determine which quick actions to show
+  // Contextual quick actions — staged based on conversation depth
   const getQuickActions = (): QuickAction[] => {
+    // No actions until at least 1 user message (welcome only = no buttons)
+    if (exchangeCount === 0) return [];
+
     const canRefine = refinementCount < RENDERING_CONFIG.maxRefinements && !isRefining;
     const isElevate = tier === 'elevate';
+    const hasSignals = accumulatedSignals.length > 0;
 
-    // After max refinements — only CTA + discuss
-    if (!canRefine && refinementCount >= RENDERING_CONFIG.maxRefinements) {
-      return [
-        {
-          label: isElevate ? 'Email My Designs' : 'Get My Estimate',
-          icon: isElevate ? 'email' : 'estimate',
-          action: isElevate ? 'email' : 'estimate',
-          variant: 'primary',
-        },
-        { label: 'I Have More Questions', icon: 'chat', action: 'chat', variant: 'secondary' },
-      ];
-    }
-
-    // Default: refine + discuss + CTA
     const actions: QuickAction[] = [];
-    if (canRefine) {
+
+    // Show refine when user has discussed design (signals or 1+ exchanges)
+    if (canRefine && (hasSignals || exchangeCount >= 1)) {
       actions.push({ label: 'Refine My Design', icon: 'refine', action: 'refine', variant: 'secondary' });
     }
-    actions.push({ label: 'Keep Discussing', icon: 'chat', action: 'chat', variant: 'ghost' });
-    actions.push({
-      label: isElevate ? 'Email My Designs' : 'Get My Estimate',
-      icon: isElevate ? 'email' : 'estimate',
-      action: isElevate ? 'email' : 'estimate',
-      variant: 'primary',
-    });
+
+    // Show CTA after 2+ exchanges (enough context for next step)
+    if (exchangeCount >= 2) {
+      actions.push({
+        label: isElevate ? 'Email My Designs' : 'Get My Estimate',
+        icon: isElevate ? 'email' : 'estimate',
+        action: isElevate ? 'email' : 'estimate',
+        variant: 'primary',
+      });
+    }
 
     return actions;
   };
 
-  // Should show quick actions after the last assistant message
+  // Should show quick actions after the last assistant message (not during loading)
   const lastMessage = allMessages[allMessages.length - 1];
-  const showQuickActions = lastMessage?.role === 'assistant' && !isLoading;
+  const showQuickActions = lastMessage?.role === 'assistant' && !isLoading && getQuickActions().length > 0;
+
+  // Parse suggestions from the last assistant message
+  const lastAssistantText = lastMessage?.role === 'assistant' ? getTextContent(lastMessage) : '';
+  const { suggestions: lastSuggestions } = parseSuggestions(lastAssistantText);
+  const showSuggestions = lastSuggestions.length > 0 && !isLoading;
 
   return (
     <motion.div
@@ -339,36 +361,44 @@ export function DesignStudioChat({
         className="max-h-[400px] overflow-y-auto p-4 space-y-4"
       >
         <AnimatePresence initial={false}>
-          {allMessages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              variants={staggerItem}
-              initial="hidden"
-              animate="visible"
-              className={cn(
-                'flex gap-3',
-                msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
-              )}
-            >
-              {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                  <MessageCircle className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
-              <div
+          {allMessages.map((msg) => {
+            const rawText = getTextContent(msg);
+            // Strip suggestion line from assistant messages for display
+            const { cleanText } = msg.role === 'assistant'
+              ? parseSuggestions(rawText)
+              : { cleanText: rawText };
+
+            return (
+              <motion.div
+                key={msg.id}
+                variants={staggerItem}
+                initial="hidden"
+                animate="visible"
                 className={cn(
-                  'rounded-2xl px-4 py-2.5 text-sm max-w-[80%]',
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted',
+                  'flex gap-3',
+                  msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
                 )}
               >
-                {msg.role === 'assistant'
-                  ? formatChatMessage(getTextContent(msg))
-                  : getTextContent(msg)}
-              </div>
-            </motion.div>
-          ))}
+                {msg.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    'rounded-2xl px-4 py-2.5 text-sm max-w-[80%]',
+                    msg.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted',
+                  )}
+                >
+                  {msg.role === 'assistant'
+                    ? formatChatMessage(cleanText)
+                    : cleanText}
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {/* Refining indicator */}
@@ -404,7 +434,40 @@ export function DesignStudioChat({
         )}
       </div>
 
-      {/* Quick action buttons */}
+      {/* Suggestion chips — clickable choices parsed from Emma's response */}
+      <AnimatePresence>
+        {showSuggestions && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 pb-2"
+          >
+            <div className="flex flex-wrap gap-2">
+              {lastSuggestions.map((suggestion) => (
+                <motion.div
+                  key={suggestion}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full text-xs min-h-[32px] border-dashed"
+                    onClick={() => handleSend(suggestion)}
+                    disabled={isLoading || isRefining}
+                  >
+                    {suggestion}
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick action buttons — contextual based on conversation depth */}
       <AnimatePresence>
         {showQuickActions && (
           <motion.div
@@ -425,7 +488,7 @@ export function DesignStudioChat({
                   >
                     <Button
                       size="sm"
-                      variant={action.variant === 'primary' ? 'default' : action.variant === 'secondary' ? 'outline' : 'ghost'}
+                      variant={action.variant === 'primary' ? 'default' : 'outline'}
                       className="rounded-full gap-1.5 text-xs min-h-[36px]"
                       onClick={() => handleQuickAction(action.action)}
                       disabled={isRefining}

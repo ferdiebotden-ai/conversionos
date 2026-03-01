@@ -15,6 +15,7 @@ interface ConceptThumbnailsProps {
   onSelect: (index: number) => void;
   favouritedIndices?: Set<number> | undefined;
   onToggleFavourite?: ((index: number) => void) | undefined;
+  variant?: 'grid' | 'sidebar';
   className?: string;
 }
 
@@ -24,10 +25,15 @@ export function ConceptThumbnails({
   onSelect,
   favouritedIndices,
   onToggleFavourite,
+  variant = 'grid',
   className,
 }: ConceptThumbnailsProps) {
   return (
-    <div className={cn('grid grid-cols-4 gap-2 sm:gap-3', className)}>
+    <div className={cn(
+      'grid gap-2',
+      variant === 'sidebar' ? 'grid-cols-1' : 'grid-cols-4 sm:gap-3',
+      className,
+    )}>
       {concepts.map((concept, index) => (
         <div
           key={concept.id}

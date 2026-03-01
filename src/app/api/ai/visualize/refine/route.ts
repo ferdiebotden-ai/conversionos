@@ -32,7 +32,7 @@ const designSignalSchema = z.object({
 const refineRequestSchema = z.object({
   visualizationId: z.string().min(1),
   starredConceptIndex: z.number().int().min(0),
-  designSignals: z.array(designSignalSchema).min(1),
+  designSignals: z.array(designSignalSchema).default([]),
   estimateData: z.object({
     projectType: z.string().optional(),
     areaSqft: z.number().optional(),
