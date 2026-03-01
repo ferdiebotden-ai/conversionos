@@ -105,17 +105,9 @@ function VisualizerFormInner() {
     window.scrollTo({ top, behavior: 'smooth' });
   }, []);
 
-  // Toggle a concept in/out of favourites
+  // Select a concept as the active one (single selection — replaces toggle)
   const toggleFavourite = useCallback((index: number) => {
-    setFavouritedIndices(prev => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
+    setFavouritedIndices(new Set([index]));
   }, []);
 
   // Auto-scroll: room → style, style → preferences

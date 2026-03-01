@@ -2,10 +2,11 @@
 
 /**
  * Result Display
- * Side-by-side slider + thumbnails layout with streamlined flow
+ * Side-by-side slider + thumbnails layout with single active concept model.
+ * Thumbnails update in-place on refinement with version badges.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BeforeAfterSlider } from './before-after-slider';
@@ -29,6 +30,7 @@ import {
   Sparkles,
   Phone,
   Palette,
+  Loader2,
 } from 'lucide-react';
 
 interface ResultDisplayProps {
@@ -61,6 +63,8 @@ export function ResultDisplay({
   const [emailCaptureOpen, setEmailCaptureOpen] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [refinedImages, setRefinedImages] = useState<Map<number, string>>(new Map());
+  const [refinedVersions, setRefinedVersions] = useState<Map<number, number>>(new Map());
+  const [isRefining, setIsRefining] = useState(false);
   const [showLeadCapture, setShowLeadCapture] = useState(false);
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
@@ -77,12 +81,25 @@ export function ResultDisplay({
     return () => clearTimeout(timer);
   }, []);
 
+  // Select concept — also stars it (single active concept model)
+  const handleConceptSelect = useCallback((index: number) => {
+    setSelectedConceptIndex(index);
+    onToggleFavourite(index);
+  }, [onToggleFavourite]);
+
   const selectedConcept = visualization.concepts[selectedConceptIndex];
   const selectedImageUrl = refinedImages.get(selectedConceptIndex) || selectedConcept?.imageUrl || '';
 
   const handleConceptRefined = (index: number, newImageUrl: string) => {
     setRefinedImages(prev => new Map(prev).set(index, newImageUrl));
+    setRefinedVersions(prev => new Map(prev).set(index, (prev.get(index) ?? 0) + 1));
   };
+
+  // Slider labels
+  const selectedVersion = refinedVersions.get(selectedConceptIndex) ?? 0;
+  const afterLabel = selectedVersion > 0
+    ? `Concept ${selectedConceptIndex + 1} — V${selectedVersion + 1}`
+    : `Concept ${selectedConceptIndex + 1}`;
 
   const formatTime = (ms: number): string => `${Math.round(ms / 1000)}s`;
   const formatStyle = (style: string): string => style.charAt(0).toUpperCase() + style.slice(1);
@@ -113,8 +130,8 @@ export function ResultDisplay({
         <div className={cn(
           hasMultipleConcepts && 'lg:grid lg:grid-cols-[1fr_180px] lg:gap-4',
         )}>
-          {/* Before/After slider */}
-          <div>
+          {/* Before/After slider with refinement overlay */}
+          <div className="relative">
             <p className="text-xs text-muted-foreground mb-2">Drag to compare</p>
             {selectedConcept && (
               <div className="transition-opacity duration-500">
@@ -122,9 +139,16 @@ export function ResultDisplay({
                   key={selectedImageUrl}
                   beforeImage={originalImage}
                   afterImage={selectedImageUrl}
-                  beforeLabel="Current"
-                  afterLabel={`Concept ${selectedConceptIndex + 1}`}
+                  beforeLabel="Your Photo"
+                  afterLabel={afterLabel}
                 />
+              </div>
+            )}
+
+            {/* Refinement overlay */}
+            {isRefining && (
+              <div className="absolute inset-0 top-6 bg-background/50 flex items-center justify-center z-10 rounded-lg">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             )}
           </div>
@@ -137,9 +161,11 @@ export function ResultDisplay({
                 <ConceptThumbnails
                   concepts={visualization.concepts}
                   selectedIndex={selectedConceptIndex}
-                  onSelect={setSelectedConceptIndex}
+                  onSelect={handleConceptSelect}
                   favouritedIndices={favouritedIndices}
                   onToggleFavourite={onToggleFavourite}
+                  refinedImageUrls={refinedImages}
+                  refinedVersions={refinedVersions}
                 />
               </div>
               {/* Desktop: vertical sidebar */}
@@ -147,9 +173,11 @@ export function ResultDisplay({
                 <ConceptThumbnails
                   concepts={visualization.concepts}
                   selectedIndex={selectedConceptIndex}
-                  onSelect={setSelectedConceptIndex}
+                  onSelect={handleConceptSelect}
                   favouritedIndices={favouritedIndices}
                   onToggleFavourite={onToggleFavourite}
+                  refinedImageUrls={refinedImages}
+                  refinedVersions={refinedVersions}
                   variant="sidebar"
                 />
               </div>
@@ -182,6 +210,7 @@ export function ResultDisplay({
           onConceptRefined={handleConceptRefined}
           onRequestEstimate={() => setShowLeadCapture(true)}
           onEmailDesigns={() => setEmailCaptureOpen(true)}
+          onRefiningChange={setIsRefining}
         />
       </FadeInUp>
 
@@ -202,12 +231,17 @@ export function ResultDisplay({
         )}
       </AnimatePresence>
 
-      {/* Compact action row — try another style + start over */}
-      <FadeInUp className="flex items-center justify-center gap-3 pt-2">
+      {/* Prominent action row — try another style + start over */}
+      <FadeInUp className="flex flex-col items-center gap-2 pt-2">
         {onTryAnotherStyle && (
-          <Button variant="ghost" size="sm" onClick={onTryAnotherStyle} className="text-muted-foreground">
-            <Palette className="w-4 h-4 mr-1.5" />
-            Try Another Style
+          <Button
+            variant="outline"
+            size="default"
+            onClick={onTryAnotherStyle}
+            className="border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Palette className="w-4 h-4 mr-2" />
+            Try a Different Style
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={onStartOver} className="text-muted-foreground">
