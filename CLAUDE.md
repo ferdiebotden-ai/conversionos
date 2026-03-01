@@ -11,7 +11,7 @@ Next.js 16.1.6 (App Router) • React 19 • TypeScript 5 (strict) • Supabase 
 ## AI Stack
 - **Chat/Vision:** OpenAI GPT-5.2
 - **Image generation:** Google Gemini 3.1 Flash Image (Nano Banana 2)
-- **Voice agent:** ElevenLabs (single Emma persona, context-aware) — Dominate tier only
+- **Voice agent:** ElevenLabs (single Emma persona, context-aware) — web on all tiers, phone Dominate only
 - **Validation:** Zod schemas on all AI outputs
 
 ## Commands
@@ -67,12 +67,12 @@ src/app/              — 50+ routes (public pages, admin dashboard, 30+ API end
   app/admin/analytics/ — Analytics dashboard (Dominate only, Recharts)
   app/api/            — API routes (ai/, admin/, quotes, contact, export, voice)
   app/api/ai/visualize/stream/ — SSE streaming visualization endpoint
-  app/visualizer/     — AI renovation visualizer
-  app/estimate/       — Estimate request flow
+  app/visualizer/     — AI Design Studio (unified homeowner journey)
+  app/estimate/       — Redirects to /visualizer (legacy)
 src/components/       — React components
   components/admin/   — Admin UI (dashboard, leads, settings, analytics)
   components/chat/    — AI chat widget
-  components/visualizer/ — Renovation visualizer UI
+  components/visualizer/ — Design Studio UI (form, results, chat, lead capture)
   components/voice/   — Voice agent UI (Dominate only)
   components/ui/      — shadcn/ui primitives + chart wrapper
 src/hooks/            — Custom React hooks
@@ -125,14 +125,19 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 - Never create per-tenant branches
 - Validate all AI outputs with Zod before rendering or storing
 
-## SSE Streaming Visualization (Session 4)
-- **Streaming endpoint:** `/api/ai/visualize/stream` — returns SSE events (status, concept, complete, error)
-- **Non-streaming endpoint:** `/api/ai/visualize` — left untouched for backward compatibility
-- **Hook:** `useVisualizationStream()` in `src/hooks/use-visualization-stream.ts` — parses SSE via `ReadableStream.getReader()`
-- **Progressive reveal:** `GenerationLoading` shows 4 skeleton slots, cross-fades to real images as concepts arrive
-- **Parallel generation:** All 4 concepts fire via `Promise.allSettled()` (not batched 2+2)
-- **Heartbeat:** `:\n\n` every 15s to keep connection alive
-- **Timeout:** 110s server-side emits whatever is ready; 150s client-side abort
+## Design Studio (Unified Flow)
+- **Single-page journey:** `/visualizer` — upload → generate → refine → lead capture. `/estimate` redirects here.
+- **Design Studio Chat:** `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with quick action buttons (Refine/Discuss/Estimate). Purpose-built, NOT reusing ChatInterface.
+- **Lead capture form:** `src/components/visualizer/lead-capture-form.tsx` — inline form (not modal), slides in below chat.
+- **Quick actions:** Pill buttons guide homeowner: "Refine My Design", "Keep Discussing", "Get My Estimate" (Accelerate+) / "Email My Designs" (Elevate). Refine button silently disappears after 3 uses.
+- **Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, preferences, starred concepts, tier-specific pricing rules.
+
+## SSE Streaming Visualization
+- **Streaming endpoint:** `/api/ai/visualize/stream` — SSE events (status, concept, complete, error)
+- **Hook:** `useVisualizationStream()` in `src/hooks/use-visualization-stream.ts`
+- **Progressive reveal:** 4 skeleton slots, cross-fades to real images as concepts arrive
+- **Parallel generation:** All 4 concepts via `Promise.allSettled()` (not batched)
+- **Heartbeat:** `:\n\n` every 15s. Timeout: 110s server, 150s client abort
 
 ## Analytics Dashboard (Session 4)
 - **Dominate tier only** — gated by `analytics_dashboard` entitlement

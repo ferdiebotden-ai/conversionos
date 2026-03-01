@@ -78,10 +78,10 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - **Admin UI:** "Quoting" tab in Settings page (mode dropdown + range band selector)
 - **Emma awareness:** Handoff context includes `quoteAssistanceMode` — Emma adapts pricing discussion accordingly
 
-## Context Pipeline (New — Session 1)
-- `HandoffContext` now includes `photoAnalysis`, `costSignals`, `quoteAssistanceMode`, `voiceExtractedPreferences`
-- `buildHandoffPromptPrefix()` injects structural data, voice preferences, cost signals, and pricing mode into Emma's estimate context prompt
-- `visualizer-form.tsx` serialises full photo analysis + voice extracted preferences in handoff
+## Context Pipeline
+- Design Studio Chat receives all context in-memory (same page): photo analysis, design preferences, cost signals, quote assistance mode, starred concepts, concept pricing
+- `buildDesignStudioPrompt()` assembles the full system prompt for inline Emma chat
+- `buildHandoffPromptPrefix()` injects structural data for the estimate resume flow (`/estimate/resume`)
 - `visualize/route.ts` writes `conversation_context` JSONB with designIntent + voice data for ALL tiers (silent capture)
 - Photo analysis cached by image hash (FNV-1a, 10min TTL)
 
@@ -98,11 +98,27 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 - Pricing analysis runs fire-and-forget, stored as `concept_pricing` JSONB on visualization record (all tiers)
 - Uses `(supabase.from() as any)` pattern since `concept_pricing` column may not be in generated types
 
-## Tier-Aware Visualizer CTAs (New — Session 3)
-- **Elevate:** "Request a Callback from [Contractor Name]" → `/contact?from=visualizer` (no estimate handoff)
-- **Accelerate+:** "Get a Personalised Estimate" → estimate page handoff with full context
+## Design Studio (Unified Flow — March 2026)
+The entire homeowner journey now happens on a single page (`/visualizer`). The `/estimate` route redirects to `/visualizer`.
+
+**Flow:** Upload photo → AI analysis → select style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture (inline form).
+
+**Key components:**
+- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with quick action buttons (Refine/Discuss/Estimate). Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
+- `src/components/visualizer/lead-capture-form.tsx` — inline lead capture (not modal). Slides in below chat when user clicks "Get My Estimate".
+- `src/components/visualizer/result-display.tsx` — orchestrates results: before/after slider, concept thumbnails, starring, chat panel, sticky CTA bar.
+
+**Quick action buttons:** Pill buttons below Emma's messages: "Refine My Design" (triggers `/api/ai/visualize/refine`), "Keep Discussing" (focuses input), "Get My Estimate" / "Email My Designs" (tier-aware). Refine button silently disappears after 3 uses — no counter.
+
+**Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, design preferences, starred concepts, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through chat API.
+
+**Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring (material, structural, finish, budget, dimensions, scope). Signals accumulated from conversation, used when user clicks "Refine My Design".
+
+## Tier-Aware CTAs
+- **Elevate:** "Email My Designs" — opens email capture modal (no estimate handoff)
+- **Accelerate+:** "Get My Estimate" — scrolls to inline lead capture form
 - Gated by `canAccess('ai_quote_engine')` — Elevate doesn't have this entitlement
-- Sticky CTA bar also adapts per tier
+- Sticky CTA bar adapts per tier, hidden after lead submission
 - "Try Another Style" button keeps photo + room type, resets style/preferences
 
 ## Photo Pre-Analysis (New — Session 3)

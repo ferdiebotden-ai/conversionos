@@ -289,6 +289,7 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
       {/* Before/After — opacity overlay approach */}
       <div
         ref={containerRef}
+        data-testid="visualizer-teaser"
         className="relative mt-6 mx-auto max-w-2xl aspect-[16/10] rounded-2xl overflow-hidden border border-border shadow-xl select-none"
       >
         {/* Before image — base layer, always 100% opacity */}
@@ -341,6 +342,7 @@ export function VisualizerTeaser({ className, portfolioImages }: VisualizerTease
             {/* Slider track */}
             <div
               ref={trackRef}
+              data-testid="slider-track"
               role="slider"
               tabIndex={0}
               aria-label="Before and after comparison"

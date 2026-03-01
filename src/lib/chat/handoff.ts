@@ -327,10 +327,10 @@ ${context.summary}`;
     prefix += `\nLayout: ${pa.layoutType} | Condition: ${pa.currentCondition}`;
     if (pa.estimatedDimensions) prefix += `\nDimensions: ${pa.estimatedDimensions}`;
     if (pa.estimatedCeilingHeight) prefix += `\nCeiling height: ${pa.estimatedCeilingHeight}`;
-    if (pa.structuralElements.length > 0) {
+    if (pa.structuralElements?.length > 0) {
       prefix += `\nStructural elements: ${pa.structuralElements.join(', ')}`;
     }
-    if (pa.identifiedFixtures.length > 0) {
+    if (pa.identifiedFixtures?.length > 0) {
       prefix += `\nFixtures: ${pa.identifiedFixtures.join(', ')}`;
     }
     if (pa.wallCount != null && pa.wallDimensions?.length) {
