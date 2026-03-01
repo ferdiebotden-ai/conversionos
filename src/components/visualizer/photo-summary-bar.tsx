@@ -14,6 +14,7 @@ import { Camera } from 'lucide-react';
 interface PhotoSummaryBarProps {
   photoSrc: string;
   detectedRoomType?: string | undefined;
+  analysisText?: string | undefined;
   isAnalyzing?: boolean | undefined;
   onChangePhoto: () => void;
   className?: string;
@@ -22,6 +23,7 @@ interface PhotoSummaryBarProps {
 export function PhotoSummaryBar({
   photoSrc,
   detectedRoomType,
+  analysisText,
   isAnalyzing,
   onChangePhoto,
   className,
@@ -43,28 +45,37 @@ export function PhotoSummaryBar({
       )}
     >
       {/* Photo thumbnail */}
-      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border">
+      <div className="relative h-16 w-16 md:h-20 md:w-20 shrink-0 overflow-hidden rounded-lg border border-border">
         <Image
           src={photoSrc}
           alt="Uploaded room photo"
           fill
           className="object-cover"
-          sizes="48px"
+          sizes="80px"
         />
       </div>
 
-      {/* Room type badge + analyzing indicator */}
-      <div className="flex-1 min-w-0 flex items-center gap-2">
+      {/* Room type badge + analysis summary */}
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
         {isAnalyzing ? (
-          <span className="bg-muted text-muted-foreground text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1.5">
+          <span className="bg-muted text-muted-foreground text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1.5 w-fit">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            Analysing photo...
+            Emma is studying your space...
           </span>
-        ) : roomTypeLabel ? (
-          <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full truncate">
-            {roomTypeLabel}
-          </span>
-        ) : null}
+        ) : (
+          <>
+            {roomTypeLabel && (
+              <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full truncate w-fit">
+                {roomTypeLabel}
+              </span>
+            )}
+            {analysisText && (
+              <span className="text-xs text-muted-foreground truncate">
+                {analysisText}
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       {/* Change photo action */}

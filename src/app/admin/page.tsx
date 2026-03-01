@@ -152,7 +152,7 @@ export default async function AdminDashboardPage() {
               </p>
             </Link>
             <a
-              href="/estimate"
+              href="/visualizer"
               target="_blank"
               rel="noopener noreferrer"
               className="block p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"

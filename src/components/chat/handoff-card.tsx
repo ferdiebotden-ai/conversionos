@@ -41,7 +41,7 @@ const ROUTE_INFO: Record<PersonaKey, {
   'quote-specialist': {
     label: 'Get an Estimate',
     description: 'Get a detailed cost breakdown',
-    path: '/estimate',
+    path: '/visualizer',
     icon: Calculator,
     color: 'bg-blue-600',
   },

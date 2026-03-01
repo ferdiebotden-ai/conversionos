@@ -20,6 +20,7 @@ import {
 } from '@/lib/ai/knowledge/pricing-data';
 import type { QuoteAssistanceConfig, QuoteAssistanceMode } from '@/lib/quote-assistance';
 import { DollarSign, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface CostRangeIndicatorProps {
   roomType: string;
@@ -36,16 +37,14 @@ export function CostRangeIndicator({
   finishLevel = 'standard',
   className,
 }: CostRangeIndicatorProps) {
-  const { tier, canAccess } = useTier();
+  const { canAccess } = useTier();
+  const hasPricing = canAccess('pricing_display');
   const [config, setConfig] = useState<QuoteAssistanceConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => hasPricing);
 
   // Fetch quote assistance config once on mount
   useEffect(() => {
-    if (!canAccess('pricing_display')) {
-      setLoading(false);
-      return;
-    }
+    if (!hasPricing) return;
 
     fetch('/api/admin/quote-assistance')
       .then(res => res.ok ? res.json() : null)
@@ -58,7 +57,7 @@ export function CostRangeIndicator({
         // Silently fail — no pricing shown
       })
       .finally(() => setLoading(false));
-  }, [canAccess]);
+  }, [hasPricing]);
 
   // Gate: no pricing_display entitlement → don't render
   if (!canAccess('pricing_display')) return null;
@@ -116,9 +115,14 @@ function CostDisplay({
             Based on typical Ontario renovation costs for this room type and style
           </p>
         </div>
-        <div className="shrink-0" title="Preliminary estimate based on room type, size, and finish level">
-          <Info className="w-4 h-4 text-muted-foreground" />
-        </div>
+        <Popover>
+          <PopoverTrigger className="shrink-0">
+            <Info className="w-4 h-4 text-muted-foreground" />
+          </PopoverTrigger>
+          <PopoverContent className="text-sm w-64">
+            Preliminary estimate based on room type, size, and finish level. Final pricing requires an in-person assessment.
+          </PopoverContent>
+        </Popover>
       </div>
     );
   }
@@ -137,9 +141,14 @@ function CostDisplay({
             Preliminary AI estimate. Final pricing requires an in-person assessment.
           </p>
         </div>
-        <div className="shrink-0" title="This is an AI-generated preliminary estimate">
-          <Info className="w-4 h-4 text-muted-foreground" />
-        </div>
+        <Popover>
+          <PopoverTrigger className="shrink-0">
+            <Info className="w-4 h-4 text-muted-foreground" />
+          </PopoverTrigger>
+          <PopoverContent className="text-sm w-64">
+            This is an AI-generated preliminary estimate. Final pricing requires an in-person assessment.
+          </PopoverContent>
+        </Popover>
       </div>
     );
   }

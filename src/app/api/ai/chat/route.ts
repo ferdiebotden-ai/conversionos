@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   try {
-    const { messages, handoffContext, estimateData } = await req.json();
+    const { messages, handoffContext, estimateData, systemPromptOverride } = await req.json();
 
     // Helper to extract text content from message (handles both old and new formats)
     const getMessageContent = (msg: IncomingMessage): string => {
@@ -92,11 +92,13 @@ export async function POST(req: NextRequest) {
     const lastUserMsg = formattedMessages.filter((m: { role: string }) => m.role === 'user').pop();
     const userMessage = lastUserMsg?.content as string | undefined;
 
-    // Build system prompt with optional handoff context prefix + pricing gate
-    let systemPrompt = await buildAgentSystemPrompt('estimate', {
-      userMessage,
-      handoffContext: handoffContext as Record<string, unknown> | undefined,
-    });
+    // Build system prompt — use override if provided (e.g. Design Studio), otherwise default
+    let systemPrompt = typeof systemPromptOverride === 'string' && systemPromptOverride.length > 0
+      ? systemPromptOverride
+      : await buildAgentSystemPrompt('estimate', {
+          userMessage,
+          handoffContext: handoffContext as Record<string, unknown> | undefined,
+        });
 
     // Pricing confidence gating
     if (estimateData) {

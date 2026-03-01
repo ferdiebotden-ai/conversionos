@@ -38,7 +38,7 @@ interface CTASectionCopy {
 // ---------------------------------------------------------------------------
 
 export function getHeaderCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get Quote', href: '/estimate' };
+  if (hasQuotes(ctx)) return { label: 'Get Quote', href: '/visualizer' };
   return { label: 'Contact Us', href: '/contact' };
 }
 
@@ -47,7 +47,7 @@ export function getHeaderCTA(ctx: CopyContext): CTACopy {
 // ---------------------------------------------------------------------------
 
 export function getMobileCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get Estimate', href: '/estimate' };
+  if (hasQuotes(ctx)) return { label: 'Get Estimate', href: '/visualizer' };
   return { label: 'Contact Us', href: '/contact' };
 }
 
@@ -96,7 +96,7 @@ export function getHomepageFinalCTA(ctx: CopyContext): {
       description:
         'Upload a photo. Get AI design concepts. Receive a ballpark estimate. All in minutes, all free.',
       secondaryLabel: 'Or get a free estimate',
-      secondaryHref: '/estimate',
+      secondaryHref: '/visualizer',
     };
   }
   return {
@@ -121,7 +121,7 @@ export function getHomepageTeaser(ctx: CopyContext): string {
 // ---------------------------------------------------------------------------
 
 export function getEstimateCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get a Free Estimate', href: '/estimate' };
+  if (hasQuotes(ctx)) return { label: 'Get a Free Estimate', href: '/visualizer' };
   return { label: 'Request a Callback', href: '/contact' };
 }
 
@@ -138,7 +138,7 @@ export function getContactAlternativeCTA(
     heading: 'Prefer an Instant Quote?',
     description: 'Use our AI-powered estimator for a quick ballpark estimate.',
     linkLabel: 'Get an instant quote \u2192',
-    linkHref: '/estimate',
+    linkHref: '/visualizer',
   };
 }
 
@@ -166,7 +166,7 @@ export function getServicesCTA(ctx: CopyContext): CTASectionCopy {
       heading: 'Ready to Start Your Project?',
       description:
         'Get a personalized quote in minutes with our AI-powered estimator, or contact us directly to discuss your renovation needs.',
-      primary: { label: 'Get Instant Quote', href: '/estimate' },
+      primary: { label: 'Get Instant Quote', href: '/visualizer' },
       secondary: { label: 'Contact Us', href: '/contact' },
     };
   }
@@ -213,7 +213,7 @@ export function getProjectsCTA(ctx: CopyContext): CTASectionCopy {
       heading: 'Ready to Start Your Project?',
       description:
         "Let's create something amazing together. Get a personalized quote and see what your renovation could look like.",
-      primary: { label: 'Get a Quote', href: '/estimate' },
+      primary: { label: 'Get a Quote', href: '/visualizer' },
       secondary: { label: 'Try the Visualizer', href: '/visualizer' },
     };
   }
@@ -236,7 +236,7 @@ export function getAboutCTA(ctx: CopyContext): CTASectionCopy {
       heading: "Let's Build Something Together",
       description:
         "Ready to start your renovation journey? We'd love to hear about your project and show you what's possible.",
-      primary: { label: 'Get a Free Quote', href: '/estimate' },
+      primary: { label: 'Get a Free Quote', href: '/visualizer' },
       secondary: { label: 'Contact Us', href: '/contact' },
     };
   }
@@ -254,7 +254,7 @@ export function getAboutCTA(ctx: CopyContext): CTASectionCopy {
 // ---------------------------------------------------------------------------
 
 export function getNotFoundCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get a Quote', href: '/estimate' };
+  if (hasQuotes(ctx)) return { label: 'Get a Quote', href: '/visualizer' };
   return { label: 'Contact Us', href: '/contact' };
 }
 
@@ -286,10 +286,10 @@ export function getVisualizerShareCTA(ctx: CopyContext, branding: {
 } {
   if (hasQuotes(ctx)) {
     return {
-      headerCTA: { label: 'Get a Quote', href: '/estimate' },
+      headerCTA: { label: 'Get a Quote', href: '/visualizer' },
       heading: 'Love This Design?',
       description: `Get a personalized quote for your renovation project from the experts at ${branding.name} in ${branding.city}, ${branding.province}.`,
-      primaryCTA: { label: 'Get a Quote for This Design', href: '/estimate' },
+      primaryCTA: { label: 'Get a Quote for This Design', href: '/visualizer' },
     };
   }
   return {

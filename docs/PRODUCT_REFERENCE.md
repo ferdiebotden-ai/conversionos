@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** February 27, 2026
+**Last updated:** March 1, 2026
 
 ---
 
@@ -97,14 +97,15 @@ The `admin_settings` table stores per-tenant JSONB configuration under keys like
 
 ## User Journeys
 
-### Homeowner Journey
+### Homeowner Journey (Unified Design Studio)
 
-1. **Homepage** (`/`) — DB-driven branded page: Hero → Social Proof Bar → Visualizer Teaser (before/after slider) → Services → How It Works → Why Us → Testimonials → CTA. Sticky mobile CTA bar < 768px. All CTAs adapt via copy system (tier + quote mode).
-2. **Visualizer** (`/visualizer`) — Upload photo (drag-drop desktop, camera/gallery mobile). GPT Vision pre-analysis fires at upload (room type, dimensions, fixtures, condition). 8 room types × 6 styles. Optional voice input via Emma.
-3. **Generation** — SSE streaming, 4 Gemini concepts in parallel (~41s). Progressive reveal with skeleton cards.
-4. **Results** — Before/after slider, AI-enriched descriptions, cost range (Accelerate+). **Concept starring:** gold star toggle on each concept thumbnail — starred concepts tracked in `favouritedIndices: Set<number>`. "Email My Favourites (N)" button opens email capture modal with starred concept indices. CTA adapts: "Get a Personalised Estimate" or "Request a Callback from [Contractor]". Email capture creates lead. Favourited indices passed to Emma via `clientFavouritedConcepts` in handoff context.
-5. **Estimate** (`/estimate`) — Emma receives full handoff context (photo analysis, preferences, cost signals, quote mode) via DB-backed reconstruction (`buildHandoffFromVisualization()`). Skips discovery, goes to refinement. Project summary sidebar auto-populates from conversation. Goals extracted from user messages only.
-6. **Lead capture** — Multi-step modal: project review → contact info → Ontario-specific property details. Lead created with full context. Contractor notified by email.
+The entire homeowner journey now happens on a single page (`/visualizer`) — no navigation between separate estimate/visualizer pages. The `/estimate` route redirects to `/visualizer`.
+
+1. **Homepage** (`/`) — DB-driven branded page: Hero → Social Proof Bar → Visualizer Teaser (before/after slider) → Services → How It Works → Why Us → Testimonials → CTA. Sticky mobile CTA bar < 768px. All CTAs adapt via copy system (tier + quote mode) and route to `/visualizer` (quotes on) or `/contact` (quotes off).
+2. **Capture** (`/visualizer`) — Upload photo (drag-drop desktop, camera/gallery mobile). GPT Vision pre-analysis fires at upload (room type, dimensions, fixtures, condition). 8 room types × 6 styles. Optional voice input via Emma. Transition message ("Thank you for sharing your vision — let me bring it to life.") before generation.
+3. **Create** — SSE streaming, 4 Gemini concepts in parallel (~41s). Progressive reveal with skeleton cards.
+4. **Refine** — Before/after slider (max 480px height on desktop), AI-enriched descriptions, cost range (Accelerate+). **Concept starring:** gold star toggle on each thumbnail. **Design Studio Chat** (inline Emma chat below results) with quick action pill buttons: "Refine My Design", "Keep Discussing", "Get My Estimate" (Accelerate+) / "Email My Designs" (Elevate). Refinements replace starred concept in-place with crossfade. Max 3 refinements — "Refine" button silently disappears after 3rd (no counter, no warning). Emma's prompt is purpose-built for the Design Studio context via `buildDesignStudioPrompt()`.
+5. **Connect** — Inline lead capture form (not modal, not new page) slides in below chat: name, email, phone, timeline. Tier-aware: Accelerate+ captures for AI quote generation, Elevate captures for callback. Success state with contractor-specific messaging. Sticky CTA bar hidden after submission.
 
 ### Contractor (Admin) Journey
 
@@ -135,12 +136,12 @@ ConversionOS uses a single AI persona — **Emma** — across all pages. Emma ad
 | PageContext | Pages | Emma's Role | Knowledge |
 |-------------|-------|-------------|-----------|
 | `general` | Homepage, About, Services, Contact | Receptionist | Company profile, services, Ontario knowledge. Elevate: routes to `/contact` |
-| `estimate` | `/estimate` | Quote specialist | Full Ontario pricing DB (14 trades, 50+ materials, 9 regions), handoff context |
-| `visualizer` | `/visualizer` | Design consultant | Style descriptions, materials, renovation trends |
+| `estimate` | `/visualizer` (Design Studio chat) | Quote specialist | Full Ontario pricing DB (14 trades, 50+ materials, 9 regions), handoff context |
+| `visualizer` | `/visualizer` (pre-generation) | Design consultant | Style descriptions, materials, renovation trends |
 
 ### Context Pipeline
 
-Visualizer → estimate handoff includes: photo analysis (GPT Vision), design preferences, cost signals (Ontario DB), quote assistance mode, **client favourited concepts** (0-based indices). Context reconstructed from DB via `buildHandoffFromVisualization()` (survives tab switches, refreshes). Emma skips discovery and goes straight to refinement. Favourited concepts are surfaced in Emma's prompt as "The customer favourited: Concept 1, Concept 3".
+Design Studio chat receives all context in-memory (same page): photo analysis (GPT Vision), design preferences, cost signals (Ontario DB), quote assistance mode, starred concepts, concept pricing. Emma skips discovery and goes straight to refinement. The `buildDesignStudioPrompt()` function in `src/lib/ai/personas/emma.ts` assembles the full system prompt with room analysis, design preferences, starred concepts, pricing data, and tier-specific pricing rules. Context also available via DB-backed `buildHandoffFromVisualization()` for the estimate resume flow.
 
 ### Voice (All Tiers — Web)
 
@@ -174,31 +175,53 @@ Customers can star/favourite individual concepts on the visualizer results page 
 
 **UI components:**
 - **Star toggle:** `src/components/visualizer/concept-thumbnails.tsx` — gold star overlay (top-right) on each concept thumbnail. Hollow star (unstarred) → filled gold star (starred). `favouritedIndices: Set<number>` tracked in parent.
-- **Email button:** `src/components/visualizer/result-display.tsx` — "Email My Favourites (N)" when concepts are starred, "Email Me These Designs" when none starred. Opens `EmailCaptureModal`.
-- **Email capture:** `src/components/visualizer/email-capture-modal.tsx` — sends `favouritedConceptIndices` to `POST /api/visualizations`.
+- **Email button:** `src/components/visualizer/result-display.tsx` — "Email My Designs" + "Try Another Style" side by side in action row.
+- **Email capture:** `src/components/visualizer/email-capture-modal.tsx` — simplified to email-only: title "Email Your Designs", subtitle, email field, "Send to My Email" button, consent footer. No download button, marketing checkbox, or skip.
 - **Admin indicator:** `src/components/admin/lead-visualization-panel.tsx` — gold star badge on concept thumbnails the customer favourited (reads `client_favourited_concepts` from visualization record).
 - **Share API:** `POST /api/visualizations/[id]/share` — emails selected concepts to the customer.
 - **Handoff:** `clientFavouritedConcepts: number[]` in `HandoffContext` (`src/lib/chat/handoff.ts`). Serialized from visualizer form, reconstructed from DB via `buildHandoffFromVisualization()`. Emma's prompt includes "The customer favourited: Concept 1, Concept 3".
 
-### Live Design Refinement (Accelerate+)
+### Design Studio Chat (Inline Refinement)
 
-During the estimate chat, Emma can detect when the homeowner describes design changes and automatically re-render the starred concept to reflect those changes. This closes the loop between conversation and visualisation — the homeowner sees their words become images in real time.
+After concepts generate, an inline Emma chat appears below the results with quick action pill buttons. This replaces the previous separate `/estimate` page — the entire flow happens on `/visualizer`.
 
-**Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring across six categories: material (25pts), structural (25pts), finish (15pts), budget (15pts), dimensions (10pts), scope (10pts). Threshold: 50 points to trigger a refinement. Zero LLM cost — pure string matching.
+**Component:** `src/components/visualizer/design-studio-chat.tsx` (~280 lines). Purpose-built inline chat, NOT a reuse of `ChatInterface`. Uses `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`.
 
-**Refinement API:** `POST /api/ai/visualize/refine` — re-generates the starred concept using Gemini multi-image reference (original photo for geometry, starred concept for aesthetic direction). Zod-validated request/response. Tier-gated (Accelerate+). Max 3 refinements per session with 30-second cooldown between requests.
+**Quick action buttons:** Rendered as pill buttons below Emma's messages. They guide without pressuring — no counters, no "2 refinements remaining" anxiety.
 
-**Rendering panel:** `src/components/chat/rendering-panel.tsx` — persistent image panel showing the starred concept alongside the chat. Desktop: sidebar positioned above `EstimateSidebar`. Mobile: collapsible compact card. Four states: idle (static image), generating (pulse animation), updated (crossfade transition), hidden (no starred concept).
+| After | Buttons |
+|-------|---------|
+| Concepts generate | "Refine My Design" + "Keep Discussing" + "Get My Estimate" (or "Email My Designs" for Elevate) |
+| A refinement | "Refine Again" + "Keep Discussing" + CTA |
+| 3rd refinement | CTA only + "I Have More Questions" (Refine button silently disappears) |
 
-**Enlarged dialog:** `RenderingEnlargedDialog` — full-size rendering view with signal summary and refinement badge showing which refinement iteration is displayed.
+**When clicked:**
+- **Refine My Design:** Triggers `/api/ai/visualize/refine` with starred concept + accumulated design signals. Crossfade updates the concept image in-place.
+- **Keep Discussing:** Focuses the chat input.
+- **Get My Estimate:** Scrolls to inline lead capture form (see Lead Capture Form section).
+- **Email My Designs:** Opens simplified email capture modal.
 
-**Chat integration:** `chat-interface.tsx` — extracts signals from user messages, checks readiness via `useEffect`, fires refinement as fire-and-forget fetch to `/api/ai/visualize/refine`, injects a system message when the rendering updates so Emma can acknowledge the change.
+**Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles: base Emma persona, room analysis, design preferences, starred concepts, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through the chat API route.
 
-**Emma awareness:** Emma's estimate page prompt includes a "Live Design Rendering" section instructing her to acknowledge rendering updates briefly, focus on closing toward estimate submission, and avoid encouraging endless design iteration.
+**Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring across six categories: material (25pts), structural (25pts), finish (15pts), budget (15pts), dimensions (10pts), scope (10pts). Signals accumulated from conversation, used when user clicks "Refine My Design".
 
-**Cost:** ~$0.10 per refinement (Gemini image generation), max $0.30/session (3 refinements). Zero LLM cost for signal detection.
+**Refinement API:** `POST /api/ai/visualize/refine` — re-generates the starred concept using Gemini multi-image reference (original photo for geometry, starred concept for aesthetic direction). Zod-validated. Max 3 refinements per session.
 
-**Tests:** 41 rendering-gate unit tests, 19 rendering-panel unit tests, 5 E2E tests (desktop panel visibility, no panel without starred concept, enlarge dialog interaction, sidebar accessibility, mobile compact card).
+**Cost:** ~$0.10 per refinement (Gemini image generation), max $0.30/session (3 refinements). ~$0.03 for Emma chat (~5 exchanges).
+
+### Inline Lead Capture Form
+
+**Component:** `src/components/visualizer/lead-capture-form.tsx` (~200 lines). Slides into view below the chat when user clicks "Get My Estimate" — NOT a modal. Concepts and chat remain visible above.
+
+**Fields:** Name (required), Email (required), Phone (optional), Timeline (select: "Within 3 months" / "3-6 months" / "6-12 months" / "Just exploring").
+
+**On submit:** POST to `/api/leads` with project type from photo analysis, area estimate, timeline, and visualization ID. Success state: checkmark animation, tier-aware messaging ("Your estimate is on its way!" for Accelerate+, "[Contractor] will be in touch shortly!" for Elevate). Trust signal: "Your details are shared only with [Contractor Name]."
+
+**Sticky CTA bar:** Hidden after successful lead submission.
+
+### Legacy Rendering Panel
+
+The previous rendering panel (`src/components/chat/rendering-panel.tsx`) and separate `/estimate` chat (`src/components/chat/chat-interface.tsx`) still exist for the `/estimate/resume` flow but the primary path is now the inline Design Studio Chat.
 
 ---
 
@@ -354,7 +377,7 @@ Eye toggle in settings header opens iframe side panel (`/?__preview=1`). `postMe
 
 ## Page Routes (22 pages)
 
-**Public (11):** `/` (homepage), `/about`, `/services`, `/services/[slug]`, `/visualizer`, `/visualizer/share/[token]`, `/estimate`, `/estimate/resume`, `/contact`, `/projects`, `/quote/accept/[token]` (e-signature), `/privacy`, `/terms`, `/data-deletion`
+**Public (11):** `/` (homepage), `/about`, `/services`, `/services/[slug]`, `/visualizer`, `/visualizer/share/[token]`, `/estimate` (redirects to `/visualizer`), `/estimate/resume`, `/contact`, `/projects`, `/quote/accept/[token]` (e-signature), `/privacy`, `/terms`, `/data-deletion`
 
 **Admin (11, Accelerate+ unless noted):** `/admin/login`, `/admin` (dashboard), `/admin/leads`, `/admin/leads/[id]`, `/admin/quotes`, `/admin/invoices`, `/admin/invoices/[id]`, `/admin/drawings`, `/admin/drawings/[id]`, `/admin/settings`, `/admin/analytics` (Dominate only)
 
@@ -397,7 +420,7 @@ All tenant branding via `admin_settings` JSONB: business info, logo (SVG/PNG URL
 | Check | Status |
 |-------|--------|
 | `npm run build` | Passing (TypeScript strict + Next.js) |
-| `npm run test` | 859 passing (29 test files) |
+| `npm run test` | 856 passing, 3 pre-existing failures in pdf-utils (31 test files) |
 | `npm run lint` | Passing |
 | E2E suites | 8 (quote-editor-core, transparency, tiers, CSV, templates, public, enterprise, live-design-refinement) |
 

@@ -15,11 +15,14 @@ import { SaveVisualizationModal } from './save-visualization-modal';
 import { DownloadButton } from './download-button';
 import { EmailCaptureModal } from './email-capture-modal';
 import { FadeInUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
-import { useTier } from '@/components/tier-provider';
 import { useBranding } from '@/components/branding-provider';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
 import { getVisualizerResultCTA } from '@/lib/copy/site-copy';
 import type { VisualizationResponse } from '@/lib/schemas/visualization';
+import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
+import type { QuoteAssistanceMode } from '@/lib/quote-assistance';
+import { DesignStudioChat } from './design-studio-chat';
+import { LeadCaptureForm } from './lead-capture-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2,
@@ -37,10 +40,11 @@ interface ResultDisplayProps {
   visualization: VisualizationResponse;
   originalImage: string;
   onStartOver: () => void;
-  onGetQuote: () => void;
   onTryAnotherStyle?: () => void;
   favouritedIndices: Set<number>;
   onToggleFavourite: (index: number) => void;
+  photoAnalysis?: RoomAnalysis | null | undefined;
+  quoteAssistanceMode?: QuoteAssistanceMode | undefined;
   className?: string;
 }
 
@@ -48,13 +52,13 @@ export function ResultDisplay({
   visualization,
   originalImage,
   onStartOver,
-  onGetQuote,
   onTryAnotherStyle,
   favouritedIndices,
   onToggleFavourite,
+  photoAnalysis,
+  quoteAssistanceMode = 'range',
   className,
 }: ResultDisplayProps) {
-  const { canAccess } = useTier();
   const branding = useBranding();
   const copyCtx = useCopyContext();
   const [selectedConceptIndex, setSelectedConceptIndex] = useState(0);
@@ -62,6 +66,9 @@ export function ResultDisplay({
   const [emailCaptureOpen, setEmailCaptureOpen] = useState(false);
   const [hasProvidedEmail, setHasProvidedEmail] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
+  const [refinedImages, setRefinedImages] = useState<Map<number, string>>(new Map());
+  const [showLeadCapture, setShowLeadCapture] = useState(false);
+  const [leadSubmitted, setLeadSubmitted] = useState(false);
 
   // Tier + quoteMode aware CTA configuration
   const resultCTA = getVisualizerResultCTA(copyCtx, branding.name);
@@ -77,6 +84,13 @@ export function ResultDisplay({
   }, []);
 
   const selectedConcept = visualization.concepts[selectedConceptIndex];
+  // Use refined image if available for the selected concept
+  const selectedImageUrl = refinedImages.get(selectedConceptIndex) || selectedConcept?.imageUrl || '';
+
+  // Handle concept refinement from Design Studio Chat
+  const handleConceptRefined = (index: number, newImageUrl: string) => {
+    setRefinedImages(prev => new Map(prev).set(index, newImageUrl));
+  };
 
   // Format generation time
   const formatTime = (ms: number): string => {
@@ -92,18 +106,6 @@ export function ResultDisplay({
   // Format room type for display
   const formatRoomType = (roomType: string): string => {
     return roomType.replace(/_/g, ' ');
-  };
-
-  // Handle pre-download email capture
-  const handleBeforeDownload = async (): Promise<boolean> => {
-    // If user already provided email, allow download
-    if (hasProvidedEmail) {
-      return true;
-    }
-
-    // Show email capture modal
-    setEmailCaptureOpen(true);
-    return false;
   };
 
   // Handle email submission
@@ -137,12 +139,15 @@ export function ResultDisplay({
           Drag to compare before and after
         </h3>
         {selectedConcept && (
-          <BeforeAfterSlider
-            beforeImage={originalImage}
-            afterImage={selectedConcept.imageUrl}
-            beforeLabel="Current"
-            afterLabel={`Concept ${selectedConceptIndex + 1}`}
-          />
+          <div className="transition-opacity duration-500">
+            <BeforeAfterSlider
+              key={selectedImageUrl}
+              beforeImage={originalImage}
+              afterImage={selectedImageUrl}
+              beforeLabel="Current"
+              afterLabel={`Concept ${selectedConceptIndex + 1}`}
+            />
+          </div>
         )}
       </FadeInUp>
 
@@ -178,76 +183,106 @@ export function ResultDisplay({
         />
       </FadeInUp>
 
-      {/* Action buttons */}
+      {/* Action buttons — email + try another style side by side */}
       <StaggerContainer className="flex flex-col sm:flex-row gap-3">
-        {/* Primary CTA — tier-aware */}
         <StaggerItem className="flex-1">
-          <Button
-            size="lg"
-            className="w-full min-h-[52px]"
-            onClick={onGetQuote}
-          >
-            <primaryCTA.icon className="w-5 h-5 mr-2" />
-            {primaryCTA.label}
-          </Button>
-        </StaggerItem>
-
-        {/* Secondary actions */}
-        <StaggerItem>
-          <div className="flex gap-2">
-            {selectedConcept && (
-              <DownloadButton
-                imageUrl={selectedConcept.imageUrl}
-                roomType={visualization.roomType}
-                style={visualization.style}
-                conceptIndex={selectedConceptIndex}
-                visualizationId={visualization.id}
-                showLabel={false}
-                onBeforeDownload={handleBeforeDownload}
-                className="min-h-[52px]"
-              />
-            )}
-
+          {!hasProvidedEmail ? (
             <Button
               variant="outline"
               size="lg"
-              className="min-h-[52px]"
-              onClick={() => setShareModalOpen(true)}
+              className="w-full min-h-[52px]"
+              onClick={() => setEmailCaptureOpen(true)}
             >
-              <Share2 className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">Share</span>
+              {favouritedIndices.size > 0 ? (
+                <>
+                  <Star className="w-4 h-4 mr-2 text-yellow-400 fill-yellow-400" />
+                  Email My Favourites ({favouritedIndices.size})
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email My Designs
+                </>
+              )}
             </Button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              {selectedConcept && (
+                <DownloadButton
+                  imageUrl={selectedConcept.imageUrl}
+                  roomType={visualization.roomType}
+                  style={visualization.style}
+                  conceptIndex={selectedConceptIndex}
+                  visualizationId={visualization.id}
+                  showLabel
+                  className="min-h-[52px] flex-1"
+                />
+              )}
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-h-[52px]"
+                onClick={() => setShareModalOpen(true)}
+              >
+                <Share2 className="w-5 h-5 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            </div>
+          )}
         </StaggerItem>
+
+        {onTryAnotherStyle && (
+          <StaggerItem>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto min-h-[52px]"
+              onClick={onTryAnotherStyle}
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Try Another Style
+            </Button>
+          </StaggerItem>
+        )}
       </StaggerContainer>
 
-      {/* Email capture + Try another style / Start over */}
-      <FadeInUp className="flex flex-col items-center gap-3 pt-4 border-t border-border">
-        {!hasProvidedEmail && (
-          <Button
-            variant="outline"
-            onClick={() => setEmailCaptureOpen(true)}
-            className="gap-2"
-          >
-            {favouritedIndices.size > 0 ? (
-              <>
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                Email My Favourites ({favouritedIndices.size})
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4" />
-                Email Me These Designs
-              </>
-            )}
-          </Button>
+      {/* Design Studio Chat — inline refinement + guidance */}
+      <FadeInUp>
+        <DesignStudioChat
+          visualizationId={visualization.id}
+          concepts={visualization.concepts}
+          starredIndex={favouritedIndices.size > 0 ? Array.from(favouritedIndices)[0]! : selectedConceptIndex}
+          photoAnalysis={photoAnalysis ?? null}
+          roomType={visualization.roomType}
+          style={visualization.style}
+          companyName={branding.name}
+          tier={copyCtx.tier}
+          quoteAssistanceMode={quoteAssistanceMode}
+          onConceptRefined={handleConceptRefined}
+          onRequestEstimate={() => setShowLeadCapture(true)}
+          onEmailDesigns={() => setEmailCaptureOpen(true)}
+        />
+      </FadeInUp>
+
+      {/* Inline lead capture form */}
+      <AnimatePresence>
+        {showLeadCapture && (
+          <FadeInUp>
+            <LeadCaptureForm
+              visualizationId={visualization.id}
+              roomType={visualization.roomType}
+              originalPhotoUrl={originalImage}
+              onSubmitted={() => {
+                setLeadSubmitted(true);
+                setShowStickyCTA(false);
+              }}
+            />
+          </FadeInUp>
         )}
-        {onTryAnotherStyle && (
-          <Button variant="outline" onClick={onTryAnotherStyle}>
-            <Palette className="w-4 h-4 mr-2" />
-            Try Another Style
-          </Button>
-        )}
+      </AnimatePresence>
+
+      {/* Start over link */}
+      <FadeInUp className="flex justify-center pt-2">
         <Button variant="ghost" size="sm" onClick={onStartOver} className="text-muted-foreground">
           <RefreshCw className="w-4 h-4 mr-2" />
           Start Over with a Different Photo
@@ -276,9 +311,9 @@ export function ResultDisplay({
         favouritedIndices={favouritedIndices}
       />
 
-      {/* Sticky "Get a Quote" CTA bar */}
+      {/* Sticky "Get a Quote" CTA bar — hidden after lead submitted */}
       <AnimatePresence>
-        {showStickyCTA && (
+        {showStickyCTA && !leadSubmitted && (
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -290,7 +325,7 @@ export function ResultDisplay({
               <Button
                 size="lg"
                 className="w-full min-h-[56px] text-base font-semibold backdrop-blur-md shadow-xl shadow-primary/20 rounded-xl"
-                onClick={onGetQuote}
+                onClick={() => setShowLeadCapture(true)}
               >
                 <primaryCTA.icon className="w-5 h-5 mr-2" />
                 {primaryCTA.label}

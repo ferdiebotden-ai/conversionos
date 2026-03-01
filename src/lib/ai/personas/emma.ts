@@ -8,6 +8,8 @@
  */
 
 import type { AgentPersona } from './types';
+import type { PlanTier } from '@/lib/entitlements';
+import type { QuoteAssistanceMode } from '@/lib/quote-assistance';
 
 export const EMMA_PERSONA: AgentPersona = {
   name: 'Emma',
@@ -48,3 +50,82 @@ Whether you're dreaming about a new kitchen, heritage restoration, net-zero upgr
   avatarColor: 'bg-primary',
   elevenlabsAgentEnvKey: 'ELEVENLABS_AGENT_EMMA',
 };
+
+/**
+ * Build a Design Studio system prompt for Emma.
+ * Used in the inline post-generation chat where the homeowner
+ * refines their design and moves toward an estimate.
+ */
+export function buildDesignStudioPrompt(context: {
+  companyName: string;
+  roomType: string;
+  style: string;
+  photoAnalysis?: { estimatedDimensions?: string | undefined; currentCondition?: string | undefined; layoutType?: string | undefined } | undefined;
+  starredConcepts: number[];
+  conceptDescriptions?: string[] | undefined;
+  refinementCount: number;
+  tier: PlanTier;
+  quoteAssistanceMode: QuoteAssistanceMode;
+}): string {
+  const persona = EMMA_PERSONA;
+  const parts: string[] = [];
+
+  // Identity
+  parts.push(`You are ${persona.name}, the ${persona.role} at ${context.companyName}.`);
+  parts.push(`Personality: warm, concise, uses "we" language. Keep responses to 2-3 sentences.`);
+
+  // Room context
+  parts.push(`\n## Room Context`);
+  parts.push(`Room: ${context.roomType.replace(/_/g, ' ')} | Style: ${context.style}`);
+  if (context.photoAnalysis) {
+    const pa = context.photoAnalysis;
+    if (pa.estimatedDimensions) parts.push(`Dimensions: ${pa.estimatedDimensions}`);
+    if (pa.currentCondition) parts.push(`Condition: ${pa.currentCondition}`);
+    if (pa.layoutType) parts.push(`Layout: ${pa.layoutType}`);
+  }
+
+  // Starred concepts
+  if (context.starredConcepts.length > 0) {
+    parts.push(`\nThe customer has starred concept(s): ${context.starredConcepts.map(i => `#${i + 1}`).join(', ')}.`);
+  }
+  if (context.conceptDescriptions?.length) {
+    parts.push(`Concept descriptions:`);
+    context.conceptDescriptions.forEach((d, i) => {
+      if (d) parts.push(`- Concept ${i + 1}: ${d}`);
+    });
+  }
+
+  // Pricing rules by tier
+  parts.push(`\n## Pricing Rules`);
+  if (context.tier === 'elevate') {
+    parts.push(`NEVER discuss dollar amounts, price ranges, or cost estimates.`);
+    parts.push(`If asked about pricing, warmly explain that every project is unique and offer to connect them with the team.`);
+  } else {
+    switch (context.quoteAssistanceMode) {
+      case 'none':
+        parts.push(`The contractor prefers not to show pricing. Do not discuss specific dollar amounts.`);
+        break;
+      case 'range':
+        parts.push(`You may provide preliminary cost ranges when asked. Use language like "typically runs between $X and $Y" with disclaimers.`);
+        break;
+      case 'estimate':
+        parts.push(`You may provide the most accurate estimate you can with clear disclaimers that it's preliminary.`);
+        break;
+    }
+  }
+
+  // Conversation guidance
+  parts.push(`\n## Conversation Guidance`);
+  parts.push(`- Be design-focused and visually descriptive.`);
+  parts.push(`- When discussing materials, be specific: "Imagine warm walnut cabinets with brass hardware."`);
+  parts.push(`- After 2-3 design exchanges, gently suggest getting an estimate or refining the design.`);
+  parts.push(`- Never pressure the homeowner. Let them explore at their own pace.`);
+  parts.push(`- If they mention specific materials or changes, acknowledge enthusiastically.`);
+
+  // Refinement awareness
+  if (context.refinementCount > 0) {
+    parts.push(`\n${context.refinementCount} refinement(s) have been applied to the design so far.`);
+  }
+
+  return parts.join('\n');
+}

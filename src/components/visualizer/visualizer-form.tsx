@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { panelSpring } from '@/lib/animations';
+import { panelSpring, fadeInUp } from '@/lib/animations';
 import { PhotoUpload } from './photo-upload';
 import { RoomTypeSelector, type RoomType, type RoomTypeSelection } from './room-type-selector';
 import { StyleSelector, type DesignStyle, type DesignStyleSelection } from './style-selector';
@@ -34,9 +34,10 @@ import {
   AlertCircle,
   Sparkles,
   ArrowLeft,
+  MessageCircle,
 } from 'lucide-react';
 
-type Step = 'photo' | 'form' | 'generating' | 'result' | 'error';
+type Step = 'photo' | 'form' | 'transitioning' | 'generating' | 'result' | 'error';
 
 interface FormData {
   photo: string | null;
@@ -50,6 +51,15 @@ interface FormData {
   voicePreferencesSummary?: string;
   voiceExtractedPreferences?: VoiceExtractedPreferences;
   photoAnalysis?: RoomAnalysis;
+}
+
+/** Build a concise summary from photo analysis for the summary bar */
+function buildAnalysisSummary(analysis: RoomAnalysis): string {
+  const parts: string[] = [];
+  if (analysis.estimatedDimensions) parts.push(analysis.estimatedDimensions);
+  if (analysis.estimatedCeilingHeight) parts.push(`${analysis.estimatedCeilingHeight} ceilings`);
+  if (analysis.currentCondition) parts.push(analysis.currentCondition);
+  return parts.join(', ') || '';
 }
 
 function VisualizerFormInner() {
@@ -152,6 +162,10 @@ function VisualizerFormInner() {
   const handlePhotoUpload = useCallback((photo: string | null, file: File | null) => {
     setFormData(prev => ({ ...prev, photo, photoFile: file }));
     if (photo) {
+      // Clear stale handoff context from previous sessions
+      if (typeof window !== 'undefined') {
+        try { sessionStorage.removeItem('demo_handoff_context'); } catch { /* noop */ }
+      }
       setCurrentStep('form');
       runPhotoAnalysis(photo);
     }
@@ -174,19 +188,10 @@ function VisualizerFormInner() {
     }));
   }, []);
 
-  // Build design preferences and generate via SSE streaming
-  const handleGenerate = useCallback(async () => {
+  // Start SSE generation (called after transition delay)
+  const startStreamGeneration = useCallback(() => {
     if (!formData.photo || !formData.roomType || !formData.style) return;
 
-    // End any active voice session — transcript is already captured
-    if (voiceStatus === 'connected' || voiceStatus === 'connecting') {
-      await endVoice();
-    }
-
-    setCurrentStep('generating');
-    setError(null);
-
-    // Build full design preferences
     const prefs: DesignPreferences = {
       roomType: formData.roomType,
       customRoomType: formData.roomType === 'other' ? formData.customRoomType : undefined,
@@ -203,7 +208,6 @@ function VisualizerFormInner() {
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
     };
 
-    // Merge all preference sources into a unified design intent
     const designIntent = mergeDesignIntent(prefs);
 
     stream.startGeneration({
@@ -226,7 +230,29 @@ function VisualizerFormInner() {
         : undefined,
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
     });
-  }, [formData, endVoice, voiceStatus, stream]);
+  }, [formData, stream]);
+
+  // Build design preferences and show transition before generating
+  const handleGenerate = useCallback(async () => {
+    if (!formData.photo || !formData.roomType || !formData.style) return;
+
+    if (voiceStatus === 'connected' || voiceStatus === 'connecting') {
+      await endVoice();
+    }
+
+    setError(null);
+    setCurrentStep('transitioning');
+  }, [formData, endVoice, voiceStatus]);
+
+  // Auto-advance from transition to generating after 1.8s
+  useEffect(() => {
+    if (currentStep !== 'transitioning') return;
+    const timer = setTimeout(() => {
+      setCurrentStep('generating');
+      startStreamGeneration();
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [currentStep, startStreamGeneration]);
 
   // Watch stream status and transition steps accordingly
   useEffect(() => {
@@ -387,6 +413,32 @@ function VisualizerFormInner() {
     ? formData.customStyle || 'Custom'
     : formData.style;
 
+  // Transitioning state — Emma's bridge message before generation
+  if (currentStep === 'transitioning') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 max-w-md mx-auto">
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm"
+        >
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <p className="text-base text-foreground">
+            Thank you for sharing your vision — let me bring it to life.
+          </p>
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:200ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:400ms]" />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Error state
   if (currentStep === 'error') {
     return (
@@ -441,10 +493,10 @@ function VisualizerFormInner() {
         visualization={visualization}
         originalImage={formData.photo}
         onStartOver={handleStartOver}
-        onGetQuote={handleGetQuote}
         onTryAnotherStyle={handleTryAnotherStyle}
         favouritedIndices={favouritedIndices}
         onToggleFavourite={toggleFavourite}
+        photoAnalysis={formData.photoAnalysis}
       />
     );
   }
@@ -468,6 +520,7 @@ function VisualizerFormInner() {
       <PhotoSummaryBar
         photoSrc={formData.photo!}
         detectedRoomType={formData.photoAnalysis?.roomType}
+        analysisText={formData.photoAnalysis ? buildAnalysisSummary(formData.photoAnalysis) : undefined}
         isAnalyzing={isAnalyzingPhoto}
         onChangePhoto={handleChangePhoto}
       />

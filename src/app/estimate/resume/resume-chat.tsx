@@ -122,7 +122,7 @@ export function ResumeChat() {
               </Link>
             </Button>
             <Button asChild>
-              <Link href="/estimate">
+              <Link href="/visualizer">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Start Fresh
               </Link>

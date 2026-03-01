@@ -103,7 +103,7 @@ export default async function SharedVisualizationPage({ params }: PageProps) {
               {shareCTA.description}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-              <Link href={`${shareCTA.primaryCTA.href}${shareCTA.primaryCTA.href === '/estimate' ? `?visualization=${visualization.id}` : ''}`}>
+              <Link href={`${shareCTA.primaryCTA.href}${shareCTA.primaryCTA.href === '/visualizer' ? `?visualization=${visualization.id}` : ''}`}>
                 <Button size="lg" className="min-h-[52px]">
                   <MessageSquare className="w-5 h-5 mr-2" />
                   {shareCTA.primaryCTA.label}

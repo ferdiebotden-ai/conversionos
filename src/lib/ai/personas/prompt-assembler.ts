@@ -89,7 +89,7 @@ NEVER just mention a page without a CTA.
 ALWAYS include the [CTA:...] marker. Without it, users CANNOT click through.
 
 Examples:
-- "Want a ballpark figure? [CTA:Get a Free Estimate:/estimate]"
+- "Want a ballpark figure? [CTA:Get a Free Estimate:/visualizer]"
 - "Let me show you what your space could look like! [CTA:Try the Visualizer:/visualizer]"
 - "Check out our services! [CTA:View Services:/services]"
 - "Get in touch with our team [CTA:Contact Us:/contact]"
@@ -117,8 +117,7 @@ ${config.booking ? `Booking: ${config.booking}` : ''}`;
 - For any pricing questions, warmly redirect to a callback: [CTA:Request a Callback:/contact]
 - Suggest the visualizer for design exploration via CTA`
         : `- Share general pricing ranges (e.g., "kitchens typically run $15K-$50K") — this is helpful and encouraged
-- Redirect to /estimate for specific, detailed quotes via CTA
-- Redirect to /visualizer for design exploration and room transformations via CTA`;
+- Redirect to /visualizer for design exploration, estimates, and room transformations via CTA`;
 
       const leadFlow = isElevate
         ? `### Lead Capture Flow
@@ -309,7 +308,7 @@ export function buildDynamicSystemPrompt(
         if ((context === 'general' || context === 'visualizer') && tier !== 'elevate') {
           additions.push(`## Cross-Domain Knowledge: Pricing Context
 When the homeowner asks about costs, you can share these general ranges to be helpful.
-For detailed line-item estimates, suggest the estimate tool via [CTA:Get a Free Estimate:/estimate].
+For detailed line-item estimates, suggest the estimate tool via [CTA:Get a Free Estimate:/visualizer].
 
 ${PRICING_SUMMARY}`);
         }

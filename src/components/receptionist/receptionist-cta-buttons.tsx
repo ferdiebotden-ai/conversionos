@@ -20,7 +20,6 @@ const CTA_REGEX = /\[CTA:([^:]+):([^\]]+)\]/g;
 
 /** Routes that trigger handoff cards (uses legacy PersonaKey for backward compat with serialized data) */
 const HANDOFF_ROUTES: Record<string, PersonaKey> = {
-  '/estimate': 'quote-specialist',
   '/visualizer': 'design-consultant',
 };
 
@@ -70,10 +69,10 @@ export function ReceptionistCTAButtons({
   const hasQuoteEngine = canAccess('ai_quote_engine');
   const ctas = extractCTAs(text);
 
-  // Rewrite /estimate CTAs for tiers without quotes enabled
+  // Rewrite /visualizer CTAs for tiers without quotes enabled
   if (!hasQuoteEngine || copyCtx.quoteMode === 'none') {
     for (const cta of ctas) {
-      if (cta.path === '/estimate') {
+      if (cta.path === '/visualizer') {
         cta.path = estimateCta.href;
         cta.label = estimateCta.label;
       }

@@ -169,6 +169,7 @@ export function BeforeAfterSlider({
       className={cn(
         'relative aspect-video overflow-hidden rounded-xl select-none',
         'border border-border',
+        'max-h-[480px]',
         className,
       )}
     >

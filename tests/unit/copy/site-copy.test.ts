@@ -44,7 +44,7 @@ describe('getHeaderCTA', () => {
   it.each(combos)('$label', ({ ctx, quotesOn }) => {
     const cta = getHeaderCTA(ctx);
     if (quotesOn) {
-      expect(cta.href).toBe('/estimate');
+      expect(cta.href).toBe('/visualizer');
       expect(cta.label).toContain('Quote');
     } else {
       expect(cta.href).toBe('/contact');
@@ -57,7 +57,7 @@ describe('getMobileCTA', () => {
   it.each(combos)('$label', ({ ctx, quotesOn }) => {
     const cta = getMobileCTA(ctx);
     if (quotesOn) {
-      expect(cta.href).toBe('/estimate');
+      expect(cta.href).toBe('/visualizer');
     } else {
       expect(cta.href).toBe('/contact');
     }
@@ -87,7 +87,7 @@ describe('getDefaultProcessStep3', () => {
 describe('getHomepageFinalCTA', () => {
   it('links to /estimate when quotes on', () => {
     const cta = getHomepageFinalCTA({ tier: 'accelerate', quoteMode: 'estimate' });
-    expect(cta.secondaryHref).toBe('/estimate');
+    expect(cta.secondaryHref).toBe('/visualizer');
   });
   it('links to /contact when quotes off', () => {
     const cta = getHomepageFinalCTA({ tier: 'accelerate', quoteMode: 'none' });
@@ -106,7 +106,7 @@ describe('getHomepageTeaser', () => {
 
 describe('getEstimateCTA', () => {
   it('routes to /estimate when quotes on', () => {
-    expect(getEstimateCTA({ tier: 'accelerate', quoteMode: 'range' }).href).toBe('/estimate');
+    expect(getEstimateCTA({ tier: 'accelerate', quoteMode: 'range' }).href).toBe('/visualizer');
   });
   it('routes to /contact when quotes off', () => {
     expect(getEstimateCTA({ tier: 'elevate', quoteMode: 'none' }).href).toBe('/contact');
@@ -117,7 +117,7 @@ describe('getContactAlternativeCTA', () => {
   it('returns content when quotes on', () => {
     const result = getContactAlternativeCTA({ tier: 'accelerate', quoteMode: 'range' });
     expect(result).not.toBeNull();
-    expect(result!.linkHref).toBe('/estimate');
+    expect(result!.linkHref).toBe('/visualizer');
   });
   it('returns null when quotes off (Elevate)', () => {
     expect(getContactAlternativeCTA({ tier: 'elevate', quoteMode: 'none' })).toBeNull();
@@ -142,7 +142,7 @@ describe('getContactMetaDescription', () => {
 describe('getServicesCTA', () => {
   it('primary goes to /estimate when quotes on', () => {
     const cta = getServicesCTA({ tier: 'accelerate', quoteMode: 'range' });
-    expect(cta.primary.href).toBe('/estimate');
+    expect(cta.primary.href).toBe('/visualizer');
   });
   it('primary goes to /contact when quotes off', () => {
     const cta = getServicesCTA({ tier: 'dominate', quoteMode: 'none' });
@@ -163,7 +163,7 @@ describe('getServiceDetailCTA', () => {
 
 describe('getProjectsCTA', () => {
   it('primary goes to /estimate when quotes on', () => {
-    expect(getProjectsCTA({ tier: 'accelerate', quoteMode: 'range' }).primary.href).toBe('/estimate');
+    expect(getProjectsCTA({ tier: 'accelerate', quoteMode: 'range' }).primary.href).toBe('/visualizer');
   });
   it('primary goes to /contact when quotes off', () => {
     expect(getProjectsCTA({ tier: 'elevate', quoteMode: 'none' }).primary.href).toBe('/contact');
@@ -172,7 +172,7 @@ describe('getProjectsCTA', () => {
 
 describe('getAboutCTA', () => {
   it('primary goes to /estimate when quotes on', () => {
-    expect(getAboutCTA({ tier: 'dominate', quoteMode: 'range' }).primary.href).toBe('/estimate');
+    expect(getAboutCTA({ tier: 'dominate', quoteMode: 'range' }).primary.href).toBe('/visualizer');
   });
   it('primary goes to /contact when quotes off', () => {
     expect(getAboutCTA({ tier: 'accelerate', quoteMode: 'none' }).primary.href).toBe('/contact');
@@ -181,7 +181,7 @@ describe('getAboutCTA', () => {
 
 describe('getNotFoundCTA', () => {
   it('goes to /estimate when quotes on', () => {
-    expect(getNotFoundCTA({ tier: 'accelerate', quoteMode: 'range' }).href).toBe('/estimate');
+    expect(getNotFoundCTA({ tier: 'accelerate', quoteMode: 'range' }).href).toBe('/visualizer');
   });
   it('goes to /contact when quotes off', () => {
     expect(getNotFoundCTA({ tier: 'elevate', quoteMode: 'none' }).href).toBe('/contact');
@@ -206,8 +206,8 @@ describe('getVisualizerShareCTA', () => {
   const branding = { name: 'TestCo', city: 'Toronto', province: 'Ontario' };
   it('links to /estimate when quotes on', () => {
     const cta = getVisualizerShareCTA({ tier: 'dominate', quoteMode: 'range' }, branding);
-    expect(cta.headerCTA.href).toBe('/estimate');
-    expect(cta.primaryCTA.href).toBe('/estimate');
+    expect(cta.headerCTA.href).toBe('/visualizer');
+    expect(cta.primaryCTA.href).toBe('/visualizer');
     expect(cta.description).toContain('quote');
   });
   it('links to /contact when quotes off', () => {
