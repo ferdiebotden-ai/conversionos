@@ -3,8 +3,8 @@
 /**
  * Design Studio Chat
  * Purpose-built inline chat for the post-generation phase.
- * Contextual quick actions + AI-parsed suggestion chips guide
- * the homeowner through refinement → estimate.
+ * Industry-standard layout: messages with inline suggestion chips →
+ * compact action toolbar → input at bottom (ChatGPT/Claude pattern).
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from 'react';
@@ -53,6 +53,7 @@ interface DesignStudioChatProps {
   onConceptRefined: (index: number, newImageUrl: string) => void;
   onRequestEstimate: () => void;
   onEmailDesigns: () => void;
+  onRefiningChange?: (isRefining: boolean) => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ function getTextContent(message: UIMessage): string {
     .join('');
 }
 
-/** Parse [Suggestions: A | B | C] from the end of a message */
+/** Parse [Suggestions: A | B] from the end of a message */
 function parseSuggestions(text: string): { cleanText: string; suggestions: string[] } {
   const match = text.match(/\[Suggestions?:\s*(.+?)\]\s*$/i);
   if (!match?.[1]) return { cleanText: text, suggestions: [] };
@@ -72,7 +73,8 @@ function parseSuggestions(text: string): { cleanText: string; suggestions: strin
   const suggestions = match[1]
     .split('|')
     .map(s => s.trim())
-    .filter(s => s.length > 0);
+    .filter(s => s.length > 0)
+    .slice(0, 2); // Max 2 suggestions
 
   const cleanText = text.slice(0, match.index).trimEnd();
   return { cleanText, suggestions };
@@ -83,7 +85,6 @@ function formatInline(text: string): ReactNode {
   const parts: ReactNode[] = [];
   let lastIndex = 0;
   let key = 0;
-  // Match bold (**text**) before italic (*text*) — [^*] prevents italic inside bold markers
   const regex = /\*\*(.+?)\*\*|\*([^*]+?)\*/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
@@ -102,7 +103,6 @@ function formatChatMessage(text: string): ReactNode {
   return paragraphs.map((para, pIdx) => {
     const lines = para.split('\n');
     const nonEmpty = lines.filter(l => l.trim());
-    // Detect list blocks (all non-empty lines start with - or *)
     if (nonEmpty.length > 0 && nonEmpty.every(l => /^\s*[-*]\s/.test(l))) {
       return (
         <ul key={pIdx} className="list-disc pl-4 space-y-1 my-1">
@@ -112,7 +112,6 @@ function formatChatMessage(text: string): ReactNode {
         </ul>
       );
     }
-    // Regular paragraph with line breaks
     return (
       <p key={pIdx} className={pIdx > 0 ? 'mt-2' : ''}>
         {lines.map((line, i) => (
@@ -147,6 +146,7 @@ export function DesignStudioChat({
   onConceptRefined,
   onRequestEstimate,
   onEmailDesigns,
+  onRefiningChange,
 }: DesignStudioChatProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -154,6 +154,12 @@ export function DesignStudioChat({
   const [refinementCount, setRefinementCount] = useState(0);
   const [isRefining, setIsRefining] = useState(false);
   const [accumulatedSignals, setAccumulatedSignals] = useState<DesignSignal[]>([]);
+
+  // Notify parent of refining state changes
+  const updateRefining = useCallback((refining: boolean) => {
+    setIsRefining(refining);
+    onRefiningChange?.(refining);
+  }, [onRefiningChange]);
 
   // Build system prompt for the chat
   const systemPrompt = buildDesignStudioPrompt({
@@ -197,7 +203,7 @@ export function DesignStudioChat({
     {
       id: 'welcome',
       role: 'assistant',
-      parts: [{ type: 'text', text: 'These look amazing! What would you like to explore — colours, materials, layout changes? Just tell me what catches your eye.' }],
+      parts: [{ type: 'text', text: "These look amazing! Tap the concept that catches your eye — I'll help you refine it with colours, materials, and layout tweaks." }],
     },
   ];
 
@@ -207,7 +213,6 @@ export function DesignStudioChat({
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
-  // Extra messages injected by the system (refinement ack, etc.)
   const [systemMessages, setSystemMessages] = useState<UIMessage[]>([]);
   const allMessages = useMemo(() => [...messages, ...systemMessages], [messages, systemMessages]);
 
@@ -224,7 +229,7 @@ export function DesignStudioChat({
     }
   }, [allMessages, isRefining]);
 
-  // Helper to inject a system message (refinement ack, error, etc.)
+  // Helper to inject a system message
   const injectAssistantMessage = useCallback((text: string) => {
     setSystemMessages(prev => [...prev, {
       id: `system-${Date.now()}`,
@@ -238,7 +243,6 @@ export function DesignStudioChat({
     const messageText = text ?? inputValue;
     if (!messageText.trim() || isLoading) return;
 
-    // Extract signals before sending
     const signals = extractDesignSignals(messageText);
     if (signals.length > 0) {
       setAccumulatedSignals(prev => [...prev, ...signals]);
@@ -252,7 +256,7 @@ export function DesignStudioChat({
   const handleRefine = useCallback(async () => {
     if (isRefining || refinementCount >= RENDERING_CONFIG.maxRefinements) return;
 
-    setIsRefining(true);
+    updateRefining(true);
 
     try {
       const res = await fetch('/api/ai/visualize/refine', {
@@ -278,7 +282,6 @@ export function DesignStudioChat({
       setAccumulatedSignals([]);
       onConceptRefined(starredIndex, data.imageUrl);
 
-      // Emma acknowledges — graceful message on final refinement
       if (newCount >= RENDERING_CONFIG.maxRefinements) {
         injectAssistantMessage(
           "Your design is looking great — I've made all the adjustments I can. Ready to move forward with an estimate?"
@@ -290,9 +293,9 @@ export function DesignStudioChat({
       const message = err instanceof Error ? err.message : 'Unknown error';
       injectAssistantMessage(`I had trouble updating the design: ${message}. Want to try again?`);
     } finally {
-      setIsRefining(false);
+      updateRefining(false);
     }
-  }, [isRefining, refinementCount, visualizationId, starredIndex, accumulatedSignals, onConceptRefined, injectAssistantMessage]);
+  }, [isRefining, refinementCount, visualizationId, starredIndex, accumulatedSignals, onConceptRefined, injectAssistantMessage, updateRefining]);
 
   // Handle quick action clicks
   const handleQuickAction = useCallback((action: QuickAction['action']) => {
@@ -311,7 +314,6 @@ export function DesignStudioChat({
 
   // Contextual quick actions — staged based on conversation depth
   const getQuickActions = (): QuickAction[] => {
-    // No actions until at least 1 user message (welcome only = no buttons)
     if (exchangeCount === 0) return [];
 
     const canRefine = refinementCount < RENDERING_CONFIG.maxRefinements && !isRefining;
@@ -320,12 +322,10 @@ export function DesignStudioChat({
 
     const actions: QuickAction[] = [];
 
-    // Show refine when user has discussed design (signals or 1+ exchanges)
     if (canRefine && (hasSignals || exchangeCount >= 1)) {
       actions.push({ label: 'Refine My Design', icon: 'refine', action: 'refine', variant: 'secondary' });
     }
 
-    // Show CTA after 2+ exchanges (enough context for next step)
     if (exchangeCount >= 2) {
       actions.push({
         label: isElevate ? 'Email My Designs' : 'Get My Estimate',
@@ -338,35 +338,34 @@ export function DesignStudioChat({
     return actions;
   };
 
-  // Should show quick actions after the last assistant message (not during loading)
-  const lastMessage = allMessages[allMessages.length - 1];
-  const showQuickActions = lastMessage?.role === 'assistant' && !isLoading && getQuickActions().length > 0;
-
-  // Parse suggestions from the last assistant message
-  const lastAssistantText = lastMessage?.role === 'assistant' ? getTextContent(lastMessage) : '';
-  const { suggestions: lastSuggestions } = parseSuggestions(lastAssistantText);
-  const showSuggestions = lastSuggestions.length > 0 && !isLoading;
+  const quickActions = getQuickActions();
+  const showToolbar = !isLoading && quickActions.length > 0;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={panelSpring}
-      className="border border-border rounded-2xl bg-card overflow-hidden"
+      className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col"
       data-testid="design-studio-chat"
     >
-      {/* Chat messages */}
+      {/* Chat messages — scrollable area with inline suggestion chips */}
       <div
         ref={scrollRef}
-        className="max-h-[400px] overflow-y-auto p-4 space-y-4"
+        className="max-h-[400px] overflow-y-auto p-4 space-y-4 flex-1"
       >
         <AnimatePresence initial={false}>
-          {allMessages.map((msg) => {
+          {allMessages.map((msg, msgIndex) => {
             const rawText = getTextContent(msg);
-            // Strip suggestion line from assistant messages for display
-            const { cleanText } = msg.role === 'assistant'
+            const isAssistant = msg.role === 'assistant';
+            const { cleanText, suggestions } = isAssistant
               ? parseSuggestions(rawText)
-              : { cleanText: rawText };
+              : { cleanText: rawText, suggestions: [] };
+
+            // Show inline suggestions only for the LAST assistant message
+            const isLastAssistant = isAssistant &&
+              msgIndex === allMessages.length - 1 - [...allMessages].reverse().findIndex(m => m.role === 'assistant');
+            const showInlineSuggestions = isLastAssistant && suggestions.length > 0 && !isLoading;
 
             return (
               <motion.div
@@ -374,28 +373,49 @@ export function DesignStudioChat({
                 variants={staggerItem}
                 initial="hidden"
                 animate="visible"
-                className={cn(
-                  'flex gap-3',
-                  msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
-                )}
               >
-                {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <MessageCircle className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                )}
                 <div
                   className={cn(
-                    'rounded-2xl px-4 py-2.5 text-sm max-w-[80%]',
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted',
+                    'flex gap-3',
+                    msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
                   )}
                 >
-                  {msg.role === 'assistant'
-                    ? formatChatMessage(cleanText)
-                    : cleanText}
+                  {isAssistant && (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      'rounded-2xl px-4 py-2.5 text-sm max-w-[80%]',
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted',
+                    )}
+                  >
+                    {isAssistant
+                      ? formatChatMessage(cleanText)
+                      : cleanText}
+                  </div>
                 </div>
+
+                {/* Inline suggestion chips — inside scroll area, below this message */}
+                {showInlineSuggestions && (
+                  <div className="flex flex-wrap gap-2 mt-2 ml-11">
+                    {suggestions.map((suggestion) => (
+                      <Button
+                        key={suggestion}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full text-xs min-h-[32px] border-dashed"
+                        onClick={() => handleSend(suggestion)}
+                        disabled={isLoading || isRefining}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             );
           })}
@@ -434,99 +454,63 @@ export function DesignStudioChat({
         )}
       </div>
 
-      {/* Suggestion chips — clickable choices parsed from Emma's response */}
-      <AnimatePresence>
-        {showSuggestions && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 pb-2"
-          >
-            <div className="flex flex-wrap gap-2">
-              {lastSuggestions.map((suggestion) => (
-                <motion.div
-                  key={suggestion}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full text-xs min-h-[32px] border-dashed"
-                    onClick={() => handleSend(suggestion)}
-                    disabled={isLoading || isRefining}
-                  >
-                    {suggestion}
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Quick action buttons — contextual based on conversation depth */}
-      <AnimatePresence>
-        {showQuickActions && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 pb-3"
-          >
-            <div className="flex flex-wrap gap-2">
-              {getQuickActions().map((action) => {
-                const Icon = ICON_MAP[action.icon];
-                return (
-                  <motion.div
-                    key={action.action}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
+      {/* Fixed footer: toolbar + input */}
+      <div className="border-t border-border">
+        {/* Quick action toolbar — compact row above input */}
+        <AnimatePresence>
+          {showToolbar && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-3 pt-2 pb-1"
+            >
+              <div className="flex flex-wrap gap-2">
+                {quickActions.map((action) => {
+                  const Icon = ICON_MAP[action.icon];
+                  return (
                     <Button
+                      key={action.action}
                       size="sm"
                       variant={action.variant === 'primary' ? 'default' : 'outline'}
-                      className="rounded-full gap-1.5 text-xs min-h-[36px]"
+                      className="rounded-full gap-1.5 text-xs min-h-[32px]"
                       onClick={() => handleQuickAction(action.action)}
                       disabled={isRefining}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {action.label}
                     </Button>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Chat input */}
-      <div className="border-t border-border p-3">
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="flex gap-2"
-        >
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Share your thoughts..."
-            disabled={isLoading || isRefining}
-            className="flex-1 rounded-full bg-muted border-0"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="rounded-full shrink-0 h-10 w-10"
-            disabled={!inputValue.trim() || isLoading || isRefining}
+        {/* Chat input — always at the bottom */}
+        <div className="p-3">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            className="flex gap-2"
           >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Share your thoughts..."
+              disabled={isLoading || isRefining}
+              className="flex-1 rounded-full bg-muted border-0"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="rounded-full shrink-0 h-10 w-10"
+              disabled={!inputValue.trim() || isLoading || isRefining}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
       </div>
     </motion.div>
   );

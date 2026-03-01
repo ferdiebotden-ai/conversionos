@@ -124,12 +124,12 @@ export function buildDesignStudioPrompt(context: {
 
   // Suggestion chips — parsed by the UI into clickable buttons
   parts.push(`\n## Suggestions Format`);
-  parts.push(`When you share design ideas or recommendations, end your response with 2-3 specific suggestions the homeowner might want to explore.`);
-  parts.push(`Format them on the LAST line as: [Suggestions: Option A | Option B | Option C]`);
-  parts.push(`Each suggestion must be a concrete, actionable idea — not generic. Examples:`);
-  parts.push(`[Suggestions: Try marble countertops | Go with darker wood tones | Keep the current layout]`);
-  parts.push(`[Suggestions: Add pendant lighting | Change the backsplash | Explore open shelving]`);
-  parts.push(`Do NOT include suggestions when asking a direct question or when the homeowner hasn't shared enough context yet.`);
+  parts.push(`When you share design ideas, end with exactly 2 short suggestions (max 8 words each).`);
+  parts.push(`Format: [Suggestions: Short option A | Short option B]`);
+  parts.push(`Keep them concrete and actionable. Examples:`);
+  parts.push(`[Suggestions: Try marble countertops | Go darker on wood]`);
+  parts.push(`[Suggestions: Add pendant lighting | Swap the backsplash]`);
+  parts.push(`Do NOT include suggestions when asking a question.`);
 
   // Refinement awareness
   if (context.refinementCount > 0) {
