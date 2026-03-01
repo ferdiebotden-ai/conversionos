@@ -130,6 +130,8 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 | FIRECRAWL_API_KEY | pipeline .env | Discovery, scraping |
 | NEXT_PUBLIC_SUPABASE_URL | demo .env.local | Provisioning, screenshots |
 | SUPABASE_SERVICE_ROLE_KEY | demo .env.local | Provisioning, screenshots |
+| VERCEL_TOKEN | pipeline .env | Domain SSL cert provisioning (optional — pipeline works without it) |
+| VERCEL_PROJECT_ID | pipeline .env | Domain SSL cert provisioning (optional — pipeline works without it) |
 
 ## Pipeline Flow
 
@@ -139,7 +141,7 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 4. **Quality gates** — filter testimonials (min 2 valid), portfolio (require images), services (require name+description), hero (reject generic), verifiable badge filter (15 keywords), logo URL keyword filter (27 non-logo terms)
 5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment. Provenance tracking via `_provenance` field.
 6. **Merge proxy** — combine all fragments into proxy.ts
-7. **Git + deploy** — commit, push, wait for Vercel (poll skipped with `--skip-git`)
+7. **Git + deploy** — commit, push, wait for Vercel (poll skipped with `--skip-git`). Domain routing handled by wildcard DNS (`*.norbotsystems.com` on Cloudflare). If `VERCEL_TOKEN` is set, `add-domain.mjs` pre-registers the subdomain with Vercel for faster SSL cert provisioning; otherwise SSL is provisioned on first request.
 8. **QA: Content integrity** — 9 checks (demo leakage, broken images, demo images, colour, sections, fabrication, placeholders, business name, copyright) → auto-fix critical issues
 9. **QA: Visual QA** — Claude Vision 5-dimension rubric + refinement loop (plateau/regression detection, snapshot/rollback)
 10. **QA: Live site audit** — 8 Playwright checks (cross-page branding, nav, responsive, WCAG contrast, SEO/meta, image performance, footer, admin gating). Non-blocking.
