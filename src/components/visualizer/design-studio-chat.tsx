@@ -6,7 +6,7 @@
  * Quick action buttons guide the homeowner through refinement → estimate.
  */
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,54 @@ function getTextContent(message: UIMessage): string {
     .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
     .map(part => part.text)
     .join('');
+}
+
+/** Parse inline markdown: **bold** and *italic* */
+function formatInline(text: string): ReactNode {
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  // Match bold (**text**) before italic (*text*) — [^*] prevents italic inside bold markers
+  const regex = /\*\*(.+?)\*\*|\*([^*]+?)\*/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    if (match[1]) parts.push(<strong key={key++}>{match[1]}</strong>);
+    else if (match[2]) parts.push(<em key={key++}>{match[2]}</em>);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts.length === 1 && typeof parts[0] === 'string' ? parts[0] : parts;
+}
+
+/** Render markdown text as React elements: bold, italic, lists, paragraphs */
+function formatChatMessage(text: string): ReactNode {
+  const paragraphs = text.split(/\n\n+/);
+  return paragraphs.map((para, pIdx) => {
+    const lines = para.split('\n');
+    const nonEmpty = lines.filter(l => l.trim());
+    // Detect list blocks (all non-empty lines start with - or *)
+    if (nonEmpty.length > 0 && nonEmpty.every(l => /^\s*[-*]\s/.test(l))) {
+      return (
+        <ul key={pIdx} className="list-disc pl-4 space-y-1 my-1">
+          {nonEmpty.map((item, i) => (
+            <li key={i}>{formatInline(item.replace(/^\s*[-*]\s+/, ''))}</li>
+          ))}
+        </ul>
+      );
+    }
+    // Regular paragraph with line breaks
+    return (
+      <p key={pIdx} className={pIdx > 0 ? 'mt-2' : ''}>
+        {lines.map((line, i) => (
+          <span key={i}>
+            {i > 0 && <br />}
+            {formatInline(line)}
+          </span>
+        ))}
+      </p>
+    );
+  });
 }
 
 const ICON_MAP = {
@@ -201,12 +249,19 @@ export function DesignStudioChat({
       if (!res.ok) throw new Error('Refinement failed');
 
       const data = await res.json();
-      setRefinementCount(prev => prev + 1);
+      const newCount = refinementCount + 1;
+      setRefinementCount(newCount);
       setAccumulatedSignals([]);
       onConceptRefined(starredIndex, data.imageUrl);
 
-      // Emma acknowledges the refinement
-      injectAssistantMessage("I've updated your design — take a look! What's next?");
+      // Emma acknowledges — graceful message on final refinement
+      if (newCount >= RENDERING_CONFIG.maxRefinements) {
+        injectAssistantMessage(
+          "Your design is looking great — I've made all the adjustments I can. Ready to move forward with an estimate?"
+        );
+      } else {
+        injectAssistantMessage("I've updated your design — take a look! What's next?");
+      }
     } catch {
       injectAssistantMessage("I had trouble updating the design. Want to try again, or keep discussing?");
     } finally {
@@ -308,7 +363,9 @@ export function DesignStudioChat({
                     : 'bg-muted',
                 )}
               >
-                {getTextContent(msg)}
+                {msg.role === 'assistant'
+                  ? formatChatMessage(getTextContent(msg))
+                  : getTextContent(msg)}
               </div>
             </motion.div>
           ))}

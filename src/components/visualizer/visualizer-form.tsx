@@ -244,6 +244,13 @@ function VisualizerFormInner() {
     setCurrentStep('transitioning');
   }, [formData, endVoice, voiceStatus]);
 
+  // Scroll to top when entering transition/generation — prevents viewport showing footer
+  useEffect(() => {
+    if (currentStep === 'transitioning' || currentStep === 'generating') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep]);
+
   // Auto-advance from transition to generating after 1.8s
   useEffect(() => {
     if (currentStep !== 'transitioning') return;
