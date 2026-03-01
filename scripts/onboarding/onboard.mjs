@@ -9,7 +9,7 @@
  *   3. Upload + optimize images to Supabase Storage
  *   4. Provision tenant (DB rows + proxy.ts update)
  *   4.1. Git commit + push proxy.ts changes (triggers Vercel deploy)
- *   4.5. Domain setup (Vercel API + Namecheap CNAME)
+ *   4.5. Domain setup (Vercel API — SSL cert provisioning)
  *   5. Verify deployment (optional — needs deployed site)
  */
 
@@ -37,12 +37,12 @@ if (args.help || !args.url || !args['site-id'] || !args.domain) {
   console.log('Options:');
   console.log('  --skip-score    Skip the fitness scoring step');
   console.log('  --skip-push     Skip git commit + push (for batch mode — push once at end)');
-  console.log('  --skip-domain   Skip Vercel + Namecheap domain setup');
-  console.log('  --batch-mode    Implies --skip-push and --skip-domain (for nightly pipeline)');
+  console.log('  --skip-domain   Skip Vercel domain setup');
+  console.log('  --batch-mode    Implies --skip-push and --skip-domain (for orchestrate.mjs)');
   process.exit(args.help ? 0 : 1);
 }
 
-// Batch mode disables git push and domain setup (handled by nightly-pipeline.mjs)
+// Batch mode disables git push and domain setup (handled by orchestrate.mjs)
 const batchMode = args['batch-mode'];
 const skipPush = args['skip-push'] || batchMode;
 const skipDomain = args['skip-domain'] || batchMode;
@@ -137,7 +137,7 @@ try {
 
 // ─── Step 4.5: Domain setup ─────────────────────────────────────────────────
 if (!skipDomain) {
-  if (!run('Step 4.5: Domain setup (Vercel + Namecheap)',
+  if (!run('Step 4.5: Domain setup (Vercel SSL cert)',
     `node ${scriptDir}/add-domain.mjs --domain "${args.domain}" --site-id "${siteId}"`)) {
     console.log('⚠ Domain setup had issues. Site may need manual DNS configuration.');
     // Do NOT exit — domain issues are non-blocking

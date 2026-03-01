@@ -22,23 +22,17 @@ Ferdie Botden is a solo founder (CPA, ex-TD Bank) running NorBot Systems Inc. Th
 All scripts are in `scripts/onboarding/` and `scripts/`.
 
 #### Fix 1: `scripts/onboarding/add-domain.mjs` (NEW — 255 lines)
-Automates Vercel domain addition + Namecheap CNAME creation for `*.norbotsystems.com` subdomains.
+Registers domains with the Vercel API for SSL cert provisioning. DNS is handled by wildcard CNAME (`*.norbotsystems.com → cname.vercel-dns.com`) on Cloudflare — no per-tenant DNS setup needed.
 
 **How it works:**
 1. Calls `POST https://api.vercel.com/v10/projects/{id}/domains` to add domain to Vercel
-2. Calls Namecheap API: `getHosts` → preserves all existing DNS records → `setHosts` with existing + new CNAME
-3. Polls Vercel verification endpoint every 30s for up to 10 minutes
-4. Gracefully degrades: if API keys missing, prints manual instructions instead of failing
-
-**Critical Namecheap gotcha:** `setHosts` REPLACES all records. The script fetches existing records first and includes them in the update. If this step is skipped, you will wipe the entire DNS zone.
+2. Polls Vercel verification endpoint every 30s for up to 10 minutes
+3. Gracefully degrades: if API keys missing, prints manual instructions instead of failing
 
 **Environment variables needed (add to `~/pipeline/scripts/.env`):**
 ```
 VERCEL_TOKEN=<create at vercel.com/account/tokens>
 VERCEL_PROJECT_ID=<from Vercel project settings>
-NAMECHEAP_API_KEY=<enable at ap.www.namecheap.com/settings/tools/apiaccess>
-NAMECHEAP_API_USER=<Namecheap username>
-NAMECHEAP_CLIENT_IP=<Mac Mini's public IP — must be whitelisted in Namecheap>
 ```
 
 #### Fix 2: `scripts/onboarding/upload-images.mjs` (UPGRADED — 279 lines)
@@ -66,50 +60,14 @@ Added git commit/push + domain setup + batch mode.
 
 **New steps in the pipeline:**
 - Step 4.1: Auto-commits `src/proxy.ts` changes and pushes to `main` (triggers Vercel deploy)
-- Step 4.5: Runs `add-domain.mjs` for Vercel + Namecheap setup
+- Step 4.5: Runs `add-domain.mjs` for Vercel SSL cert provisioning
 - `--batch-mode` flag: defers push and domain setup (used by nightly pipeline for single push at end)
 - Writes `onboard-summary.json` to `/tmp/onboarding/{site-id}/` for pipeline consumption
 - Timing: reports total elapsed seconds
 
 ### Nightly Pipeline Orchestrator
 
-#### `scripts/nightly-pipeline.mjs` (NEW — 462 lines)
-Master script that runs every night to build demos and generate outreach.
-
-**Flow:**
-1. **DISCOVER** — Queries Supabase `candidates` table for rows where `status = 'pending'`, ordered by score DESC, limited to `--max` (default 10)
-2. **BUILD** — Runs `onboard.mjs --batch-mode` for each candidate. 10-minute timeout per candidate. Updates status to `building` → `built` or `build_failed`
-3. **PUSH** — Single `git push origin main` for all proxy.ts changes (not per-candidate)
-4. **DOMAINS** — Runs `add-domain.mjs` for each successful build
-5. **EMAIL** — Generates personalized outreach email JSON files with quality gates (word count ≤80, no banned terms, CASL compliance, personalization check)
-6. **LOG** — Writes `run-report.json` + `morning-briefing.md` to `/tmp/nightly-pipeline/{run-id}/`
-
-**Commands:**
-```bash
-npm run pipeline              # Process up to 10 candidates
-npm run pipeline -- --max 5   # Limit to 5
-npm run pipeline:dry          # Score + scrape only, no provision
-npm run pipeline -- --skip-email  # Build demos, skip email gen
-```
-
-**Email generation:** Uses scraped data for personalization. Picks opening lines based on available data (testimonials → years in business → services → city → generic). Rotates subject lines across the batch. Validates CASL compliance (sender ID, address, unsubscribe). Outputs JSON files that can be fed to Gmail draft creation.
-
-#### `scripts/create-gmail-drafts.mjs` (NEW — 139 lines)
-Reads email JSON files from a pipeline run and either:
-- Outputs structured JSON for Cowork MCP's `gmail_create_draft` tool
-- Generates a Claude CLI prompt for `claude -p` headless execution
-
-#### `scripts/setup-candidates-table.mjs` (NEW — 209 lines)
-Creates the `candidates` table in Supabase. Also supports CSV import for seeding existing targets.
-
-**SQL also saved to:** `scripts/sql/create-candidates-table.sql`
-
-**Candidate status lifecycle:**
-```
-pending → building → built → email_ready → email_sent → engaged → demo_booked → closed_won
-                  ↘ build_failed                                              ↘ closed_lost
-                                                                              ↘ no_response
-```
+> **Note:** The original `scripts/nightly-pipeline.mjs` has been superseded by `tenant-builder/orchestrate.mjs` (which the LaunchAgent `com.norbot.tenant-builder` runs nightly). Outreach is handled by `scripts/outreach/outreach-pipeline.mjs`. See `tenant-builder/CLAUDE.md` and `scripts/outreach/README.md` for current architecture.
 
 ---
 
@@ -197,7 +155,7 @@ The product itself is remarkably complete for a solo-founder operation. The feat
 | Type assertions cleanup | MEDIUM | 4 hours | Add missing columns to Supabase generated types; remove `(supabase as any)` |
 | Structured logging | MEDIUM | 1 day | Replace `console.error()` with Pino or similar; add request IDs for tracing |
 | Candidates table creation | MEDIUM | 30 min | Run `scripts/sql/create-candidates-table.sql` in Supabase dashboard |
-| Environment variables | MEDIUM | 30 min | Set `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, Namecheap API vars in `~/pipeline/scripts/.env` |
+| Environment variables | MEDIUM | 30 min | Set `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` in `~/pipeline/scripts/.env` |
 | Homepage testimonials | LOW | 2 hours | Add real testimonials once first clients are live |
 | Concept description async | LOW | 2 hours | Make `generateConceptDescriptions()` non-blocking |
 
@@ -210,13 +168,12 @@ The product itself is remarkably complete for a solo-founder operation. The feat
 | File | Lines | What It Does |
 |------|-------|--------------|
 | `scripts/onboarding/scrape.mjs` | 819 | 7-step extraction pipeline: FireCrawl → multi-page fallback → hallucination filter → AI enrichment → color extraction → AI content gen → quality audit |
-| `scripts/nightly-pipeline.mjs` | 462 | Nightly orchestrator: discover → build → push → domains → email → log |
+| `tenant-builder/orchestrate.mjs` | ~500 | Nightly orchestrator: discover → build → push → domains → outreach → QA → log |
 | `scripts/onboarding/upload-images.mjs` | 279 | Download + sharp optimize + Supabase upload |
 | `scripts/onboarding/provision.mjs` | 279 | DB seeding (admin_settings, tenants) + proxy.ts update + rollback |
-| `scripts/onboarding/add-domain.mjs` | 255 | Vercel API + Namecheap CNAME automation |
-| `scripts/setup-candidates-table.mjs` | 209 | Create candidates table + CSV import |
+| `scripts/onboarding/add-domain.mjs` | 255 | Vercel API SSL cert registration |
 | `scripts/onboarding/onboard.mjs` | 185 | Master pipeline: score → scrape → upload → provision → git push → domain → verify |
-| `scripts/create-gmail-drafts.mjs` | 139 | Email JSON → Gmail drafts (Cowork MCP or Claude CLI) |
+| `scripts/outreach/outreach-pipeline.mjs` | ~200 | Outreach: select targets, generate email, create Gmail drafts |
 | `scripts/onboarding/score.mjs` | 120 | Fitness scoring (0-100) via FireCrawl keyword matching |
 | `scripts/onboarding/schema.mjs` | 109 | Zod v4 schema for scraped contractor data |
 | `scripts/onboarding/verify.mjs` | 94 | Playwright QA (8 checks, 7/8 pass threshold) |
@@ -243,7 +200,7 @@ The product itself is remarkably complete for a solo-founder operation. The feat
 
 | Item | Value |
 |------|-------|
-| Repo | `github.com/ferdiebotden-ai/conversionos-demo.git` |
+| Repo | `github.com/ferdiebotden-ai/conversionos.git` |
 | Branch | `main` (single branch, never per-tenant branches) |
 | Supabase project | `ktpfyangnmpwufghgasx` (shared demo) |
 | Vercel deploy | Push to `main` → auto-deploy all tenants |
@@ -268,15 +225,15 @@ The product itself is remarkably complete for a solo-founder operation. The feat
 ### Immediate (Today/Tomorrow)
 
 1. **Run candidates table SQL** — Copy `scripts/sql/create-candidates-table.sql` into Supabase SQL Editor and execute
-2. **Set pipeline env vars** — Add `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, Namecheap API vars to `~/pipeline/scripts/.env`
+2. **Set pipeline env vars** — Add `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` to `~/pipeline/scripts/.env`
 3. **Re-enable admin auth** — Restore the auth gating in `src/proxy.ts`. The full Supabase SSR auth implementation is in git history (search for `createServerClient` import and the `isProtectedAPI`/`isProtectedPage` functions). Keep the current tenant-resolution logic, just add auth checks back for `/admin` routes and protected APIs.
-4. **Test pipeline end-to-end** — Seed one candidate manually, run `npm run pipeline -- --max 1`, verify the demo deploys
+4. **Test pipeline end-to-end** — Run `node tenant-builder/orchestrate.mjs --target-id <id> --skip-git`, verify the demo deploys
 
 ### This Week
 
-5. **Seed 46 targets into candidates table** — Use CSV import: `npm run setup:candidates -- --seed /path/to/targets.csv`
-6. **First nightly run** — `npm run pipeline` with 10 candidates
-7. **Gmail draft creation** — After pipeline run, use `scripts/create-gmail-drafts.mjs --run-dir /tmp/nightly-pipeline/{latest}` to prep drafts
+5. **Pipeline targets** — Targets are in Turso CRM (managed via `~/pipeline` dashboard)
+6. **First nightly run** — `node tenant-builder/orchestrate.mjs --nightly --max 5`
+7. **Outreach drafts** — `node scripts/outreach/outreach-pipeline.mjs` (auto-runs after demo builds pass QA)
 8. **Fix React hydration error** — The before/after slider on norbotsystems.com triggers Error #418. Wrap the slider state initialization in `useEffect` + `useState(false)` pattern (same fix used in mobile camera capture — see `src/components/visualizer/visualizer-form.tsx`).
 9. **Add multi-tenant E2E tests** — Create a Playwright test that runs the visualizer flow with `?__site_id=demo` and `?__site_id=redwhitereno`, verifying different branding appears
 
@@ -289,78 +246,14 @@ The product itself is remarkably complete for a solo-founder operation. The feat
 
 ---
 
-## PART 5: HOW THE NIGHTLY PIPELINE WORKS (End-to-End)
+## PART 5: PIPELINE ARCHITECTURE (Current)
 
-```
-11:00 PM ET — launchd triggers scripts/nightly-pipeline.mjs
-    │
-    ├─ DISCOVER: Query Supabase `candidates` WHERE status='pending' ORDER BY score DESC LIMIT 10
-    │
-    ├─ For each candidate:
-    │   ├─ UPDATE status='building'
-    │   ├─ score.mjs     → FireCrawl homepage scrape + keyword scoring (0-100, threshold 55)
-    │   ├─ scrape.mjs    → 7-step extraction + hallucination filtering + AI enrichment
-    │   ├─ upload-images  → Download + sharp optimize (WebP) + Supabase Storage upload
-    │   ├─ provision.mjs  → Upsert admin_settings (5 rows) + tenants row + proxy.ts update
-    │   │                   (rolls back on partial failure)
-    │   ├─ git commit     → Deferred (--batch-mode)
-    │   └─ UPDATE status='built' (or 'build_failed')
-    │
-    ├─ PUSH: git add src/proxy.ts && git commit "feat: nightly batch" && git push origin main
-    │        → Vercel auto-deploys ALL tenants
-    │
-    ├─ DOMAINS: For each successful build:
-    │   ├─ add-domain.mjs → Vercel API + Namecheap CNAME
-    │   └─ Poll verification (up to 10 min)
-    │
-    ├─ EMAIL: For each build with email:
-    │   ├─ Read scraped data for personalization
-    │   ├─ Build email from template (≤80 words, CASL compliant)
-    │   ├─ Quality gate: banned terms, word count, personalization, subject length
-    │   └─ Write email JSON to /tmp/nightly-pipeline/{run-id}/{site-id}-email.json
-    │
-    └─ LOG: Write run-report.json + morning-briefing.md
-           → Ferdie reviews at 7 AM, approves emails, sends manually (CASL golden rule)
-```
-
-### Scheduling
-
-**Option A: launchd (recommended for Mac Mini)**
-```xml
-<!-- ~/Library/LaunchAgents/com.norbot.nightly-pipeline.plist -->
-<plist version="1.0">
-<dict>
-    <key>Label</key><string>com.norbot.nightly-pipeline</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/local/bin/node</string>
-        <string>/path/to/conversionos-demo/scripts/nightly-pipeline.mjs</string>
-    </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key><integer>23</integer>
-        <key>Minute</key><integer>0</integer>
-    </dict>
-    <key>WorkingDirectory</key>
-    <string>/path/to/conversionos-demo</string>
-    <key>StandardOutPath</key>
-    <string>/tmp/nightly-pipeline/stdout.log</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/nightly-pipeline/stderr.log</string>
-</dict>
-</plist>
-```
-
-**Option B: Cowork scheduled task**
-Use the `/schedule` skill to set up a recurring task that runs the pipeline.
-
-### Gmail Integration
-
-After the nightly pipeline runs, email drafts need to be created in Ferdie's Gmail (`ferdie@norbotsystems.com`). Two approaches:
-
-1. **Cowork MCP (preferred)** — The Cowork session has Gmail MCP access. Run `scripts/create-gmail-drafts.mjs --run-dir /tmp/nightly-pipeline/{latest}` which outputs `gmail-drafts-to-create.json`. The Cowork session reads this and calls `gmail_create_draft` for each.
-
-2. **Claude CLI headless** — Run `scripts/create-gmail-drafts.mjs --run-dir /tmp/nightly-pipeline/{latest} --mode cli` which outputs a prompt file. Feed to Claude: `claude -p "$(cat /tmp/nightly-pipeline/{latest}/gmail-draft-prompt.txt)"`
+> **The nightly pipeline described in earlier versions of this document has been replaced.** Current orchestration:
+> - **Demo building:** `tenant-builder/orchestrate.mjs` (LaunchAgent: `com.norbot.tenant-builder`, runs nightly at 00:15)
+> - **Outreach emails:** `scripts/outreach/outreach-pipeline.mjs` (creates Gmail drafts via OAuth2 REST API)
+> - **Send monitoring:** `scripts/outreach/send-monitor.mjs` (LaunchAgent: `com.norbot.send-monitor`, every 15 min)
+>
+> See `tenant-builder/CLAUDE.md` and `scripts/outreach/README.md` for full documentation.
 
 ---
 
@@ -419,7 +312,7 @@ These are non-negotiable architectural rules. Violating them will break multi-te
 3. **Never create per-tenant git branches** — Single `main` branch serves all tenants.
 4. **Never hardcode tenant branding** — Always read from `admin_settings`.
 5. **`getSiteId()` is synchronous** — Do NOT make it async (80+ call sites depend on this).
-6. **CASL compliance** — Every outreach email must include: sender name, business name, mailing address ("140 Dempsey Dr, Stratford, ON N5A 0K5"), unsubscribe mechanism ("Reply STOP to be removed").
+6. **CASL compliance** — Every outreach email must include: sender name, business name, mailing address ("PO Box 23030 Stratford PO Main, ON N5A 7V8"), unsubscribe mechanism ("Reply STOP to be removed").
 7. **AI drafts, humans approve** — Nothing is ever sent automatically. All emails land as Gmail drafts for Ferdie's review.
 8. **Validate all AI outputs with Zod** — Before rendering or storing any AI-generated content.
 9. **Production clients get their own Supabase project** — Demo tenants share `ktpfyangnmpwufghgasx`, paying clients get isolated databases.
@@ -431,7 +324,7 @@ These are non-negotiable architectural rules. Violating them will break multi-te
 
 - **Write tool creates CRLF on macOS** — Fix shell scripts with `perl -pi -e 's/\r\n/\n/g'`
 - **Vercel env vars** — Use the API (`curl`), NOT `echo | vercel env add` (adds trailing newline)
-- **Namecheap setHosts replaces ALL records** — Always fetch existing records first
+- **Wildcard DNS** — `*.norbotsystems.com` on Cloudflare handles all subdomains; no per-tenant DNS setup needed
 - **`getSiteIdAsync()` exists for new code** — Use it in new routes, but never refactor existing `getSiteId()` calls
 - **Admin header uses User icon, not initials** — Design choice, not a bug
 - **Supabase generated types lag behind schema** — Some columns need `(supabase as any)` until types are regenerated

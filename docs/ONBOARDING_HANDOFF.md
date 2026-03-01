@@ -41,19 +41,16 @@ node scripts/onboarding/onboard.mjs \
 ### After the pipeline finishes
 
 ```bash
-# 1. Add domain to Vercel
-npx vercel domains add pioneer-craftsmen.norbotsystems.com
-
-# 2. Add DNS CNAME (Cloudflare dashboard or API)
-#    CNAME: pioneer-craftsmen → cname.vercel-dns.com
-
-# 3. Commit and deploy
+# 1. Commit and deploy (wildcard DNS handles the subdomain automatically)
 git add src/proxy.ts
 git commit -m "feat: onboard tenant pioneer-craftsmen"
 git push
+
+# 2. (Optional) Explicitly register domain with Vercel for faster SSL cert provisioning
+node scripts/onboarding/add-domain.mjs --domain pioneer-craftsmen.norbotsystems.com --site-id pioneer-craftsmen
 ```
 
-The site will be live at `https://pioneer-craftsmen.norbotsystems.com` within ~2 minutes of push.
+The site will be live at `https://pioneer-craftsmen.norbotsystems.com` within ~2 minutes of push. Wildcard DNS (`*.norbotsystems.com`) on Cloudflare routes all subdomains to Vercel automatically.
 
 ---
 
@@ -248,6 +245,6 @@ The scraper has 3 layers of hallucination detection:
 
 | Site ID | Domain | Tier | Source |
 |---------|--------|------|--------|
-| `demo` | ai-reno-demo.vercel.app | Accelerate | Manual |
+| `demo` | conversionos-demo.norbotsystems.com | Accelerate | Manual |
 | `mccarty-squared` | mccarty.norbotsystems.com | Dominate | Manual |
 | `redwhitereno` | redwhite.norbotsystems.com | Accelerate | Automated |
