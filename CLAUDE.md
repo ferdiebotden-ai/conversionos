@@ -86,10 +86,11 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 ```
 
 ## Deployment
-- **Primary pattern:** Single Vercel project with proxy-based domain routing (unlimited tenants)
-- **Legacy pattern:** Per-tenant Vercel projects with `NEXT_PUBLIC_SITE_ID` env var (still supported)
-- Push to `main` → all tenant projects auto-deploy
-- Never create per-tenant branches
+- **Single Vercel project** (`conversionos`) with proxy-based domain routing — all tenants
+- **Wildcard DNS:** `*.norbotsystems.com → cname.vercel-dns.com` on Cloudflare
+- Push to `main` → single build → all tenants updated
+- New tenant = seed DB + add to `DOMAIN_TO_SITE` in proxy.ts + push
+- Never create per-tenant branches or separate Vercel projects
 
 ## Supabase
 - **Demo project:** `ktpfyangnmpwufghgasx` — shared by all demo tenants, isolated by `site_id`
@@ -111,7 +112,7 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 ### Manual Steps
 1. Seed `admin_settings` rows in Supabase: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
-3. Add domain to Vercel project (or create new Vercel project with `NEXT_PUBLIC_SITE_ID`)
+3. Push to `main` (wildcard DNS handles the subdomain automatically)
 4. Insert into `tenants` table with domain and plan tier
 5. Push to `main` → deploy
 

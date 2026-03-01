@@ -1,4 +1,4 @@
-# ConversionOS Demo — Multi-Tenant Platform
+# ConversionOS — Multi-Tenant Platform
 
 ## Living Product Reference — IMPORTANT
 After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. The document must always match what's actually in the codebase. Use the `/update-product-reference` skill for detailed instructions. Do not treat this as a changelog — rewrite the affected sections to describe the product as it exists now.
@@ -18,7 +18,7 @@ This repo: The platform. One `main` branch serves ALL tenants. Feature gating vi
 - **Branding:** `admin_settings` table stores per-tenant config (name, colors, contact, pricing, plan tier)
 - **UI:** `BrandingProvider` + `TierProvider` contexts feed branding and entitlements to client components
 - **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
-- **Deploy:** Single Vercel project with proxy routing (or legacy per-tenant projects)
+- **Deploy:** Single Vercel project (`conversionos`) with proxy routing + wildcard DNS
 
 ## Adding a New Tenant
 
@@ -37,10 +37,9 @@ Pipeline: score → scrape → upload images → provision DB → verify. Checkp
 ### Manual (fallback)
 1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
-3. Add domain to Vercel project (or create new project with `NEXT_PUBLIC_SITE_ID`)
-4. Insert into `tenants` table with domain and plan tier
-5. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
-6. Push to `main` → deploy
+3. Insert into `tenants` table with domain and plan tier
+4. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
+5. Push to `main` → deploy (wildcard DNS handles the subdomain automatically)
 
 ## Onboarding Pipeline
 - **Scripts:** `scripts/onboarding/` — 9 scripts (score, scrape, schema, convert-color, upload-images, provision, onboard, verify, README)
