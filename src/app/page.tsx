@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
+import { AuroraBackground } from "@/components/home/aurora-background"
 import { VisualizerTeaser } from "@/components/home/visualizer-teaser"
 import { SocialProofBar } from "@/components/home/social-proof-bar"
 import { getCopyContext } from "@/lib/copy/server"
@@ -68,9 +69,14 @@ export default async function Home() {
               sizes="100vw"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+            <AuroraBackground />
           )}
-          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.15) 100%)',
+            }}
+          />
           <div className="relative z-10 flex h-full items-center">
             <div className="container mx-auto px-4">
               <StaggerContainer className="mx-auto max-w-3xl text-center">
