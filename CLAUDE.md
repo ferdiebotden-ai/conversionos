@@ -48,16 +48,15 @@ npm run test:e2e     # playwright E2E tests
 - Entitlements gated at: admin layout, sidebar nav, API routes (voice, quotes, invoices, drawings), receptionist widget
 
 ## Multi-Tenancy
-**Two deployment patterns coexist:**
-1. **Per-tenant Vercel projects** (current) — `NEXT_PUBLIC_SITE_ID` env var per project
-2. **Single Vercel project + proxy routing** (new) — `src/proxy.ts` resolves tenant from hostname
+**Single Vercel project + proxy routing** — `src/proxy.ts` resolves tenant from hostname → sets `x-site-id` header
 
-- `getSiteId()` reads env var (synchronous, 80+ call sites)
-- `getSiteIdAsync()` also checks proxy-set `x-site-id` header (for single-project pattern)
-- `withSiteId()` helper injects `site_id` into data objects
+- **All 33 API route files use `getSiteIdAsync()`** — reads proxy `x-site-id` header at runtime (not build-time env var)
+- `getSiteId()` (synchronous, env var only) — retained for non-API contexts (scripts, build-time code)
+- `withSiteId(data, siteId?)` helper injects `site_id` into data objects — pass explicit `siteId` in API routes
 - All DB queries MUST filter by `site_id` — no exceptions
 - `admin_settings` table stores per-tenant: branding, pricing, plan tier
 - Never hardcode tenant branding — always read from `admin_settings`
+- Proxy env var fallback is **dev-only** — production unknown hosts get 404
 - Dev: `?__site_id=` query param override (dev mode only)
 
 ## Key Directories
@@ -79,7 +78,9 @@ src/hooks/            — Custom React hooks
   hooks/use-visualization-stream.ts — SSE streaming hook
 src/lib/              — Shared utilities
   lib/entitlements.ts — Feature gating by tier
-  lib/db/site.ts      — Tenant resolution (env var + proxy header)
+  lib/db/site.ts      — Tenant resolution (getSiteId sync, getSiteIdAsync for API routes)
+  lib/image-validation.ts — Image upload validation (MIME + size) for AI endpoints
+  lib/rate-limit.ts   — Rate limiting (Upstash Redis / in-memory, 15 endpoints)
   lib/ai/             — AI integrations (personas, knowledge base, config)
   lib/branding.ts     — Server-side branding from admin_settings
 src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
@@ -102,6 +103,7 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 | Site ID | Domain | Tier | Purpose |
 |---------|--------|------|---------|
 | `demo` | `conversionos-demo.norbotsystems.com` | Accelerate | NorBot base platform |
+| `red-white-reno` | `red-white-reno.norbotsystems.com` | Accelerate | First bespoke tenant |
 
 ## Adding a New Tenant
 
@@ -116,7 +118,7 @@ Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns `onboard
 5. Push to `main` → deploy
 
 ## Rules
-- All DB queries must use `getSiteId()` for tenant isolation
+- All API route DB queries must use `getSiteIdAsync()` for tenant isolation (NOT `getSiteId()`)
 - All new features must be gated with `canAccess(tier, feature)` — never expose to all tiers by default
 - Use `useTier()` in client components, `getTier()` in server components/API routes
 - Never check `tier === 'dominate'` directly — always use `canAccess()`

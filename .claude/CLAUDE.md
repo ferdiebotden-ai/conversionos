@@ -205,5 +205,7 @@ Automated outreach after demo builds pass QA. Fills Ferdie's exact email templat
 - Vercel env vars: use API (curl), NOT `echo | vercel env add` (adds newline)
 - Primary color uses OKLCH: `--primary: oklch(...)` in `globals.css`
 - Admin header: uses User icon, not initials
-- `getSiteId()` is synchronous (env var only) — do NOT make async (80+ call sites)
-- `getSiteIdAsync()` exists for new code that needs proxy header support
+- `getSiteId()` is synchronous (env var only) — only for non-API contexts (scripts, build-time)
+- `getSiteIdAsync()` is the standard for all API routes — reads proxy `x-site-id` header, falls back to env var
+- `withSiteId(data, siteId)` — always pass explicit `siteId` in API routes (don't rely on env var default)
+- Proxy env var fallback is dev-only — production unknown hosts return 404

@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** March 2, 2026
+**Last updated:** March 3, 2026
 
 ---
 
@@ -196,7 +196,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 ## Tech Stack
 
-Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (852 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
+Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (889 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
 
 ---
 
@@ -204,18 +204,19 @@ Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadc
 
 Single codebase, single branch (`main`), unlimited contractors. Every contractor gets a fully branded experience driven by database configuration — no per-tenant code.
 
-- **Domain routing:** `src/proxy.ts` maps hostnames to tenant IDs (e.g., `mccarty.norbotsystems.com` → `mccarty-squared`)
-- **Data isolation:** Every table includes `site_id`. Row-Level Security enforces tenant boundaries at the database level.
+- **Domain routing:** `src/proxy.ts` maps hostnames to tenant IDs (e.g., `red-white-reno.norbotsystems.com` → `red-white-reno`). Production unknown hosts get 404 (no fallback).
+- **Data isolation:** Every table includes `site_id`. All 33 API route files resolve tenant via `getSiteIdAsync()` (reads proxy `x-site-id` header at runtime). Row-Level Security enforces tenant boundaries at the database level.
 - **Branding:** Colours, logo, services, testimonials, contact info — all from the `admin_settings` table per tenant
 - **Feature gating:** `canAccess(tier, feature)` — pure function, no hardcoded tier checks
+- **Image validation:** All AI image upload endpoints validate MIME type (jpeg/png/webp) and decoded size (max 10MB) before processing
+- **Rate limiting:** 15 endpoints rate-limited via Upstash Redis with in-memory fallback (5-20 req/min depending on endpoint)
 
 ### Current Tenants
 
 | Tenant | Domain | Tier |
 |--------|--------|------|
 | ConversionOS Demo | conversionos-demo.norbotsystems.com | Accelerate |
-| McCarty Squared | mccarty.norbotsystems.com | Dominate |
-| Red White Reno | redwhite.norbotsystems.com | Accelerate |
+| Red White Reno | red-white-reno.norbotsystems.com | Accelerate |
 
 ### Automated Onboarding
 
@@ -244,14 +245,17 @@ Contractors configure this in Settings → Quoting. All website copy adapts auto
 
 Supabase PostgreSQL (ca-central-1) with Row-Level Security. 14 tables covering admin settings, leads (with contractor intake fields), quote drafts (versioned, e-signature), contractor prices (CSV upload), assembly templates, visualizations (with concept_pricing JSONB), invoices, payments, drawings, chat sessions, and audit logging. Tiered quoting DB columns (tier_good/tier_better/tier_best) remain but are unused.
 
-30+ API routes handle AI operations, lead management, quoting, invoicing, and admin settings. All routes enforce tenant isolation via `site_id` and tier-based access control.
+33 API routes handle AI operations, lead management, quoting, invoicing, and admin settings. All routes resolve tenant identity at runtime via `getSiteIdAsync()` (proxy header) and enforce tier-based access control via `canAccess(tier, feature)`.
 
 ---
 
 ## Security and Compliance
 
 - **Authentication:** Supabase auth (bypassed in demo mode for prospect previews)
-- **Rate limiting:** Upstash Redis with in-memory fallback (5-20 req/min depending on endpoint)
+- **Tenant isolation:** All 33 API routes resolve tenant from proxy header at runtime (`getSiteIdAsync()`), not build-time env var. Production unknown hosts get 404.
+- **Rate limiting:** Upstash Redis with in-memory fallback — 15 endpoints including AI generation, quote operations, session saves, and admin settings (5-20 req/min depending on endpoint)
+- **Image validation:** MIME allowlist (JPEG, PNG, WebP) and 10MB decoded size limit on all AI image upload endpoints (`src/lib/image-validation.ts`)
+- **Chat input bounds:** Max 50 messages, 100KB per message, 10 images per message, 32KB system prompt override
 - **Security headers:** HSTS, CSP, Permissions-Policy
 - **Privacy:** PIPEDA-compliant privacy policy, terms, and data deletion request page
 - **Email:** CASL consent on all capture forms
