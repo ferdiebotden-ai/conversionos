@@ -26,6 +26,7 @@ import { withRetry } from '../lib/retry.mjs';
 import { writeProxyFragment } from './proxy-fragment.mjs';
 import { createVoiceAgent } from './voice-agent.mjs';
 import { generateHeroImage, generateAboutImage, generateOgImage } from '../lib/generate-images.mjs';
+import { seedSampleLeads } from './seed-sample-leads.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
@@ -38,6 +39,7 @@ const { values: args } = parseArgs({
     tier: { type: 'string', default: 'accelerate' },
     'target-id': { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
+    'skip-sample-data': { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -55,6 +57,7 @@ const tier = args.tier;
 const domain = args.domain || `${siteId}.norbotsystems.com`;
 const targetId = args['target-id'] ? parseInt(args['target-id'], 10) : null;
 const dryRun = args['dry-run'];
+const skipSampleData = args['skip-sample-data'];
 
 const demoRoot = resolve(import.meta.dirname, '../../');
 const outputDir = dirname(dataPath);
@@ -270,6 +273,26 @@ if (!dryRun && (tier === 'accelerate' || tier === 'dominate')) {
   } catch (e) {
     logger.warn(`Assembly template seeding failed: ${e.message}`);
   }
+}
+
+// ──────────────────────────────────────────────────────────
+// Step 2c: Seed sample leads (all tiers)
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun && !skipSampleData) {
+  logger.info('Step 2c: Seeding sample leads');
+  try {
+    const result = await seedSampleLeads(siteId);
+    if (result.seeded) {
+      logger.info(`Seeded sample data: ${JSON.stringify(result.counts)}`);
+    } else {
+      logger.info(`Sample leads skipped: ${result.reason}`);
+    }
+  } catch (e) {
+    logger.warn(`Sample lead seeding failed (non-blocking): ${e.message}`);
+  }
+} else if (skipSampleData) {
+  logger.info('Step 2c: Sample leads skipped (--skip-sample-data)');
 }
 
 // ──────────────────────────────────────────────────────────

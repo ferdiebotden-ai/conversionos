@@ -47,8 +47,11 @@ tenant-builder/
     branding-v2.mjs      # Firecrawl branding extraction + AI enrichment
     logo-extract.mjs     # 4-level logo extraction fallback
     logo-vision.mjs      # Claude Vision logo identification
+  fixtures/
+    sample-leads.json    # 3 sample leads (Playwright-captured, UUID placeholders)
   provision/
     provision-tenant.mjs # Per-target provisioning sequence
+    seed-sample-leads.mjs # Fixture seeder (reads sample-leads.json, inserts per tenant)
     proxy-fragment.mjs   # Write proxy.ts fragment (parallel-safe)
     merge-proxy.mjs      # Merge all proxy fragments into proxy.ts
     voice-agent.mjs      # ElevenLabs agent creation (Dominate tier stub)
@@ -145,6 +148,7 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 3. **Scrape** — branding v2 + existing 7-stage scrape.mjs + 4-level logo extraction + OKLCH recomputation + trust metrics from Turso
 4. **Quality gates** — filter testimonials (min 2 valid), portfolio (require images), services (require name+description), hero (reject generic), verifiable badge filter (15 keywords), logo URL keyword filter (27 non-logo terms)
 5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment. Provenance tracking via `_provenance` field.
+5b. **Seed sample leads** — `seed-sample-leads.mjs` inserts 3 sample leads from `fixtures/sample-leads.json`. Idempotent (skips if leads exist). Skip with `--skip-sample-data`. Non-blocking on failure.
 6. **Merge proxy** — combine all fragments into proxy.ts
 7. **Git + deploy** — commit, push, wait for Vercel (poll skipped with `--skip-git`). Domain routing handled by wildcard DNS (`*.norbotsystems.com` on Cloudflare). If `VERCEL_TOKEN` is set, `add-domain.mjs` pre-registers the subdomain with Vercel for faster SSL cert provisioning; otherwise SSL is provisioned on first request.
 8. **QA: Page completeness** — per-page data verification (homepage hero/CTA/services, services cards, about copy/team, projects portfolio, contact phone/email/no-N/A, footer logo/socials/copyright). Non-blocking.
@@ -385,6 +389,61 @@ After QA passes (Step 5), `orchestrate.mjs` automatically runs the outreach pipe
 **Dependencies:** `GMAIL_CLIENT_ID` + `GMAIL_CLIENT_SECRET` + `GMAIL_REFRESH_TOKEN` in `~/pipeline/scripts/.env` (OAuth2 — Google Cloud project "NorBot Outreach" under ferdie@norbotsystems.com). Without these, the outreach step errors but the build itself still succeeds.
 
 **Full outreach docs:** `scripts/outreach/README.md`
+
+## Sample Lead Fixtures
+
+Every new tenant is seeded with 3 sample leads so prospects see a populated admin dashboard from day one.
+
+**Fixture file:** `fixtures/sample-leads.json` — Playwright-captured from ConversionOS base platform
+**Seeder:** `provision/seed-sample-leads.mjs` — reads fixture, generates fresh UUIDs, inserts per tenant
+**Images:** `public/images/sample-data/` — AI-generated concept images (static, no per-tenant duplication)
+
+### Sample Leads
+| Lead | Status | Source | Project |
+|------|--------|--------|---------|
+| Margaret Wilson | new | ai_chat | Bathroom (with visualization + 4 AI concepts) |
+| Derek Fournier | sent | chat_no_photo | Kitchen (AI quote draft) |
+| Steve & Karen Brodie | won | contractor_intake | Basement |
+
+### Seeder API
+```javascript
+import { seedSampleLeads } from './seed-sample-leads.mjs';
+
+// Normal use (in provision-tenant.mjs Step 2c)
+const result = await seedSampleLeads(siteId);
+// { seeded: true, counts: { leads: 3, visualizations: 1, ... } }
+// or { seeded: false, reason: 'leads already exist for this site_id' }
+
+// Dry run
+const result = await seedSampleLeads(siteId, { dryRun: true });
+```
+
+### CLI
+```bash
+# Seed for a specific tenant
+node provision/seed-sample-leads.mjs --site-id my-tenant
+
+# Dry run (validate without DB writes)
+node provision/seed-sample-leads.mjs --site-id my-tenant --dry-run
+```
+
+### How It Works
+1. Reads `fixtures/sample-leads.json` (UUID placeholders like `__LEAD_MARGARET__`, relative timestamps)
+2. Generates fresh UUIDs via `crypto.randomUUID()` — preserves FK relationships via placeholder map
+3. Replaces `__SITE_ID__` with target tenant's site_id
+4. Generates fresh `share_token` for visualizations (unique constraint)
+5. Converts `_created_at_offset_days` to real ISO timestamps relative to now
+6. Inserts rows in FK order: leads → visualizations → lead_visualizations → visualization_metrics → audit_log
+7. Skips if leads already exist (idempotent)
+
+### Regenerating Fixtures
+If the sample data needs updating:
+1. Clean: `node scripts/clean-demo-data.mjs --site-id conversionos`
+2. Run Playwright journeys: `node scripts/sample-data/create-visualizer-lead.mjs` (+ chat + contractor)
+3. Export: `node scripts/sample-data/export-fixtures.mjs`
+4. Commit the updated `fixtures/sample-leads.json` and any new images
+
+**Cost:** ~$2-3 one-time (AI generation + chat during Playwright runs), $0/tenant after that.
 
 ## Self-Improving Documentation
 

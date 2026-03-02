@@ -18,6 +18,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Add new tenants here. When >20 tenants, migrate to Vercel Edge Config.
  */
 const DOMAIN_TO_SITE: Record<string, string> = {
+  'conversionos.norbotsystems.com': 'conversionos',
   'conversionos-demo.norbotsystems.com': 'demo',
   'red-white-reno.norbotsystems.com': 'red-white-reno',
   'redwhitereno-test-prov-test.norbotsystems.com': 'redwhitereno-test-prov-test',

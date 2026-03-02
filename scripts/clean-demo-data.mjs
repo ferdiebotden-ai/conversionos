@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 /**
- * Clean all demo tenant data from the database.
+ * Clean all tenant transactional data from the database.
  * Deletes in dependency order to respect foreign key constraints.
+ * Admin settings and branding are preserved.
  *
- * Usage: node scripts/clean-demo-data.mjs
+ * Usage: node scripts/clean-demo-data.mjs [--site-id <id>]
  * Requires: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local
  */
 
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { parseArgs } from 'util';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = resolve(__dirname, '..', '.env.local');
@@ -30,7 +32,19 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1);
 }
 
-const SITE_ID = 'demo';
+const { values: args } = parseArgs({
+  options: {
+    'site-id': { type: 'string', default: 'demo' },
+    help: { type: 'boolean' },
+  },
+});
+
+if (args.help) {
+  console.log('Usage: node scripts/clean-demo-data.mjs [--site-id <id>]');
+  process.exit(0);
+}
+
+const SITE_ID = args['site-id'];
 
 async function del(table) {
   const res = await fetch(
@@ -57,11 +71,13 @@ console.log(`Cleaning demo tenant data (site_id=${SITE_ID})...\n`);
 const tables = [
   'payments',
   'invoices',
+  'quote_items',
   'audit_log',
   'lead_visualizations',
   'visualization_metrics',
   'chat_sessions',
   'quote_drafts',
+  'quotes',
   'drawings',
   'visualizations',
   'leads',
