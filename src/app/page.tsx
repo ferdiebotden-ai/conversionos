@@ -211,22 +211,20 @@ export default async function Home() {
       {config.whyChooseUs.length > 0 && (
         <section className="border-t border-border px-4 py-10 md:py-20">
           <div className="container mx-auto">
-            <div className="grid gap-12 md:grid-cols-2 md:items-center">
+            <div className={`grid gap-12 ${config.aboutImageUrl || config.heroImageUrl ? 'md:grid-cols-2' : ''} md:items-center`}>
+              {(config.aboutImageUrl || config.heroImageUrl) && (
               <FadeInUp>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-                  {config.aboutImageUrl ? (
-                    <Image
-                      src={config.aboutImageUrl}
-                      alt={`${branding.name} expert craftsmanship`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-muted" />
-                  )}
+                  <Image
+                    src={config.aboutImageUrl || config.heroImageUrl}
+                    alt={`${branding.name} expert craftsmanship`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
                 </div>
               </FadeInUp>
+              )}
               <div>
                 <FadeInUp>
                   <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

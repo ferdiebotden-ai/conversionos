@@ -151,16 +151,6 @@ export default async function ContactPage() {
               </Card>
               )}
 
-              {/* Map Placeholder — hidden on mobile */}
-              <Card className="hidden lg:block">
-                <CardContent className="p-0">
-                  <div className="aspect-square w-full rounded-lg bg-muted flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">
-                      Map coming soon
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>

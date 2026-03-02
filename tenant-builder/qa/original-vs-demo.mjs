@@ -160,16 +160,25 @@ async function compareServiceCount(browser, baseUrl, scrapedServices) {
     }
 
     const liveCount = await page.evaluate(() => {
-      // Count service cards/items — look for common patterns
-      const cards = document.querySelectorAll(
-        '[class*="service"] > div, [class*="card"], section article, .grid > div'
+      // Count service headings (h3/h4) — more reliable than counting generic cards
+      // which also match testimonials, features, portfolio items, etc.
+      const serviceHeadings = document.querySelectorAll(
+        'section h3, [class*="service"] h3, [class*="service"] h4'
       );
-      // Filter to only visible cards with substantial content
+      if (serviceHeadings.length > 0) {
+        // Filter to visible headings with substantial text
+        let count = 0;
+        serviceHeadings.forEach(h => {
+          if (h.offsetParent !== null && h.textContent.trim().length > 2) count++;
+        });
+        if (count > 0) return count;
+      }
+      // Fallback: count grid children that contain headings
+      const cards = document.querySelectorAll('.grid > div');
       let count = 0;
       cards.forEach(card => {
         if (card.offsetParent === null) return;
-        const text = card.textContent?.trim() || '';
-        if (text.length > 20) count++;
+        if (card.querySelector('h3, h4') && card.textContent.trim().length > 20) count++;
       });
       return count;
     });

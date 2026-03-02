@@ -294,6 +294,31 @@ if (!dryRun && !auditOnly) {
     logger.warn(`Proxy merge failed: ${e.message?.slice(0, 100)}`);
   }
 
+  // Register domains with Vercel (SSL cert provisioning)
+  const successfulSiteIds = results
+    .filter(r => r.status === 'fulfilled')
+    .map(r => r.value.siteId);
+
+  for (const sid of successfulSiteIds) {
+    const domain = `${sid}.norbotsystems.com`;
+    logger.info(`Registering domain with Vercel: ${domain}`);
+    try {
+      execFileSync('node', [
+        resolve(DEMO_ROOT, 'scripts/onboarding/add-domain.mjs'),
+        '--domain', domain,
+        '--site-id', sid,
+      ], {
+        cwd: DEMO_ROOT,
+        env: process.env,
+        timeout: 120000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      logger.info(`Domain registered: ${domain}`);
+    } catch (e) {
+      logger.warn(`Domain registration failed for ${domain} (non-blocking): ${e.message?.slice(0, 100)}`);
+    }
+  }
+
   // Git commit + push
   if (!args['skip-git']) {
     logger.info('Committing and pushing changes...');
@@ -517,24 +542,25 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Step 6: Outreach (email drafts for passed QA targets)
+// Step 6: Outreach (email drafts for all deployed targets)
+// QA is informational — a live site should get outreach regardless of QA verdict
 // ──────────────────────────────────────────────────────────
 
 if (!dryRun && !auditOnly && !args['skip-outreach'] && qaResults.length > 0) {
-  const passed = qaResults.filter(r => r.pass);
-  if (passed.length > 0) {
-    logger.info(`Creating outreach drafts for ${passed.length} target(s)`);
+  // Include all targets that have QA results (meaning they were deployed and reachable)
+  const deployed = qaResults.filter(r => !r.error);
+  if (deployed.length > 0) {
+    logger.info(`Creating outreach drafts for ${deployed.length} deployed target(s) (QA: ${deployed.filter(r => r.pass).length} passed, ${deployed.filter(r => !r.pass).length} review/not-ready)`);
     try {
-      // Get target IDs for passed QA results
-      const passedIds = [];
-      for (const r of passed) {
+      const deployedIds = [];
+      for (const r of deployed) {
         const rows = await query('SELECT id FROM targets WHERE slug = ?', [r.siteId]);
-        if (rows.length > 0) passedIds.push(rows[0].id);
+        if (rows.length > 0) deployedIds.push(rows[0].id);
       }
-      if (passedIds.length > 0) {
+      if (deployedIds.length > 0) {
         execFileSync('node', [
           resolve(DEMO_ROOT, 'scripts/outreach/outreach-pipeline.mjs'),
-          '--target-ids', passedIds.join(','),
+          '--target-ids', deployedIds.join(','),
         ], { cwd: DEMO_ROOT, env: process.env, timeout: 300000, stdio: 'inherit' });
       }
     } catch (e) {

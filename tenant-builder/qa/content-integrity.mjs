@@ -69,7 +69,10 @@ const MIN_SECTION_BODY_LENGTH = 20;
 async function checkDemoLeakage(page, pageUrl, siteId, tenantCity) {
   const violations = [];
   const bodyText = await page.textContent('body') || '';
-  const htmlSource = await page.content();
+  // Strip __NEXT_DATA__ serialized JSON to avoid false positives — it contains
+  // server-side data that isn't visible to users but may include demo strings
+  let htmlSource = await page.content();
+  htmlSource = htmlSource.replace(/<script[^>]*id="__NEXT_DATA__"[^>]*>[\s\S]*?<\/script>/gi, '');
 
   // Hard leakage — always a violation (unless this IS the demo tenant)
   if (siteId !== 'demo') {

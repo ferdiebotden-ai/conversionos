@@ -63,7 +63,7 @@ export default async function AboutPage() {
       {/* What We Do */}
       <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto">
-          <div className="grid gap-8 md:grid-cols-2 md:items-center">
+          <div className={`grid gap-8 ${config.aboutImageUrl || config.heroImageUrl ? 'md:grid-cols-2' : ''} md:items-center`}>
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 What We Do
@@ -92,19 +92,17 @@ export default async function AboutPage() {
                 )}
               </div>
             </div>
+            {(config.aboutImageUrl || config.heroImageUrl) && (
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-              {config.aboutImageUrl ? (
-                <Image
-                  src={config.aboutImageUrl}
-                  alt={`${branding.name} renovation work`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-muted" />
-              )}
+              <Image
+                src={config.aboutImageUrl || config.heroImageUrl}
+                alt={`${branding.name} renovation work`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             </div>
+            )}
           </div>
         </div>
       </section>

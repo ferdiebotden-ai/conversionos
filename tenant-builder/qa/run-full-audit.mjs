@@ -39,6 +39,8 @@ Usage:
 
 Runs ALL checks:
   1. Content integrity (Playwright — demo leakage, broken images, placeholders)
+  1b. Page completeness (Playwright — per-page data verification)
+  1c. Data-gap resolution (auto-fix gaps found by page completeness)
   2. Live site audit (Playwright — 8 checks: branding, nav, responsive, WCAG, SEO, images, footer, admin)
   3. Original vs demo comparison (if scraped-data provided — 7 field comparison)
   4. PDF branding check (Supabase data completeness, logo, colour, demo leakage)
@@ -70,7 +72,7 @@ logger.info(`Output: ${outputDir}`);
 // ──────────────────────────────────────────────────────────
 
 try {
-  logger.info('1/6 Content integrity...');
+  logger.info('1/8 Content integrity...');
   const ciArgs = [
     resolve(QA_ROOT, 'content-integrity.mjs'),
     '--url', siteUrl,
@@ -113,11 +115,41 @@ try {
 }
 
 // ──────────────────────────────────────────────────────────
+// 1b. Page completeness
+// ──────────────────────────────────────────────────────────
+
+try {
+  logger.info('1b/8 Page completeness...');
+  const { runPageCompleteness } = await import('./page-completeness.mjs');
+  const result = await runPageCompleteness(siteUrl, siteId, { outputPath: outputDir });
+  const passed = result.pages?.filter(p => p.checks?.every(c => c.passed)).length || 0;
+  const total = result.pages?.length || 0;
+  logger.info(`  Page completeness: ${passed}/${total} pages fully passing`);
+} catch (e) {
+  logger.warn(`Page completeness failed: ${e.message?.slice(0, 100)}`);
+}
+
+// ──────────────────────────────────────────────────────────
+// 1c. Data-gap resolution
+// ──────────────────────────────────────────────────────────
+
+try {
+  logger.info('1c/8 Data-gap resolution...');
+  const { resolveDataGaps } = await import('./data-gap-resolution.mjs');
+  const dgOpts = { resultsDir: outputDir };
+  if (args['scraped-data']) dgOpts.scrapedDataPath = resolve(args['scraped-data']);
+  const result = await resolveDataGaps(siteId, siteUrl, dgOpts);
+  logger.info(`  Data-gap resolution: ${result.fixes?.length || 0} fixes applied, ${result.remaining_gaps?.length || 0} remaining`);
+} catch (e) {
+  logger.warn(`Data-gap resolution failed: ${e.message?.slice(0, 100)}`);
+}
+
+// ──────────────────────────────────────────────────────────
 // 2. Live site audit
 // ──────────────────────────────────────────────────────────
 
 try {
-  logger.info('2/6 Live site audit...');
+  logger.info('2/8 Live site audit...');
   const { runLiveSiteAudit } = await import('./live-site-audit.mjs');
   const result = await runLiveSiteAudit(siteUrl, siteId, { outputPath: outputDir, tier });
   logger.info(`  Live site audit: ${result.passed ? 'PASS' : 'FAIL'} (${result.summary.checks_passed}/${result.summary.checks_run})`);
@@ -131,7 +163,7 @@ try {
 
 if (args['scraped-data'] && existsSync(args['scraped-data'])) {
   try {
-    logger.info('3/6 Original vs demo comparison...');
+    logger.info('3/8 Original vs demo comparison...');
     const scrapedData = JSON.parse(readFileSync(args['scraped-data'], 'utf-8'));
     const { runOriginalVsDemo } = await import('./original-vs-demo.mjs');
     const result = await runOriginalVsDemo(siteUrl, scrapedData, { outputPath: outputDir });
@@ -140,7 +172,7 @@ if (args['scraped-data'] && existsSync(args['scraped-data'])) {
     logger.warn(`Original vs demo failed: ${e.message?.slice(0, 100)}`);
   }
 } else {
-  logger.info('3/6 Original vs demo comparison... SKIP (no scraped-data)');
+  logger.info('3/8 Original vs demo comparison... SKIP (no scraped-data)');
 }
 
 // ──────────────────────────────────────────────────────────
@@ -148,7 +180,7 @@ if (args['scraped-data'] && existsSync(args['scraped-data'])) {
 // ──────────────────────────────────────────────────────────
 
 try {
-  logger.info('4/6 PDF branding check...');
+  logger.info('4/8 PDF branding check...');
   const { runPdfBrandingCheck } = await import('./pdf-branding-check.mjs');
   const result = await runPdfBrandingCheck(siteId, { outputPath: outputDir });
   logger.info(`  PDF branding: ${result.passed ? 'PASS' : 'FAIL'} (${result.summary.critical_violations} critical, ${result.summary.warning_violations} warnings)`);
@@ -161,7 +193,7 @@ try {
 // ──────────────────────────────────────────────────────────
 
 try {
-  logger.info('5/6 Email branding check...');
+  logger.info('5/8 Email branding check...');
   const { runEmailBrandingCheck } = await import('./email-branding-check.mjs');
   const result = await runEmailBrandingCheck(siteId, { outputPath: outputDir });
   logger.info(`  Email branding: ${result.passed ? 'PASS' : 'FAIL'} (${result.summary.critical_violations} critical, ${result.summary.warning_violations} warnings)`);
@@ -174,7 +206,7 @@ try {
 // ──────────────────────────────────────────────────────────
 
 try {
-  logger.info('6/6 Generating audit report...');
+  logger.info('6/8 Generating audit report...');
   const { generateAuditReport } = await import('./audit-report.mjs');
   const report = generateAuditReport(siteId, outputDir);
 

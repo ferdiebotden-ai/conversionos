@@ -138,13 +138,13 @@ export function getEstimateCTA(ctx: CopyContext): CTACopy {
 // ---------------------------------------------------------------------------
 
 export function getContactAlternativeCTA(
-  ctx: CopyContext,
+  _ctx: CopyContext,
 ): { heading: string; description: string; linkLabel: string; linkHref: string } | null {
-  if (!hasQuotes(ctx)) return null;
+  // Always show — the visualizer is available on all tiers
   return {
-    heading: 'Prefer an Instant Quote?',
-    description: 'Use our AI-powered estimator for a quick ballpark estimate.',
-    linkLabel: 'Get an instant quote \u2192',
+    heading: 'Have an Idea in Mind?',
+    description: 'Try our AI Design Studio \u2014 upload a photo of your space and see it transformed in minutes.',
+    linkLabel: 'Try the Design Studio \u2192',
     linkHref: '/visualizer',
   };
 }

@@ -157,6 +157,26 @@ if (!dryRun) {
     } catch (e) {
       logger.warn(`About image generation failed (non-blocking): ${e.message}`);
     }
+
+    // Fallback: use the best scraped service image if Gemini failed
+    if (!provisionData.about_image_url && provisionData.services?.length > 0) {
+      for (const svc of provisionData.services) {
+        const imgs = svc.image_urls || [];
+        if (imgs.length > 0 && imgs[0]) {
+          provisionData.about_image_url = imgs[0];
+          imageDataUpdated = true;
+          logger.info(`Using service image as about fallback: ${imgs[0].slice(0, 60)}...`);
+          break;
+        }
+      }
+    }
+
+    // Final fallback: reuse the hero image
+    if (!provisionData.about_image_url && provisionData.hero_image_url) {
+      provisionData.about_image_url = provisionData.hero_image_url;
+      imageDataUpdated = true;
+      logger.info('Using hero image as about fallback');
+    }
   }
 
   // Generate OG image for social sharing
