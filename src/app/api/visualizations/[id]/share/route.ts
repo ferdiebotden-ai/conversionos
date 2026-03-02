@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const shareSchema = z.object({
@@ -21,6 +22,9 @@ export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const { id } = await params;
     const body = await request.json();

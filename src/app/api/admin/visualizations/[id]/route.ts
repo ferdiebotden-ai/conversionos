@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 
 const updateSchema = z.object({
   admin_notes: z.string().nullable().optional(),
@@ -20,6 +22,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id: visualizationId } = await params;
     const body = await request.json();
 
@@ -74,6 +81,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id: visualizationId } = await params;
     const supabase = createServiceClient();
 

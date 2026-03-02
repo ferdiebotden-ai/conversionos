@@ -195,7 +195,8 @@ export async function POST(
         accepted_by_ip: clientIp,
         updated_at: now,
       } as Record<string, unknown>)
-      .eq('id', quote.id);
+      .eq('id', quote.id)
+      .eq('site_id', quote.site_id);
 
     if (updateError) {
       console.error('Acceptance update error:', updateError);
@@ -209,7 +210,8 @@ export async function POST(
         status: 'won',
         updated_at: now,
       })
-      .eq('id', quote.lead_id);
+      .eq('id', quote.lead_id)
+      .eq('site_id', quote.site_id);
 
     // Log to audit_log
     await supabase.from('audit_log').insert({

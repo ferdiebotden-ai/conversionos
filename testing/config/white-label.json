@@ -15,22 +15,5 @@
       "invoices": true,
       "sage50Export": true
     }
-  },
-  "redwhitereno": {
-    "name": "Red White Reno",
-    "targetUrl": "https://redwhite.norbotsystems.com",
-    "adminEmail": "admin@redwhitereno.com",
-    "adminPassword": "testpassword123",
-    "companyName": "Red White Reno",
-    "primaryColor": "#dc2626",
-    "hasLogo": true,
-    "features": {
-      "aiChat": true,
-      "visualizer": true,
-      "receptionist": true,
-      "drawings": true,
-      "invoices": true,
-      "sage50Export": true
-    }
   }
 }

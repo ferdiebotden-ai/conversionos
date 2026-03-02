@@ -3,9 +3,9 @@
  * Cleanup test artifacts from tenant-builder runs.
  *
  * Usage:
- *   node tests/cleanup.mjs --site-id redwhitereno-test
- *   node tests/cleanup.mjs --site-id redwhitereno-test --reset-turso --target-id 22
- *   node tests/cleanup.mjs --site-id redwhitereno-test --all
+ *   node tests/cleanup.mjs --site-id test-tenant
+ *   node tests/cleanup.mjs --site-id test-tenant --reset-turso --target-id 22
+ *   node tests/cleanup.mjs --site-id test-tenant --all
  */
 
 import { parseArgs } from 'node:util';
@@ -30,9 +30,9 @@ const { values: args } = parseArgs({
 
 if (args.help || !args['site-id']) {
   console.log(`Usage:
-  node tests/cleanup.mjs --site-id redwhitereno-test
-  node tests/cleanup.mjs --site-id redwhitereno-test --reset-turso --target-id 22
-  node tests/cleanup.mjs --site-id redwhitereno-test --all
+  node tests/cleanup.mjs --site-id test-tenant
+  node tests/cleanup.mjs --site-id test-tenant --reset-turso --target-id 22
+  node tests/cleanup.mjs --site-id test-tenant --all
 
 Actions:
   1. DELETE admin_settings rows for site_id

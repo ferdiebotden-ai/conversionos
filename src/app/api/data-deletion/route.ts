@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const { email, name } = await request.json();
 

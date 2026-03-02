@@ -144,6 +144,11 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'invoicing')) {
+      return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { id } = await context.params;
 
     if (!UUID_REGEX.test(id)) {

@@ -5,16 +5,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId } from '@/lib/db/site';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
 
 export async function GET(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30', 10);
 
     const supabase = createServiceClient();
 
     // Get summary metrics - function may not exist before migration
-    // Using type assertion since the function is defined in migration
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- rpc name not in generated types
     const { data: summary, error: summaryError } = await (supabase.rpc as Function)(
       'get_visualization_summary',
       { p_site_id: getSiteId(), p_days: days }

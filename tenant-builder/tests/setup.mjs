@@ -27,8 +27,8 @@ export function requireIntegrationEnv() {
 }
 
 /** Test site ID used across integration tests — never clobbers production tenants */
-export const TEST_SITE_ID = 'redwhitereno-test';
+export const TEST_SITE_ID = 'test-tenant';
 export const TEST_TARGET_ID = 22;
 export const TEST_URL = 'https://www.redwhitereno.com';
-export const TEST_DOMAIN = 'redwhitereno-test.norbotsystems.com';
+export const TEST_DOMAIN = 'test-tenant.norbotsystems.com';
 export const TEST_TIER = 'accelerate';

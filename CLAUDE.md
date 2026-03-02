@@ -101,9 +101,7 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 ## Current Tenants
 | Site ID | Domain | Tier | Purpose |
 |---------|--------|------|---------|
-| `demo` | `conversionos-demo.norbotsystems.com` | Accelerate | NorBot base template |
-| `mccarty-squared` | `mccarty.norbotsystems.com` | Dominate | McCarty Squared demo |
-| `red-white-reno` | `redwhite.norbotsystems.com` | Accelerate | Red White Reno demo |
+| `demo` | `conversionos-demo.norbotsystems.com` | Accelerate | NorBot base platform |
 
 ## Adding a New Tenant
 

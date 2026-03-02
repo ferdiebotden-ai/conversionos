@@ -11,7 +11,7 @@ const DEFAULT_TIER: PlanTier = 'elevate';
 
 /**
  * Fetch the plan tier for the current tenant.
- * Defaults to 'accelerate' for backward compatibility.
+ * Defaults to 'elevate' (deny-by-default) if plan not found.
  */
 export async function getTier(): Promise<PlanTier> {
   try {

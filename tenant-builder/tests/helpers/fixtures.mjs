@@ -81,8 +81,6 @@ export const mockQaResultFail = {
 export const mockProxyContent = `import { NextResponse, type NextRequest } from 'next/server';
 
 const DOMAIN_TO_SITE: Record<string, string> = {
-  'mccarty.norbotsystems.com': 'mccarty-squared',
-  'redwhite.norbotsystems.com': 'redwhitereno',
   'conversionos-demo.norbotsystems.com': 'demo',
 };
 

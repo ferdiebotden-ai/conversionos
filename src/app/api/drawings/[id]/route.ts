@@ -87,6 +87,7 @@ export async function PUT(
       .from('drawings')
       .update(updateData)
       .eq('id', id)
+      .eq('site_id', getSiteId())
       .select('*')
       .single();
 
@@ -125,7 +126,8 @@ export async function DELETE(
     const { error } = await supabase
       .from('drawings')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('site_id', getSiteId());
 
     if (error) {
       console.error('Error deleting drawing:', error);

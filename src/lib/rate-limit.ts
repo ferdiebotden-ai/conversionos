@@ -25,6 +25,14 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Public form endpoints — prevent spam
   '/api/contact': { windowMs: 60_000, maxRequests: 5 },
   '/api/leads:POST': { windowMs: 60_000, maxRequests: 5 },
+  '/api/data-deletion:POST': { windowMs: 60_000, maxRequests: 3 },
+  // Voice check — lightweight but enumerable
+  '/api/voice/check': { windowMs: 60_000, maxRequests: 10 },
+  // Admin write endpoints — prevent rapid mutation
+  '/api/admin/settings:PUT': { windowMs: 60_000, maxRequests: 10 },
+  '/api/admin/quote-assistance': { windowMs: 60_000, maxRequests: 20 },
+  // Shared visualizations — prevent UUID enumeration
+  '/api/visualizations': { windowMs: 60_000, maxRequests: 30 },
 };
 
 // ─── In-Memory Rate Limiter (per-instance fallback) ─────────────────────────

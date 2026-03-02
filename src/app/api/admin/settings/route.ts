@@ -9,6 +9,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
 import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getTier } from '@/lib/entitlements.server';
+import { canAccess } from '@/lib/entitlements';
+import { applyRateLimit } from '@/lib/rate-limit';
 import type { Json } from '@/types/database';
 
 /**
@@ -17,6 +20,11 @@ import type { Json } from '@/types/database';
  */
 export async function GET() {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const supabase = createServiceClient();
 
     const { data: settings, error } = await supabase
@@ -70,7 +78,15 @@ const SettingsUpdateSchema = z.object({
  * Update a single setting
  */
 export async function PUT(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validationResult = SettingsUpdateSchema.safeParse(body);
 
@@ -199,6 +215,11 @@ const BatchSettingsUpdateSchema = z.object({
  */
 export async function PATCH(request: NextRequest) {
   try {
+    const tier = await getTier();
+    if (!canAccess(tier, 'admin_dashboard')) {
+      return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validationResult = BatchSettingsUpdateSchema.safeParse(body);
 
