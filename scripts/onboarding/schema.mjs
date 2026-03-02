@@ -25,6 +25,11 @@ export const ContractorWebsiteSchema = z.object({
   social_instagram: z.string().optional().describe('Instagram profile URL'),
   social_houzz: z.string().optional().describe('Houzz profile URL'),
   social_google: z.string().optional().describe('Google Business URL'),
+  social_twitter: z.string().optional().describe('X/Twitter profile URL'),
+  social_linkedin: z.string().optional().describe('LinkedIn company page URL'),
+  social_youtube: z.string().optional().describe('YouTube channel URL'),
+  social_tiktok: z.string().optional().describe('TikTok profile URL'),
+  social_pinterest: z.string().optional().describe('Pinterest profile URL'),
   booking_url: z.string().optional().describe('Online booking/scheduling URL'),
 
   // Brand

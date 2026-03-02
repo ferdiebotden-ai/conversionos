@@ -366,7 +366,28 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
     logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'start' });
 
     try {
-      // 5a. Content integrity check (before visual QA)
+      // 5a. Page completeness check (per-page data verification)
+      try {
+        logger.info(`[${siteId}] Running page completeness check...`);
+        const { runPageCompleteness } = await import('./qa/page-completeness.mjs');
+        await runPageCompleteness(siteUrl, siteId, { outputPath: outputDir });
+      } catch (e) {
+        logger.warn(`[${siteId}] Page completeness check failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5a.5 Data-gap resolution (fix issues found by page-completeness)
+      try {
+        logger.info(`[${siteId}] Running data-gap resolution...`);
+        const { resolveDataGaps } = await import('./qa/data-gap-resolution.mjs');
+        await resolveDataGaps(siteId, siteUrl, {
+          resultsDir: outputDir,
+          scrapedDataPath: existsSync(scrapedPath) ? scrapedPath : undefined,
+        });
+      } catch (e) {
+        logger.warn(`[${siteId}] Data-gap resolution failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5b. Content integrity check (before visual QA)
       logger.info(`[${siteId}] Running content integrity check...`);
       try {
         const ciArgs = [
@@ -402,7 +423,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         }
       }
 
-      // 5b. Live site audit (non-blocking)
+      // 5c. Live site audit (non-blocking)
       try {
         logger.info(`[${siteId}] Running live site audit...`);
         const { runLiveSiteAudit } = await import('./qa/live-site-audit.mjs');
@@ -412,7 +433,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         logger.warn(`[${siteId}] Live site audit failed: ${e.message?.slice(0, 100)}`);
       }
 
-      // 5c. Original vs demo comparison (non-blocking, only if scraped.json exists)
+      // 5d. Original vs demo comparison (non-blocking, only if scraped.json exists)
       if (existsSync(scrapedPath)) {
         try {
           logger.info(`[${siteId}] Running original vs demo comparison...`);
@@ -424,7 +445,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         }
       }
 
-      // 5d. Screenshots
+      // 5e. Screenshots
       try {
         execFileSync('node', [
           resolve(TB_ROOT, 'qa/screenshot.mjs'),
@@ -436,7 +457,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         });
       } catch { /* screenshots may fail if not deployed yet */ }
 
-      // 5e. Visual QA with refinement
+      // 5f. Visual QA with refinement
       const maxIter = CONFIG.qa.max_refinement_iterations || 3;
       const qaTimeoutMs = (maxIter * 250 + 120) * 1000 * timeoutMultiplier;
       const qaArgs = [
@@ -452,7 +473,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      // 5f. PDF branding check (non-blocking)
+      // 5g. PDF branding check (non-blocking)
       try {
         logger.info(`[${siteId}] Running PDF branding check...`);
         const { runPdfBrandingCheck } = await import('./qa/pdf-branding-check.mjs');
@@ -461,7 +482,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         logger.warn(`[${siteId}] PDF branding check failed: ${e.message?.slice(0, 100)}`);
       }
 
-      // 5g. Email branding check (non-blocking)
+      // 5h. Email branding check (non-blocking)
       try {
         logger.info(`[${siteId}] Running email branding check...`);
         const { runEmailBrandingCheck } = await import('./qa/email-branding-check.mjs');
@@ -470,7 +491,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         logger.warn(`[${siteId}] Email branding check failed: ${e.message?.slice(0, 100)}`);
       }
 
-      // 5h. Generate audit report
+      // 5i. Generate audit report
       let qaStatus = 'complete';
       try {
         const { generateAuditReport } = await import('./qa/audit-report.mjs');

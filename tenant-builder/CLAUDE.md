@@ -57,12 +57,14 @@ tenant-builder/
     structural-qa.mjs    # Wraps existing verify.mjs (8-check suite)
     visual-qa.mjs        # Claude Vision 5-dimension rubric
     refinement-loop.mjs  # Fix-and-recheck cycle (plateau/regression detection, snapshot/rollback)
-    content-integrity.mjs # 9-check suite + autoFixViolations() for DB cleanup
+    content-integrity.mjs # 12-check suite + autoFixViolations() for DB cleanup
+    page-completeness.mjs # Per-page data verification (6 pages + footer)
+    data-gap-resolution.mjs # Auto-fix data gaps found by page-completeness
     live-site-audit.mjs  # 8-check Playwright audit (branding, nav, responsive, WCAG, SEO, images, footer, admin)
     original-vs-demo.mjs # 7-field comparison: scraped.json vs live site (Playwright)
     pdf-branding-check.mjs  # Verify admin_settings completeness for PDF generation
     email-branding-check.mjs # Verify admin_settings + scan email template source for anti-patterns
-    audit-report.mjs     # Enhanced 6-section go-live readiness report + READY/REVIEW/NOT READY verdict
+    audit-report.mjs     # Enhanced 7-section go-live readiness report + READY/REVIEW/NOT READY verdict
     run-full-audit.mjs   # Standalone entry point for complete go-live audit
   schemas/
     icp-score.json       # ICP scoring structured output
@@ -76,7 +78,7 @@ tenant-builder/
     helpers/
       assertions.mjs       # Reusable validators (ICP, scrape, provision, QA)
       fixtures.mjs         # Mock data for unit tests
-    unit/                  # 215 tests, ~400ms, no API calls
+    unit/                  # 223 tests, ~400ms, no API calls
       logger.test.mjs
       env-loader.test.mjs
       concurrency.test.mjs
@@ -108,6 +110,8 @@ tenant-builder/
       screenshots/              # QA screenshots
       visual-qa.json            # Visual QA scores
       content-integrity.json    # Content integrity check results
+      page-completeness.json    # Per-page data verification results
+      data-gap-resolution.json  # Auto-fix attempts and results
       live-site-audit.json      # 8-check Playwright audit results
       original-vs-demo.json     # 7-field comparison results
       pdf-branding-check.json   # PDF branding data check results
@@ -143,13 +147,15 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 5. **Provision** — upload images (incl. service images + local file paths), create Supabase rows (5 keys incl. quote_assistance), write proxy fragment. Provenance tracking via `_provenance` field.
 6. **Merge proxy** — combine all fragments into proxy.ts
 7. **Git + deploy** — commit, push, wait for Vercel (poll skipped with `--skip-git`). Domain routing handled by wildcard DNS (`*.norbotsystems.com` on Cloudflare). If `VERCEL_TOKEN` is set, `add-domain.mjs` pre-registers the subdomain with Vercel for faster SSL cert provisioning; otherwise SSL is provisioned on first request.
-8. **QA: Content integrity** — 9 checks (demo leakage, broken images, demo images, colour, sections, fabrication, placeholders, business name, copyright) → auto-fix critical issues
-9. **QA: Visual QA** — Claude Vision 5-dimension rubric + refinement loop (plateau/regression detection, snapshot/rollback)
-10. **QA: Live site audit** — 8 Playwright checks (cross-page branding, nav, responsive, WCAG contrast, SEO/meta, image performance, footer, admin gating). Non-blocking.
-11. **QA: Original vs demo** — 7-field comparison of scraped.json vs live site (business name, phone, email, service count, testimonials, colour, logo). Non-blocking. Skipped if no scraped data.
-12. **QA: PDF branding** — Supabase admin_settings completeness check for PDF generation (business info, primary colour, logo, demo leakage). Non-blocking.
-13. **QA: Email branding** — admin_settings check + email template source scan for anti-patterns (hard-coded URLs, demo leakage, CASL). Non-blocking.
-14. **Go-live readiness report** — 6-section markdown + `go-live-readiness.json`. Verdict: READY / REVIEW / NOT READY.
+8. **QA: Page completeness** — per-page data verification (homepage hero/CTA/services, services cards, about copy/team, projects portfolio, contact phone/email/no-N/A, footer logo/socials/copyright). Non-blocking.
+9. **QA: Data-gap resolution** — auto-fix gaps found by page-completeness (social links from scraped data, clear N/A business hours, set favicon from logo). Up to 2 fix attempts with re-verification.
+10. **QA: Content integrity** — 12 checks (demo leakage, broken images, demo images, colour, sections, fabrication, placeholders, business name, copyright, social links, favicon, OG image) → auto-fix critical issues
+11. **QA: Visual QA** — Claude Vision 5-dimension rubric + refinement loop (plateau/regression detection, snapshot/rollback)
+12. **QA: Live site audit** — 8 Playwright checks (cross-page branding, nav, responsive, WCAG contrast, SEO/meta, image performance, footer, admin gating). Non-blocking.
+13. **QA: Original vs demo** — 7-field comparison of scraped.json vs live site (business name, phone, email, service count, testimonials, colour, logo). Non-blocking. Skipped if no scraped data.
+14. **QA: PDF branding** — Supabase admin_settings completeness check for PDF generation (business info, primary colour, logo, demo leakage). Non-blocking.
+15. **QA: Email branding** — admin_settings check + email template source scan for anti-patterns (hard-coded URLs, demo leakage, CASL). Non-blocking.
+16. **Go-live readiness report** — 7-section markdown + `go-live-readiness.json`. Verdict: READY / REVIEW / NOT READY.
 
 ## ICP Scoring (6 Dimensions, 100 pts)
 
@@ -181,7 +187,7 @@ Existing columns used: `bespoke_status`, `bespoke_score`, `brand_assets`
 
 ## Content Integrity QA (qa/content-integrity.mjs)
 
-Post-provisioning Playwright check for 9 categories + auto-fix:
+Post-provisioning Playwright check for 12 categories + auto-fix:
 1. **Demo leakage** — scans for NorBot phone/email/address/demo image paths on tenant pages
 2. **Broken images** — HEAD requests on all `<img>` sources + naturalWidth check
 3. **Demo images** — regex scan for `/images/demo/` in HTML source
@@ -191,6 +197,9 @@ Post-provisioning Playwright check for 9 categories + auto-fix:
 7. **Placeholder text** — scans for generic phrases (lorem ipsum, your business, coming soon, etc.)
 8. **Business name presence** — verifies contractor name in page title and body
 9. **Copyright format** — checks for double periods in footer
+10. **Social links** — if scraped data has social URLs but footer has none, flag as missing
+11. **Favicon** — checks for `<link rel="icon">` in page head
+12. **OG image** — checks for `<meta property="og:image">` in page head
 
 **Auto-fix:** `autoFixViolations(siteId, violations)` — clears fabricated trustBadges/processSteps/values/trust_metrics in Supabase.
 
@@ -202,18 +211,19 @@ node qa/content-integrity.mjs --url https://example.norbotsystems.com --site-id 
 
 ### Enhanced Audit Report (qa/audit-report.mjs)
 
-Generates 6-section markdown summary + `go-live-readiness.json` from QA results:
+Generates 7-section markdown summary + `go-live-readiness.json` from QA results:
 1. **Content integrity** — ✅/⚠️ per check, critical violations count
-2. **Visual QA** — per-dimension scores (1-5), average
-3. **Live site audit** — 8 Playwright checks (branding, nav, responsive, WCAG, SEO, images, footer, admin)
-4. **Original vs demo** — 7-field match percentages, overall match score
-5. **PDF branding** — logo, colour, business info, demo leakage checks
-6. **Email branding** — per-template checks, CASL, source anti-patterns
+2. **Page completeness** — per-page/check table (PASS/FAIL), summary counts
+3. **Visual QA** — per-dimension scores (1-5), average
+4. **Live site audit** — 8 Playwright checks (branding, nav, responsive, WCAG, SEO, images, footer, admin)
+5. **Original vs demo** — 7-field match percentages, overall match score
+6. **PDF branding** — logo, colour, business info, demo leakage checks
+7. **Email branding** — per-template checks, CASL, source anti-patterns
 
 **Verdict logic:**
 - `READY` — all checks pass, 0 critical violations
-- `REVIEW` — passes but has warnings (WCAG near-miss, visual QA 3.0-3.5, match score 60-80%)
-- `NOT READY` — any critical failure (demo leakage, broken images, missing branding, visual QA < 3.0)
+- `REVIEW` — passes but has warnings (WCAG near-miss, visual QA 3.0-3.5, match score 60-80%, page completeness gaps)
+- `NOT READY` — any critical failure (demo leakage, broken images, missing branding, visual QA < 3.0, homepage load failure)
 
 ```bash
 node qa/audit-report.mjs --site-id example --results-dir ./results/2026-02-26/example/
@@ -221,7 +231,7 @@ node qa/audit-report.mjs --site-id example --results-dir ./results/2026-02-26/ex
 
 ### Standalone Full Audit (qa/run-full-audit.mjs)
 
-Single entry point for the complete go-live audit. Runs all 6 checks in sequence:
+Single entry point for the complete go-live audit. Runs all 7 checks in sequence:
 
 ```bash
 # Basic audit
@@ -232,6 +242,33 @@ node qa/run-full-audit.mjs --url URL --site-id ID --scraped-data ./scraped.json
 
 # Custom output directory
 node qa/run-full-audit.mjs --url URL --site-id ID --output ./audit-results/ --tier accelerate
+```
+
+### Page Completeness QA (qa/page-completeness.mjs)
+
+Per-page data verification via Playwright. Checks 6 pages + footer cross-page:
+- **Homepage:** hero headline + CTA, services section, trust metrics
+- **Services:** service cards with images + descriptions (≥20 chars)
+- **About:** about copy present, team section rendering
+- **Projects:** at least 1 portfolio item with image
+- **Contact:** phone + email visible, no literal "N/A" text, form renders
+- **Footer (all pages):** logo, social links, phone, copyright with correct year + business name
+
+```bash
+node qa/page-completeness.mjs --url https://example.norbotsystems.com --site-id example
+```
+
+### Data-Gap Resolution (qa/data-gap-resolution.mjs)
+
+Auto-fix module that resolves gaps found by page-completeness. Runs up to 2 fix attempts with re-verification:
+- **Social links** — if scraped data has socials but `branding.socials` is empty, updates Supabase
+- **Business hours** — clears N/A patterns from `company_profile.businessHours`
+- **Favicon** — sets `branding.faviconUrl` from existing logo URL
+
+Writes `data-gap-resolution.json` with `{ site_id, attempts, fixes, remaining_gaps, resolved }`.
+
+```bash
+node qa/data-gap-resolution.mjs --site-id example --url https://example.norbotsystems.com --results-dir ./results/ [--scraped-data ./scraped.json]
 ```
 
 ### Individual QA Modules
@@ -283,7 +320,7 @@ npm run cleanup
 - **Test URL:** `https://www.redwhitereno.com`
 - **Test tier:** `accelerate`
 
-### Unit Tests (215 tests, mocked)
+### Unit Tests (223 tests, mocked)
 
 | File | Tests | What It Covers |
 |------|-------|----------------|
@@ -295,10 +332,10 @@ npm run cleanup
 | `colour-utils.test.mjs` | 26 | OKLCH parsing, hex parsing, hexToOklch, Delta-E, luminance, contrast ratio, Levenshtein |
 | `pdf-branding.test.mjs` | 7 | Complete branding pass, no data fail, missing fields, demo leakage, colour format, SVG logo, output file |
 | `email-branding.test.mjs` | 8 | Complete branding pass, no data fail, missing fields, demo leakage, source anti-patterns, CASL, quotes_email warning, output |
-| `audit-report-enhanced.test.mjs` | 12 | READY/REVIEW/NOT READY verdict logic, all 6 sections, go-live-readiness.json schema, human review checklist, marginal scores |
+| `audit-report-enhanced.test.mjs` | 14 | READY/REVIEW/NOT READY verdict logic, all 7 sections, go-live-readiness.json schema, human review checklist, marginal scores, page completeness |
 | `template-resilience.test.mjs` | 52 | Template rendering, fallbacks, edge cases |
-| `scraper-enhancements.test.mjs` | 21 | Branding extraction, quality gates, scrape pipeline |
-| `provision-quality-gates.test.mjs` | 54 | Hero/testimonial/portfolio/service quality gates |
+| `scraper-enhancements.test.mjs` | 22 | Branding extraction, quality gates, scrape pipeline, 9-platform social links |
+| `provision-quality-gates.test.mjs` | 59 | Hero/testimonial/portfolio/service quality gates, sanitizeNA logic |
 
 ### Integration Tests (26 tests, real APIs)
 

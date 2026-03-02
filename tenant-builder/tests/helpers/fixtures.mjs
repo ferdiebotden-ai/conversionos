@@ -311,6 +311,56 @@ export const mockEmailBrandingFail = {
   },
 };
 
+/** Mock page completeness result (passing) */
+export const mockPageCompletenessPass = {
+  passed: true,
+  checks: [
+    { page: '/', check: 'has_headline', passed: true, detail: 'Hero headline: "See Your Renovation Before It Begins" (47 chars)' },
+    { page: '/', check: 'has_cta', passed: true, detail: 'CTA found: "Get Your Estimate in Minutes"' },
+    { page: '/', check: 'has_services', passed: true, detail: '3 service cards found' },
+    { page: '/services', check: 'service_cards', passed: true, detail: '3 cards with descriptions ≥20 chars' },
+    { page: '/about', check: 'about_copy', passed: true, detail: 'About copy: 250 chars' },
+    { page: '/projects', check: 'portfolio_items', passed: true, detail: '4 portfolio items with images' },
+    { page: '/contact', check: 'phone_visible', passed: true, detail: 'Phone number found' },
+    { page: '/contact', check: 'email_visible', passed: true, detail: 'Email found' },
+    { page: '/contact', check: 'no_na_text', passed: true, detail: 'No literal N/A text' },
+    { page: '/footer', check: 'has_logo', passed: true, detail: 'Footer logo found' },
+    { page: '/footer', check: 'has_phone', passed: true, detail: 'Phone in footer' },
+    { page: '/footer', check: 'has_copyright', passed: true, detail: 'Copyright 2026' },
+  ],
+  summary: {
+    site_id: 'test-reno',
+    url: 'https://test-reno.norbotsystems.com',
+    total_checks: 12,
+    passed_count: 12,
+    failed_count: 0,
+    passed: true,
+    failed_checks: [],
+  },
+};
+
+/** Mock page completeness result (failing) */
+export const mockPageCompletenessFail = {
+  passed: false,
+  checks: [
+    { page: '/', check: 'has_headline', passed: true, detail: 'Hero headline found' },
+    { page: '/', check: 'has_cta', passed: true, detail: 'CTA found' },
+    { page: '/contact', check: 'phone_visible', passed: true, detail: 'Phone found' },
+    { page: '/contact', check: 'no_na_text', passed: false, detail: 'Literal "N/A" found in business hours' },
+    { page: '/footer', check: 'social_links', passed: false, detail: 'No social links in footer' },
+    { page: '/footer', check: 'has_copyright', passed: true, detail: 'Copyright 2026' },
+  ],
+  summary: {
+    site_id: 'test-reno',
+    url: 'https://test-reno.norbotsystems.com',
+    total_checks: 6,
+    passed_count: 4,
+    failed_count: 2,
+    passed: false,
+    failed_checks: ['/contact:no_na_text', '/footer:social_links'],
+  },
+};
+
 /** Mock audit report input */
 export const mockAuditInput = {
   contentIntegrity: mockContentIntegrityPass,

@@ -3,8 +3,8 @@
  * Enhanced Audit Report Generator — comprehensive go-live readiness report.
  * Reads all QA result files and produces a markdown report + JSON verdict.
  *
- * Sections: Content Integrity, Visual QA, Live Site Audit, Original vs Demo,
- * PDF Branding, Email Branding, WCAG Contrast, Auto-Fixes, Human Review, Verdict.
+ * Sections: Content Integrity, Page Completeness, Visual QA, Live Site Audit,
+ * Original vs Demo, PDF Branding, Email Branding, Auto-Fixes, Human Review, Verdict.
  *
  * Usage:
  *   node qa/audit-report.mjs --site-id example --results-dir ./results/2026-02-26/example/
@@ -37,10 +37,26 @@ function readResult(resultsDir, filename) {
  * - NOT READY: any critical failure (demo leakage, broken images, missing branding, visual QA < 3.5)
  */
 function determineVerdict(results) {
-  const { contentIntegrity, visualQa, liveSiteAudit, originalVsDemo, pdfBranding, emailBranding } = results;
+  const { pageCompleteness, contentIntegrity, visualQa, liveSiteAudit, originalVsDemo, pdfBranding, emailBranding } = results;
 
   const criticalFailures = [];
   const warnings = [];
+
+  // Page completeness
+  if (pageCompleteness) {
+    const failedChecks = (pageCompleteness.checks || []).filter(c => !c.passed);
+    const homepageLoadFail = failedChecks.find(c => c.page === '/' && c.check === 'page_load');
+    if (homepageLoadFail) {
+      criticalFailures.push('Homepage failed to load');
+    } else if (failedChecks.length > 0) {
+      const ratio = failedChecks.length / (pageCompleteness.checks || []).length;
+      if (ratio > 0.5) {
+        warnings.push(`Page completeness: ${failedChecks.length} checks failed (${pageCompleteness.summary.failed_checks.join(', ')})`);
+      } else if (failedChecks.length > 0) {
+        warnings.push(`Page completeness: ${failedChecks.length} minor gap(s)`);
+      }
+    }
+  }
 
   // Content integrity
   if (contentIntegrity) {
@@ -109,6 +125,7 @@ export function generateAuditReport(siteId, resultsDir) {
   const now = new Date().toISOString();
 
   // Read all result files
+  const pageCompleteness = readResult(resultsDir, 'page-completeness.json');
   const contentIntegrity = readResult(resultsDir, 'content-integrity.json');
   const visualQa = readResult(resultsDir, 'visual-qa.json');
   const liveSiteAudit = readResult(resultsDir, 'live-site-audit.json');
@@ -116,9 +133,10 @@ export function generateAuditReport(siteId, resultsDir) {
   const pdfBranding = readResult(resultsDir, 'pdf-branding-check.json');
   const emailBranding = readResult(resultsDir, 'email-branding-check.json');
   const autoFixes = readResult(resultsDir, 'auto-fixes.json');
+  const dataGapResolution = readResult(resultsDir, 'data-gap-resolution.json');
 
   const verdictResult = determineVerdict({
-    contentIntegrity, visualQa, liveSiteAudit, originalVsDemo, pdfBranding, emailBranding,
+    pageCompleteness, contentIntegrity, visualQa, liveSiteAudit, originalVsDemo, pdfBranding, emailBranding,
   });
 
   lines.push(`# Go-Live Readiness Report: ${siteId}`);
@@ -153,9 +171,24 @@ export function generateAuditReport(siteId, resultsDir) {
     lines.push('## 1. Content Integrity\n_Not run_\n');
   }
 
-  // ── Section 2: Visual QA ──
+  // ── Section 2: Page Completeness ──
+  if (pageCompleteness) {
+    lines.push('## 2. Page Completeness\n');
+    const pc = pageCompleteness;
+    lines.push('| Page | Check | Result | Detail |');
+    lines.push('|------|-------|--------|--------|');
+    for (const c of (pc.checks || [])) {
+      const icon = c.passed ? 'PASS' : 'FAIL';
+      lines.push(`| ${c.page} | ${c.check.replace(/_/g, ' ')} | ${icon} | ${c.detail || ''} |`);
+    }
+    lines.push(`\n**${pc.summary.passed_count}/${pc.summary.total_checks} checks passed**\n`);
+  } else {
+    lines.push('## 2. Page Completeness\n_Not run_\n');
+  }
+
+  // ── Section 3: Visual QA ──
   if (visualQa) {
-    lines.push('## 2. Visual QA\n');
+    lines.push('## 3. Visual QA\n');
     const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion'];
     lines.push('| Dimension | Score |');
     lines.push('|-----------|-------|');
@@ -168,12 +201,12 @@ export function generateAuditReport(siteId, resultsDir) {
     if (visualQa.notes) lines.push(`\nNotes: ${visualQa.notes}`);
     lines.push('');
   } else {
-    lines.push('## 2. Visual QA\n_Not run_\n');
+    lines.push('## 3. Visual QA\n_Not run_\n');
   }
 
-  // ── Section 3: Live Site Audit ──
+  // ── Section 4: Live Site Audit ──
   if (liveSiteAudit) {
-    lines.push('## 3. Live Site Audit\n');
+    lines.push('## 4. Live Site Audit\n');
     const checks = liveSiteAudit.checks || [];
     lines.push('| Check | Result |');
     lines.push('|-------|--------|');
@@ -191,12 +224,12 @@ export function generateAuditReport(siteId, resultsDir) {
       lines.push('');
     }
   } else {
-    lines.push('## 3. Live Site Audit\n_Not run_\n');
+    lines.push('## 4. Live Site Audit\n_Not run_\n');
   }
 
-  // ── Section 4: Original vs Demo ──
+  // ── Section 5: Original vs Demo ──
   if (originalVsDemo) {
-    lines.push('## 4. Original vs Demo Comparison\n');
+    lines.push('## 5. Original vs Demo Comparison\n');
     lines.push('| Field | Match | Score |');
     lines.push('|-------|-------|-------|');
     for (const c of (originalVsDemo.comparisons || [])) {
@@ -209,12 +242,12 @@ export function generateAuditReport(siteId, resultsDir) {
     }
     lines.push(`\n**Overall match: ${originalVsDemo.matchScore}%**\n`);
   } else {
-    lines.push('## 4. Original vs Demo Comparison\n_Not run (no scraped.json available)_\n');
+    lines.push('## 5. Original vs Demo Comparison\n_Not run (no scraped.json available)_\n');
   }
 
-  // ── Section 5: PDF Branding ──
+  // ── Section 6: PDF Branding ──
   if (pdfBranding) {
-    lines.push('## 5. PDF Branding\n');
+    lines.push('## 6. PDF Branding\n');
     const s = pdfBranding.summary;
     lines.push(`| Item | Status |`);
     lines.push(`|------|--------|`);
@@ -225,12 +258,12 @@ export function generateAuditReport(siteId, resultsDir) {
     lines.push(`| Warnings | ${s.warning_violations === 0 ? 'None' : s.warning_violations} |`);
     lines.push('');
   } else {
-    lines.push('## 5. PDF Branding\n_Not run_\n');
+    lines.push('## 6. PDF Branding\n_Not run_\n');
   }
 
-  // ── Section 6: Email Branding ──
+  // ── Section 7: Email Branding ──
   if (emailBranding) {
-    lines.push('## 6. Email Branding\n');
+    lines.push('## 7. Email Branding\n');
     const s = emailBranding.summary;
     lines.push(`| Item | Status |`);
     lines.push(`|------|--------|`);
@@ -241,14 +274,25 @@ export function generateAuditReport(siteId, resultsDir) {
     lines.push(`| Warnings | ${s.warning_violations === 0 ? 'None' : s.warning_violations} |`);
     lines.push('');
   } else {
-    lines.push('## 6. Email Branding\n_Not run_\n');
+    lines.push('## 7. Email Branding\n_Not run_\n');
   }
 
   // ── Auto-fixes ──
-  if (autoFixes && autoFixes.length > 0) {
+  const hasAutoFixes = autoFixes && autoFixes.length > 0;
+  const hasDataGapFixes = dataGapResolution && dataGapResolution.fixes?.length > 0;
+  if (hasAutoFixes || hasDataGapFixes) {
     lines.push('## Auto-Fixes Applied\n');
-    for (const f of autoFixes) {
-      lines.push(`- ${f.success ? 'OK' : 'FAILED'} ${f.fix}`);
+    if (hasAutoFixes) {
+      lines.push('**Content integrity fixes:**');
+      for (const f of autoFixes) {
+        lines.push(`- ${f.success ? 'OK' : 'FAILED'} ${f.fix}`);
+      }
+    }
+    if (hasDataGapFixes) {
+      lines.push(`\n**Data-gap resolution** (${dataGapResolution.attempts} attempt(s), ${dataGapResolution.remaining_gaps} remaining):`);
+      for (const f of dataGapResolution.fixes) {
+        lines.push(`- ${f.success ? 'OK' : 'SKIP'} ${f.fix}: ${f.detail}`);
+      }
     }
     lines.push('');
   }
@@ -308,6 +352,7 @@ export function generateAuditReport(siteId, resultsDir) {
     critical_failures: verdictResult.criticalFailures,
     warnings: verdictResult.warnings,
     checks: {
+      page_completeness: pageCompleteness ? { passed: pageCompleteness.passed, checks_passed: pageCompleteness.summary?.passed_count, checks_total: pageCompleteness.summary?.total_checks } : null,
       content_integrity: contentIntegrity ? { passed: contentIntegrity.passed, violations: contentIntegrity.violations?.length || 0 } : null,
       visual_qa: visualQa ? { passed: visualQa.pass, average: visualQa.average } : null,
       live_site_audit: liveSiteAudit ? { passed: liveSiteAudit.passed, checks_passed: liveSiteAudit.summary?.checks_passed, checks_run: liveSiteAudit.summary?.checks_run } : null,
@@ -351,8 +396,9 @@ if (isDirectRun) {
 Usage:
   node qa/audit-report.mjs --site-id example --results-dir ./results/2026-02-26/example/
 
-Reads: content-integrity.json, visual-qa.json, live-site-audit.json,
-       original-vs-demo.json, pdf-branding-check.json, email-branding-check.json
+Reads: page-completeness.json, content-integrity.json, visual-qa.json,
+       live-site-audit.json, original-vs-demo.json, pdf-branding-check.json,
+       email-branding-check.json
 Outputs: audit-report.md, go-live-readiness.json
 
 Verdict: READY / REVIEW / NOT READY`);

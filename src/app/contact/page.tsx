@@ -23,7 +23,8 @@ export default async function ContactPage() {
   const branding = await getBranding()
   const config = await getCompanyConfig()
   const copyCtx = await getCopyContext()
-  const businessHours = parseBusinessHours(config.hours)
+  const hasBusinessHours = Boolean(config.hours && config.hours.trim())
+  const businessHours = hasBusinessHours ? parseBusinessHours(config.hours) : []
   const altCTA = getContactAlternativeCTA(copyCtx)
   return (
     <div className="flex flex-col">
@@ -123,7 +124,8 @@ export default async function ContactPage() {
                 </CardContent>
               </Card>
 
-              {/* Business Hours */}
+              {/* Business Hours — hidden when no hours data available */}
+              {businessHours.length > 0 && (
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2">
@@ -147,6 +149,7 @@ export default async function ContactPage() {
                   </ul>
                 </CardContent>
               </Card>
+              )}
 
               {/* Map Placeholder — hidden on mobile */}
               <Card className="hidden lg:block">

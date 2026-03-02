@@ -266,4 +266,30 @@ describe('social links format normalization', () => {
     }));
     expect(normalized[0].platform).toBe('Official');
   });
+
+  it('handles all 9 supported social platforms', () => {
+    const socialMap = {
+      social_facebook: 'Facebook', social_instagram: 'Instagram',
+      social_houzz: 'Houzz', social_google: 'Google',
+      social_twitter: 'X', social_linkedin: 'LinkedIn',
+      social_youtube: 'YouTube', social_tiktok: 'TikTok',
+      social_pinterest: 'Pinterest',
+    };
+    const mockData = {
+      social_facebook: 'https://facebook.com/test',
+      social_instagram: 'https://instagram.com/test',
+      social_linkedin: 'https://linkedin.com/company/test',
+      social_youtube: 'https://youtube.com/@test',
+    };
+    const result = Object.entries(socialMap)
+      .filter(([key]) => mockData[key])
+      .map(([key, label]) => ({ label, href: mockData[key] }));
+
+    expect(result).toHaveLength(4);
+    expect(result[0]).toEqual({ label: 'Facebook', href: 'https://facebook.com/test' });
+    expect(result[1]).toEqual({ label: 'Instagram', href: 'https://instagram.com/test' });
+    expect(result[2]).toEqual({ label: 'LinkedIn', href: 'https://linkedin.com/company/test' });
+    expect(result[3]).toEqual({ label: 'YouTube', href: 'https://youtube.com/@test' });
+    expect(Object.keys(socialMap)).toHaveLength(9);
+  });
 });

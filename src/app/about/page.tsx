@@ -11,7 +11,6 @@ import {
   CheckCircle,
   FileText,
   Clock,
-  User,
 } from "lucide-react"
 import { getBranding } from "@/lib/branding"
 import { getCompanyConfig } from "@/lib/ai/knowledge/company"
@@ -250,6 +249,16 @@ export default async function AboutPage() {
               ? config.teamMembers
               : [{ name: config.principals, role: 'Principals', photoUrl: '' }];
 
+            function getInitials(name: string): string {
+              if (!name) return '?';
+              const parts = name.trim().split(/\s+/).filter(Boolean);
+              const first = parts[0];
+              const last = parts[parts.length - 1];
+              if (!first) return '?';
+              if (parts.length === 1) return first[0]?.toUpperCase() ?? '?';
+              return ((first[0] ?? '') + (last?.[0] ?? '')).toUpperCase();
+            }
+
             return (
               <div className={`mt-10 grid gap-6 ${members.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl' : 'sm:grid-cols-2 max-w-2xl'} mx-auto`}>
                 {members.map((member, i) => (
@@ -265,8 +274,8 @@ export default async function AboutPage() {
                             sizes="96px"
                           />
                         ) : (
-                          <div className="flex size-full items-center justify-center bg-primary/10">
-                            <User className="size-10 text-primary/40" />
+                          <div className="flex size-full items-center justify-center bg-primary text-primary-foreground">
+                            <span className="text-2xl font-bold">{getInitials(member.name)}</span>
                           </div>
                         )}
                       </div>

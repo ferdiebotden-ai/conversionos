@@ -58,7 +58,16 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "en_CA",
       siteName: branding.name,
+      ...(branding.ogImageUrl ? {
+        images: [{ url: branding.ogImageUrl, width: 1200, height: 630, alt: `${branding.name} — ${branding.tagline}` }],
+      } : {}),
     },
+    ...(branding.faviconUrl ? {
+      icons: {
+        icon: branding.faviconUrl,
+        apple: branding.faviconUrl,
+      },
+    } : {}),
   };
 }
 

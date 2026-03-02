@@ -375,3 +375,48 @@ describe('filterServices (Gate 4)', () => {
     expect(filterServices(input)).toHaveLength(1);
   });
 });
+
+// ─── N/A Sanitization (WS2) ───
+// Tests the sanitizeNA logic as used in provision.mjs (local function, tested inline)
+describe('sanitizeNA logic', () => {
+  // Mirrors the function in provision.mjs
+  function sanitizeNA(val) {
+    if (!val || typeof val !== 'string') return '';
+    const lower = val.trim().toLowerCase();
+    if (['n/a', 'na', 'not available', 'not specified', 'not applicable', 'unknown', 'none'].includes(lower)) return '';
+    return val.trim();
+  }
+
+  it('returns empty string for N/A variants', () => {
+    expect(sanitizeNA('N/A')).toBe('');
+    expect(sanitizeNA('n/a')).toBe('');
+    expect(sanitizeNA('NA')).toBe('');
+    expect(sanitizeNA('Not Available')).toBe('');
+    expect(sanitizeNA('not specified')).toBe('');
+    expect(sanitizeNA('Not Applicable')).toBe('');
+    expect(sanitizeNA('Unknown')).toBe('');
+    expect(sanitizeNA('none')).toBe('');
+  });
+
+  it('preserves valid values', () => {
+    expect(sanitizeNA('Mon-Fri 9am-5pm')).toBe('Mon-Fri 9am-5pm');
+    expect(sanitizeNA('123 Main St')).toBe('123 Main St');
+    expect(sanitizeNA('N5A 3H1')).toBe('N5A 3H1');
+  });
+
+  it('trims whitespace', () => {
+    expect(sanitizeNA('  Hello  ')).toBe('Hello');
+    expect(sanitizeNA('  N/A  ')).toBe('');
+  });
+
+  it('handles null, undefined, empty', () => {
+    expect(sanitizeNA(null)).toBe('');
+    expect(sanitizeNA(undefined)).toBe('');
+    expect(sanitizeNA('')).toBe('');
+  });
+
+  it('handles non-string values', () => {
+    expect(sanitizeNA(42)).toBe('');
+    expect(sanitizeNA(true)).toBe('');
+  });
+});

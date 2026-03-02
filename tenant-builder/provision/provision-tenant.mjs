@@ -25,6 +25,7 @@ import * as logger from '../lib/logger.mjs';
 import { withRetry } from '../lib/retry.mjs';
 import { writeProxyFragment } from './proxy-fragment.mjs';
 import { createVoiceAgent } from './voice-agent.mjs';
+import { generateHeroImage, generateAboutImage, generateOgImage } from '../lib/generate-images.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
@@ -113,6 +114,67 @@ if (dryRun) {
     if (!existsSync(provisionedPath)) {
       writeFileSync(provisionedPath, readFileSync(dataPath, 'utf-8'));
     }
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Step 1b: Generate fallback images for missing hero/about/OG
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun) {
+  const provisionData = JSON.parse(readFileSync(existsSync(provisionedPath) ? provisionedPath : dataPath, 'utf-8'));
+  const imageOpts = {
+    siteId,
+    primaryHex: provisionData.primary_color_hex,
+    companyName: provisionData.business_name,
+    services: provisionData.services,
+    tagline: provisionData.tagline || provisionData.hero_headline,
+  };
+
+  let imageDataUpdated = false;
+
+  if (!provisionData.hero_image_url) {
+    logger.info('Step 1b: No hero image — generating via Gemini');
+    try {
+      const heroUrl = await generateHeroImage(imageOpts);
+      if (heroUrl) {
+        provisionData.hero_image_url = heroUrl;
+        imageDataUpdated = true;
+      }
+    } catch (e) {
+      logger.warn(`Hero image generation failed (non-blocking): ${e.message}`);
+    }
+  }
+
+  if (!provisionData.about_image_url) {
+    logger.info('Step 1b: No about image — generating via Gemini');
+    try {
+      const aboutUrl = await generateAboutImage(imageOpts);
+      if (aboutUrl) {
+        provisionData.about_image_url = aboutUrl;
+        imageDataUpdated = true;
+      }
+    } catch (e) {
+      logger.warn(`About image generation failed (non-blocking): ${e.message}`);
+    }
+  }
+
+  // Generate OG image for social sharing
+  logger.info('Step 1b: Generating OG image for social sharing');
+  try {
+    const ogUrl = await generateOgImage(imageOpts);
+    if (ogUrl) {
+      provisionData._og_image_url = ogUrl;
+      imageDataUpdated = true;
+    }
+  } catch (e) {
+    logger.warn(`OG image generation failed (non-blocking): ${e.message}`);
+  }
+
+  if (imageDataUpdated) {
+    const targetPath = existsSync(provisionedPath) ? provisionedPath : dataPath;
+    writeFileSync(targetPath, JSON.stringify(provisionData, null, 2));
+    logger.info('Updated provisioned data with generated images');
   }
 }
 

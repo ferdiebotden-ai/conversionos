@@ -9,6 +9,7 @@ import {
   mockOriginalVsDemoPass, mockOriginalVsDemoFail,
   mockPdfBrandingPass, mockPdfBrandingFail,
   mockEmailBrandingPass, mockEmailBrandingFail,
+  mockPageCompletenessPass, mockPageCompletenessFail,
 } from '../helpers/fixtures.mjs';
 
 const tmpDir = resolve(import.meta.dirname, '../../.test-tmp-audit');
@@ -86,9 +87,10 @@ describe('audit-report (enhanced)', () => {
     expect(result.readinessPath).toBeTruthy();
   });
 
-  it('includes all 6 sections in markdown output', () => {
+  it('includes all 7 sections in markdown output', () => {
     writeResults({
       'content-integrity.json': mockContentIntegrityPass,
+      'page-completeness.json': mockPageCompletenessPass,
       'visual-qa.json': mockQaResultPass,
       'live-site-audit.json': mockLiveSiteAuditPass,
       'original-vs-demo.json': mockOriginalVsDemoPass,
@@ -98,11 +100,12 @@ describe('audit-report (enhanced)', () => {
 
     const result = generateAuditReport('test-reno', tmpDir);
     expect(result.markdown).toContain('## 1. Content Integrity');
-    expect(result.markdown).toContain('## 2. Visual QA');
-    expect(result.markdown).toContain('## 3. Live Site Audit');
-    expect(result.markdown).toContain('## 4. Original vs Demo');
-    expect(result.markdown).toContain('## 5. PDF Branding');
-    expect(result.markdown).toContain('## 6. Email Branding');
+    expect(result.markdown).toContain('## 2. Page Completeness');
+    expect(result.markdown).toContain('## 3. Visual QA');
+    expect(result.markdown).toContain('## 4. Live Site Audit');
+    expect(result.markdown).toContain('## 5. Original vs Demo');
+    expect(result.markdown).toContain('## 6. PDF Branding');
+    expect(result.markdown).toContain('## 7. Email Branding');
     expect(result.markdown).toContain('## Human Review Checklist');
     expect(result.markdown).toContain('## Go-Live Verdict');
   });
@@ -111,6 +114,7 @@ describe('audit-report (enhanced)', () => {
     writeResults({
       'content-integrity.json': mockContentIntegrityPass,
       'visual-qa.json': mockQaResultPass,
+      'page-completeness.json': mockPageCompletenessPass,
     });
 
     const result = generateAuditReport('test-reno', tmpDir);
@@ -122,8 +126,38 @@ describe('audit-report (enhanced)', () => {
     expect(['READY', 'REVIEW', 'NOT READY']).toContain(readiness.verdict);
     expect(readiness.human_review_required).toBe(true);
     expect(readiness.checks).toBeDefined();
+    expect(readiness.checks.page_completeness).toBeDefined();
+    expect(readiness.checks.page_completeness.passed).toBe(true);
+    expect(readiness.checks.page_completeness.checks_passed).toBe(12);
     expect(readiness.checks.content_integrity).toBeDefined();
     expect(readiness.checks.visual_qa).toBeDefined();
+  });
+
+  it('reports warnings for page completeness failures', () => {
+    writeResults({
+      'page-completeness.json': mockPageCompletenessFail,
+    });
+
+    const result = generateAuditReport('test-reno', tmpDir);
+    expect(result.verdict).toBe('REVIEW');
+    expect(result.markdown).toContain('Page Completeness');
+    expect(result.markdown).toContain('FAIL');
+  });
+
+  it('reports critical failure when homepage fails to load', () => {
+    writeResults({
+      'page-completeness.json': {
+        passed: false,
+        checks: [
+          { page: '/', check: 'page_load', passed: false, detail: 'Homepage failed to load' },
+        ],
+        summary: { total_checks: 1, passed_count: 0, failed_count: 1, passed: false, failed_checks: ['/:page_load'] },
+      },
+    });
+
+    const result = generateAuditReport('test-reno', tmpDir);
+    expect(result.verdict).toBe('NOT READY');
+    expect(result.markdown).toContain('Homepage failed to load');
   });
 
   it('includes human review checklist items', () => {

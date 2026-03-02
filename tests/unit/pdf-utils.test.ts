@@ -73,19 +73,19 @@ describe('groupLineItemsByCategory', () => {
 // ── formatQuoteNumber ─────────────────────────────────────
 
 describe('formatQuoteNumber', () => {
-  it('formats as DEMO-YYYY-LEADID8', () => {
+  it('formats as QE-YYYY-LEADID8', () => {
     const result = formatQuoteNumber('2026-02-26T12:00:00Z', 'abcd1234-5678');
-    expect(result).toBe('DEMO-2026-ABCD1234');
+    expect(result).toBe('QE-2026-ABCD1234');
   });
 
   it('uppercases the lead ID segment', () => {
     const result = formatQuoteNumber('2025-06-15T12:00:00Z', 'deadbeef-cafe');
-    expect(result).toBe('DEMO-2025-DEADBEEF');
+    expect(result).toBe('QE-2025-DEADBEEF');
   });
 
   it('handles short lead IDs', () => {
     const result = formatQuoteNumber('2026-06-15T00:00:00Z', 'abc');
-    expect(result).toBe('DEMO-2026-ABC');
+    expect(result).toBe('QE-2026-ABC');
   });
 });
 

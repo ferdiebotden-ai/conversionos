@@ -126,6 +126,54 @@ if (!args['skip-logo']) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Phase 4: Playwright social link extraction
+// ──────────────────────────────────────────────────────────
+
+logger.info('Phase 4: Playwright social link extraction');
+try {
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+  const SOCIAL_SELECTORS = {
+    social_facebook: 'a[href*="facebook.com"]',
+    social_instagram: 'a[href*="instagram.com"]',
+    social_twitter: 'a[href*="twitter.com"], a[href*="x.com"]',
+    social_linkedin: 'a[href*="linkedin.com"]',
+    social_youtube: 'a[href*="youtube.com"]',
+    social_tiktok: 'a[href*="tiktok.com"]',
+    social_houzz: 'a[href*="houzz.com"], a[href*="houzz.ca"]',
+    social_pinterest: 'a[href*="pinterest.com"]',
+    social_google: 'a[href*="google.com/maps"], a[href*="g.co"], a[href*="goo.gl"]',
+  };
+
+  const extractedSocials = {};
+  for (const [key, selector] of Object.entries(SOCIAL_SELECTORS)) {
+    const href = await page.$eval(selector, el => el.href).catch(() => null);
+    if (href) extractedSocials[key] = href;
+  }
+
+  await browser.close();
+
+  if (Object.keys(extractedSocials).length > 0) {
+    logger.info(`Playwright social links found: ${Object.keys(extractedSocials).join(', ')}`);
+  } else {
+    logger.info('No social links found via Playwright');
+  }
+
+  // Merge — Playwright fills gaps where Firecrawl missed
+  for (const [key, href] of Object.entries(extractedSocials)) {
+    if (!scraped[key]) {
+      scraped[key] = href;
+      logger.info(`Social link filled by Playwright: ${key} = ${href}`);
+    }
+  }
+} catch (e) {
+  logger.warn(`Playwright social extraction failed: ${e.message} — continuing without`);
+}
+
+// ──────────────────────────────────────────────────────────
 // Merge: branding v2 overrides + logo override
 // ──────────────────────────────────────────────────────────
 
@@ -195,11 +243,52 @@ try {
   logger.warn(`Trust metrics extraction failed: ${e.message}`);
 }
 
+// ──────────────────────────────────────────────────────────
+// Completeness score — weighted field presence (0-100)
+// ──────────────────────────────────────────────────────────
+
+const completenessFields = {
+  business_name: { weight: 10, check: () => Boolean(merged.business_name) },
+  phone: { weight: 10, check: () => Boolean(merged.phone) },
+  email: { weight: 10, check: () => Boolean(merged.email) },
+  logo_url: { weight: 10, check: () => Boolean(merged.logo_url) },
+  primary_color_hex: { weight: 8, check: () => Boolean(merged.primary_color_hex) },
+  testimonials_2plus: { weight: 8, check: () => (merged.testimonials || []).length >= 2 },
+  services_2plus: { weight: 8, check: () => (merged.services || []).length >= 2 },
+  portfolio_1plus: { weight: 6, check: () => (merged.portfolio || []).length >= 1 },
+  about_copy: { weight: 6, check: () => (merged.about_copy || []).length > 0 },
+  social_any: { weight: 5, check: () => ['social_facebook', 'social_instagram', 'social_houzz', 'social_google', 'social_twitter', 'social_linkedin', 'social_youtube', 'social_tiktok', 'social_pinterest'].some(k => Boolean(merged[k])) },
+  hero_image_url: { weight: 5, check: () => Boolean(merged.hero_image_url) },
+  about_image_url: { weight: 4, check: () => Boolean(merged.about_image_url) },
+  team_members: { weight: 4, check: () => (merged.team_members || []).length > 0 },
+  mission: { weight: 3, check: () => Boolean(merged.mission) },
+  business_hours_valid: { weight: 3, check: () => {
+    const h = merged.business_hours;
+    if (!h || typeof h !== 'string') return false;
+    const lower = h.trim().toLowerCase();
+    return !['n/a', 'na', 'not available', 'not specified', 'unknown', 'none', '', '-'].includes(lower);
+  }},
+};
+
+let completenessScore = 0;
+const missingFields = [];
+for (const [field, { weight, check }] of Object.entries(completenessFields)) {
+  if (check()) {
+    completenessScore += weight;
+  } else {
+    missingFields.push(field);
+  }
+}
+
+merged._completeness = { score: completenessScore, missing: missingFields };
+logger.info(`Completeness score: ${completenessScore}/100 — missing: ${missingFields.join(', ') || 'none'}`);
+logger.progress({ stage: 'scrape', site_id: siteId, status: 'scored', completeness: completenessScore, missing: missingFields });
+
 // Write merged output
 writeFileSync(mergedOutputPath, JSON.stringify(merged, null, 2));
 logger.info(`Merged output saved to ${mergedOutputPath}`);
 
-logger.progress({ stage: 'scrape', site_id: siteId, status: 'complete', detail: `output: ${mergedOutputPath}` });
+logger.progress({ stage: 'scrape', site_id: siteId, status: 'complete', detail: `output: ${mergedOutputPath}`, completeness: completenessScore });
 
 // Output the path for downstream scripts
 console.log(mergedOutputPath);

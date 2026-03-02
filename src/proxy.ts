@@ -18,15 +18,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Add new tenants here. When >20 tenants, migrate to Vercel Edge Config.
  */
 const DOMAIN_TO_SITE: Record<string, string> = {
-  // Production domains
-  'mccarty.norbotsystems.com': 'mccarty-squared',
-  'redwhite.norbotsystems.com': 'red-white-reno',
-  // Demo / preview domains
   'conversionos-demo.norbotsystems.com': 'demo',
-  'mccarty-test.norbotsystems.com': 'mccarty-test',
-  'eastview-homes.norbotsystems.com': 'eastview-homes',
-  'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
-  'redwhitereno-test.norbotsystems.com': 'redwhitereno-test',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

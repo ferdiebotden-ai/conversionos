@@ -23,6 +23,8 @@ export interface Branding {
   primaryColor: string;
   primaryOklch: string;
   logoUrl?: string | undefined;
+  faviconUrl?: string | undefined;
+  ogImageUrl?: string | undefined;
   services: { name: string; slug: string }[];
 }
 
@@ -90,6 +92,8 @@ export async function getBranding(): Promise<Branding> {
       primaryColor: colors['primary_hex'] || DEMO_BRANDING.primaryColor,
       primaryOklch: colors['primary_oklch'] || DEMO_BRANDING.primaryOklch,
       logoUrl: (profile['logoUrl'] as string) || (brand['logoUrl'] as string) || undefined,
+      faviconUrl: (brand['faviconUrl'] as string) || undefined,
+      ogImageUrl: (brand['ogImageUrl'] as string) || undefined,
       services: rawServices.map(s => ({
         name: s.name,
         slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),

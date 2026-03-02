@@ -404,6 +404,74 @@ async function checkCopyrightFormat(page, pageUrl) {
   return violations;
 }
 
+/**
+ * Check 10: Social links — if scraped data has socials, verify at least one appears in footer.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @param {string|undefined} scrapedDataPath
+ * @returns {Promise<Array<{ page: string, issue: string }>>}
+ */
+async function checkSocialLinks(page, pageUrl, scrapedDataPath) {
+  if (!scrapedDataPath || !existsSync(scrapedDataPath)) return [];
+
+  try {
+    const scraped = JSON.parse(readFileSync(scrapedDataPath, 'utf-8'));
+    const socialKeys = ['social_facebook', 'social_instagram', 'social_houzz', 'social_google',
+      'social_twitter', 'social_linkedin', 'social_youtube', 'social_tiktok', 'social_pinterest'];
+    const scrapedSocials = socialKeys.filter(k => scraped[k]);
+    if (scrapedSocials.length === 0) return [];
+
+    const footerSocials = await page.$$eval('footer a[href]', els =>
+      els.map(el => el.getAttribute('href') || '')
+    ).catch(() => []);
+
+    const socialDomains = ['facebook.com', 'instagram.com', 'houzz.com', 'google.com',
+      'twitter.com', 'x.com', 'linkedin.com', 'youtube.com', 'tiktok.com', 'pinterest.com'];
+    const hasSocialInFooter = footerSocials.some(href =>
+      socialDomains.some(d => href.includes(d))
+    );
+
+    if (!hasSocialInFooter) {
+      return [{ page: pageUrl, issue: `scraped ${scrapedSocials.length} social link(s) but none in footer` }];
+    }
+  } catch { /* parse error — skip */ }
+  return [];
+}
+
+/**
+ * Check 11: Favicon presence — verify a <link rel="icon"> exists in the page head.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @returns {Promise<Array<{ page: string, issue: string }>>}
+ */
+async function checkFavicon(page, pageUrl) {
+  const hasFavicon = await page.$eval('link[rel="icon"], link[rel="shortcut icon"]',
+    el => Boolean(el?.getAttribute('href'))
+  ).catch(() => false);
+
+  if (!hasFavicon) {
+    return [{ page: pageUrl, issue: 'no_favicon_link' }];
+  }
+  return [];
+}
+
+/**
+ * Check 12: OG image presence — verify a <meta property="og:image"> exists.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @returns {Promise<Array<{ page: string, issue: string }>>}
+ */
+async function checkOgImage(page, pageUrl) {
+  const hasOgImage = await page.$eval('meta[property="og:image"]',
+    el => Boolean(el?.getAttribute('content'))
+  ).catch(() => false);
+
+  if (!hasOgImage) {
+    return [{ page: pageUrl, issue: 'no_og_image_meta' }];
+  }
+  return [];
+}
+
 // ──────────────────────────────────────────────────────────
 // Auto-fix capability
 // ──────────────────────────────────────────────────────────
@@ -626,6 +694,36 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
           allViolations.push({ check: 'copyright_format', ...v });
         }
         summary.copyright_format += copyrightViolations.length;
+
+        // 10. Social links check (homepage only, needs scraped data)
+        if (pagePath === '/' && scrapedDataPath) {
+          const socialViolations = await checkSocialLinks(page, pageUrl, scrapedDataPath);
+          for (const v of socialViolations) {
+            allViolations.push({ check: 'social_links', ...v });
+          }
+          if (!summary.social_links) summary.social_links = 0;
+          summary.social_links += socialViolations.length;
+        }
+
+        // 11. Favicon check (homepage only)
+        if (pagePath === '/') {
+          const faviconViolations = await checkFavicon(page, pageUrl);
+          for (const v of faviconViolations) {
+            allViolations.push({ check: 'favicon', ...v });
+          }
+          if (!summary.favicon) summary.favicon = 0;
+          summary.favicon += faviconViolations.length;
+        }
+
+        // 12. OG image check (homepage only)
+        if (pagePath === '/') {
+          const ogViolations = await checkOgImage(page, pageUrl);
+          for (const v of ogViolations) {
+            allViolations.push({ check: 'og_image', ...v });
+          }
+          if (!summary.og_image) summary.og_image = 0;
+          summary.og_image += ogViolations.length;
+        }
 
         // 5. Colour consistency (homepage only, if expected colour provided)
         if (pagePath === '/' && expectedColour) {
