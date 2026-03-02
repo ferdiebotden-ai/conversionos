@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { applyRateLimit } from '@/lib/rate-limit';
@@ -20,6 +20,7 @@ import type { Json } from '@/types/database';
  */
 export async function GET() {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -30,7 +31,7 @@ export async function GET() {
     const { data: settings, error } = await supabase
       .from('admin_settings')
       .select('*')
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('key');
 
     if (error) {
@@ -82,6 +83,7 @@ export async function PUT(request: NextRequest) {
   if (limited) return limited;
 
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -106,7 +108,7 @@ export async function PUT(request: NextRequest) {
       .from('admin_settings')
       .select('id')
       .eq('key', key)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .maybeSingle();
 
     if (fetchError) {
@@ -126,7 +128,7 @@ export async function PUT(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('key', key)
-        .eq('site_id', getSiteId())
+        .eq('site_id', siteId)
         .select('*')
         .single();
 
@@ -145,7 +147,7 @@ export async function PUT(request: NextRequest) {
           key,
           value: JSON.stringify(value),
         } as Json,
-      }));
+      }, siteId));
 
       // Revalidate all pages so copy/branding changes take effect immediately
       revalidatePath('/', 'layout');
@@ -161,7 +163,7 @@ export async function PUT(request: NextRequest) {
         .insert(withSiteId({
           key,
           value: value as Json,
-        }))
+        }, siteId))
         .select('*')
         .single();
 
@@ -180,7 +182,7 @@ export async function PUT(request: NextRequest) {
           key,
           value: JSON.stringify(value),
         } as Json,
-      }));
+      }, siteId));
 
       // Revalidate all pages so copy/branding changes take effect immediately
       revalidatePath('/', 'layout');
@@ -214,7 +216,11 @@ const BatchSettingsUpdateSchema = z.object({
  * Batch update multiple settings
  */
 export async function PATCH(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -242,7 +248,7 @@ export async function PATCH(request: NextRequest) {
             key,
             value: value as Json,
             updated_at: new Date().toISOString(),
-            site_id: getSiteId(),
+            site_id: siteId,
           }, {
             onConflict: 'site_id,key',
           })
@@ -269,7 +275,7 @@ export async function PATCH(request: NextRequest) {
         keys: settings.map((s) => s.key),
         count: settings.length,
       },
-    }));
+    }, siteId));
 
     // Revalidate all pages so copy/branding changes take effect immediately
     revalidatePath('/', 'layout');

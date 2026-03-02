@@ -11,7 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { generateImageWithGemini, type ReferenceImage } from '@/lib/ai/gemini';
@@ -145,6 +146,9 @@ should feel like a natural evolution, not a completely different design.`);
 // ── POST handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   const startTime = Date.now();
 
   // 1. Verify tier (estimate page = Accelerate+)
@@ -173,7 +177,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { visualizationId, starredConceptIndex, designSignals, conversationMessages, estimateData, refinementNumber } = parseResult.data;
-  const siteId = getSiteId();
+  const siteId = await getSiteIdAsync();
 
   // 3. Fetch visualization record
   // photo_analysis may not be in generated types — use `as any` pattern

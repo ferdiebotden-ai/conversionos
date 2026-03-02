@@ -28,8 +28,15 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   '/api/data-deletion:POST': { windowMs: 60_000, maxRequests: 3 },
   // Voice check — lightweight but enumerable
   '/api/voice/check': { windowMs: 60_000, maxRequests: 10 },
+  // AI refinement — expensive Gemini call (~$0.10 each)
+  '/api/ai/visualize/refine:POST': { windowMs: 60_000, maxRequests: 5 },
+  // Quote regeneration — GPT-5.2 call
+  '/api/quotes/regenerate:POST': { windowMs: 60_000, maxRequests: 10 },
+  // Session save — sends email notification
+  '/api/sessions/save:POST': { windowMs: 60_000, maxRequests: 10 },
   // Admin write endpoints — prevent rapid mutation
   '/api/admin/settings:PUT': { windowMs: 60_000, maxRequests: 10 },
+  '/api/admin/settings:PATCH': { windowMs: 60_000, maxRequests: 10 },
   '/api/admin/quote-assistance': { windowMs: 60_000, maxRequests: 20 },
   // Shared visualizations — prevent UUID enumeration
   '/api/visualizations': { windowMs: 60_000, maxRequests: 30 },

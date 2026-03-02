@@ -7,8 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateImageUpload } from '@/lib/image-validation';
 import {
   visualizationRequestSchema,
   type VisualizationResponse,
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
   if (limited) return limited;
 
   const startTime = Date.now();
+  const siteId = await getSiteIdAsync();
 
   try {
     // Parse request body
@@ -154,6 +156,12 @@ export async function POST(request: NextRequest) {
       conversationContext,
       mode,
     } = parseResult.data;
+
+    // Validate image MIME type and size before processing
+    const imageCheck = validateImageUpload(image);
+    if (!imageCheck.valid) {
+      return NextResponse.json({ error: imageCheck.error, code: 'INVALID_IMAGE' }, { status: 400 });
+    }
 
     // Initialize Supabase service client
     const supabase = createServiceClient();
@@ -362,7 +370,7 @@ export async function POST(request: NextRequest) {
         // Enhanced fields — always write when available (all tiers, silent capture for Elevate)
         ...(photoAnalysis && { photo_analysis: photoAnalysis }),
         ...(hasConversationData && { conversation_context: fullConversationContext }),
-      }))
+      }, siteId))
       .select()
       .single();
 
@@ -385,7 +393,7 @@ export async function POST(request: NextRequest) {
               concept_pricing: pricingAnalysis,
             })
             .eq('id', visualization.id)
-            .eq('site_id', getSiteId());
+            .eq('site_id', siteId);
           console.log('Concept pricing analysis stored');
         })
         .catch((err) => console.warn('Concept pricing analysis failed (non-fatal):', err));
@@ -401,7 +409,7 @@ export async function POST(request: NextRequest) {
         mode: (mode === 'streamlined' ? 'quick' : mode) || 'quick',
         photoAnalyzed: !!photoAnalysis,
         conversationTurns: (conversationContext as Record<string, unknown>)?.['turnCount'] as number || 0,
-      }).catch((err) => console.error('Failed to record metrics:', err));
+      }, siteId).catch((err) => console.error('Failed to record metrics:', err));
     }
 
     // Build response — use effective types for schema compliance
@@ -735,7 +743,8 @@ interface MetricsInput {
 
 async function recordVisualizationMetrics(
   supabase: ReturnType<typeof createServiceClient>,
-  metrics: MetricsInput
+  metrics: MetricsInput,
+  siteId: string
 ): Promise<void> {
   // Estimate cost based on operations
   // Photo analysis: ~$0.015, depth estimation: ~$0.002, edge detection: $0, 4 concepts: ~$0.40, validation: ~$0.01
@@ -765,7 +774,7 @@ async function recordVisualizationMetrics(
     error_occurred: metrics.errorOccurred || false,
     error_code: metrics.errorCode,
     error_message: metrics.errorMessage,
-  });
+  }, siteId);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from as any)('visualization_metrics').insert(metricsData);

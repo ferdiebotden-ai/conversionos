@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { calculateEstimate } from '@/lib/pricing/engine';
 import { generateAIQuote, convertAIQuoteToLineItems, calculateAIQuoteTotals } from '@/lib/ai/quote-generation';
 import { sendEmail, getOwnerEmail } from '@/lib/email/resend';
@@ -39,6 +39,7 @@ const LeadsQuerySchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     // Apply filters
     if (status) {
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
   if (limited) return limited;
 
   try {
+    const siteId = await getSiteIdAsync();
     const body = await request.json();
 
     // Validate input
@@ -199,7 +201,7 @@ export async function POST(request: NextRequest) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contractor_prices not in generated types
           const { data: contractorPrices } = await (priceClient as any).from('contractor_prices')
             .select('*')
-            .eq('site_id', getSiteId());
+            .eq('site_id', siteId);
 
           aiGeneratedQuote = await generateAIQuote({
             projectType: data.projectType,
@@ -257,7 +259,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
     const { data: lead, error } = await supabase
       .from('leads')
-      .insert(withSiteId(leadData))
+      .insert(withSiteId(leadData, siteId))
       .select('id, status, created_at')
       .single();
 
@@ -282,7 +284,7 @@ export async function POST(request: NextRequest) {
           } as Json,
         })
         .eq('id', data.sessionId)
-        .eq('site_id', getSiteId());
+        .eq('site_id', siteId);
     }
 
     // Link visualization to lead if provided
@@ -292,7 +294,7 @@ export async function POST(request: NextRequest) {
         .from('visualizations')
         .update({ lead_id: lead.id })
         .eq('id', data.visualizationId)
-        .eq('site_id', getSiteId());
+        .eq('site_id', siteId);
 
       if (vizError) {
         console.error('Failed to link visualization to lead:', vizError);
@@ -305,6 +307,7 @@ export async function POST(request: NextRequest) {
         p_visualization_id: data.visualizationId,
         p_is_primary: true,
         p_admin_selected: false,
+        p_site_id: siteId,
       });
 
       if (rpcError) {
@@ -324,7 +327,7 @@ export async function POST(request: NextRequest) {
         has_ai_quote: !!aiGeneratedQuote,
         ai_confidence: aiGeneratedQuote?.overallConfidence,
       },
-    }));
+    }, siteId));
 
     // Send email notifications (don't block on these)
     const branding = await getBranding();

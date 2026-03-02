@@ -8,8 +8,9 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateImageUpload } from '@/lib/image-validation';
 import {
   type VisualizationResponse,
   type GeneratedConcept,
@@ -229,7 +230,8 @@ interface MetricsInput {
 
 async function recordVisualizationMetrics(
   supabase: ReturnType<typeof createServiceClient>,
-  metrics: MetricsInput
+  metrics: MetricsInput,
+  siteId: string
 ): Promise<void> {
   const analysisCost = metrics.photoAnalyzed ? 0.015 : 0;
   const depthCost = 0.002;
@@ -254,7 +256,7 @@ async function recordVisualizationMetrics(
     error_occurred: metrics.errorOccurred || false,
     error_code: metrics.errorCode,
     error_message: metrics.errorMessage,
-  });
+  }, siteId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from as any)('visualization_metrics').insert(metricsData);
   if (error) {
@@ -314,6 +316,7 @@ export async function POST(request: NextRequest) {
   }
 
   const validated = parseResult.data;
+  const siteId = await getSiteIdAsync();
   const encoder = new TextEncoder();
   const isAborted = () => request.signal.aborted;
 
@@ -353,6 +356,18 @@ export async function POST(request: NextRequest) {
           conversationContext,
           mode,
         } = validated;
+
+        // Validate image MIME type and size before processing
+        const imageCheck = validateImageUpload(image);
+        if (!imageCheck.valid) {
+          sendEvent(controller, encoder, 'error', {
+            type: 'error', message: imageCheck.error,
+          }, isAborted);
+          clearInterval(heartbeat);
+          clearTimeout(safetyTimeout);
+          controller.close();
+          return;
+        }
 
         const supabase = createServiceClient();
 
@@ -591,7 +606,7 @@ export async function POST(request: NextRequest) {
             user_agent: request.headers.get('user-agent') || null,
             ...(photoAnalysis && { photo_analysis: photoAnalysis }),
             ...(hasConversationData && { conversation_context: fullConversationContext }),
-          }))
+          }, siteId))
           .select()
           .single();
 
@@ -607,7 +622,7 @@ export async function POST(request: NextRequest) {
               await (supabase.from('visualizations') as any)
                 .update({ concept_pricing: pricingAnalysis })
                 .eq('id', visualization.id)
-                .eq('site_id', getSiteId());
+                .eq('site_id', siteId);
             })
             .catch((err) => console.warn('Concept pricing analysis failed:', err));
         }
@@ -621,7 +636,7 @@ export async function POST(request: NextRequest) {
             mode: (mode === 'streamlined' ? 'quick' : mode) || 'quick',
             photoAnalyzed: !!photoAnalysis,
             conversationTurns: (conversationContext as Record<string, unknown>)?.['turnCount'] as number || 0,
-          }).catch((err) => console.error('Failed to record metrics:', err));
+          }, siteId).catch((err) => console.error('Failed to record metrics:', err));
         }
 
         // ── 8. Complete event ───────────────────────────────────────────

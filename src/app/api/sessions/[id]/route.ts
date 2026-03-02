@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 
 /**
  * Get Session API
@@ -13,6 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const { id: sessionId } = await params;
 
     // Validate UUID format
@@ -31,7 +32,7 @@ export async function GET(
       .from('chat_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error || !session) {
@@ -62,7 +63,7 @@ export async function GET(
       .from('chat_sessions')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', sessionId)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     return NextResponse.json({
       success: true,

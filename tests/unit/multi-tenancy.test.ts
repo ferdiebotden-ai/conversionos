@@ -161,6 +161,7 @@ describe('withSiteId()', () => {
 
 describe('DOMAIN_TO_SITE mapping', () => {
   const originalEnv = process.env['NEXT_PUBLIC_SITE_ID'];
+  const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
     if (originalEnv !== undefined) {
@@ -168,6 +169,7 @@ describe('DOMAIN_TO_SITE mapping', () => {
     } else {
       delete process.env['NEXT_PUBLIC_SITE_ID'];
     }
+    process.env.NODE_ENV = originalNodeEnv;
     vi.resetModules();
   });
 
@@ -207,13 +209,24 @@ describe('DOMAIN_TO_SITE mapping', () => {
     expect(result.status).toBe(404);
   });
 
-  it('falls back to NEXT_PUBLIC_SITE_ID when domain is not in the map', async () => {
+  it('falls back to NEXT_PUBLIC_SITE_ID when domain is not in the map (dev only)', async () => {
     process.env['NEXT_PUBLIC_SITE_ID'] = 'red-white-reno';
+    process.env.NODE_ENV = 'development';
     const { proxy } = await import('@/proxy');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await proxy(createMockRequest('localhost:3000') as any);
 
     expect(result.options?.request?.headers?.get('x-site-id')).toBe('red-white-reno');
+  });
+
+  it('returns 404 for unknown domain in production even with NEXT_PUBLIC_SITE_ID set', async () => {
+    process.env['NEXT_PUBLIC_SITE_ID'] = 'red-white-reno';
+    process.env.NODE_ENV = 'production';
+    const { proxy } = await import('@/proxy');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = await proxy(createMockRequest('unknown.example.com') as any);
+
+    expect(result.status).toBe(404);
   });
 
   it('strips port from hostname before domain lookup', async () => {

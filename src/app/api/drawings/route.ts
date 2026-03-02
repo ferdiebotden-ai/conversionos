@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { DrawingCreateSchema } from '@/lib/schemas/drawing';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -12,6 +12,7 @@ import type { DrawingStatus } from '@/types/database';
  */
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'drawings')) {
       return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('drawings')
       .select('*', { count: 'exact' })
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'drawings')) {
       return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     const { data: drawing, error } = await supabase
       .from('drawings')
-      .insert(withSiteId(drawingData))
+      .insert(withSiteId(drawingData, siteId))
       .select('*')
       .single();
 

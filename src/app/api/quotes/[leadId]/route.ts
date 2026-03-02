@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { getDepositPercent } from '@/lib/pricing/deposit.server';
@@ -76,6 +76,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'ai_quote_engine')) {
       return NextResponse.json({ error: 'Quotes require the Accelerate plan or higher' }, { status: 403 });
@@ -97,7 +98,7 @@ export async function GET(
       .from('leads')
       .select('id, name, email, project_type, quote_draft_json')
       .eq('id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (leadError) {
@@ -119,7 +120,7 @@ export async function GET(
       .from('quote_drafts')
       .select('*')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('version', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -176,6 +177,7 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'ai_quote_engine')) {
       return NextResponse.json({ error: 'Quotes require the Accelerate plan or higher' }, { status: 403 });
@@ -216,7 +218,7 @@ export async function PUT(
       .from('leads')
       .select('id')
       .eq('id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (leadError) {
@@ -242,7 +244,7 @@ export async function PUT(
       .from('quote_drafts')
       .select('id, version')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('version', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -270,7 +272,7 @@ export async function PUT(
         .from('quote_drafts')
         .update(updateData)
         .eq('id', existingQuote.id)
-        .eq('site_id', getSiteId())
+        .eq('site_id', siteId)
         .select('*')
         .single();
 
@@ -290,7 +292,7 @@ export async function PUT(
           total: totals.total,
           line_items_count: line_items.length,
         },
-      }));
+      }, siteId));
 
       return NextResponse.json({
         success: true,
@@ -315,7 +317,7 @@ export async function PUT(
 
       const { data: newQuote, error: insertError } = await (supabase
         .from('quote_drafts') as ReturnType<typeof supabase.from>)
-        .insert(withSiteId(insertData) as never)
+        .insert(withSiteId(insertData, siteId) as never)
         .select('*')
         .single();
 
@@ -332,7 +334,7 @@ export async function PUT(
         .from('leads')
         .update({ status: 'draft_ready', updated_at: now.toISOString() })
         .eq('id', leadId)
-        .eq('site_id', getSiteId());
+        .eq('site_id', siteId);
 
       // Log the creation
       await supabase.from('audit_log').insert(withSiteId({
@@ -342,7 +344,7 @@ export async function PUT(
           total: totals.total,
           line_items_count: line_items.length,
         },
-      }));
+      }, siteId));
 
       return NextResponse.json({
         success: true,

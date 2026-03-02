@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { z } from 'zod';
 
 // Schema for updating a visualization (save with email)
@@ -17,6 +17,7 @@ const saveVisualizationSchema = z.object({
 
 // GET: List visualizations (requires auth in production)
 export async function GET(request: NextRequest) {
+  const siteId = await getSiteIdAsync();
   const { searchParams } = new URL(request.url);
   const shareToken = searchParams.get('token');
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       .from('visualizations')
       .select('*')
       .eq('share_token', shareToken)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error || !data) {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('visualizations')
     .select('*')
-    .eq('site_id', getSiteId())
+    .eq('site_id', siteId)
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 // POST: Save visualization with email
 export async function POST(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const body = await request.json();
     const parseResult = saveVisualizationSchema.safeParse(body);
 
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
         shared: share ?? false,
       })
       .eq('id', visualizationId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select()
       .single();
 

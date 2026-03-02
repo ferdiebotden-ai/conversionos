@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { InvoiceCreateSchema } from '@/lib/schemas/invoice';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -15,6 +15,7 @@ const HST_PERCENT = 13;
  */
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('invoices')
       .select('*', { count: 'exact' })
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -94,8 +96,8 @@ export async function POST(request: NextRequest) {
 
     // Fetch lead + quote data
     const [leadResult, quoteResult] = await Promise.all([
-      supabase.from('leads').select('*').eq('id', lead_id).eq('site_id', getSiteId()).single(),
-      supabase.from('quote_drafts').select('*').eq('id', quote_draft_id).eq('site_id', getSiteId()).single(),
+      supabase.from('leads').select('*').eq('id', lead_id).eq('site_id', siteId).single(),
+      supabase.from('quote_drafts').select('*').eq('id', quote_draft_id).eq('site_id', siteId).single(),
     ]);
 
     if (leadResult.error || !leadResult.data) {
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     // Generate sequential invoice number
     const { data: seqData, error: seqError } = await supabase
-      .rpc('next_invoice_number' as never, { p_site_id: getSiteId() } as never);
+      .rpc('next_invoice_number' as never, { p_site_id: siteId } as never);
 
     if (seqError) {
       console.error('Error generating invoice number:', seqError);
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     const { data: invoice, error: insertError } = await supabase
       .from('invoices')
-      .insert(withSiteId(invoiceData))
+      .insert(withSiteId(invoiceData, siteId))
       .select('*')
       .single();
 
@@ -175,7 +177,7 @@ export async function POST(request: NextRequest) {
       .from('leads')
       .update({ status: 'won', updated_at: new Date().toISOString() })
       .eq('id', lead_id)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     // Audit log
     await supabase.from('audit_log').insert(withSiteId({
@@ -186,7 +188,7 @@ export async function POST(request: NextRequest) {
         invoice_number: invoiceNumber,
         total,
       } as unknown as Json,
-    }));
+    }, siteId));
 
     return NextResponse.json({ success: true, data: invoice });
   } catch (error) {

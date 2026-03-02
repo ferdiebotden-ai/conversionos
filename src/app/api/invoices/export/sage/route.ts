@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { generateSageCsv } from '@/lib/export/sage-csv';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -12,6 +12,7 @@ import type { Invoice, InvoiceStatus } from '@/types/database';
  */
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('invoices')
       .select('*')
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .neq('status', 'cancelled')
       .neq('status', 'draft')
       .order('issue_date', { ascending: true });

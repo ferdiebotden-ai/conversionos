@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import type { LeadStatus, LeadUpdate } from '@/types/database';
 
 /**
@@ -31,6 +31,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const { id } = await context.params;
 
     if (!id) {
@@ -46,7 +47,7 @@ export async function GET(
       .from('leads')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error) {
@@ -85,6 +86,7 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const { id } = await context.params;
 
     if (!id) {
@@ -112,7 +114,7 @@ export async function PATCH(
       .from('leads')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (fetchError) {
@@ -175,7 +177,7 @@ export async function PATCH(
       .from('leads')
       .update(leadUpdate)
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select('*')
       .single();
 
@@ -193,7 +195,7 @@ export async function PATCH(
       action: 'lead_updated',
       old_values: existingLead,
       new_values: updatedLead,
-    }));
+    }, siteId));
 
     return NextResponse.json({
       success: true,
@@ -217,6 +219,7 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const { id } = await context.params;
 
     if (!id) {
@@ -233,7 +236,7 @@ export async function DELETE(
       .from('leads')
       .update({ status: 'lost' as LeadStatus, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select('*')
       .single();
 

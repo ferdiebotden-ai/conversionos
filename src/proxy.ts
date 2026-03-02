@@ -35,12 +35,12 @@ export async function proxy(request: NextRequest) {
     ? request.nextUrl.searchParams.get('__site_id')
     : null;
 
-  // Resolve site_id: dev override → domain map → env var
+  // Resolve site_id: dev override → domain map → env var (dev only)
   const siteId =
     devOverride ||
     DOMAIN_TO_SITE[hostname] ||
     DOMAIN_TO_SITE[domain] ||
-    process.env['NEXT_PUBLIC_SITE_ID'];
+    (process.env.NODE_ENV === 'development' ? process.env['NEXT_PUBLIC_SITE_ID'] : null);
 
   if (!siteId) {
     return new NextResponse('Tenant not found', { status: 404 });

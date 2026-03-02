@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { InvoiceUpdateSchema } from '@/lib/schemas/invoice';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -19,6 +19,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -36,7 +37,7 @@ export async function GET(
       .from('invoices')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error) {
@@ -52,7 +53,7 @@ export async function GET(
       .from('payments')
       .select('*')
       .eq('invoice_id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('payment_date', { ascending: false });
 
     return NextResponse.json({
@@ -74,6 +75,7 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -109,7 +111,7 @@ export async function PUT(
       .from('invoices')
       .update(updatePayload)
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select('*')
       .single();
 
@@ -126,7 +128,7 @@ export async function PUT(
       lead_id: invoice.lead_id,
       action: 'invoice_updated',
       new_values: validation.data as unknown as Json,
-    }));
+    }, siteId));
 
     return NextResponse.json({ success: true, data: invoice });
   } catch (error) {
@@ -144,6 +146,7 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -161,7 +164,7 @@ export async function DELETE(
       .from('invoices')
       .update({ status: 'cancelled' })
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select('*')
       .single();
 
@@ -178,7 +181,7 @@ export async function DELETE(
       lead_id: invoice.lead_id,
       action: 'invoice_cancelled',
       new_values: { invoice_id: id } as unknown as Json,
-    }));
+    }, siteId));
 
     return NextResponse.json({ success: true, data: invoice });
   } catch (error) {

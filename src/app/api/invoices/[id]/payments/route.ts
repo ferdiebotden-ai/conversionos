@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { PaymentRecordSchema } from '@/lib/schemas/invoice';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -17,6 +17,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -29,7 +30,7 @@ export async function GET(
       .from('payments')
       .select('*')
       .eq('invoice_id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('payment_date', { ascending: false });
 
     if (error) {
@@ -56,6 +57,7 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -79,7 +81,7 @@ export async function POST(
       .from('invoices')
       .select('id, lead_id, status, balance_due')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (invoiceError || !invoice) {
@@ -111,7 +113,7 @@ export async function POST(
 
     const { data: payment, error: insertError } = await supabase
       .from('payments')
-      .insert(withSiteId(paymentData))
+      .insert(withSiteId(paymentData, siteId))
       .select('*')
       .single();
 
@@ -132,14 +134,14 @@ export async function POST(
         amount: validation.data.amount,
         method: validation.data.payment_method,
       } as unknown as Json,
-    }));
+    }, siteId));
 
     // Fetch updated invoice to return current state
     const { data: updatedInvoice } = await supabase
       .from('invoices')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     return NextResponse.json({

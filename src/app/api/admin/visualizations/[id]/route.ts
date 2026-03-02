@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -22,6 +22,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -54,7 +55,7 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
       })
       .eq('id', visualizationId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select()
       .single();
 
@@ -81,6 +82,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -93,7 +95,7 @@ export async function GET(
       .from('visualizations')
       .select('*')
       .eq('id', visualizationId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error) {

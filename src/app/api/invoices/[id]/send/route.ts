@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { InvoiceSendSchema } from '@/lib/schemas/invoice';
 import { InvoicePdfDocument } from '@/lib/pdf/invoice-template';
 import { getBranding } from '@/lib/branding';
@@ -20,6 +20,7 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'invoicing')) {
       return NextResponse.json({ error: 'Invoicing requires the Accelerate plan or higher' }, { status: 403 });
@@ -44,7 +45,7 @@ export async function POST(
       .from('invoices')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error || !invoice) {
@@ -55,7 +56,7 @@ export async function POST(
       .from('payments')
       .select('*')
       .eq('invoice_id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('payment_date', { ascending: true });
 
     // Generate PDF
@@ -125,7 +126,7 @@ export async function POST(
       .from('invoices')
       .update({ status: 'sent', sent_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     // Audit log
     await supabase.from('audit_log').insert(withSiteId({
@@ -135,7 +136,7 @@ export async function POST(
         invoice_id: id,
         sent_to: to_email,
       } as unknown as Json,
-    }));
+    }, siteId));
 
     return NextResponse.json({ success: true, message: 'Invoice sent' });
   } catch (error) {

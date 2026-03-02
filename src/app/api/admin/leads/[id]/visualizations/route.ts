@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -13,6 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -49,7 +50,7 @@ export async function GET(
           )
         `)
         .eq('lead_id', leadId)
-        .eq('site_id', getSiteId())
+        .eq('site_id', siteId)
         .order('is_primary', { ascending: false });
 
       if (!linkError && linkedViz && linkedViz.length > 0) {
@@ -77,7 +78,7 @@ export async function GET(
       .from('visualizations')
       .select('*')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('created_at', { ascending: false });
 
     if (directError) {
@@ -104,6 +105,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -128,7 +130,7 @@ export async function POST(
       .from('visualizations')
       .update({ lead_id: leadId })
       .eq('id', visualizationId)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     if (updateError) {
       console.error('Error linking visualization:', updateError);

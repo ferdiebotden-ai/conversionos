@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { QuotePdfDocument } from '@/lib/pdf/quote-template';
 import { formatQuoteNumber } from '@/lib/pdf/pdf-utils';
 import { getBranding } from '@/lib/branding';
@@ -25,6 +25,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'pdf_quotes')) {
       return NextResponse.json({ error: 'PDF quotes require the Accelerate plan or higher' }, { status: 403 });
@@ -47,7 +48,7 @@ export async function GET(
       .from('leads')
       .select('*')
       .eq('id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (leadError || !lead) {
@@ -63,7 +64,7 @@ export async function GET(
       .from('quote_drafts')
       .select('*')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('version', { ascending: false })
       .limit(1)
       .single();
@@ -103,7 +104,7 @@ export async function GET(
         quote_version: quote.version,
         total: quote.total,
       },
-    }));
+    }, siteId));
 
     // Convert buffer to Uint8Array for Response
     const pdfArray = new Uint8Array(pdfBuffer);

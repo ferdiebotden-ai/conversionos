@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -38,6 +38,7 @@ export async function GET(
   context: RouteContext,
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'assembly_templates')) {
       return NextResponse.json(
@@ -52,7 +53,7 @@ export async function GET(
     const { data, error } = await (supabase as any).from('assembly_templates')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error || !data) {
@@ -74,6 +75,7 @@ export async function PUT(
   context: RouteContext,
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'assembly_templates')) {
       return NextResponse.json(
@@ -104,7 +106,7 @@ export async function PUT(
     const { data, error } = await (supabase as any).from('assembly_templates')
       .update(updates)
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select()
       .single();
 
@@ -127,6 +129,7 @@ export async function DELETE(
   context: RouteContext,
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'assembly_templates')) {
       return NextResponse.json(
@@ -141,7 +144,7 @@ export async function DELETE(
     const { error } = await (supabase as any).from('assembly_templates')
       .delete()
       .eq('id', id)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     if (error) {
       console.error('Error deleting template:', error);

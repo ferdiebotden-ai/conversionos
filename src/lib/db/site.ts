@@ -47,6 +47,9 @@ export async function getSiteIdAsync(): Promise<string> {
   throw new Error('Could not resolve site_id — set NEXT_PUBLIC_SITE_ID or configure proxy');
 }
 
-export function withSiteId<T extends Record<string, unknown>>(data: T): T & { site_id: string } {
-  return { ...data, site_id: getSiteId() };
+export function withSiteId<T extends Record<string, unknown>>(
+  data: T,
+  siteId?: string
+): T & { site_id: string } {
+  return { ...data, site_id: siteId ?? getSiteId() };
 }

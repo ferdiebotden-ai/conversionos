@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -25,6 +25,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'pdf_quotes')) {
       return NextResponse.json({ error: 'Requires Accelerate plan or higher' }, { status: 403 });
@@ -42,7 +43,7 @@ export async function GET(
       .from('quote_drafts')
       .select('version, updated_at, sent_at, total, acceptance_status, accepted_at, accepted_by_name')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('version', { ascending: false });
 
     if (error) {

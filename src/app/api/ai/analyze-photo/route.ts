@@ -11,6 +11,7 @@ import {
   type RoomAnalysis,
 } from '@/lib/ai/photo-analyzer';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateImageUpload } from '@/lib/image-validation';
 
 const requestSchema = z.object({
   image: z.string().min(1, 'Image data is required'),
@@ -41,6 +42,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { image } = parseResult.data;
+
+    // Validate image MIME type and size before sending to AI
+    const imageCheck = validateImageUpload(image);
+    if (!imageCheck.valid) {
+      return NextResponse.json({ error: imageCheck.error }, { status: 400 });
+    }
 
     const analysis: RoomAnalysis = await analyzeRoomPhotoForVisualization(image);
 

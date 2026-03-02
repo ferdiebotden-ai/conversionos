@@ -9,6 +9,13 @@ import { applyRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
+// ─── Input Bounds ──────────────────────────────────────────────────────────
+
+const MAX_MESSAGES = 50;
+const MAX_MESSAGE_CONTENT_BYTES = 100_000; // 100KB per message
+const MAX_IMAGES_PER_MESSAGE = 10;
+const MAX_SYSTEM_PROMPT_BYTES = 32_000; // 32KB
+
 interface MessagePart {
   type: 'text' | 'image';
   text?: string;
@@ -27,7 +34,29 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   try {
-    const { messages, handoffContext, estimateData, systemPromptOverride } = await req.json();
+    const body = await req.json();
+    const { messages, handoffContext, estimateData, systemPromptOverride } = body;
+
+    // Validate input bounds
+    if (!Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'messages must be an array' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(JSON.stringify({ error: `Too many messages (max ${MAX_MESSAGES})` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+    for (const msg of messages as IncomingMessage[]) {
+      const contentLen = new TextEncoder().encode(msg.content ?? '').length;
+      if (contentLen > MAX_MESSAGE_CONTENT_BYTES) {
+        return new Response(JSON.stringify({ error: `Message content exceeds ${MAX_MESSAGE_CONTENT_BYTES / 1000}KB limit` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+      const imageCount = (msg.parts?.filter(p => p.type === 'image').length ?? 0) + (msg.data?.images?.length ?? 0);
+      if (imageCount > MAX_IMAGES_PER_MESSAGE) {
+        return new Response(JSON.stringify({ error: `Too many images per message (max ${MAX_IMAGES_PER_MESSAGE})` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+    }
+    if (typeof systemPromptOverride === 'string' && new TextEncoder().encode(systemPromptOverride).length > MAX_SYSTEM_PROMPT_BYTES) {
+      return new Response(JSON.stringify({ error: `System prompt override exceeds ${MAX_SYSTEM_PROMPT_BYTES / 1000}KB limit` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
 
     // Helper to extract text content from message (handles both old and new formats)
     const getMessageContent = (msg: IncomingMessage): string => {

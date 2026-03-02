@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { QuotePdfDocument } from '@/lib/pdf/quote-template';
 import { QuoteEmailTemplate } from '@/lib/email/quote-email';
 import { getResend } from '@/lib/email/resend';
@@ -62,6 +62,7 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'pdf_quotes')) {
       return NextResponse.json({ error: 'Quote sending requires the Accelerate plan or higher' }, { status: 403 });
@@ -97,7 +98,7 @@ export async function POST(
       .from('leads')
       .select('*')
       .eq('id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (leadError || !lead) {
@@ -122,7 +123,7 @@ export async function POST(
       .from('quote_drafts')
       .select('*')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('version', { ascending: false })
       .limit(1)
       .single();
@@ -252,8 +253,11 @@ export async function POST(
 
     const now = new Date().toISOString();
 
+    // Post-email DB writes — email is already sent, so log errors but don't fail the response
+    const dbErrors: string[] = [];
+
     // Update current quote row with sent info + acceptance token
-    await supabase
+    const { error: quoteUpdateError } = await supabase
       .from('quote_drafts')
       .update({
         sent_at: now,
@@ -263,11 +267,16 @@ export async function POST(
         updated_at: now,
       })
       .eq('id', quote.id)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
+
+    if (quoteUpdateError) {
+      console.error('Failed to update quote after send:', quoteUpdateError);
+      dbErrors.push('quote_update');
+    }
 
     // Create a new draft row (version snapshot) — the new row becomes the editable draft
     const nextVersion = (quote.version || 1) + 1;
-    await (supabase.from('quote_drafts') as ReturnType<typeof supabase.from>).insert({
+    const { error: versionError } = await (supabase.from('quote_drafts') as ReturnType<typeof supabase.from>).insert({
       site_id: quote.site_id,
       lead_id: quote.lead_id,
       version: nextVersion,
@@ -293,8 +302,13 @@ export async function POST(
       pdf_url: null,
     });
 
+    if (versionError) {
+      console.error('Failed to create version snapshot after send:', versionError);
+      dbErrors.push('version_snapshot');
+    }
+
     // Update lead status to 'sent'
-    await supabase
+    const { error: leadUpdateError } = await supabase
       .from('leads')
       .update({
         status: 'sent',
@@ -302,10 +316,15 @@ export async function POST(
         last_contacted_at: now,
       })
       .eq('id', leadId)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
+
+    if (leadUpdateError) {
+      console.error('Failed to update lead status after send:', leadUpdateError);
+      dbErrors.push('lead_status');
+    }
 
     // Log the send action
-    await supabase.from('audit_log').insert(withSiteId({
+    const { error: auditError } = await supabase.from('audit_log').insert(withSiteId({
       lead_id: leadId,
       action: 'quote_sent',
       new_values: {
@@ -317,11 +336,19 @@ export async function POST(
         custom_message: customMessage || null,
         acceptance_url: acceptanceUrl,
       },
-    }));
+    }, siteId));
+
+    if (auditError) {
+      console.error('Failed to log send action:', auditError);
+      dbErrors.push('audit_log');
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Quote sent successfully',
+      message: dbErrors.length > 0
+        ? `Quote sent successfully, but some records may need attention: ${dbErrors.join(', ')}`
+        : 'Quote sent successfully',
+      ...(dbErrors.length > 0 && { warnings: dbErrors }),
       data: {
         emailId: emailResult.data?.id,
         sentTo: toEmail,

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -33,6 +33,7 @@ const CreateTemplateSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'assembly_templates')) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceClient();
     let query = (supabase as any).from('assembly_templates')
       .select('*')
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('category')
       .order('name');
 
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'assembly_templates')) {
       return NextResponse.json(
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
         description: description ?? null,
         items: JSON.stringify(items),
         is_default: is_default ?? false,
-      }))
+      }, siteId))
       .select()
       .single();
 

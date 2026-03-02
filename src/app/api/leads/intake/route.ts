@@ -10,7 +10,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { extractIntakeFields } from '@/lib/ai/intake-extraction';
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     // ─── Create action ──────────────────────────────────────────
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     // Build lead record
     const leadData: Record<string, unknown> = {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     // Insert lead (use `as any` since new columns may not be in generated types)
     const { data: lead, error } = await (supabase.from('leads') as ReturnType<typeof supabase.from>)
-      .insert(withSiteId(leadData as Record<string, unknown> & { site_id?: string }))
+      .insert(withSiteId(leadData as Record<string, unknown> & { site_id?: string }, siteId))
       .select('id, status, created_at')
       .single() as { data: { id: string; status: string; created_at: string } | null; error: { message: string; code?: string | undefined } | null };
 
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
         project_type: data.projectType || null,
         has_raw_input: !!data.rawInput,
       } as Json,
-    }));
+    }, siteId));
 
     return NextResponse.json({
       success: true,

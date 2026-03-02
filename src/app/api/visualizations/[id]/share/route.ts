@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
@@ -38,7 +38,7 @@ export async function POST(
     }
 
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     // Verify visualization exists and belongs to this tenant
     const { data: viz, error: fetchError } = await supabase

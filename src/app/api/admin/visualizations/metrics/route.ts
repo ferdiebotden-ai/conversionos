@@ -4,12 +4,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
 export async function GET(request: NextRequest) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'admin_dashboard')) {
       return NextResponse.json({ error: 'Admin dashboard requires the Accelerate plan or higher' }, { status: 403 });
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- rpc name not in generated types
     const { data: summary, error: summaryError } = await (supabase.rpc as Function)(
       'get_visualization_summary',
-      { p_site_id: getSiteId(), p_days: days }
+      { p_site_id: siteId, p_days: days }
     );
 
     if (summaryError) {
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       const { data: metrics, error: metricsError } = await supabase
         .from('visualization_metrics' as 'visualizations')
         .select('*')
-        .eq('site_id', getSiteId())
+        .eq('site_id', siteId)
         .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()) as { data: Array<{
           generation_time_ms: number;
           structure_validation_score: number | null;

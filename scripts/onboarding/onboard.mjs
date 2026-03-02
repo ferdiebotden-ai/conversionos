@@ -13,7 +13,7 @@
  *   5. Verify deployment (optional — needs deployed site)
  */
 
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -54,12 +54,12 @@ mkdirSync(tmpDir, { recursive: true });
 const scriptDir = resolve(process.cwd(), 'scripts/onboarding');
 const startTime = Date.now();
 
-function run(label, cmd) {
+function run(label, file, args) {
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`  ${label}`);
   console.log(`${'═'.repeat(60)}\n`);
   try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+    execFileSync('node', [file, ...args], { stdio: 'inherit', cwd: process.cwd() });
     return true;
   } catch (e) {
     console.error(`\nFAILED: ${label}`);
@@ -70,7 +70,7 @@ function run(label, cmd) {
 
 // ─── Step 1: Score ──────────────────────────────────────────────────────────
 if (!args['skip-score']) {
-  if (!run('Step 1/5: Scoring fitness', `node ${scriptDir}/score.mjs --url "${args.url}"`)) {
+  if (!run('Step 1/5: Scoring fitness', `${scriptDir}/score.mjs`, ['--url', args.url])) {
     console.log('\nSite scored too low. Use --skip-score to override.');
     process.exit(1);
   }
@@ -79,7 +79,7 @@ if (!args['skip-score']) {
 // ─── Step 2: Scrape ─────────────────────────────────────────────────────────
 const scrapedPath = `${tmpDir}/scraped.json`;
 if (!existsSync(scrapedPath)) {
-  if (!run('Step 2/5: Scraping website', `node ${scriptDir}/scrape.mjs --url "${args.url}" --output "${scrapedPath}"`)) {
+  if (!run('Step 2/5: Scraping website', `${scriptDir}/scrape.mjs`, ['--url', args.url, '--output', scrapedPath])) {
     process.exit(1);
   }
 } else {
@@ -89,7 +89,7 @@ if (!existsSync(scrapedPath)) {
 // ─── Step 3: Upload images ──────────────────────────────────────────────────
 const provisionedPath = `${tmpDir}/provisioned.json`;
 if (!existsSync(provisionedPath)) {
-  if (!run('Step 3/5: Uploading + optimizing images', `node ${scriptDir}/upload-images.mjs --site-id "${siteId}" --data "${scrapedPath}" --output "${provisionedPath}"`)) {
+  if (!run('Step 3/5: Uploading + optimizing images', `${scriptDir}/upload-images.mjs`, ['--site-id', siteId, '--data', scrapedPath, '--output', provisionedPath])) {
     process.exit(1);
   }
 } else {
@@ -97,7 +97,7 @@ if (!existsSync(provisionedPath)) {
 }
 
 // ─── Step 4: Provision ──────────────────────────────────────────────────────
-if (!run('Step 4/5: Provisioning tenant', `node ${scriptDir}/provision.mjs --site-id "${siteId}" --data "${provisionedPath}" --domain "${args.domain}" --tier "${args.tier}"`)) {
+if (!run('Step 4/5: Provisioning tenant', `${scriptDir}/provision.mjs`, ['--site-id', siteId, '--data', provisionedPath, '--domain', args.domain, '--tier', args.tier])) {
   process.exit(1);
 }
 
@@ -138,7 +138,7 @@ try {
 // ─── Step 4.5: Domain setup ─────────────────────────────────────────────────
 if (!skipDomain) {
   if (!run('Step 4.5: Domain setup (Vercel SSL cert)',
-    `node ${scriptDir}/add-domain.mjs --domain "${args.domain}" --site-id "${siteId}"`)) {
+    `${scriptDir}/add-domain.mjs`, ['--domain', args.domain, '--site-id', siteId])) {
     console.log('⚠ Domain setup had issues. Site may need manual DNS configuration.');
     // Do NOT exit — domain issues are non-blocking
   }

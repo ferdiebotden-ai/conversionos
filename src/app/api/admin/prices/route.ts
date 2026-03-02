@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import Papa from 'papaparse';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    const siteId = getSiteId();
+    const siteId = await getSiteIdAsync();
 
     // Delete existing prices for this tenant
     await (supabase as any).from('contractor_prices')
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       unit: row.unit,
       unit_price: row.unit_price,
       supplier: row.supplier ?? null,
-    }));
+    }, siteId));
 
     const { error: insertError } = await (supabase as any).from('contractor_prices')
       .insert(insertData);
@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'csv_price_upload')) {
       return NextResponse.json(
@@ -149,7 +150,7 @@ export async function GET() {
 
     const { data, error } = await (supabase as any).from('contractor_prices')
       .select('*')
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('category')
       .order('item_name');
 
@@ -178,6 +179,7 @@ export async function GET() {
  */
 export async function DELETE() {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'csv_price_upload')) {
       return NextResponse.json(
@@ -190,7 +192,7 @@ export async function DELETE() {
 
     const { count, error } = await (supabase as any).from('contractor_prices')
       .delete({ count: 'exact' })
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     if (error) {
       console.error('Error clearing contractor prices:', error);

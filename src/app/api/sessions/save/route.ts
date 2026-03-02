@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email/resend';
 import { SessionResumeEmail } from '@/emails/session-resume';
 import { getBranding } from '@/lib/branding';
@@ -28,6 +29,9 @@ const SaveSessionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
 
@@ -41,6 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+    const siteId = await getSiteIdAsync();
     const supabase = createServiceClient();
 
     // Check if we're updating an existing session or creating new
@@ -58,7 +63,7 @@ export async function POST(request: NextRequest) {
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         })
         .eq('id', sessionId)
-        .eq('site_id', getSiteId());
+        .eq('site_id', siteId);
 
       if (updateError) {
         console.error('Error updating session:', updateError);
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
           started_from: data.startedFrom || null,
           state: 'active',
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        }))
+        }, siteId))
         .select('id')
         .single();
 

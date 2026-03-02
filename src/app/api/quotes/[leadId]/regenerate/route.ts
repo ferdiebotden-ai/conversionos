@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId, withSiteId } from '@/lib/db/site';
+import { getSiteIdAsync, withSiteId } from '@/lib/db/site';
+import { applyRateLimit } from '@/lib/rate-limit';
 import { regenerateAIQuote, generateAIQuote } from '@/lib/ai/quote-generation';
 import type { QuoteGenerationInput } from '@/lib/schemas/ai-quote';
 import { getTier } from '@/lib/entitlements.server';
@@ -31,7 +32,11 @@ export async function POST(
   request: NextRequest,
   context: RouteContext
 ) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'ai_quote_engine')) {
       return NextResponse.json({ error: 'Quote regeneration requires the Accelerate plan or higher' }, { status: 403 });
@@ -65,7 +70,7 @@ export async function POST(
       .from('leads')
       .select('*')
       .eq('id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (leadError) {
@@ -106,7 +111,7 @@ export async function POST(
       .from('admin_settings')
       .select('value')
       .eq('key', 'category_markups')
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .maybeSingle();
     const markups: CategoryMarkupsConfig = (markupsRow?.value as unknown as CategoryMarkupsConfig) || DEFAULT_CATEGORY_MARKUPS;
 
@@ -114,7 +119,7 @@ export async function POST(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contractor_prices not in generated types
     const { data: contractorPrices } = await (supabase as any).from('contractor_prices')
       .select('*')
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     // Fetch concept pricing from visualization for richer AI context
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- concept_pricing not in generated types
@@ -122,7 +127,7 @@ export async function POST(
       .from('visualizations')
       .select('concept_pricing')
       .eq('lead_id', leadId)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -166,7 +171,7 @@ export async function POST(
         updated_at: new Date().toISOString(),
       })
       .eq('id', leadId)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     if (updateError) {
       console.error('Error updating lead with regenerated quote:', updateError);
@@ -185,7 +190,7 @@ export async function POST(
         line_items_count: aiQuote.lineItems.length,
         overall_confidence: aiQuote.overallConfidence,
       },
-    }));
+    }, siteId));
 
     return NextResponse.json({
       success: true,

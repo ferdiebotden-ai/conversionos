@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { DrawingUpdateSchema } from '@/lib/schemas/drawing';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
@@ -17,6 +17,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'drawings')) {
       return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
@@ -29,7 +30,7 @@ export async function GET(
       .from('drawings')
       .select('*')
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .single();
 
     if (error) {
@@ -56,6 +57,7 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'drawings')) {
       return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
@@ -87,7 +89,7 @@ export async function PUT(
       .from('drawings')
       .update(updateData)
       .eq('id', id)
-      .eq('site_id', getSiteId())
+      .eq('site_id', siteId)
       .select('*')
       .single();
 
@@ -115,6 +117,7 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    const siteId = await getSiteIdAsync();
     const tier = await getTier();
     if (!canAccess(tier, 'drawings')) {
       return NextResponse.json({ error: 'Drawings require the Accelerate plan or higher' }, { status: 403 });
@@ -127,7 +130,7 @@ export async function DELETE(
       .from('drawings')
       .delete()
       .eq('id', id)
-      .eq('site_id', getSiteId());
+      .eq('site_id', siteId);
 
     if (error) {
       console.error('Error deleting drawing:', error);
