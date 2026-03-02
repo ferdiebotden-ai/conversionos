@@ -91,20 +91,10 @@ export function Header() {
                     </SheetClose>
                   </>
                 )}
-                <div className="mt-4 flex flex-col gap-3 border-t pt-4">
+                <div className="mt-4 border-t pt-4">
                   <SheetClose asChild>
                     <Button asChild size="lg" className="h-12 w-full">
                       <Link href={cta.href}>{cta.label}</Link>
-                    </Button>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="h-12 w-full"
-                    >
-                      <Link href="/visualizer">Visualise</Link>
                     </Button>
                   </SheetClose>
                 </div>

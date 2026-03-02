@@ -13,7 +13,7 @@ import { MessageBubble } from '@/components/chat/message-bubble';
 import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { ReceptionistInput } from './receptionist-input';
 import { ReceptionistCTAButtons, stripCTAs } from './receptionist-cta-buttons';
-import { EMMA_PERSONA } from '@/lib/ai/personas';
+import { EMMA_PERSONA } from '@/lib/ai/personas/emma';
 import { SRAnnounce } from '@/components/ui/sr-announce';
 
 function getMessageContent(message: UIMessage): string {

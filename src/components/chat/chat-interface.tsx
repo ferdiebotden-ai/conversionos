@@ -832,7 +832,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
               Submit Request Now
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              {getChatSkipText(copyCtx)}
+              {getChatSkipText(copyCtx, branding.name)}
             </p>
           </div>
         ) : (

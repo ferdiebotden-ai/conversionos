@@ -56,6 +56,14 @@ export async function GET(request: NextRequest) {
       .eq('site_id', siteId)
       .gte('created_at', since.toISOString());
 
+    // Chat-only leads (no photo/visualizer)
+    const { count: chatOnlyLeadCount } = await supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('source', 'chat_no_photo')
+      .gte('created_at', since.toISOString());
+
     // Also get previous period data for delta calculation
     const previousSince = new Date(since);
     previousSince.setDate(previousSince.getDate() - days);
@@ -77,6 +85,14 @@ export async function GET(request: NextRequest) {
       .from('leads')
       .select('id', { count: 'exact', head: true })
       .eq('site_id', siteId)
+      .gte('created_at', previousSince.toISOString())
+      .lt('created_at', since.toISOString());
+
+    const { count: prevChatOnlyLeadCount } = await supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('source', 'chat_no_photo')
       .gte('created_at', previousSince.toISOString())
       .lt('created_at', since.toISOString());
 
@@ -135,6 +151,7 @@ export async function GET(request: NextRequest) {
       byMode: modeCounts,
       totalVisualizations: totalViz,
       totalLeads: leadCount || 0,
+      chatOnlyLeads: chatOnlyLeadCount || 0,
       avgGenerationTime: avgGenTimeSec,
       conversionRate,
       avgConcepts,
@@ -144,6 +161,7 @@ export async function GET(request: NextRequest) {
         avgGenerationTime: prevAvgGenTimeSec > 0 ? Math.round(((avgGenTimeSec - prevAvgGenTimeSec) / prevAvgGenTimeSec) * 100) : null,
         conversionRate: prevConversionRate > 0 ? conversionRate - prevConversionRate : null,
         leads: (previousLeadCount || 0) > 0 ? Math.round((((leadCount || 0) - (previousLeadCount || 0)) / (previousLeadCount || 0)) * 100) : null,
+        chatOnlyLeads: (prevChatOnlyLeadCount || 0) > 0 ? Math.round((((chatOnlyLeadCount || 0) - (prevChatOnlyLeadCount || 0)) / (prevChatOnlyLeadCount || 0)) * 100) : null,
       },
     });
   } catch (error) {

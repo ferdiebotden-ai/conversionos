@@ -117,15 +117,19 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
       {/* Main content */}
       <Tabs defaultValue="details" className="space-y-6">
-        <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
-          <TabsList className="inline-flex w-auto min-w-full md:w-full">
-            <TabsTrigger value="details" className="shrink-0">Details</TabsTrigger>
-            <TabsTrigger value="visualizations" className="shrink-0">Visualizations</TabsTrigger>
-            <TabsTrigger value="quote" className="shrink-0">Quote</TabsTrigger>
-            <TabsTrigger value="drawings" className="shrink-0">Drawings</TabsTrigger>
-            <TabsTrigger value="transcript" className="shrink-0">Chat</TabsTrigger>
-            <TabsTrigger value="activity" className="shrink-0">Activity</TabsTrigger>
-          </TabsList>
+        <div className="relative">
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 md:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-background to-transparent z-10 md:hidden" />
+          <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <TabsList className="inline-flex w-auto min-w-full md:w-full">
+              <TabsTrigger value="details" className="shrink-0">Details</TabsTrigger>
+              <TabsTrigger value="visualizations" className="shrink-0">Visualizations</TabsTrigger>
+              <TabsTrigger value="quote" className="shrink-0">Quote</TabsTrigger>
+              <TabsTrigger value="drawings" className="shrink-0">Drawings</TabsTrigger>
+              <TabsTrigger value="transcript" className="shrink-0">Chat</TabsTrigger>
+              <TabsTrigger value="activity" className="shrink-0">Activity</TabsTrigger>
+            </TabsList>
+          </div>
         </div>
 
         {/* Details Tab */}

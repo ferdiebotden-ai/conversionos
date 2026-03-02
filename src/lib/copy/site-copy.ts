@@ -66,19 +66,20 @@ export function getHowItWorksSubtitle(ctx: CopyContext): string {
 // MUST adapt to quoteMode regardless of what the DB stores.
 // ---------------------------------------------------------------------------
 
-export function getDefaultProcessStep3(ctx: CopyContext): {
+export function getDefaultProcessStep3(ctx: CopyContext, companyName?: string): {
   title: string;
   description: string;
 } {
+  const name = companyName || 'a qualified local contractor';
   if (hasQuotes(ctx)) {
     return {
       title: 'Receive Your Estimate',
-      description: 'Get a detailed cost range based on Ontario pricing data, then connect with a qualified local contractor to bring it to life.',
+      description: `Get a detailed cost range based on Ontario pricing data, then connect with ${name} to bring it to life.`,
     };
   }
   return {
     title: 'Connect with a Pro',
-    description: 'Love what you see? Get in touch with a qualified local contractor to discuss your project and bring it to life.',
+    description: `Love what you see? Get in touch with ${name} to discuss your project and bring it to life.`,
   };
 }
 
@@ -90,6 +91,8 @@ export function getHomepageFinalCTA(ctx: CopyContext): {
   description: string;
   secondaryLabel: string;
   secondaryHref: string;
+  chatLabel: string;
+  chatHref: string;
 } {
   if (hasQuotes(ctx)) {
     return {
@@ -97,6 +100,8 @@ export function getHomepageFinalCTA(ctx: CopyContext): {
         'Upload a photo. Get AI design concepts. Receive a ballpark estimate. All in minutes, all free.',
       secondaryLabel: 'Or get a free estimate',
       secondaryHref: '/visualizer',
+      chatLabel: 'No photo? Just chat with Emma',
+      chatHref: '/visualizer?mode=chat',
     };
   }
   return {
@@ -104,6 +109,8 @@ export function getHomepageFinalCTA(ctx: CopyContext): {
       'Upload a photo. Get AI design concepts. Connect with us to bring it to life.',
     secondaryLabel: 'Or contact us directly',
     secondaryHref: '/contact',
+    chatLabel: 'No photo? Just chat with Emma',
+    chatHref: '/visualizer?mode=chat',
   };
 }
 
@@ -301,6 +308,15 @@ export function getVisualizerShareCTA(ctx: CopyContext, branding: {
 }
 
 // ---------------------------------------------------------------------------
+// Visualizer — skip photo link text
+// ---------------------------------------------------------------------------
+
+export function getSkipPhotoText(ctx: CopyContext): string {
+  if (hasQuotes(ctx)) return "Don\u2019t have a photo? Tell us about your project for a quick estimate";
+  return "Don\u2019t have a photo? Tell us about your project instead";
+}
+
+// ---------------------------------------------------------------------------
 // Chat interface — welcome message (estimate page)
 // ---------------------------------------------------------------------------
 
@@ -344,7 +360,8 @@ export function getChatHandoffWelcome(
 // Chat — "skip the chat" helper text
 // ---------------------------------------------------------------------------
 
-export function getChatSkipText(ctx: CopyContext): string {
+export function getChatSkipText(ctx: CopyContext, companyName?: string): string {
+  const name = companyName || 'a team member';
   if (hasQuotes(ctx)) return 'In a hurry? Skip the chat and get your quote within 24 hours.';
-  return 'In a hurry? Skip the chat and a team member will be in touch within 24 hours.';
+  return `In a hurry? Skip the chat and ${name} will be in touch within 24 hours.`;
 }

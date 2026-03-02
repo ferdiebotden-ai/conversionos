@@ -53,6 +53,7 @@ interface TrendsData {
   byMode: Record<string, number>;
   totalVisualizations: number;
   totalLeads: number;
+  chatOnlyLeads: number;
   avgGenerationTime: number;
   conversionRate: number;
   avgConcepts: number;
@@ -62,6 +63,7 @@ interface TrendsData {
     avgGenerationTime: number | null;
     conversionRate: number | null;
     leads: number | null;
+    chatOnlyLeads: number | null;
   };
 }
 
@@ -298,23 +300,28 @@ export function AnalyticsDashboard() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/20 via-emerald-500/40 to-emerald-500/20" />
         </Card>
 
-        {/* Avg Concepts */}
+        {/* Total Leads */}
         <Card className="relative overflow-hidden">
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Avg Concepts/Session</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
                 <p className="text-3xl font-bold tracking-tight">
-                  {data.avgConcepts || '--'}
+                  {data.totalLeads}
                 </p>
               </div>
               <div className="rounded-lg bg-chart-4/10 p-2">
                 <Layers className="w-5 h-5 text-chart-4" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {data.totalLeads} leads generated
+            <div className="mt-2">
+              <DeltaBadge value={data.deltas.leads} suffix="% vs prev" />
             </div>
+            {data.chatOnlyLeads > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data.chatOnlyLeads} from chat, {data.totalLeads - data.chatOnlyLeads} from visualizer
+              </p>
+            )}
           </CardContent>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-chart-4/20 via-chart-4/40 to-chart-4/20" />
         </Card>

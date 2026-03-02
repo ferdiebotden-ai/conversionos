@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** March 1, 2026
+**Last updated:** March 2, 2026
 
 ---
 
@@ -95,8 +95,10 @@ The homeowner is the end-user of the platform — the person uploading photos an
 
 The entire homeowner experience happens on a single page — no clicking between forms, no separate estimate page. The homeowner never feels like they're "filling out a form." They're designing their space.
 
-### Step 1: Upload a Photo
+### Step 1: Upload a Photo (or Skip It)
 The homeowner takes a photo of their kitchen, bathroom, or basement (camera on mobile, drag-and-drop on desktop). AI immediately analyses the photo — detecting room type, dimensions, layout, fixtures, and condition.
+
+**No-photo fallback:** A skip link below the upload area ("Don't have a photo? Tell us about your project...") opens an alternative path with an embedded Emma chat panel and a standalone lead capture form. This is also accessible via `/visualizer?mode=chat` (linked from the homepage final CTA). The lead form captures name, email, phone, project type (7 options), timeline, and notes — and submits with `source: 'chat_no_photo'` for separate tracking in analytics.
 
 ### Step 2: Choose a Style
 Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones") or use dictation to speak them.
@@ -154,7 +156,7 @@ Create invoices directly from accepted quotes. Payment tracking, PDF generation,
 Business info, branding (colours, logo, hero), pricing configuration, quote assistance mode, category markups, price lists, templates — all self-serve.
 
 ### Analytics (Dominate only)
-Daily trends, room type distribution, generation times, conversion metrics via Recharts.
+Daily trends, room type distribution, generation times, conversion metrics via Recharts. KPI cards show total visualizations, avg generation time, viz-to-lead rate, and total leads with chat-only vs visualizer breakdown.
 
 ---
 
@@ -184,6 +186,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 | Image generation | Gemini 3.1 Flash Image (Nano Banana 2) | 4 photorealistic concepts | ~$0.27 |
 | Refinement | Gemini 3.1 Flash Image | Re-render starred concept | ~$0.07 |
 | Voice | ElevenLabs Conversational AI | Emma's voice (infra retained, UI removed) | ElevenLabs pricing |
+| Receptionist chat | GPT-5.2 | Emma homepage widget + no-photo chat | ~$0.01-0.03 |
 | Dictation | Web Speech API (browser-native) | Speak-to-type in Design Studio chat | Free |
 | Transcription | GPT-4o-mini (Whisper) | Contractor dictation (admin side) | ~$0.01 |
 

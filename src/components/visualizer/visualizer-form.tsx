@@ -6,8 +6,8 @@
  * Flow: Upload Photo → Room Type → Style → Preferences (text + voice) → Generate → Results
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,9 @@ import type {
 import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
 import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 import { useTier } from '@/components/tier-provider';
+import { NoPhotoChatPanel } from './no-photo-chat-panel';
+import { useCopyContext } from '@/lib/copy/use-site-copy';
+import { getSkipPhotoText } from '@/lib/copy/site-copy';
 import {
   AlertCircle,
   Sparkles,
@@ -37,7 +40,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-type Step = 'photo' | 'form' | 'transitioning' | 'generating' | 'result' | 'error';
+type Step = 'photo' | 'form' | 'transitioning' | 'generating' | 'result' | 'error' | 'no_photo_chat';
 
 interface FormData {
   photo: string | null;
@@ -64,8 +67,13 @@ function buildAnalysisSummary(analysis: RoomAnalysis): string {
 
 function VisualizerFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { canAccess } = useTier();
-  const [currentStep, setCurrentStep] = useState<Step>('photo');
+  const copyCtx = useCopyContext();
+
+  // Auto-skip to chat if ?mode=chat is present (from homepage CTA)
+  const initialStep: Step = searchParams.get('mode') === 'chat' ? 'no_photo_chat' : 'photo';
+  const [currentStep, setCurrentStep] = useState<Step>(initialStep);
   const [formData, setFormData] = useState<FormData>({
     photo: null,
     photoFile: null,
@@ -500,6 +508,15 @@ function VisualizerFormInner() {
     );
   }
 
+  // No-photo chat path — skip visualizer, go straight to Emma chat + lead form
+  if (currentStep === 'no_photo_chat') {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <NoPhotoChatPanel onBackToPhoto={() => setCurrentStep('photo')} />
+      </div>
+    );
+  }
+
   // Photo upload state
   if (currentStep === 'photo') {
     return (
@@ -508,6 +525,15 @@ function VisualizerFormInner() {
           value={formData.photo}
           onChange={handlePhotoUpload}
         />
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setCurrentStep('no_photo_chat')}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+          >
+            {getSkipPhotoText(copyCtx)}
+          </button>
+        </div>
       </div>
     );
   }
@@ -610,8 +636,10 @@ function VisualizerFormInner() {
  */
 export function VisualizerForm() {
   return (
-    <VoiceProvider>
-      <VisualizerFormInner />
-    </VoiceProvider>
+    <Suspense fallback={null}>
+      <VoiceProvider>
+        <VisualizerFormInner />
+      </VoiceProvider>
+    </Suspense>
   );
 }

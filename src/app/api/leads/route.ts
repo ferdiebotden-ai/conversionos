@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
       utm_medium: data.utmMedium || null,
       utm_campaign: data.utmCampaign || null,
       status: (quoteDraftJson ? 'draft_ready' : 'new') as LeadStatus,
-      source: 'ai_chat' as const,
+      source: (data.visualizationId ? 'ai_chat' : 'chat_no_photo') as string,
     };
 
     // Insert into database
