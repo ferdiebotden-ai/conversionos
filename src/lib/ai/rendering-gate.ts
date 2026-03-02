@@ -15,7 +15,7 @@
  *
  * Threshold: 50 points — requires at least 2 substantive design signals.
  * Cooldown: 30 seconds between refinements.
- * Cap: 3 refinements per session.
+ * Cap: 5 refinements per session.
  */
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export const RENDERING_CONFIG = {
   /** Minimum score to trigger a refinement */
   readinessThreshold: 50,
   /** Maximum refinements per session */
-  maxRefinements: 3,
+  maxRefinements: 5,
   /** Minimum gap between refinements (ms) */
   cooldownMs: 30_000,
 } as const;

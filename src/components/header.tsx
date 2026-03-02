@@ -140,15 +140,8 @@ export function Header() {
             <Link href={cta.href}>{cta.label}</Link>
           </Button>
 
-          {/* Desktop: Both CTAs */}
+          {/* Desktop: Single CTA */}
           <div className="hidden items-center gap-3 md:flex">
-            <Button
-              asChild
-              variant="outline"
-              className="h-10"
-            >
-              <Link href="/visualizer">Visualise</Link>
-            </Button>
             <Button asChild className="h-10">
               <Link href={cta.href}>{cta.label}</Link>
             </Button>

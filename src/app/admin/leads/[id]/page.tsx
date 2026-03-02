@@ -81,14 +81,15 @@ async function getLeadData(id: string) {
   const viz = vizRows?.[0];
   if (viz) {
     const concepts = Array.isArray(viz.generated_concepts)
-      ? (viz.generated_concepts as { imageUrl?: string }[])
+      ? (viz.generated_concepts as { imageUrl?: string; refinedImageUrl?: string }[])
       : [];
     const favourited = Array.isArray(viz.client_favourited_concepts)
       ? (viz.client_favourited_concepts as number[])
       : [];
     const starredIdx = favourited[0];
-    if (starredIdx != null && concepts[starredIdx]?.imageUrl) {
-      featuredConceptUrl = concepts[starredIdx].imageUrl;
+    if (starredIdx != null && concepts[starredIdx]) {
+      const concept = concepts[starredIdx];
+      featuredConceptUrl = concept.refinedImageUrl || concept.imageUrl || null;
     }
   }
 

@@ -307,14 +307,6 @@ export default async function Home() {
               {finalCTA.secondaryLabel}
             </Link>
           </div>
-          <p className="mt-4">
-            <Link
-              href={finalCTA.chatHref}
-              className="text-sm text-primary-foreground/60 underline underline-offset-4 transition-colors hover:text-primary-foreground/90"
-            >
-              {finalCTA.chatLabel}
-            </Link>
-          </p>
         </FadeInUp>
       </section>
     </div>

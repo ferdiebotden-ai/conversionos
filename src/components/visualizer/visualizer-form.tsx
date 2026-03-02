@@ -9,12 +9,11 @@
 import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { panelSpring, fadeInUp } from '@/lib/animations';
+import { panelSpring } from '@/lib/animations';
 import { PhotoUpload } from './photo-upload';
-import { RoomTypeSelector, type RoomType, type RoomTypeSelection } from './room-type-selector';
-import { StyleSelector, type DesignStyle, type DesignStyleSelection } from './style-selector';
+import { RoomTypeSelector, type RoomTypeSelection } from './room-type-selector';
+import { StyleSelector, type DesignStyleSelection } from './style-selector';
 import { PreferencesSection } from './preferences-section';
 import { FloatingGenerateButton } from './floating-generate-button';
 import { PhotoSummaryBar } from './photo-summary-bar';
@@ -37,7 +36,6 @@ import {
   AlertCircle,
   Sparkles,
   ArrowLeft,
-  MessageCircle,
 } from 'lucide-react';
 
 type Step = 'photo' | 'form' | 'transitioning' | 'generating' | 'result' | 'error' | 'no_photo_chat';
@@ -63,6 +61,57 @@ function buildAnalysisSummary(analysis: RoomAnalysis): string {
   if (analysis.estimatedCeilingHeight) parts.push(`${analysis.estimatedCeilingHeight} ceilings`);
   if (analysis.currentCondition) parts.push(analysis.currentCondition);
   return parts.join(', ') || '';
+}
+
+const TRANSITION_MESSAGES = [
+  'Analysing your space...',
+  'Finding the perfect design...',
+  'Bringing your vision to life...',
+];
+
+function TransitionScreen() {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex(prev => Math.min(prev + 1, TRANSITION_MESSAGES.length - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-4 max-w-md mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-card border border-border rounded-2xl p-8 text-center shadow-sm w-full"
+      >
+        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mx-auto mb-5">
+          <Sparkles className="w-6 h-6 text-primary-foreground" />
+        </div>
+        <div className="h-8 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={messageIndex}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className="text-base font-medium text-foreground"
+            >
+              {TRANSITION_MESSAGES[messageIndex]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+        <div className="flex items-center justify-center gap-1.5 mt-5">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:200ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:400ms]" />
+        </div>
+      </motion.div>
+    </div>
+  );
 }
 
 function VisualizerFormInner() {
@@ -173,7 +222,7 @@ function VisualizerFormInner() {
 
   const handleChangePhoto = useCallback(() => {
     setFormData(prev => {
-      const { photoAnalysis: _, ...rest } = prev;
+      const { photoAnalysis: _pa, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
       return { ...rest, photo: null, photoFile: null };
     });
     setCurrentStep('photo');
@@ -251,13 +300,13 @@ function VisualizerFormInner() {
     }
   }, [currentStep]);
 
-  // Auto-advance from transition to generating after 1.8s
+  // Auto-advance from transition to generating after 3.5s
   useEffect(() => {
     if (currentStep !== 'transitioning') return;
     const timer = setTimeout(() => {
       setCurrentStep('generating');
       startStreamGeneration();
-    }, 1800);
+    }, 3500);
     return () => clearTimeout(timer);
   }, [currentStep, startStreamGeneration]);
 
@@ -297,8 +346,8 @@ function VisualizerFormInner() {
   const handleTryAnotherStyle = useCallback(() => {
     setFormData(prev => {
       const {
-        voicePreferencesSummary: _vs,
-        voiceExtractedPreferences: _ve,
+        voicePreferencesSummary: _vs, // eslint-disable-line @typescript-eslint/no-unused-vars
+        voiceExtractedPreferences: _ve, // eslint-disable-line @typescript-eslint/no-unused-vars
         ...rest
       } = prev;
       return {
@@ -314,6 +363,7 @@ function VisualizerFormInner() {
     setCurrentStep('form');
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleGetQuote = useCallback(() => {
     // Elevate tier: redirect to contact page (no estimate handoff)
     if (!canAccess('ai_quote_engine')) {
@@ -420,30 +470,9 @@ function VisualizerFormInner() {
     ? formData.customStyle || 'Custom'
     : formData.style;
 
-  // Transitioning state — Emma's bridge message before generation
+  // Transitioning state — fun rotating messages before generation
   if (currentStep === 'transitioning') {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 px-4 max-w-md mx-auto">
-        <motion.div
-          variants={fadeInUp}
-          initial="hidden"
-          animate="visible"
-          className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm"
-        >
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <p className="text-base text-foreground">
-            Thank you for sharing your vision — let me bring it to life.
-          </p>
-          <div className="flex items-center justify-center gap-1.5 mt-4">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:200ms]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:400ms]" />
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <TransitionScreen />;
   }
 
   // Error state
@@ -521,11 +550,7 @@ function VisualizerFormInner() {
   if (currentStep === 'photo') {
     return (
       <div className="max-w-2xl mx-auto">
-        <PhotoUpload
-          value={formData.photo}
-          onChange={handlePhotoUpload}
-        />
-        <div className="mt-6 text-center">
+        <div className="mb-4 text-center">
           <button
             type="button"
             onClick={() => setCurrentStep('no_photo_chat')}
@@ -534,6 +559,10 @@ function VisualizerFormInner() {
             {getSkipPhotoText(copyCtx)}
           </button>
         </div>
+        <PhotoUpload
+          value={formData.photo}
+          onChange={handlePhotoUpload}
+        />
       </div>
     );
   }

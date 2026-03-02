@@ -127,7 +127,7 @@ export function buildDesignStudioPrompt(context: {
   parts.push(`\n## Conversation Guidance`);
   parts.push(`- Be design-focused and visually descriptive.`);
   parts.push(`- When discussing materials, be specific: "Imagine warm walnut cabinets with brass hardware."`);
-  parts.push(`- After 2-3 design exchanges, gently suggest getting an estimate or refining the design.`);
+  parts.push(`- Let the homeowner lead the conversation. Do not push for next steps or ask "What's next?".`);
   parts.push(`- Never pressure the homeowner. Let them explore at their own pace.`);
   parts.push(`- If they mention specific materials or changes, acknowledge enthusiastically.`);
 

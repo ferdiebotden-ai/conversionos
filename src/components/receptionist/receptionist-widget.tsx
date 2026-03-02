@@ -7,7 +7,7 @@
  * Animated with Framer Motion spring physics
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Component, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -15,52 +15,22 @@ import { MessageCircle, X } from 'lucide-react';
 import { ReceptionistChat } from './receptionist-chat';
 import { panelSpring } from '@/lib/animations';
 import { useBranding } from '@/components/branding-provider';
-import { useCopyContext } from '@/lib/copy/use-site-copy';
-import { getHomepageTeaser } from '@/lib/copy/site-copy';
 
 /** Pages where the widget is hidden (these have their own AI chat) */
 const HIDDEN_PATHS = ['/estimate', '/visualizer'];
 const HIDDEN_PREFIXES = ['/admin'];
 
-/** Page-specific teaser messages (homepage handled by copy registry) */
-const PAGE_TEASERS: Record<string, string> = {
-  '/services': 'Questions about our services? I can help!',
-  '/services/kitchen': 'Dreaming of a new kitchen? Let\'s talk about it!',
-  '/services/bathroom': 'Bathroom reno on your mind? I\'ve got answers!',
-  '/services/basement': 'Thinking about finishing your basement? Great investment!',
-  '/services/outdoor': 'Want to extend your living space outdoors? Let\'s chat!',
-  '/projects': 'Love what you see? Let\'s plan yours!',
-  '/about': 'Want to learn more about working with us? Ask me anything!',
-  '/contact': 'Need a quick answer? I might be able to help right now!',
-};
-
-const DEFAULT_TEASER = 'Hi! I\'m Emma. Need help with a renovation project?';
-
 export function ReceptionistWidget() {
   const branding = useBranding();
-  const copyCtx = useCopyContext();
   const pathname = usePathname();
   const shouldReduce = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
-  const [showTeaser, setShowTeaser] = useState(false);
-  const [teaserDismissed, setTeaserDismissed] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
 
   // Determine visibility
   const isHidden =
     HIDDEN_PATHS.includes(pathname) ||
     HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
-
-  // Proactive teaser after 6s delay
-  useEffect(() => {
-    if (isHidden || isOpen || teaserDismissed) return;
-
-    const timer = setTimeout(() => {
-      setShowTeaser(true);
-    }, 6000);
-
-    return () => clearTimeout(timer);
-  }, [pathname, isHidden, isOpen, teaserDismissed]);
 
   // Pulse animation on first load (3s)
   useEffect(() => {
@@ -71,23 +41,9 @@ export function ReceptionistWidget() {
 
   const handleFABClick = useCallback(() => {
     setIsOpen(prev => !prev);
-    setShowTeaser(false);
-    setTeaserDismissed(true);
-  }, []);
-
-  const handleTeaserDismiss = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowTeaser(false);
-    setTeaserDismissed(true);
   }, []);
 
   if (isHidden) return null;
-
-  const rawTeaser = PAGE_TEASERS[pathname] || DEFAULT_TEASER;
-  // Use copy registry for homepage teaser; other pages keep their page-specific teaser
-  const teaserMessage = pathname === '/'
-    ? getHomepageTeaser(copyCtx)
-    : rawTeaser;
 
   return (
     <>
@@ -109,40 +65,10 @@ export function ReceptionistWidget() {
           >
             <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
             <div className="flex-1 min-h-0">
-              <ReceptionistChat />
+              <ChatErrorBoundary>
+                <ReceptionistChat />
+              </ChatErrorBoundary>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Proactive Teaser Bubble */}
-      <AnimatePresence>
-        {showTeaser && !isOpen && (
-          <motion.div
-            initial={shouldReduce ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={cn(
-              'fixed right-4 z-50',
-              'max-w-[260px] px-4 py-3 rounded-2xl rounded-br-md',
-              'bg-background border border-border shadow-lg',
-              'text-sm text-foreground',
-              'cursor-pointer'
-            )}
-            style={{ bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))' }}
-            onClick={handleFABClick}
-          >
-            <button
-              onClick={handleTeaserDismiss}
-              className="absolute -top-2 -right-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Dismiss"
-            >
-              <span className="h-5 w-5 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
-                <X className="h-3 w-3" />
-              </span>
-            </button>
-            {teaserMessage}
           </motion.div>
         )}
       </AnimatePresence>
@@ -172,6 +98,37 @@ export function ReceptionistWidget() {
       </motion.button>
     </>
   );
+}
+
+/** Error boundary for the chat panel — prevents API failures from crashing the widget. */
+class ChatErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full items-center justify-center p-6 text-center">
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Something went wrong — tap to retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /** Panel header with Emma info and close button. */

@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Trash2, Sparkles, Copy, GripVertical, Pencil, Info } from 'lucide-react';
+import { Trash2, Copy, GripVertical, Pencil, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TransparencyBreakdown } from '@/lib/schemas/transparency';
 import { TransparencyCard } from './transparency-card';
@@ -126,12 +126,6 @@ function QuoteLineItemInner({
     'manual': '',
   };
 
-  function getConfidenceColor(score: number): string {
-    if (score >= 0.8) return 'bg-green-50 text-green-700 border-green-200';
-    if (score >= 0.6) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    return 'bg-orange-50 text-orange-700 border-orange-200';
-  }
-
   return (
     <TooltipProvider>
       <><tr className={cn('group transition-colors', stateStyles[itemState])}>
@@ -147,12 +141,12 @@ function QuoteLineItemInner({
         {/* Description */}
         <td className="p-2">
           <div className="flex items-center gap-2">
-            <div className="flex flex-col gap-0.5 min-w-[200px]">
+            <div className="flex flex-col gap-0.5 min-w-[300px]">
               <Input
                 value={item.description}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 placeholder="Item description"
-                className={cn('min-w-[200px]', validationErrors.description && item.description.length > 0 && 'border-red-400 focus-visible:ring-red-400')}
+                className={cn('min-w-[300px]', validationErrors.description && item.description.length > 0 && 'border-red-400 focus-visible:ring-red-400')}
                 aria-label="Item description"
                 aria-invalid={!!validationErrors.description && item.description.length > 0}
               />
@@ -161,28 +155,6 @@ function QuoteLineItemInner({
               )}
             </div>
             {/* Status badges */}
-            {item.isFromAI && !item.isModified && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "shrink-0 text-xs",
-                      item.confidenceScore != null
-                        ? getConfidenceColor(item.confidenceScore)
-                        : "bg-purple-50 text-purple-600 border-purple-200"
-                    )}
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    AI{item.confidenceScore != null ? ` ${Math.round(item.confidenceScore * 100)}%` : ''}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>{item.aiReasoning || 'AI-generated item'}</p>
-                  <p className="mt-1 text-[10px] opacity-70">AI confidence this estimate is accurate based on project scope and Ontario pricing data</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
             {item.isFromAI && item.isModified && (
               <Tooltip>
                 <TooltipTrigger>

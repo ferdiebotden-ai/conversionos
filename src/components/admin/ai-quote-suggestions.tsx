@@ -28,14 +28,12 @@ import {
 import {
   Sparkles,
   Check,
-  X,
   RefreshCw,
   Info,
   ChevronDown,
   ChevronUp,
   Loader2,
   CheckCircle2,
-  AlertCircle,
 } from 'lucide-react';
 import type { AIGeneratedQuote, AIQuoteLineItem } from '@/lib/schemas/ai-quote';
 
@@ -87,6 +85,7 @@ export function AIQuoteSuggestions({
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [regenerateGuidance, setRegenerateGuidance] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [isCardExpanded, setIsCardExpanded] = useState(false);
 
   if (!aiQuote) {
     return (
@@ -106,7 +105,6 @@ export function AIQuoteSuggestions({
 
   const subtotal = aiQuote.lineItems.reduce((sum, item) => sum + item.total, 0);
   const allAccepted = aiQuote.lineItems.every((_, i) => acceptedItemIds.has(`ai-${i}`));
-  const someAccepted = aiQuote.lineItems.some((_, i) => acceptedItemIds.has(`ai-${i}`));
 
   function toggleItemExpand(index: number) {
     const newExpanded = new Set(expandedItems);
@@ -155,11 +153,24 @@ export function AIQuoteSuggestions({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCardExpanded(!isCardExpanded)}
+              className="h-8 w-8 p-0"
+              aria-label={isCardExpanded ? 'Collapse AI quote' : 'Expand AI quote'}
+            >
+              {isCardExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      {isCardExpanded && <CardContent className="space-y-4">
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
           <div>
@@ -361,7 +372,7 @@ export function AIQuoteSuggestions({
             </Badge>
           )}
         </div>
-      </CardContent>
+      </CardContent>}
 
       {/* Regenerate Dialog */}
       <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>

@@ -45,7 +45,7 @@ const refineRequestSchema = z.object({
     timeline: z.string().optional(),
     goals: z.array(z.string()).optional(),
   }).optional(),
-  refinementNumber: z.number().int().min(1).max(3),
+  refinementNumber: z.number().int().min(1).max(5),
 });
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 4. Validate starred concept index
-  const concepts = visualization.generated_concepts as { id: string; imageUrl: string; description?: string }[] | null;
+  const concepts = visualization.generated_concepts as { id: string; imageUrl: string; description?: string; refinedImageUrl?: string; refinedAt?: string }[] | null;
   if (!concepts || starredConceptIndex >= concepts.length) {
     return NextResponse.json(
       { error: 'Invalid concept index' },
@@ -317,7 +317,23 @@ export async function POST(request: NextRequest) {
     imageUrl = `data:${generatedImage.mimeType};base64,${generatedImage.base64}`;
   }
 
-  // 10. Return result
+  // 10. Persist refined image URL in generated_concepts JSONB
+  try {
+    const updatedConcepts = concepts.map((c, i) => {
+      if (i !== starredConceptIndex) return c;
+      return { ...c, refinedImageUrl: imageUrl, refinedAt: new Date().toISOString() };
+    }) as Record<string, unknown>[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('visualizations') as any)
+      .update({ generated_concepts: updatedConcepts })
+      .eq('id', visualizationId)
+      .eq('site_id', siteId);
+  } catch (err) {
+    // Non-fatal — the image was already uploaded successfully
+    console.warn('Failed to persist refined image in generated_concepts:', err);
+  }
+
+  // 11. Return result
   const generationTimeMs = Date.now() - startTime;
 
   return NextResponse.json({

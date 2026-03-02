@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { panelSpring, staggerItem } from '@/lib/animations';
 import {
   Send,
-  Loader2,
   MessageCircle,
   Sparkles,
   ArrowRight,
@@ -153,6 +152,7 @@ export function DesignStudioChat({
 }: DesignStudioChatProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastInjectedRef = useRef<string>('');
   const [inputValue, setInputValue] = useState('');
   const [refinementCount, setRefinementCount] = useState(0);
   const [isRefining, setIsRefining] = useState(false);
@@ -252,8 +252,10 @@ export function DesignStudioChat({
     }
   }, [allMessages, isRefining]);
 
-  // Helper to inject a system message
+  // Helper to inject a system message (skips consecutive duplicates)
   const injectAssistantMessage = useCallback((text: string) => {
+    if (text === lastInjectedRef.current) return;
+    lastInjectedRef.current = text;
     setSystemMessages(prev => [...prev, {
       id: `system-${Date.now()}`,
       role: 'assistant' as const,
@@ -320,12 +322,17 @@ export function DesignStudioChat({
       setAccumulatedSignals([]);
       onConceptRefined(starredIndex, data.imageUrl);
 
-      if (newCount >= RENDERING_CONFIG.maxRefinements) {
+      const remaining = RENDERING_CONFIG.maxRefinements - newCount;
+      if (remaining <= 0) {
         injectAssistantMessage(
-          "Your design is looking great — I've made all the adjustments I can. Ready to move forward with an estimate?"
+          "Your design is looking great — I've made all the adjustments I can. Ready to submit for a quote?"
+        );
+      } else if (remaining <= 2) {
+        injectAssistantMessage(
+          `I've updated your design — take a look! ${remaining} rendition${remaining === 1 ? '' : 's'} remaining.`
         );
       } else {
-        injectAssistantMessage("I've updated your design — take a look! What's next?");
+        injectAssistantMessage("I've updated your design — take a look!");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -350,12 +357,11 @@ export function DesignStudioChat({
     }
   }, [handleRefine, onRequestEstimate, onEmailDesigns]);
 
-  // Contextual quick actions — staged based on conversation depth
+  // Contextual quick actions — only "Apply My Feedback" in toolbar
   const getQuickActions = (): QuickAction[] => {
     if (exchangeCount === 0) return [];
 
     const canRefine = refinementCount < RENDERING_CONFIG.maxRefinements && !isRefining;
-    const isElevate = tier === 'elevate';
     const hasSignals = accumulatedSignals.length > 0;
 
     const actions: QuickAction[] = [];
@@ -364,17 +370,12 @@ export function DesignStudioChat({
       actions.push({ label: 'Apply My Feedback', icon: 'refine', action: 'refine', variant: 'secondary' });
     }
 
-    if (exchangeCount >= 2) {
-      actions.push({
-        label: isElevate ? 'Email My Designs' : 'Get My Estimate',
-        icon: isElevate ? 'email' : 'estimate',
-        action: isElevate ? 'email' : 'estimate',
-        variant: 'primary',
-      });
-    }
-
     return actions;
   };
+
+  // Persistent CTA visible after 2+ exchanges
+  const isElevate = tier === 'elevate';
+  const showPersistentCta = exchangeCount >= 2 && !isLoading;
 
   const quickActions = getQuickActions();
   const showToolbar = !isLoading && quickActions.length > 0;
@@ -592,6 +593,28 @@ export function DesignStudioChat({
             </Button>
           </form>
         </div>
+
+        {/* Persistent CTA — always visible after 2+ exchanges */}
+        {showPersistentCta && (
+          <div className="px-3 pb-3">
+            <Button
+              className="w-full gap-2"
+              onClick={isElevate ? onEmailDesigns : onRequestEstimate}
+            >
+              {isElevate ? (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Email My Designs
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="w-4 h-4" />
+                  Submit for a Quote
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

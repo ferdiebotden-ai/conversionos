@@ -74,7 +74,7 @@ export function getDefaultProcessStep3(ctx: CopyContext, companyName?: string): 
   if (hasQuotes(ctx)) {
     return {
       title: 'Receive Your Estimate',
-      description: `Get a detailed cost range based on Ontario pricing data, then connect with ${name} to bring it to life.`,
+      description: `Get a detailed cost range for your project, then connect with ${name} to bring it to life.`,
     };
   }
   return {
@@ -91,26 +91,20 @@ export function getHomepageFinalCTA(ctx: CopyContext): {
   description: string;
   secondaryLabel: string;
   secondaryHref: string;
-  chatLabel: string;
-  chatHref: string;
 } {
   if (hasQuotes(ctx)) {
     return {
       description:
         'Upload a photo. Get AI design concepts. Receive a ballpark estimate. All in minutes, all free.',
-      secondaryLabel: 'Or get a free estimate',
-      secondaryHref: '/visualizer',
-      chatLabel: 'No photo? Just chat with Emma',
-      chatHref: '/visualizer?mode=chat',
+      secondaryLabel: 'Request a Free Estimate',
+      secondaryHref: '/visualizer?mode=chat',
     };
   }
   return {
     description:
       'Upload a photo. Get AI design concepts. Connect with us to bring it to life.',
-    secondaryLabel: 'Or contact us directly',
-    secondaryHref: '/contact',
-    chatLabel: 'No photo? Just chat with Emma',
-    chatHref: '/visualizer?mode=chat',
+    secondaryLabel: 'Request a Free Estimate',
+    secondaryHref: '/visualizer?mode=chat',
   };
 }
 
@@ -138,7 +132,7 @@ export function getEstimateCTA(ctx: CopyContext): CTACopy {
 // ---------------------------------------------------------------------------
 
 export function getContactAlternativeCTA(
-  _ctx: CopyContext,
+  _ctx?: CopyContext,
 ): { heading: string; description: string; linkLabel: string; linkHref: string } | null {
   // Always show — the visualizer is available on all tiers
   return {
@@ -273,7 +267,7 @@ export function getVisualizerResultCTA(
   ctx: CopyContext,
   companyName: string,
 ): { label: string; icon: 'message' | 'phone' } {
-  if (hasQuotes(ctx)) return { label: 'Get a Personalised Estimate', icon: 'message' };
+  if (hasQuotes(ctx)) return { label: 'Submit for a Quote', icon: 'message' };
   return { label: `Request a Callback from ${companyName}`, icon: 'phone' };
 }
 

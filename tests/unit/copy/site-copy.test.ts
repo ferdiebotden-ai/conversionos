@@ -85,13 +85,20 @@ describe('getDefaultProcessStep3', () => {
 });
 
 describe('getHomepageFinalCTA', () => {
-  it('links to /estimate when quotes on', () => {
+  it('secondary links to /visualizer?mode=chat when quotes on', () => {
     const cta = getHomepageFinalCTA({ tier: 'accelerate', quoteMode: 'estimate' });
-    expect(cta.secondaryHref).toBe('/visualizer');
+    expect(cta.secondaryHref).toBe('/visualizer?mode=chat');
+    expect(cta.secondaryLabel).toBe('Request a Free Estimate');
   });
-  it('links to /contact when quotes off', () => {
+  it('secondary links to /visualizer?mode=chat when quotes off', () => {
     const cta = getHomepageFinalCTA({ tier: 'accelerate', quoteMode: 'none' });
-    expect(cta.secondaryHref).toBe('/contact');
+    expect(cta.secondaryHref).toBe('/visualizer?mode=chat');
+    expect(cta.secondaryLabel).toBe('Request a Free Estimate');
+  });
+  it('does not include chatLabel or chatHref', () => {
+    const cta = getHomepageFinalCTA({ tier: 'accelerate', quoteMode: 'range' });
+    expect(cta).not.toHaveProperty('chatLabel');
+    expect(cta).not.toHaveProperty('chatHref');
   });
 });
 
@@ -189,9 +196,9 @@ describe('getNotFoundCTA', () => {
 });
 
 describe('getVisualizerResultCTA', () => {
-  it('says Personalised Estimate when quotes on', () => {
+  it('says Submit for a Quote when quotes on', () => {
     const cta = getVisualizerResultCTA({ tier: 'accelerate', quoteMode: 'range' }, 'TestCo');
-    expect(cta.label).toContain('Estimate');
+    expect(cta.label).toContain('Quote');
     expect(cta.icon).toBe('message');
   });
   it('says Request a Callback when quotes off', () => {

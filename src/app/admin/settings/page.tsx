@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Loader2, AlertCircle, DollarSign, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers, Info, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Check, Loader2, AlertCircle, Settings2, Bell, Building, MessageSquareQuote, Upload, Layers, Info, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { CategoryMarkupSettings } from '@/components/admin/category-markup-settings';
 import { DEFAULT_CATEGORY_MARKUPS, type CategoryMarkupsConfig } from '@/lib/pricing/category-markups';
 import { PriceUpload } from '@/components/admin/price-upload';
@@ -29,23 +29,7 @@ import { SettingsPreview } from '@/components/admin/settings-preview';
 import type { PreviewBranding } from '@/hooks/use-settings-preview';
 
 // Types for settings
-interface PricingRange {
-  min: number;
-  max: number;
-}
-
-interface PricingSettings {
-  economy: PricingRange;
-  standard: PricingRange;
-  premium: PricingRange;
-}
-
 interface Settings {
-  // Pricing per sqft
-  pricing_kitchen: PricingSettings;
-  pricing_bathroom: PricingSettings;
-  pricing_basement: PricingSettings;
-  pricing_flooring: PricingSettings;
   // Business rates
   labor_rate: { hourly: number };
   contract_markup: { percent: number };
@@ -81,10 +65,6 @@ interface Settings {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  pricing_kitchen: { economy: { min: 150, max: 200 }, standard: { min: 200, max: 275 }, premium: { min: 275, max: 400 } },
-  pricing_bathroom: { economy: { min: 200, max: 300 }, standard: { min: 300, max: 450 }, premium: { min: 450, max: 600 } },
-  pricing_basement: { economy: { min: 40, max: 55 }, standard: { min: 55, max: 70 }, premium: { min: 70, max: 100 } },
-  pricing_flooring: { economy: { min: 8, max: 12 }, standard: { min: 12, max: 18 }, premium: { min: 18, max: 30 } },
   labor_rate: { hourly: 85 },
   contract_markup: { percent: 15 },
   contingency: { percent: 10 },
@@ -113,88 +93,6 @@ const DEFAULT_SETTINGS: Settings = {
   },
   category_markups: DEFAULT_CATEGORY_MARKUPS,
 };
-
-/** Validate all pricing ranges: min must be less than max */
-function getPricingErrors(settings: Settings): Record<string, string> {
-  const errors: Record<string, string> = {};
-  const pricingKeys = ['pricing_kitchen', 'pricing_bathroom', 'pricing_basement', 'pricing_flooring'] as const;
-  const levels = ['economy', 'standard', 'premium'] as const;
-  for (const key of pricingKeys) {
-    const pricing = settings[key];
-    for (const level of levels) {
-      if (pricing[level].min >= pricing[level].max) {
-        errors[`${key}-${level}`] = 'Minimum must be less than maximum';
-      }
-    }
-  }
-  return errors;
-}
-
-function PricingCard({
-  title,
-  settingKey,
-  pricing,
-  onChange,
-  pricingErrors,
-}: {
-  title: string;
-  settingKey: string;
-  pricing: PricingSettings;
-  onChange: (key: string, level: string, field: string, value: number) => void;
-  pricingErrors: Record<string, string>;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {(['economy', 'standard', 'premium'] as const).map((level) => {
-          const errorKey = `${settingKey}-${level}`;
-          const errorMsg = pricingErrors[errorKey];
-          const errorId = `${errorKey}-error`;
-          return (
-            <div key={level} className="space-y-2">
-              <Label className="text-sm capitalize">{level}</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={pricing[level].min}
-                  onChange={(e) => onChange(settingKey, level, 'min', parseFloat(e.target.value) || 0)}
-                  className={`w-20 h-8 ${errorMsg ? 'border-destructive' : ''}`}
-                  aria-label={`${title} ${level} minimum price`}
-                  aria-invalid={!!errorMsg}
-                  aria-describedby={errorMsg ? errorId : undefined}
-                />
-                <span className="text-sm text-muted-foreground">to $</span>
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={pricing[level].max}
-                  onChange={(e) => onChange(settingKey, level, 'max', parseFloat(e.target.value) || 0)}
-                  className={`w-20 h-8 ${errorMsg ? 'border-destructive' : ''}`}
-                  aria-label={`${title} ${level} maximum price`}
-                  aria-invalid={!!errorMsg}
-                  aria-describedby={errorMsg ? errorId : undefined}
-                />
-                <span className="text-sm text-muted-foreground">/sqft</span>
-              </div>
-              {errorMsg && (
-                <p id={errorId} className="text-xs text-destructive" role="alert">
-                  {errorMsg}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function SettingsPage() {
   const { canAccess } = useTier();
@@ -261,26 +159,6 @@ export default function SettingsPage() {
     postal: settings.business_info?.postal,
   }), [settings.business_info]);
 
-  // Handle pricing change
-  const handlePricingChange = (key: string, level: string, field: string, value: number) => {
-    setSettings((prev) => {
-      const pricingKey = key as keyof Settings;
-      const currentPricing = prev[pricingKey] as PricingSettings;
-      return {
-        ...prev,
-        [key]: {
-          ...currentPricing,
-          [level]: {
-            ...currentPricing[level as keyof PricingSettings],
-            [field]: value,
-          },
-        },
-      };
-    });
-    setHasChanges(true);
-    setSaveSuccess(false);
-  };
-
   // Handle simple value change
   const handleValueChange = (key: string, field: string, value: number | string | boolean) => {
     setSettings((prev) => ({
@@ -296,10 +174,8 @@ export default function SettingsPage() {
 
   // Save settings with validation
   const handleSave = async () => {
-    // V2: Cross-field pricing validation
-    const pricingErrors = getPricingErrors(settings);
     // V3/V4/V5: Field-level validation
-    const errors: Record<string, string> = { ...pricingErrors };
+    const errors: Record<string, string> = {};
 
     // V4: Phone validation (settings)
     if (settings.business_info?.phone && !isValidPhone(settings.business_info.phone)) {
@@ -331,10 +207,6 @@ export default function SettingsPage() {
     try {
       // Build settings to save
       const settingsToSave = [
-        { key: 'pricing_kitchen', value: settings.pricing_kitchen },
-        { key: 'pricing_bathroom', value: settings.pricing_bathroom },
-        { key: 'pricing_basement', value: settings.pricing_basement },
-        { key: 'pricing_flooring', value: settings.pricing_flooring },
         { key: 'labor_rate', value: settings.labor_rate },
         { key: 'contract_markup', value: settings.contract_markup },
         { key: 'contingency', value: settings.contingency },
@@ -429,17 +301,13 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="pricing" className="space-y-6">
+      <Tabs defaultValue="rates" className="space-y-6">
         <div className="relative">
           {/* Fade indicators for scroll overflow */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 md:hidden" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-background to-transparent z-10 md:hidden" />
           <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
             <TabsList className="inline-flex w-auto min-w-full md:w-full">
-              <TabsTrigger value="pricing" className="gap-2 shrink-0">
-                <DollarSign className="h-4 w-4" />
-                Pricing
-              </TabsTrigger>
               <TabsTrigger value="rates" className="gap-2 shrink-0">
                 <Settings2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Rates &</span> Defaults
@@ -474,50 +342,6 @@ export default function SettingsPage() {
             </TabsList>
           </div>
         </div>
-
-        {/* Pricing Tab */}
-        <TabsContent value="pricing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Per-Square-Foot Pricing</CardTitle>
-              <CardDescription>
-                Configure pricing ranges for different project types and finish levels.
-                These rates are used by the AI to generate quote estimates.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <PricingCard
-              title="Kitchen Renovation"
-              settingKey="pricing_kitchen"
-              pricing={settings.pricing_kitchen}
-              onChange={handlePricingChange}
-              pricingErrors={fieldErrors}
-            />
-            <PricingCard
-              title="Bathroom Renovation"
-              settingKey="pricing_bathroom"
-              pricing={settings.pricing_bathroom}
-              onChange={handlePricingChange}
-              pricingErrors={fieldErrors}
-            />
-            <PricingCard
-              title="Basement Finishing"
-              settingKey="pricing_basement"
-              pricing={settings.pricing_basement}
-              onChange={handlePricingChange}
-              pricingErrors={fieldErrors}
-            />
-            <PricingCard
-              title="Flooring Installation"
-              settingKey="pricing_flooring"
-              pricing={settings.pricing_flooring}
-              onChange={handlePricingChange}
-              pricingErrors={fieldErrors}
-            />
-          </div>
-        </TabsContent>
 
         {/* Rates Tab */}
         <TabsContent value="rates" className="space-y-6">
