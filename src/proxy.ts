@@ -19,6 +19,8 @@ import { NextResponse, type NextRequest } from 'next/server';
  */
 const DOMAIN_TO_SITE: Record<string, string> = {
   'conversionos-demo.norbotsystems.com': 'demo',
+  'red-white-reno.norbotsystems.com': 'red-white-reno',
+  'redwhitereno-test-prov-test.norbotsystems.com': 'redwhitereno-test-prov-test',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
