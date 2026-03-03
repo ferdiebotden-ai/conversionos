@@ -230,8 +230,8 @@ export default async function AboutPage() {
       </section>
       )}
 
-      {/* Team Section */}
-      <section className="px-4 py-12 md:py-16">
+      {/* Team Section — only shown when there is real team data */}
+      {(config.teamMembers.length > 0 || config.principals) && <section className="px-4 py-12 md:py-16">
         <div className="container mx-auto">
           <div className="text-center">
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -291,7 +291,7 @@ export default async function AboutPage() {
             );
           })()}
         </div>
-      </section>
+      </section>}
 
       {/* Service Area */}
       <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">

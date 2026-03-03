@@ -145,7 +145,7 @@ const FALLBACK_CONFIG: CompanyConfig = {
   phone: '(226) 444-3478',
   email: 'ferdie@norbotsystems.com',
   website: 'conversionos-demo.norbotsystems.com',
-  principals: 'NorBot Systems',
+  principals: '',
   tagline: 'AI-Powered Renovation Platform',
   founded: '2025',
   booking: '',
