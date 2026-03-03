@@ -48,6 +48,8 @@ import type { Json } from '@/types/database';
 interface GeneratedConcept {
   id: string;
   imageUrl: string;
+  refinedImageUrl?: string;
+  refinedAt?: string;
   description?: string;
   generatedAt: string;
 }
@@ -333,7 +335,7 @@ export function LeadVisualizationPanel({
           <div className="space-y-4">
             <BeforeAfterComparison
               beforeImage={currentViz.original_photo_url}
-              afterImage={currentConcept?.imageUrl || ''}
+              afterImage={currentConcept?.refinedImageUrl || currentConcept?.imageUrl || ''}
               beforeLabel="Original"
               afterLabel={`Concept ${selectedConceptIndex + 1}`}
             />
@@ -355,7 +357,7 @@ export function LeadVisualizationPanel({
                       )}
                     >
                       <img
-                        src={concept.imageUrl}
+                        src={concept.refinedImageUrl || concept.imageUrl}
                         alt={`Concept ${index + 1}`}
                         className="w-20 h-14 object-cover"
                       />
