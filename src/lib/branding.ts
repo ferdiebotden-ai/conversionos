@@ -23,6 +23,7 @@ export interface Branding {
   primaryColor: string;
   primaryOklch: string;
   logoUrl?: string | undefined;
+  logoOnDark?: boolean | undefined;
   faviconUrl?: string | undefined;
   ogImageUrl?: string | undefined;
   services: { name: string; slug: string }[];
@@ -92,6 +93,7 @@ export async function getBranding(): Promise<Branding> {
       primaryColor: colors['primary_hex'] || DEMO_BRANDING.primaryColor,
       primaryOklch: colors['primary_oklch'] || DEMO_BRANDING.primaryOklch,
       logoUrl: (profile['logoUrl'] as string) || (brand['logoUrl'] as string) || undefined,
+      logoOnDark: (brand['logoOnDark'] as boolean) || undefined,
       faviconUrl: (brand['faviconUrl'] as string) || undefined,
       ogImageUrl: (brand['ogImageUrl'] as string) || undefined,
       services: rawServices.map(s => ({

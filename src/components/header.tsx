@@ -60,7 +60,7 @@ export function Header() {
             <SheetContent side="left" className="w-72">
               <SheetHeader className="border-b pb-4">
                 <SheetTitle>
-                  <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} />
+                  <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} logoOnDark={branding.logoOnDark} />
                 </SheetTitle>
                 <SheetDescription className="sr-only">
                   Navigation menu
@@ -108,7 +108,7 @@ export function Header() {
           href="/"
           className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
         >
-          <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} />
+          <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} logoOnDark={branding.logoOnDark} />
         </Link>
 
         {/* Desktop navigation */}
@@ -152,9 +152,9 @@ export function Header() {
   )
 }
 
-function Logo({ name, tagline, logoUrl }: { name: string; tagline: string; logoUrl?: string | undefined }) {
+function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: string; logoUrl?: string | undefined; logoOnDark?: boolean | undefined }) {
   if (logoUrl) {
-    return (
+    const img = (
       <Image
         src={logoUrl}
         alt={name}
@@ -164,6 +164,11 @@ function Logo({ name, tagline, logoUrl }: { name: string; tagline: string; logoU
         priority
       />
     )
+    return logoOnDark ? (
+      <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5">
+        {img}
+      </span>
+    ) : img
   }
 
   // Fallback: text-based logo

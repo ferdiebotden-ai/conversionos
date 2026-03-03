@@ -36,13 +36,25 @@ export function Footer() {
           {/* Company Info */}
           <div className="col-span-2 lg:col-span-1 space-y-4">
             {branding.logoUrl ? (
-              <Image
-                src={branding.logoUrl}
-                alt={branding.name}
-                width={160}
-                height={40}
-                className="h-8 w-auto"
-              />
+              branding.logoOnDark ? (
+                <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5">
+                  <Image
+                    src={branding.logoUrl}
+                    alt={branding.name}
+                    width={160}
+                    height={40}
+                    className="h-8 w-auto"
+                  />
+                </span>
+              ) : (
+                <Image
+                  src={branding.logoUrl}
+                  alt={branding.name}
+                  width={160}
+                  height={40}
+                  className="h-8 w-auto"
+                />
+              )
             ) : (
               <div className="flex flex-col leading-tight">
                 <span className="text-xl font-bold tracking-tight text-foreground">
