@@ -174,7 +174,7 @@ function QuotesTable({ quotes, currentStatus }: { quotes: QuoteWithLead[]; curre
         <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <p className="text-muted-foreground">No quotes found</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Quotes are generated when leads provide project details
+          Open any lead and use the Quote tab to create one
         </p>
       </div>
     );

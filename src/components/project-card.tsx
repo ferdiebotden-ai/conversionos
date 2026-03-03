@@ -32,7 +32,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick?.() }}
       aria-label={`View ${project.title}`}
     >
-      <div className="relative aspect-[3/2] bg-muted">
+      <div className="relative aspect-[3/2] bg-muted border-b border-border">
         {project.image ? (
           <Image
             src={project.image}

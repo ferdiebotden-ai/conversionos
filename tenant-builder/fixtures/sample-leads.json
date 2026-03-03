@@ -7,7 +7,8 @@
     "__LEAD_MARGARET__",
     "__LEAD_VIZ_1__",
     "__VIZ_MARGARET_01__",
-    "__VIZ_METRICS_1__"
+    "__VIZ_METRICS_1__",
+    "__QUOTE_DRAFT_1__"
   ],
   "tables": {
     "leads": [
@@ -683,7 +684,98 @@
       }
     ],
     "quotes": [],
-    "quote_items": []
+    "quote_items": [],
+    "quote_drafts": [
+      {
+        "id": "__QUOTE_DRAFT_1__",
+        "lead_id": "__LEAD_MARGARET__",
+        "site_id": "__SITE_ID__",
+        "version": 1,
+        "line_items": [
+          {
+            "description": "Vanity and Countertop",
+            "category": "materials",
+            "quantity": 1,
+            "unit": "unit",
+            "unit_price": 1500,
+            "total": 1725,
+            "isFromAI": true,
+            "confidenceScore": 0.9
+          },
+          {
+            "description": "Toilet",
+            "category": "materials",
+            "quantity": 1,
+            "unit": "unit",
+            "unit_price": 450,
+            "total": 517.50,
+            "isFromAI": true,
+            "confidenceScore": 0.9
+          },
+          {
+            "description": "Shower Enclosure (Glass)",
+            "category": "materials",
+            "quantity": 1,
+            "unit": "unit",
+            "unit_price": 1500,
+            "total": 1725,
+            "isFromAI": true,
+            "confidenceScore": 0.9
+          },
+          {
+            "description": "Tile and Installation",
+            "category": "materials",
+            "quantity": 50,
+            "unit": "sqft",
+            "unit_price": 50,
+            "total": 2875,
+            "isFromAI": true,
+            "confidenceScore": 0.9
+          },
+          {
+            "description": "Plumbing Labour",
+            "category": "labor",
+            "quantity": 16,
+            "unit": "hour",
+            "unit_price": 95,
+            "total": 1520,
+            "isFromAI": true,
+            "confidenceScore": 0.85
+          },
+          {
+            "description": "General Labour",
+            "category": "labor",
+            "quantity": 24,
+            "unit": "hour",
+            "unit_price": 75,
+            "total": 1800,
+            "isFromAI": true,
+            "confidenceScore": 0.85
+          }
+        ],
+        "subtotal": 10162.50,
+        "contingency_percent": 10,
+        "contingency_amount": 1016.25,
+        "hst_percent": 13,
+        "hst_amount": 1453.24,
+        "total": 12631.99,
+        "deposit_percent": 15,
+        "deposit_required": 1894.80,
+        "validity_days": 30,
+        "assumptions": [
+          "Standard bathroom layout (~50 sqft)",
+          "No structural changes required",
+          "Existing plumbing connections reused"
+        ],
+        "exclusions": [
+          "Electrical work beyond existing circuits",
+          "Asbestos or mould remediation",
+          "Permit fees (if required)"
+        ],
+        "special_notes": "AI-generated estimate based on Ontario renovation pricing data. Final pricing may vary based on site inspection.",
+        "_created_at_offset_days": -2
+      }
+    ]
   },
   "images": {
     "description": "Sample data images served from /images/sample-data/",

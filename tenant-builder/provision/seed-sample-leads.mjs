@@ -192,6 +192,7 @@ export async function seedSampleLeads(siteId, { dryRun = false, supabase: sbOver
     'audit_log',
     'quotes',
     'quote_items',
+    'quote_drafts',
   ];
 
   const counts = {};
