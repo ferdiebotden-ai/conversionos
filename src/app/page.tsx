@@ -26,8 +26,6 @@ import { SocialProofBar } from "@/components/home/social-proof-bar"
 import { GalleryTeaser } from "@/components/home/gallery-teaser"
 import { getCopyContext } from "@/lib/copy/server"
 import {
-  getHowItWorksSubtitle,
-  getDefaultProcessStep3,
   getHomepageFinalCTA,
 } from "@/lib/copy/site-copy"
 
@@ -35,7 +33,6 @@ export default async function Home() {
   const branding = await getBranding()
   const config = await getCompanyConfig()
   const copyCtx = await getCopyContext()
-  const step3 = getDefaultProcessStep3(copyCtx, branding.name)
   const finalCTA = getHomepageFinalCTA(copyCtx)
 
   // Map testimonials for the component
@@ -170,44 +167,6 @@ export default async function Home() {
         </section>
       )}
 
-      {/* How It Works */}
-      <section className="border-t border-border bg-muted/30 px-4 py-10 md:py-20">
-        <div className="container mx-auto">
-          <FadeInUp className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              How It Works
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              {getHowItWorksSubtitle(copyCtx)}
-            </p>
-          </FadeInUp>
-
-          {(() => {
-            const dbSteps = config.processSteps.length > 0 ? config.processSteps : [
-              { title: 'Upload a Photo', description: 'Snap a picture of your room with your phone or upload an existing photo.' },
-              { title: 'Get AI Design Concepts', description: 'Choose a style and receive four unique AI-generated visualizations.' },
-              { title: '', description: '' },
-            ];
-            // Always override step 3 with copy registry — it's inherently
-            // about the next action (estimate vs contact) so it must adapt to quoteMode
-            const steps = dbSteps.map((s, i) => i === dbSteps.length - 1 ? step3 : s);
-            return (
-              <StaggerContainer className="mt-12 grid gap-8 sm:grid-cols-3">
-                {steps.map((step, i) => (
-                  <StaggerItem key={i}>
-                    <ProcessStep
-                      step={i + 1}
-                      title={step.title}
-                      description={step.description}
-                    />
-                  </StaggerItem>
-                ))}
-              </StaggerContainer>
-            );
-          })()}
-        </div>
-      </section>
-
       {/* Why Choose Us */}
       {config.whyChooseUs.length > 0 && (
         <section className="border-t border-border px-4 py-10 md:py-20">
@@ -317,26 +276,6 @@ export default async function Home() {
           </div>
         </FadeInUp>
       </section>
-    </div>
-  )
-}
-
-function ProcessStep({
-  step,
-  title,
-  description,
-}: {
-  step: number
-  title: string
-  description: string
-}) {
-  return (
-    <div className="text-center">
-      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <span className="text-xl font-bold">{step}</span>
-      </div>
-      <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }

@@ -52,38 +52,6 @@ export function getMobileCTA(ctx: CopyContext): CTACopy {
 }
 
 // ---------------------------------------------------------------------------
-// Homepage — How It Works subtitle
-// ---------------------------------------------------------------------------
-
-export function getHowItWorksSubtitle(ctx: CopyContext): string {
-  if (hasQuotes(ctx)) return 'From photo to estimate in three simple steps.';
-  return 'From photo to consultation in three simple steps.';
-}
-
-// ---------------------------------------------------------------------------
-// Homepage — process step 3, always overrides DB/fallback step 3
-// Step 3 is inherently about the next action (estimate vs contact) so it
-// MUST adapt to quoteMode regardless of what the DB stores.
-// ---------------------------------------------------------------------------
-
-export function getDefaultProcessStep3(ctx: CopyContext, companyName?: string): {
-  title: string;
-  description: string;
-} {
-  const name = companyName || 'a qualified local contractor';
-  if (hasQuotes(ctx)) {
-    return {
-      title: 'Receive Your Estimate',
-      description: `Get a detailed cost range for your project, then connect with ${name} to bring it to life.`,
-    };
-  }
-  return {
-    title: 'Connect with a Pro',
-    description: `Love what you see? Get in touch with ${name} to discuss your project and bring it to life.`,
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Homepage — final CTA section
 // ---------------------------------------------------------------------------
 
