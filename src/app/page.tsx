@@ -228,7 +228,7 @@ export default async function Home() {
               <div>
                 <FadeInUp>
                   <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                    Why Choose {branding.name}?
+                    Why Choose {branding.name.replace(/\s+(Inc\.?|Ltd\.?|Corp\.?|Co\.)$/i, '')}?
                   </h2>
                   <p className="mt-4 text-lg text-muted-foreground">
                     {config.whyChooseSubtitle || `Serving ${branding.city || 'your area'} and surrounding communities with quality craftsmanship.`}
@@ -269,9 +269,6 @@ export default async function Home() {
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 What Our Clients Say
               </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Real feedback from {branding.name.replace(/\.\s*$/, '')} clients across {config.serviceArea || 'Ontario'}.
-              </p>
             </FadeInUp>
 
             <div className="mt-12">

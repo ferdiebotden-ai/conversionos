@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { LeadDetailHeader } from '@/components/admin/lead-detail-header';
 import { LeadContactCard } from '@/components/admin/lead-contact-card';
 import { LeadProjectCard } from '@/components/admin/lead-project-card';
@@ -30,13 +30,14 @@ interface VersionSummary {
 
 async function getLeadData(id: string) {
   const supabase = createServiceClient();
+  const siteId = await getSiteIdAsync();
 
   // Fetch lead
   const { data: lead, error: leadError } = await supabase
     .from('leads')
     .select('*')
     .eq('id', id)
-    .eq('site_id', getSiteId())
+    .eq('site_id', siteId)
     .single();
 
   if (leadError || !lead) {
@@ -48,7 +49,7 @@ async function getLeadData(id: string) {
     .from('quote_drafts')
     .select('*')
     .eq('lead_id', id)
-    .eq('site_id', getSiteId())
+    .eq('site_id', siteId)
     .order('version', { ascending: false });
 
   // Latest version is the editable draft
@@ -73,7 +74,7 @@ async function getLeadData(id: string) {
     .from('visualizations')
     .select('generated_concepts, client_favourited_concepts')
     .eq('lead_id', id)
-    .eq('site_id', getSiteId())
+    .eq('site_id', siteId)
     .order('created_at', { ascending: false })
     .limit(1);
 

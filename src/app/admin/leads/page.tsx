@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { LeadsTable } from '@/components/admin/leads-table';
@@ -25,6 +25,7 @@ interface LeadsPageProps {
 async function getLeads(searchParams: LeadsPageProps['searchParams']) {
   const params = await searchParams;
   const supabase = createServiceClient();
+  const siteId = await getSiteIdAsync();
 
   const page = parseInt(params.page || '1', 10);
   const limit = parseInt(params.limit || '10', 10);
@@ -33,7 +34,7 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
   const sortOrder = params.sortOrder || 'desc';
 
   // Build query
-  let query = supabase.from('leads').select('*', { count: 'exact' }).eq('site_id', getSiteId());
+  let query = supabase.from('leads').select('*', { count: 'exact' }).eq('site_id', siteId);
 
   // Apply filters
   if (params.status) {
@@ -68,7 +69,7 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
   // Fetch feasibility scores for these leads from linked visualizations
   // contractor_feasibility_score may not be in generated types yet
   const leadIds = (leads || []).map((l) => l.id);
-  let feasibilityMap: Record<string, number> = {};
+  const feasibilityMap: Record<string, number> = {};
 
   if (leadIds.length > 0) {
     const { data: vizData } = await (supabase
