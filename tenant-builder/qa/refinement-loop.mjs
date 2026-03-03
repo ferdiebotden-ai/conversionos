@@ -134,12 +134,15 @@ while (iteration < maxIterations) {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    lastResult = JSON.parse(stdout);
+    // visual-qa.mjs writes INFO logs + JSON to stdout — extract the last JSON line
+    const jsonLine = stdout.split('\n').filter(l => l.trim().startsWith('{')).pop() || stdout;
+    lastResult = JSON.parse(jsonLine);
   } catch (e) {
-    // visual-qa.mjs exits 1 on fail but still outputs JSON
+    // visual-qa.mjs exits 1 on fail but still outputs JSON on stdout
     const stdout = e.stdout || '';
     try {
-      lastResult = JSON.parse(stdout);
+      const jsonLine = stdout.split('\n').filter(l => l.trim().startsWith('{')).pop() || stdout;
+      lastResult = JSON.parse(jsonLine);
     } catch {
       logger.error(`Visual QA failed to produce output: ${e.message?.slice(0, 100)}`);
       break;

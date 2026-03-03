@@ -25,6 +25,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
   'md-construction.norbotsystems.com': 'md-construction',
   'bl-renovations.norbotsystems.com': 'bl-renovations',
+  'ccr-renovations.norbotsystems.com': 'ccr-renovations',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
