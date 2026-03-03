@@ -5,43 +5,72 @@
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "How well the logo is displayed. 5=perfect, 1=missing/broken."
+      "description": "How well the logo is displayed across ALL pages. 5=perfect, 1=missing/broken."
     },
     "colour_match": {
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "How well brand colours match the original site. 5=exact match, 1=completely wrong."
+      "description": "How well brand colours match across ALL pages. 5=professional palette, 1=clashing/default."
     },
     "copy_accuracy": {
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "How accurate business copy is (name, services, about). 5=perfect, 1=placeholder/wrong."
+      "description": "How accurate business copy is across ALL pages. 5=all accurate, 1=placeholders/wrong."
     },
     "layout_integrity": {
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "Page layout quality, no broken sections or overlaps. 5=perfect, 1=broken layout."
+      "description": "Page layout quality across ALL pages. 5=polished, 1=broken/overlapping."
     },
     "brand_cohesion": {
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "Overall feeling of brand consistency. 5=feels like real site, 1=generic template."
+      "description": "Overall branded feel across ALL pages. 5=professional, 1=generic template."
     },
     "text_legibility": {
       "type": "number",
       "minimum": 1,
       "maximum": 5,
-      "description": "Text legibility against backgrounds. 5=all text perfectly legible, 1=significant unreadable text."
+      "description": "Text legibility against backgrounds on ALL pages. 5=excellent contrast, 1=unreadable text."
     },
     "notes": {
       "type": "string",
-      "description": "Brief assessment of quality issues or strengths (2-3 sentences)."
+      "description": "Brief overall assessment (2-3 sentences)."
+    },
+    "page_issues": {
+      "type": "array",
+      "description": "Specific issues found on individual pages. Empty array if no issues.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "description": "Page name: homepage, services, about, projects, contact"
+          },
+          "issue": {
+            "type": "string",
+            "description": "Specific issue description (1 sentence)"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "warning", "minor"],
+            "description": "critical=blocks go-live, warning=should fix, minor=nice-to-have"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": ["logo_fidelity", "colour_match", "copy_accuracy", "layout_integrity", "brand_cohesion", "text_legibility"],
+            "description": "Which scoring dimension this issue affects"
+          }
+        },
+        "required": ["page", "issue", "severity", "dimension"],
+        "additionalProperties": false
+      }
     }
   },
-  "required": ["logo_fidelity", "colour_match", "copy_accuracy", "layout_integrity", "brand_cohesion", "text_legibility", "notes"],
+  "required": ["logo_fidelity", "colour_match", "copy_accuracy", "layout_integrity", "brand_cohesion", "text_legibility", "notes", "page_issues"],
   "additionalProperties": false
 }

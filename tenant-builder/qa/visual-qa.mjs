@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Visual QA — Claude Vision 6-dimension rubric.
+ * Visual QA — Claude Vision 6-dimension rubric with per-page coverage.
  *
- * Sends desktop + mobile screenshots to Claude for structured scoring.
+ * Sends ALL available screenshots (homepage + services + about + projects + contact)
+ * to Claude for structured scoring. Produces aggregate scores + per-page issue list.
+ *
  * Pass criteria: avg >= 4.0, no dimension below 3.0.
  *
  * Usage:
@@ -11,7 +13,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { loadEnv } from '../lib/env-loader.mjs';
@@ -67,40 +69,129 @@ function findClaude() {
   return 'claude';
 }
 
-const CLAUDE_BIN = findClaude();
+/**
+ * Discover all available screenshots in the directory.
+ * Returns { homepage: [...], services: [...], ... } grouped by page.
+ */
+function discoverScreenshots(dir) {
+  const files = readdirSync(dir).filter(f => f.endsWith('.png'));
+  const result = {
+    homepage: [],
+    services: [],
+    about: [],
+    projects: [],
+    contact: [],
+    other: [],
+  };
 
-// Build prompt with explicit file paths so the model reads the screenshots
-let prompt = `You are reviewing a ConversionOS demo website generated for a renovation contractor. Score the site on 6 dimensions (1-5 each).
+  for (const f of files) {
+    const fullPath = resolve(dir, f);
+    if (f === 'desktop.png') {
+      result.homepage.push({ path: fullPath, label: 'Homepage (desktop viewport)' });
+    } else if (f === 'mobile.png') {
+      result.homepage.push({ path: fullPath, label: 'Homepage (mobile viewport)' });
+    } else if (f.includes('-homepage-')) {
+      result.homepage.push({ path: fullPath, label: `Homepage (${f.includes('mobile') ? 'mobile' : 'desktop'} full page)` });
+    } else if (f.includes('-services-')) {
+      result.services.push({ path: fullPath, label: `Services (${f.includes('mobile') ? 'mobile' : 'desktop'} full page)` });
+    } else if (f.includes('-about-')) {
+      result.about.push({ path: fullPath, label: `About (${f.includes('mobile') ? 'mobile' : 'desktop'} full page)` });
+    } else if (f.includes('-projects-')) {
+      result.projects.push({ path: fullPath, label: `Projects (${f.includes('mobile') ? 'mobile' : 'desktop'} full page)` });
+    } else if (f.includes('-contact-')) {
+      result.contact.push({ path: fullPath, label: `Contact (${f.includes('mobile') ? 'mobile' : 'desktop'} full page)` });
+    } else if (!f.includes('-admin-') && !f.includes('style-active')) {
+      result.other.push({ path: fullPath, label: f });
+    }
+  }
+
+  return result;
+}
+
+const CLAUDE_BIN = findClaude();
+const discovered = discoverScreenshots(screenshotsDir);
+
+// Collect all screenshots to send (prioritize desktop full-page for each page)
+const screenshotPaths = [];
+
+// Always include homepage viewport screenshots
+screenshotPaths.push({ path: desktopPath, label: 'Homepage (desktop viewport)' });
+if (existsSync(mobilePath)) {
+  screenshotPaths.push({ path: mobilePath, label: 'Homepage (mobile viewport)' });
+}
+
+// Add desktop full-page screenshots for each page (skip duplicates with homepage viewport)
+const pages = ['homepage', 'services', 'about', 'projects', 'contact'];
+for (const page of pages) {
+  const pageScreenshots = discovered[page] || [];
+  for (const ss of pageScreenshots) {
+    // Skip if already added (homepage viewport)
+    if (ss.path === desktopPath || ss.path === mobilePath) continue;
+    // Prefer desktop full-page over mobile full-page for each page
+    if (ss.label.includes('desktop full page')) {
+      screenshotPaths.push(ss);
+    }
+  }
+}
+
+// Add mobile full-page for non-homepage pages (if desktop not available)
+for (const page of pages.slice(1)) {
+  const pageScreenshots = discovered[page] || [];
+  const hasDesktop = pageScreenshots.some(s => s.label.includes('desktop full page'));
+  if (!hasDesktop) {
+    const mobileSS = pageScreenshots.find(s => s.label.includes('mobile full page'));
+    if (mobileSS) screenshotPaths.push(mobileSS);
+  }
+}
+
+const allPaths = screenshotPaths.map(s => s.path);
+const pagesCovered = new Set(screenshotPaths.map(s => {
+  if (s.label.includes('Homepage')) return 'homepage';
+  if (s.label.includes('Services')) return 'services';
+  if (s.label.includes('About')) return 'about';
+  if (s.label.includes('Projects')) return 'projects';
+  if (s.label.includes('Contact')) return 'contact';
+  return 'other';
+}));
+
+logger.info(`Visual QA: ${screenshotPaths.length} screenshots covering ${pagesCovered.size} pages: ${[...pagesCovered].join(', ')}`);
+
+// Build prompt with all screenshot paths
+let prompt = `You are reviewing a ConversionOS demo website generated for a renovation contractor. Score the ENTIRE site across ALL pages on 6 dimensions (1-5 each).
 
 Site ID: ${siteId}
 
-IMPORTANT: First, use the Read tool to view the desktop screenshot at: ${desktopPath}`;
+IMPORTANT: First, use the Read tool to view ALL of the following screenshots. Review every page before scoring.
 
-if (existsSync(mobilePath)) {
-  prompt += `\nAlso read the mobile screenshot at: ${mobilePath}`;
+Screenshots to review:`;
+
+for (const ss of screenshotPaths) {
+  prompt += `\n- ${ss.label}: ${ss.path}`;
 }
 
 if (args.original && existsSync(resolve(args.original))) {
-  prompt += `\nAlso read the original contractor website screenshot for comparison at: ${resolve(args.original)}`;
+  prompt += `\n- Original contractor website (for comparison): ${resolve(args.original)}`;
 }
 
 prompt += `
 
-After viewing the screenshot(s), score each dimension:
-1. **Logo Fidelity** — Is the logo displayed correctly? (5=perfect rendering, 1=missing/broken/placeholder)
-2. **Colour Match** — Do brand colours feel right for this business? (5=professional palette, 1=clashing/default colours)
-3. **Copy Accuracy** — Is the business name, services, and about text correct? (5=all accurate, 1=placeholders/wrong info)
-4. **Layout Integrity** — Is the page layout clean with no broken sections? (5=polished, 1=broken/overlapping elements)
-5. **Brand Cohesion** — Does the overall site feel like a real business site? (5=professional and branded, 1=generic template)
-6. **Text Legibility** — Can all text be clearly read against its background? (5=all text perfectly legible with excellent contrast throughout, 4=good legibility with minimal issues, 3=minor contrast issues on secondary elements, 2=several contrast issues affecting readability, 1=significant unreadable text such as white text on white/light background or dark text on dark background)
+After viewing ALL screenshots, score the ENTIRE SITE across all pages:
+1. **Logo Fidelity** — Is the logo displayed correctly on ALL pages? (5=perfect, 1=missing/broken)
+2. **Colour Match** — Do brand colours feel right across ALL pages? (5=professional, 1=clashing/default)
+3. **Copy Accuracy** — Is business name, services, and about text correct on ALL pages? (5=all accurate, 1=placeholders)
+4. **Layout Integrity** — Are ALL page layouts clean with no broken sections? (5=polished, 1=broken)
+5. **Brand Cohesion** — Does the ENTIRE site feel like a real business site? (5=professional, 1=generic template)
+6. **Text Legibility** — Can all text be read against backgrounds on ALL pages? (5=excellent contrast, 1=unreadable)
 
-Be critical — only score 5 if truly excellent.`;
+Be critical — only score 5 if truly excellent across ALL pages. If one page has issues, that should lower the relevant dimension.
 
-// Build claude args — no positional image paths, model reads them via Read tool
+Also identify specific issues on individual pages in the page_issues array. If a page looks perfect, don't add issues for it. Focus on problems that affect the overall quality.`;
+
+// Build claude args
 const claudeArgs = [
   '-p', prompt,
   '--output-format', 'json',
-  '--max-turns', '10',
+  '--max-turns', '15',
   '--model', 'sonnet',
   '--json-schema', readFileSync(SCHEMA_PATH, 'utf-8'),
 ];
@@ -108,12 +199,12 @@ const claudeArgs = [
 const env = { ...process.env };
 delete env.CLAUDECODE;
 
-logger.info(`Visual QA: scoring ${siteId}`);
+logger.info(`Visual QA: scoring ${siteId} (${screenshotPaths.length} screenshots)`);
 
 try {
   const stdout = execFileSync(CLAUDE_BIN, claudeArgs, {
     env,
-    timeout: 90000,
+    timeout: 180000,
     maxBuffer: 10 * 1024 * 1024,
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -138,18 +229,27 @@ try {
     ...scores,
     average: Math.round(average * 100) / 100,
     pass,
+    pages_reviewed: [...pagesCovered],
+    screenshots_count: screenshotPaths.length,
     screenshots: {
       desktop: desktopPath,
       mobile: existsSync(mobilePath) ? mobilePath : null,
+      all: allPaths,
     },
   };
 
-  logger.info(`Visual QA: avg=${result.average}, pass=${pass}`);
+  logger.info(`Visual QA: avg=${result.average}, pass=${pass}, pages=${pagesCovered.size}`);
   if (belowMin.length > 0) {
     logger.warn(`Dimensions below minimum: ${belowMin.join(', ')}`);
   }
   for (const d of dims) {
     logger.info(`  ${d}: ${scores[d]}/5`);
+  }
+  if (scores.page_issues?.length > 0) {
+    logger.info(`Page issues found: ${scores.page_issues.length}`);
+    for (const issue of scores.page_issues) {
+      logger.info(`  [${issue.severity}] ${issue.page}: ${issue.issue}`);
+    }
   }
 
   // Save result

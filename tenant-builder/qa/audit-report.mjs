@@ -189,7 +189,7 @@ export function generateAuditReport(siteId, resultsDir) {
   // ── Section 3: Visual QA ──
   if (visualQa) {
     lines.push('## 3. Visual QA\n');
-    const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion'];
+    const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion', 'text_legibility'];
     lines.push('| Dimension | Score |');
     lines.push('|-----------|-------|');
     for (const d of dims) {
@@ -198,7 +198,22 @@ export function generateAuditReport(siteId, resultsDir) {
       lines.push(`| ${d.replace(/_/g, ' ')} | ${icon} ${score}/5 |`);
     }
     lines.push(`| **Average** | **${visualQa.average}/5** |`);
+
+    // Pages reviewed
+    if (visualQa.pages_reviewed?.length > 0) {
+      lines.push(`\nPages reviewed: ${visualQa.pages_reviewed.join(', ')} (${visualQa.screenshots_count || 'N/A'} screenshots)`);
+    }
+
     if (visualQa.notes) lines.push(`\nNotes: ${visualQa.notes}`);
+
+    // Per-page issues
+    if (visualQa.page_issues?.length > 0) {
+      lines.push('\n**Page-specific issues:**\n');
+      for (const issue of visualQa.page_issues) {
+        const sev = issue.severity === 'critical' ? 'CRITICAL' : issue.severity === 'warning' ? 'WARN' : 'MINOR';
+        lines.push(`- [${sev}] **${issue.page}** (${issue.dimension?.replace(/_/g, ' ') || 'general'}): ${issue.issue}`);
+      }
+    }
     lines.push('');
   } else {
     lines.push('## 3. Visual QA\n_Not run_\n');

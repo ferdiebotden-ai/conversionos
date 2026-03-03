@@ -186,8 +186,13 @@ while (iteration < maxIterations) {
 
   // Step 3: Analyse failures and generate fixes
   logger.info('Generating fix instructions...');
-  const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion'];
+  const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion', 'text_legibility'];
   const lowDims = dims.filter(d => (lastResult[d] || 0) < 4.0);
+
+  // Include page-specific issues if available
+  const pageIssuesSection = lastResult.page_issues?.length > 0
+    ? `\nPage-specific issues:\n${lastResult.page_issues.map(i => `  [${i.severity}] ${i.page} (${i.dimension}): ${i.issue}`).join('\n')}`
+    : '';
 
   const fixPrompt = `A ConversionOS demo site for ${siteId} scored poorly on visual QA.
 
@@ -195,6 +200,7 @@ Scores:
 ${dims.map(d => `  ${d}: ${lastResult[d]}/5`).join('\n')}
 Average: ${lastResult.average}/5
 Notes: ${lastResult.notes || 'none'}
+${pageIssuesSection}
 
 Low-scoring dimensions: ${lowDims.join(', ')}
 
