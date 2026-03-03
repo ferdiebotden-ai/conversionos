@@ -22,6 +22,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'conversionos-demo.norbotsystems.com': 'demo',
   'red-white-reno.norbotsystems.com': 'red-white-reno',
   'redwhitereno-test-prov-test.norbotsystems.com': 'redwhitereno-test-prov-test',
+  'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
