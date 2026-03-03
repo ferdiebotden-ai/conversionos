@@ -167,7 +167,7 @@ export function getServicesCTA(ctx: CopyContext): CTASectionCopy {
       heading: 'Ready to Start Your Project?',
       description:
         'Get a personalized quote in minutes with our AI-powered estimator, or contact us directly to discuss your renovation needs.',
-      primary: { label: 'Get Instant Quote', href: '/visualizer' },
+      primary: { label: 'Start Your Project', href: '/visualizer' },
       secondary: { label: 'Contact Us', href: '/contact' },
     };
   }
