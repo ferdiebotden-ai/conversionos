@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Visual QA — Claude Vision 5-dimension rubric.
+ * Visual QA — Claude Vision 6-dimension rubric.
  *
  * Sends desktop + mobile screenshots to Claude for structured scoring.
  * Pass criteria: avg >= 4.0, no dimension below 3.0.
@@ -70,7 +70,7 @@ function findClaude() {
 const CLAUDE_BIN = findClaude();
 
 // Build prompt with explicit file paths so the model reads the screenshots
-let prompt = `You are reviewing a ConversionOS demo website generated for a renovation contractor. Score the site on 5 dimensions (1-5 each).
+let prompt = `You are reviewing a ConversionOS demo website generated for a renovation contractor. Score the site on 6 dimensions (1-5 each).
 
 Site ID: ${siteId}
 
@@ -92,6 +92,7 @@ After viewing the screenshot(s), score each dimension:
 3. **Copy Accuracy** — Is the business name, services, and about text correct? (5=all accurate, 1=placeholders/wrong info)
 4. **Layout Integrity** — Is the page layout clean with no broken sections? (5=polished, 1=broken/overlapping elements)
 5. **Brand Cohesion** — Does the overall site feel like a real business site? (5=professional and branded, 1=generic template)
+6. **Text Legibility** — Can all text be clearly read against its background? (5=all text perfectly legible with excellent contrast throughout, 4=good legibility with minimal issues, 3=minor contrast issues on secondary elements, 2=several contrast issues affecting readability, 1=significant unreadable text such as white text on white/light background or dark text on dark background)
 
 Be critical — only score 5 if truly excellent.`;
 
@@ -128,7 +129,7 @@ try {
   }
 
   // Calculate average
-  const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion'];
+  const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion', 'text_legibility'];
   const average = dims.reduce((sum, d) => sum + (scores[d] || 0), 0) / dims.length;
   const belowMin = dims.filter(d => (scores[d] || 0) < 3.0);
   const pass = average >= 4.0 && belowMin.length === 0;

@@ -314,6 +314,46 @@ async function checkWcagContrast(browser, baseUrl) {
       });
     }
 
+    // Check primary-foreground vs primary (catches white text on light primary)
+    try {
+      const fgRgb = await page.evaluate(() => {
+        const style = getComputedStyle(document.documentElement);
+        const fg = style.getPropertyValue('--primary-foreground').trim();
+        if (!fg) return null;
+        // Resolve the colour via a temporary element
+        const el = document.createElement('div');
+        el.style.color = `oklch(${fg})`;
+        document.body.appendChild(el);
+        const computed = getComputedStyle(el).color;
+        document.body.removeChild(el);
+        return computed; // "rgb(r, g, b)" format
+      });
+
+      if (fgRgb) {
+        const rgbMatch = fgRgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (rgbMatch) {
+          const r = parseInt(rgbMatch[1]).toString(16).padStart(2, '0');
+          const g = parseInt(rgbMatch[2]).toString(16).padStart(2, '0');
+          const b = parseInt(rgbMatch[3]).toString(16).padStart(2, '0');
+          const fgHex = `#${r}${g}${b}`;
+
+          const fgOnPrimary = contrastRatio(fgHex, primaryHex);
+          if (fgOnPrimary < 4.5) {
+            violations.push({
+              check: 'primary_foreground_contrast',
+              issue: `Primary foreground vs primary background: ${fgOnPrimary.toFixed(2)}:1 (need 4.5:1)`,
+              foreground: fgHex,
+              background: primaryHex,
+              ratio: fgOnPrimary.toFixed(2),
+              level: fgOnPrimary < 3.0 ? 'fail' : 'warn',
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Non-blocking — skip if foreground colour can't be resolved
+    }
+
     const failViolations = violations.filter(v => v.level === 'fail');
     return {
       check: 'wcag_contrast',

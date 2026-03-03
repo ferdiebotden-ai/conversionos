@@ -355,6 +355,18 @@ for (const field of VERIFY_AGAINST_MARKDOWN) {
   }
 }
 
+// Filter hero_subheadline — discard if AI-generated-sounding or too long
+if (extracted.hero_subheadline) {
+  const sub = extracted.hero_subheadline.trim();
+  const GENERIC_SUBHEADLINE = /your satisfaction|commitment to excellence|dedicated to|we are committed|our commitment|striving to|passionate about/i;
+  const wordCount = sub.split(/\s+/).length;
+  if (GENERIC_SUBHEADLINE.test(sub) || wordCount > 15) {
+    console.log(`  Removed generic/long hero_subheadline: "${sub}"`);
+    extracted.hero_subheadline = undefined;
+    filteredCount++;
+  }
+}
+
 console.log(`  Filtered ${filteredCount} placeholder(s) total`);
 
 // ─── Step 3: Markdown enrichment (GPT fallback) ─────────
@@ -569,7 +581,7 @@ const generationLog = {
 };
 
 // Fields safe to generate (derivable from scraped data)
-const SAFE_TO_GENERATE = ['tagline', 'mission', 'why_choose_us', 'hero_headline'];
+const SAFE_TO_GENERATE = ['tagline', 'mission', 'why_choose_us', 'hero_headline', 'hero_subheadline'];
 // Fields NEVER to generate (must be real or hidden)
 const NEVER_GENERATE = ['testimonials', 'certifications', 'team_members', 'phone', 'email', 'address', 'founded_year', 'portfolio', 'process_steps', 'values', 'trust_badges'];
 
@@ -600,6 +612,7 @@ if (missingFields.length > 0) {
 - Write in a professional, warm tone appropriate for a home renovation company.
 - tagline: 8-12 words, compelling and specific to the business.
 - hero_headline: attention-grabbing, 5-10 words, speaks to homeowners.
+- hero_subheadline: company tagline or core values statement, 5-12 words. Only generate if there's clear evidence of a slogan or values phrase on the website. Return null if no evidence.
 - mission: 1-2 sentences about the company's purpose.
 - why_choose_us: 3 items, each with title (3-4 words) and description (1-2 sentences). Base on real attributes.
 - trust_badges, process_steps, and values: return null for these — they must come from real website content, never generated.

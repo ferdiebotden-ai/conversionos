@@ -231,8 +231,7 @@ export default async function Home() {
                     Why Choose {branding.name}?
                   </h2>
                   <p className="mt-4 text-lg text-muted-foreground">
-                    We combine AI technology with real Ontario renovation data to
-                    deliver exceptional results.
+                    {config.whyChooseSubtitle || `Serving ${branding.city || 'your area'} and surrounding communities with quality craftsmanship.`}
                   </p>
                 </FadeInUp>
 

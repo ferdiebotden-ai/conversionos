@@ -89,11 +89,17 @@ export default async function RootLayout({
           const safeOklch = branding.primaryOklch && oklchRegex.test(branding.primaryOklch)
             ? branding.primaryOklch
             : null;
-          return safeOklch ? (
+          if (!safeOklch) return null;
+          // Parse OKLCH L channel to determine text contrast
+          const oklchParts = safeOklch.split(/\s+/);
+          const L = parseFloat(oklchParts[0]!);
+          // L > 0.6 = light colour -> dark text; L <= 0.6 = dark colour -> white text
+          const primaryForeground = L > 0.6 ? 'oklch(0.145 0 0)' : 'oklch(0.985 0 0)';
+          return (
             <style dangerouslySetInnerHTML={{
-              __html: `:root{--primary:oklch(${safeOklch})}`
+              __html: `:root{--primary:oklch(${safeOklch});--primary-foreground:${primaryForeground}}`
             }} />
-          ) : null;
+          );
         })()}
       </head>
       <body

@@ -10,6 +10,7 @@ export const ContractorWebsiteSchema = z.object({
   business_name: z.string().describe('The company/business name'),
   tagline: z.string().optional().describe('Company tagline or slogan'),
   hero_headline: z.string().optional().describe('Main headline text on the homepage hero section'),
+  hero_subheadline: z.string().optional().describe('Company tagline or core values statement — short phrase (5-12 words). Examples: "Quality, Integrity, Service", "Excellence, Integrity, Dependability". Only extract if explicitly stated on the website.'),
 
   // Contact info
   phone: z.string().optional().describe('Primary phone number'),

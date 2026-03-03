@@ -48,20 +48,89 @@ logger.info(`Screenshotting: ${siteUrl}`);
 
 const browser = await chromium.launch({ headless: true });
 
+const MULTI_PAGES = [
+  { path: '/', slug: 'homepage' },
+  { path: '/services', slug: 'services' },
+  { path: '/projects', slug: 'projects' },
+  { path: '/about', slug: 'about' },
+  { path: '/contact', slug: 'contact' },
+  { path: '/admin', slug: 'admin' },
+];
+
+const MULTI_VIEWPORTS = [
+  { width: 1440, height: 900, label: 'desktop' },
+  { width: 390, height: 844, label: 'mobile' },
+];
+
 try {
-  // Desktop screenshot (1440x900)
+  // Desktop screenshot (1440x900) — original viewport-only for backward compatibility
   const desktopPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await desktopPage.goto(siteUrl, { waitUntil: 'networkidle', timeout: 30000 });
   await desktopPage.screenshot({ path: desktopPath, fullPage: false });
   logger.info(`Desktop screenshot: ${desktopPath}`);
   await desktopPage.close();
 
-  // Mobile screenshot (390x844)
+  // Mobile screenshot (390x844) — original viewport-only for backward compatibility
   const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await mobilePage.goto(siteUrl, { waitUntil: 'networkidle', timeout: 30000 });
   await mobilePage.screenshot({ path: mobilePath, fullPage: false });
   logger.info(`Mobile screenshot: ${mobilePath}`);
   await mobilePage.close();
+
+  // Full-page multi-page screenshots
+  for (const vp of MULTI_VIEWPORTS) {
+    for (const pg of MULTI_PAGES) {
+      const filename = `${vp.label}-${pg.slug}-full.png`;
+      const filePath = resolve(outputDir, filename);
+      const pageUrl = `${siteUrl}${pg.path}`;
+      const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
+
+      try {
+        const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 });
+        const status = response?.status() || 0;
+        const finalUrl = page.url();
+
+        // Skip if 404+ or redirected away (e.g. /admin redirects to /)
+        if (status >= 400) {
+          logger.info(`Skipped ${vp.label} ${pg.slug}: HTTP ${status}`);
+          continue;
+        }
+        if (pg.slug === 'admin' && !finalUrl.includes('/admin')) {
+          logger.info(`Skipped ${vp.label} ${pg.slug}: redirected to ${finalUrl}`);
+          continue;
+        }
+
+        await page.screenshot({ path: filePath, fullPage: true });
+        logger.info(`Full-page screenshot: ${filename}`);
+      } catch (e) {
+        logger.info(`Skipped ${vp.label} ${pg.slug}: ${e.message?.slice(0, 60)}`);
+      } finally {
+        await page.close();
+      }
+    }
+  }
+
+  // Interactive state capture — homepage desktop, click a style option button
+  try {
+    const interactivePage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await interactivePage.goto(siteUrl, { waitUntil: 'networkidle', timeout: 30000 });
+
+    // Try to find a style option button (data-style attribute, or first button in a grid of buttons)
+    const styleButton = await interactivePage.$('button[data-style]') ||
+      await interactivePage.$('.grid button, [class*="grid"] button');
+
+    if (styleButton) {
+      await styleButton.click();
+      await interactivePage.waitForTimeout(500);
+      const interactivePath = resolve(outputDir, 'desktop-style-active.png');
+      await interactivePage.screenshot({ path: interactivePath, fullPage: false });
+      logger.info(`Interactive screenshot: desktop-style-active.png`);
+    }
+
+    await interactivePage.close();
+  } catch (e) {
+    logger.info(`Skipped interactive capture: ${e.message?.slice(0, 60)}`);
+  }
 } finally {
   await browser.close();
 }

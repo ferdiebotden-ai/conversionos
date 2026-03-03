@@ -59,6 +59,7 @@ export interface CompanyConfig {
   teamMembers: { name: string; role: string; photoUrl: string; bio?: string }[];
   portfolio: { title: string; description: string; imageUrl: string; serviceType: string; location: string }[];
   trustMetrics: { google_rating?: string; projects_completed?: string; years_in_business?: string; licensed_insured?: boolean };
+  whyChooseSubtitle?: string;
 }
 
 /**
@@ -131,6 +132,7 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       teamMembers: (profile['teamMembers'] as CompanyConfig['teamMembers']) || FALLBACK_CONFIG.teamMembers,
       portfolio: (profile['portfolio'] as CompanyConfig['portfolio']) || FALLBACK_CONFIG.portfolio,
       trustMetrics: (profile['trustMetrics'] as CompanyConfig['trustMetrics']) || FALLBACK_CONFIG.trustMetrics,
+      ...((profile['whyChooseSubtitle'] as string) ? { whyChooseSubtitle: profile['whyChooseSubtitle'] as string } : {}),
     };
   } catch {
     return FALLBACK_CONFIG;
