@@ -20,6 +20,10 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 
 **[2026-03-03] bl-renovations:** Logo was invisible in the header — white logo on white background. The scraper captured their white-on-dark version (`logo.webp` — 600x600, white text on light grey). Their actual website uses a dark/black version for light backgrounds. Fix: downloaded dark logo from their site header, uploaded as `logo-dark.png` to Supabase Storage, updated `company_profile.logoUrl` and `branding.logoUrl`. Pattern: when scraping logos, check if the logo has transparency (PNG/WebP with alpha). If so, check if the text/graphic is light-coloured — it may be a "logo on dark" variant. Always try to source both light and dark versions. If only a white logo is available, set `branding.logoOnDark: true` so the header wraps it in a dark pill.
 
+## Logo Sizing & Visibility
+
+**[2026-03-03] all tenants:** Platform header constrained logos to 32px (`h-8`) in a 64px header — wasting half the available space. All tenants looked undersized. Fixed platform-wide: header now `h-10 md:h-11` (40px mobile, 44px desktop), footer `h-10` (40px). Image attrs increased to 220×56 / 200×50 for retina sharpness. Text fallback scaled from `text-xl` to `text-2xl`. Dark pill padding increased from `py-1.5` to `py-2`. Pattern: this is a platform-level concern, not a per-tenant issue. Future builds don't need to adjust logo sizing. However, scraped logos should be minimum 200px wide for sharp rendering at 44px display height. Visual QA should verify logo is VISIBLE (not just loaded) — white logos on white backgrounds pass "image loaded" checks but are invisible.
+
 ## Copy & Content
 
 **[2026-03-03] mccarty-squared-inc:** Scraper hit their Strathroy-specific subpage (`mccartysquared.ca/strathroy-ontario`) instead of the root. All scraped about copy referenced "Strathroy community" when the company's primary address is London, ON. Fix: manually patched `aboutCopy` in Supabase to say "London and surrounding areas". Pattern: always scrape from the root domain, not regional subpages. Consider checking `source_url` in `_meta` — if it contains a city slug, re-scrape from root.

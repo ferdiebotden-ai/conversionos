@@ -37,31 +37,31 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-1 space-y-4">
             {branding.logoUrl ? (
               branding.logoOnDark ? (
-                <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5">
+                <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-2">
                   <Image
                     src={branding.logoUrl}
                     alt={branding.name}
-                    width={160}
-                    height={40}
-                    className="h-8 w-auto"
+                    width={200}
+                    height={50}
+                    className="h-10 w-auto"
                   />
                 </span>
               ) : (
                 <Image
                   src={branding.logoUrl}
                   alt={branding.name}
-                  width={160}
-                  height={40}
-                  className="h-8 w-auto"
+                  width={200}
+                  height={50}
+                  className="h-10 w-auto"
                 />
               )
             ) : (
               <div className="flex flex-col leading-tight">
-                <span className="text-xl font-bold tracking-tight text-foreground">
+                <span className="text-2xl font-bold tracking-tight text-foreground">
                   {branding.name.split(" ")[0]}{" "}
                   <span className="text-primary">{branding.name.split(" ").slice(1).join(" ")}</span>
                 </span>
-                <span className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
+                <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                   {branding.tagline}
                 </span>
               </div>

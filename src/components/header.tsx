@@ -162,14 +162,14 @@ function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: s
       <Image
         src={logoUrl}
         alt={name}
-        width={160}
-        height={40}
-        className="h-8 w-auto"
+        width={220}
+        height={56}
+        className="h-10 md:h-11 w-auto"
         priority
       />
     )
     return logoOnDark ? (
-      <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5">
+      <span className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-2">
         {img}
       </span>
     ) : img
@@ -182,10 +182,10 @@ function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: s
 
   return (
     <div className="flex flex-col leading-tight">
-      <span className="text-xl font-bold tracking-tight text-foreground">
+      <span className="text-2xl font-bold tracking-tight text-foreground">
         {first}{rest && <> <span className="text-primary">{rest}</span></>}
       </span>
-      <span className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
+      <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
         {tagline}
       </span>
     </div>
