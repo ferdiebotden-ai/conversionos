@@ -41,10 +41,10 @@ async function checkHomepage(page, baseUrl) {
     const body = document.body;
     const text = body?.textContent || '';
 
-    // Hero section
-    const heroSection = document.querySelector('[class*="hero"], section:first-of-type, main > :first-child');
-    const heroH1 = heroSection?.querySelector('h1, h2');
+    // Hero section — query h1 directly (most reliable; hero headline is always the first h1)
+    const heroH1 = document.querySelector('h1');
     const heroHeadline = heroH1?.textContent?.trim() || '';
+    const heroSection = heroH1?.closest('section') || document.querySelector('section');
     const heroCta = heroSection?.querySelector('a[href], button');
     const heroCtaText = heroCta?.textContent?.trim() || '';
 
@@ -52,8 +52,8 @@ async function checkHomepage(page, baseUrl) {
     const trustSection = document.querySelector('[class*="trust"], [class*="metric"], [class*="stats"]');
     const trustItems = trustSection ? trustSection.querySelectorAll('[class*="metric"], [class*="stat"], [class*="badge"]') : [];
 
-    // Services section
-    const serviceCards = document.querySelectorAll('[class*="service"] [class*="card"], [class*="service"] article');
+    // Services section — use link count (service links are reliable regardless of card markup)
+    const serviceCards = document.querySelectorAll('[data-slot="card"]');
     const serviceLinks = document.querySelectorAll('a[href*="/services"]');
 
     // Testimonials
