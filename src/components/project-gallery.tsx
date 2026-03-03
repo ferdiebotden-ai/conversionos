@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { ProjectCard, type Project } from "@/components/project-card"
+import { GalleryLightbox } from "@/components/gallery-lightbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface ProjectGalleryProps {
@@ -12,9 +13,22 @@ interface ProjectGalleryProps {
 
 export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) {
   const [filter, setFilter] = React.useState<string>("all")
+  const [lightboxIndex, setLightboxIndex] = React.useState(-1)
   const shouldReduce = useReducedMotion()
 
-  if (!propProjects || propProjects.length === 0) {
+  const displayProjects = propProjects ?? []
+
+  // Count per type for badges — must be before early return (hooks rule)
+  const typeCounts = React.useMemo(() => {
+    const counts = new Map<string, number>()
+    counts.set("all", displayProjects.length)
+    for (const p of displayProjects) {
+      counts.set(p.type, (counts.get(p.type) || 0) + 1)
+    }
+    return counts
+  }, [displayProjects])
+
+  if (displayProjects.length === 0) {
     return (
       <div className="py-16 text-center">
         <p className="text-lg text-muted-foreground">
@@ -23,7 +37,7 @@ export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) 
       </div>
     );
   }
-  const displayProjects = propProjects;
+
   const isSparse = displayProjects.length < 3;
 
   // Derive unique project types for filter tabs — hide when only 1 type
@@ -50,6 +64,7 @@ export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) 
             className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             All Projects
+            <span className="ml-1.5 text-xs opacity-60">{typeCounts.get("all") || 0}</span>
           </TabsTrigger>
           {projectTypes.map((type) => (
             <TabsTrigger
@@ -58,13 +73,14 @@ export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) 
               className="rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
+              <span className="ml-1.5 text-xs opacity-60">{typeCounts.get(type) || 0}</span>
             </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
       )}
 
-      {/* Project Grid — larger cards when sparse portfolio */}
+      {/* Project Grid */}
       <AnimatePresence mode="wait">
         <motion.div
           key={filter}
@@ -88,7 +104,10 @@ export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) 
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
             >
-              <ProjectCard project={project} />
+              <ProjectCard
+                project={project}
+                onClick={() => setLightboxIndex(i)}
+              />
             </motion.div>
           ))}
         </motion.div>
@@ -114,7 +133,14 @@ export function ProjectGallery({ projects: propProjects }: ProjectGalleryProps) 
           </p>
         </div>
       )}
+
+      {/* Lightbox */}
+      <GalleryLightbox
+        projects={filteredProjects}
+        initialIndex={lightboxIndex >= 0 ? lightboxIndex : 0}
+        open={lightboxIndex >= 0}
+        onClose={() => setLightboxIndex(-1)}
+      />
     </div>
   )
 }
-

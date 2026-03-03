@@ -7,6 +7,7 @@ import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 import type { Project } from "@/components/project-card"
 import { getCopyContext } from "@/lib/copy/server"
 import { getProjectsCTA } from "@/lib/copy/site-copy"
+import { Sparkles } from "lucide-react"
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
@@ -23,10 +24,11 @@ export default async function ProjectsPage() {
   const dbProjects: Project[] = config.portfolio.map((p, i) => ({
     id: String(i + 1),
     title: p.title,
-    type: p.serviceType.toLowerCase().split(' ')[0] as Project["type"],
+    type: (p.serviceType ?? 'renovation').toLowerCase().split(' ')[0] ?? 'renovation',
     description: p.description,
     location: p.location,
     image: p.imageUrl,
+    beforeImage: (p as Record<string, string>)['beforeImageUrl'] as string | undefined,
   }))
 
   return (
@@ -67,8 +69,30 @@ export default async function ProjectsPage() {
         </div>
       </section>
 
+      {/* Visualizer CTA — only when gallery has 3+ projects */}
+      {dbProjects.length >= 3 && (
+        <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
+          <div className="container mx-auto text-center">
+            <div className="mx-auto max-w-xl">
+              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
+                <Sparkles className="size-6 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Inspired by Our Work?
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                See what your own room could look like. Upload a photo and get four AI-generated design concepts in seconds.
+              </p>
+              <Button asChild size="lg" className="mt-6 h-12 rounded-full px-8">
+                <Link href="/visualizer">Try the AI Visualizer</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* CTA Section */}
-      <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
+      <section className="border-t border-border px-4 py-12 md:py-16">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {cta.heading}

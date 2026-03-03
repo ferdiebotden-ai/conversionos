@@ -571,6 +571,24 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Step 5j: Update Turso status for deployed targets (auto-drop from pipeline)
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun && !auditOnly) {
+  for (const r of qaResults.filter(qr => !qr.error)) {
+    try {
+      const rows = await query('SELECT id FROM targets WHERE slug = ?', [r.siteId]);
+      if (rows.length > 0) {
+        await execute("UPDATE targets SET status = 'bespoke_ready' WHERE id = ?", [rows[0].id]);
+        logger.debug(`[${r.siteId}] Status updated to bespoke_ready`);
+      }
+    } catch (e) {
+      logger.warn(`[${r.siteId}] Could not update status: ${e.message}`);
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 // Step 6: Outreach (email drafts for all deployed targets)
 // QA is informational — a live site should get outreach regardless of QA verdict
 // ──────────────────────────────────────────────────────────

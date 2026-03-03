@@ -61,7 +61,8 @@ async function pipelineMode() {
     `SELECT * FROM targets
      WHERE status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
        AND website IS NOT NULL
-     ORDER BY score DESC
+       AND (email IS NOT NULL OR phone IS NOT NULL)
+     ORDER BY COALESCE(icp_score, 0) DESC, score DESC
      LIMIT ?`,
     [limit]
   );

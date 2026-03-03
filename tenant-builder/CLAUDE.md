@@ -32,6 +32,21 @@ node tenant-builder/orchestrate.mjs --nightly
 
 **Flags:** `--concurrency N` (default 4), `--dry-run`, `--skip-qa`, `--skip-git`, `--skip-outreach`, `--skip-sample-data`, `--timeout-multiplier N`
 
+## Getting Next Targets
+
+```bash
+# Top 10 pipeline targets — sorted by ICP score, built targets auto-drop
+node tenant-builder/discover.mjs --pipeline --limit 10
+
+# Re-score all unscored targets
+node tenant-builder/icp-score.mjs --all --limit 50
+
+# Score a specific target
+node tenant-builder/icp-score.mjs --target-id 42
+```
+
+ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-operators (15 pts company size), basic websites (20 pts sophistication gap), complete contact data (15 pts email/phone/name). See `docs/icp-scoring.md` for full breakdown. Targets auto-drop from the pipeline after a demo is built (`status = 'bespoke_ready'`).
+
 ## Pipeline Flow (16 Steps)
 
 1. Select targets — Turso DB, direct URL, or Firecrawl discovery

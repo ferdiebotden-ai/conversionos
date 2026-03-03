@@ -23,6 +23,7 @@ import { getCompanyConfig } from "@/lib/ai/knowledge/company"
 import { AuroraBackground } from "@/components/home/aurora-background"
 import { VisualizerTeaser } from "@/components/home/visualizer-teaser"
 import { SocialProofBar } from "@/components/home/social-proof-bar"
+import { GalleryTeaser } from "@/components/home/gallery-teaser"
 import { getCopyContext } from "@/lib/copy/server"
 import {
   getHowItWorksSubtitle,
@@ -257,6 +258,17 @@ export default async function Home() {
                 })()}
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Gallery Teaser — featured projects */}
+      {config.portfolio.length >= 2 && (
+        <section className="border-t border-border px-4 py-10 md:py-20">
+          <div className="container mx-auto">
+            <FadeInUp>
+              <GalleryTeaser projects={config.portfolio} companyName={branding.name} />
+            </FadeInUp>
           </div>
         </section>
       )}

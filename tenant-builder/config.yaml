@@ -6,14 +6,40 @@ icp_scoring:
   weights:
     template_fit: 20        # How well their content maps to our template
     sophistication_gap: 20  # Basic site = high score (inverted)
-    years_in_business: 15   # Newer businesses benefit more (inverted)
+    contact_completeness: 15 # Has email + phone + owner_name (outreach readiness)
     google_reviews: 15      # Social proof indicates active business
-    geography: 15           # Ontario proximity to Stratford
+    geography: 15           # Ontario proximity to Stratford, small towns preferred
     company_size: 15        # Smaller = higher (inverted)
   thresholds:
     auto_proceed: 70        # Score >= 70: auto-build
     manual_review: 50       # 50-69: flag for review
     reject: 50              # Score < 50: skip
+  # Small towns near Stratford — ideal ICP targets (max geography points)
+  small_town_cities:
+    - Woodstock
+    - Ingersoll
+    - Tillsonburg
+    - St. Thomas
+    - Stratford
+    - Listowel
+    - Mitchell
+    - Tavistock
+    - New Hamburg
+    - Exeter
+    - Elmira
+    - Fergus
+    - Elora
+    - Paris
+    - Simcoe
+    - Norfolk
+  # Mid-size cities — good targets (slightly less geography points)
+  mid_size_cities:
+    - London
+    - Kitchener
+    - Waterloo
+    - Cambridge
+    - Guelph
+    - Brantford
 
 # Scraping configuration
 scraping:

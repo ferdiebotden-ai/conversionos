@@ -76,13 +76,13 @@ function scoreSophisticationGap(level) {
   return Math.min(map[level] || 10, WEIGHTS.sophistication_gap);
 }
 
-/** Years in business (inverted): newer = higher */
-function scoreYearsInBusiness(years) {
-  if (years == null) return 8; // assume mid-range
-  if (years <= 3) return Math.min(15, WEIGHTS.years_in_business);
-  if (years <= 7) return Math.min(12, WEIGHTS.years_in_business);
-  if (years <= 15) return Math.min(8, WEIGHTS.years_in_business);
-  return Math.min(5, WEIGHTS.years_in_business);
+/** Contact completeness: email + phone + owner_name availability */
+function scoreContactCompleteness(email, phone, ownerName) {
+  const has = [email, phone, ownerName].filter(v => v && v.trim()).length;
+  if (has >= 3) return Math.min(15, WEIGHTS.contact_completeness);
+  if (has === 2) return Math.min(10, WEIGHTS.contact_completeness);
+  if (has === 1) return Math.min(5, WEIGHTS.contact_completeness);
+  return 0;
 }
 
 /** Google reviews: high rating + decent count */
@@ -99,15 +99,18 @@ function scoreGoogleReviews(rating, count) {
   return Math.min(score, WEIGHTS.google_reviews);
 }
 
-/** Geography: prioritise active cities closer to Stratford */
+/** Geography: prioritise small towns near Stratford over larger cities */
+const SMALL_TOWN_CITIES = (CONFIG.icp_scoring.small_town_cities || []).map(c => c.toLowerCase());
+const MID_SIZE_CITIES = (CONFIG.icp_scoring.mid_size_cities || []).map(c => c.toLowerCase());
+
 function scoreGeography(city) {
-  if (!city) return 5;
-  const idx = ACTIVE_CITIES.findIndex(c => c.toLowerCase() === city.toLowerCase());
-  if (idx === -1) return 3; // not in active list
-  // First cities in list are closer to Stratford
-  if (idx <= 3) return WEIGHTS.geography;      // Phase 1 cities
-  if (idx <= 7) return WEIGHTS.geography - 3;  // Phase 2
-  return WEIGHTS.geography - 6;                 // Phase 3+
+  if (!city) return 3;
+  const norm = city.toLowerCase();
+  if (SMALL_TOWN_CITIES.includes(norm)) return Math.min(15, WEIGHTS.geography); // Ideal ICP
+  if (MID_SIZE_CITIES.includes(norm)) return Math.min(12, WEIGHTS.geography);   // Good targets
+  const idx = ACTIVE_CITIES.findIndex(c => c.toLowerCase() === norm);
+  if (idx !== -1) return Math.min(9, WEIGHTS.geography);                        // Farther/larger
+  return 3; // Unknown city
 }
 
 /** Company size (inverted): smaller = higher */
@@ -171,7 +174,7 @@ ${markdown.slice(0, 3000)}`;
   const breakdown = {
     template_fit: scoreTemplateFit(markdown),
     sophistication_gap: scoreSophisticationGap(sophisticationLevel),
-    years_in_business: scoreYearsInBusiness(target.years_in_business),
+    contact_completeness: scoreContactCompleteness(target.email, target.phone, target.owner_name),
     google_reviews: scoreGoogleReviews(target.google_rating, target.google_review_count),
     geography: scoreGeography(target.city),
     company_size: scoreCompanySize(teamSizeEstimate),
@@ -179,10 +182,10 @@ ${markdown.slice(0, 3000)}`;
     notes: `sophistication=${sophisticationLevel}, size=${teamSizeEstimate}`,
   };
   breakdown.total = breakdown.template_fit + breakdown.sophistication_gap +
-    breakdown.years_in_business + breakdown.google_reviews +
+    breakdown.contact_completeness + breakdown.google_reviews +
     breakdown.geography + breakdown.company_size;
 
-  logger.info(`${name}: ICP score ${breakdown.total}/100 (fit=${breakdown.template_fit}, gap=${breakdown.sophistication_gap}, yrs=${breakdown.years_in_business}, reviews=${breakdown.google_reviews}, geo=${breakdown.geography}, size=${breakdown.company_size})`);
+  logger.info(`${name}: ICP score ${breakdown.total}/100 (fit=${breakdown.template_fit}, gap=${breakdown.sophistication_gap}, contact=${breakdown.contact_completeness}, reviews=${breakdown.google_reviews}, geo=${breakdown.geography}, size=${breakdown.company_size})`);
 
   if (!dryRun) {
     await execute(
