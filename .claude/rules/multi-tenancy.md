@@ -24,10 +24,9 @@
 - Dev-only: `?__site_id=` query param override for testing multiple tenants
 
 ## Sample Data
-- Every new tenant is seeded with 3 sample leads via `tenant-builder/provision/seed-sample-leads.mjs`
+- Every new tenant is seeded with 1 sample lead via `tenant-builder/provision/seed-sample-leads.mjs`
 - Fixture file: `tenant-builder/fixtures/sample-leads.json` — Playwright-captured from ConversionOS base
-- Leads: Margaret Wilson (new/bathroom/ai_chat), Derek Fournier (sent/kitchen/chat_no_photo), Steve & Karen Brodie (won/basement/contractor_intake)
-- Includes 1 visualization with 4 AI-generated concepts, metrics, audit log entries
+- Lead: Margaret Wilson (new/bathroom/ai_chat) — includes 1 visualization with 4 AI-generated concepts, metrics, audit log entry
 - Images served from `public/images/sample-data/` (static, no per-tenant Storage duplication)
 - Seeder is idempotent — skips if leads already exist for the site_id
 - Integrated as Step 2c in `provision-tenant.mjs`, skip with `--skip-sample-data`

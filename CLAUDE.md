@@ -107,10 +107,8 @@ src/proxy.ts          — Domain → tenant routing (Next.js 16 proxy)
 | `red-white-reno` | `red-white-reno.norbotsystems.com` | Accelerate | First bespoke tenant |
 
 ## Sample Data
-Every new tenant is seeded with 3 sample leads from `tenant-builder/fixtures/sample-leads.json`:
+Every new tenant is seeded with 1 sample lead from `tenant-builder/fixtures/sample-leads.json`:
 - **Margaret Wilson** — bathroom, `new` status, AI visualizer flow (4 concepts + photo analysis)
-- **Derek Fournier** — kitchen, `sent` status, no-photo chat path (AI quote draft)
-- **Steve & Karen Brodie** — basement, `won` status, contractor intake form
 
 Seeder: `tenant-builder/provision/seed-sample-leads.mjs` — integrated as Step 2c in provisioning pipeline.
 Images: `public/images/sample-data/` (static, shared across tenants).
