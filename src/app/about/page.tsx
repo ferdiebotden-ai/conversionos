@@ -187,7 +187,8 @@ export default async function AboutPage() {
               ))}
             </div>
 
-            {/* RenoMark Guarantee Details */}
+            {/* RenoMark Guarantee Details — only shown for RenoMark members */}
+            {config.certifications.some(c => /renomark/i.test(c)) && (
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-left max-w-4xl mx-auto">
               <div className="flex gap-3 rounded-lg border border-border p-4">
                 <Shield className="size-5 shrink-0 text-primary mt-0.5" />
@@ -225,6 +226,7 @@ export default async function AboutPage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </section>

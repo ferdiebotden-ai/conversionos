@@ -30,6 +30,10 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 ## Layout & Responsive
 
 
+## Certifications & Memberships
+
+**[2026-03-03] bl-renovations:** About page showed hardcoded RenoMark benefit cards (2-Year Warranty, $2M Insurance, Code of Conduct, Written Contracts, 2-Day Response) even though BL Renovations only has "Commercially Bonded" and "Insured" — they are NOT a RenoMark member. This is false certification and could be legally problematic. Root cause: the About page rendered RenoMark details unconditionally for any tenant with certifications. Fix: gated the RenoMark details section behind `config.certifications.some(c => /renomark/i.test(c))`. Pattern: certification details must NEVER be shown unless the tenant's scraped data explicitly includes that certification. Only McCarty Squared Inc. has RenoMark. The scraper must capture exact certification names and the platform must gate org-specific benefit claims behind presence of that certification.
+
 ## Scraping Edge Cases
 
 **[2026-03-03] general:** If `_meta.source_url` in the scraped JSON contains a city slug (e.g. `/strathroy-ontario`, `/london-ontario`), the scraper hit a regional landing page rather than the root. City-specific pages have narrower content (only mentions that city). Always prefer the root URL for the primary scrape.
