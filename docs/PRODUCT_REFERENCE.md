@@ -287,9 +287,8 @@ All demo data was created through real platform workflows (Gemini image generati
 
 - Stripe not integrated — payments recorded manually
 - Phone/Twilio voice agent not yet deployed (Dominate feature)
-- Voice chat UI removed from visualizer (ElevenLabs unreliable) — infrastructure retained for future re-enablement
+- All voice/dictation features removed from chat UIs — infrastructure (API routes, providers) retained for future re-enablement
 - Tiered quoting (Good/Better/Best) removed from UI — DB columns remain, unused
-- Dictation uses Web Speech API only (no Whisper fallback) — hidden on Firefox
 - Style History Gallery and Session linking not built
 - E-signature acceptance page untested in QA
 - Depth estimation disabled (Sharp fallback works)
