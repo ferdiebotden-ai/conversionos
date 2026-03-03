@@ -13,7 +13,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import YAML from 'yaml';
@@ -482,6 +482,32 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         });
       } catch { /* screenshots may fail if not deployed yet */ }
 
+      // 5e.5. Capture original website screenshot for visual comparison
+      const originalScreenshotPath = resolve(outputDir, 'screenshots/original-homepage.png');
+      if (target.website && !auditOnly) {
+        try {
+          logger.info(`[${siteId}] Capturing original website screenshot...`);
+          execFileSync('node', [
+            resolve(TB_ROOT, 'qa/screenshot.mjs'),
+            '--url', target.website,
+            '--site-id', `${siteId}-original`,
+            '--output', resolve(outputDir, 'screenshots/original'),
+            '--skip-upload',
+          ], {
+            cwd: DEMO_ROOT, env: process.env, timeout: 45000,
+            maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          // Rename the desktop screenshot to our expected path
+          const capturedPath = resolve(outputDir, 'screenshots/original/desktop.png');
+          if (existsSync(capturedPath)) {
+            copyFileSync(capturedPath, originalScreenshotPath);
+            logger.info(`[${siteId}] Original website screenshot captured`);
+          }
+        } catch (e) {
+          logger.info(`[${siteId}] Could not capture original website: ${e.message?.slice(0, 60)}`);
+        }
+      }
+
       // 5f. Visual QA with refinement
       const maxIter = CONFIG.qa.max_refinement_iterations || 3;
       const qaTimeoutMs = (maxIter * 250 + 120) * 1000 * timeoutMultiplier;
@@ -492,6 +518,9 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         '--max-iterations', String(maxIter),
       ];
       if (targetId) qaArgs.push('--target-id', String(targetId));
+      if (existsSync(originalScreenshotPath)) {
+        qaArgs.push('--original-screenshot', originalScreenshotPath);
+      }
 
       execFileSync('node', qaArgs, {
         cwd: DEMO_ROOT, env: process.env, timeout: qaTimeoutMs,

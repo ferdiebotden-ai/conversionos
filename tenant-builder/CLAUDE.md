@@ -4,6 +4,8 @@ Autonomous pipeline that discovers Ontario renovation contractors, scores them f
 
 **Model preference:** Use Sonnet 4.6 for routine builds. Opus 4.6 only for deep code modifications or debugging.
 
+**At session start:** Read `docs/learned-patterns.md` to apply accumulated build learnings.
+
 ## Quick Start
 
 ```bash
@@ -60,6 +62,7 @@ After `orchestrate.mjs` completes, always review the results:
 4. **Visual check** — Read screenshots (`results/{date}/{site-id}/screenshots/`) to verify logos, colours, layout
 5. **Review email drafts** — Search Gmail for drafts matching the company name. Verify: no banned terms, CASL footer, correct city/company/URL, call day/time filled
 6. **Present summary** — Structured report with action items for Ferdie
+7. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
 
 ## Deep Reference
 
@@ -71,6 +74,7 @@ After `orchestrate.mjs` completes, always review the results:
 | Sample lead fixtures and regeneration | `docs/sample-data.md` |
 | Outreach integration (Step 6) | `docs/outreach-integration.md` |
 | Data shape interfaces | `SHARED_INTERFACES.md` |
+| Accumulated build learnings | `docs/learned-patterns.md` |
 | Outreach rules (CASL, template, slots) | `../scripts/outreach/README.md` |
 
 ## Environment Variables

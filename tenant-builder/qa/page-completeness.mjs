@@ -132,15 +132,17 @@ async function checkServicesPage(page, baseUrl) {
   }
 
   const data = await page.evaluate(() => {
-    const cards = document.querySelectorAll('[class*="service"] [class*="card"], [class*="service"] article, main section article');
+    // shadcn/ui Card components use data-slot="card"; class-name matching is unreliable with Tailwind
+    const cards = document.querySelectorAll('[data-slot="card"]');
     const services = [];
 
     cards.forEach(card => {
       const name = card.querySelector('h2, h3, h4')?.textContent?.trim() || '';
       const desc = card.querySelector('p')?.textContent?.trim() || '';
       const img = card.querySelector('img');
-      const hasImage = img && img.naturalWidth > 0;
-      const imgSrc = img?.getAttribute('src') || '';
+      // naturalWidth may be 0 for lazy-loaded images; check srcset/src instead
+      const hasImage = img && (img.naturalWidth > 0 || img.srcset || img.getAttribute('src'));
+      const imgSrc = img?.getAttribute('src') || img?.srcset?.slice(0, 80) || '';
       services.push({ name, descLength: desc.length, hasImage, imgSrc: imgSrc.slice(0, 80) });
     });
 
@@ -251,13 +253,15 @@ async function checkProjectsPage(page, baseUrl) {
   }
 
   const data = await page.evaluate(() => {
-    const cards = document.querySelectorAll('[class*="project"] [class*="card"], [class*="portfolio"] [class*="card"], [class*="gallery"] article, main article');
+    // shadcn/ui Card components use data-slot="card"; class-name matching is unreliable with Tailwind
+    const cards = document.querySelectorAll('[data-slot="card"]');
     const projects = [];
 
     cards.forEach(card => {
       const title = card.querySelector('h2, h3, h4')?.textContent?.trim() || '';
       const img = card.querySelector('img');
-      const hasImage = img && img.naturalWidth > 0;
+      // naturalWidth may be 0 for lazy-loaded images; check srcset/src instead
+      const hasImage = img && (img.naturalWidth > 0 || img.srcset || img.getAttribute('src'));
       projects.push({ title, hasImage });
     });
 

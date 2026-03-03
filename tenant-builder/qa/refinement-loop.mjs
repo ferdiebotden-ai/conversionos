@@ -33,6 +33,7 @@ const { values: args } = parseArgs({
     url: { type: 'string' },
     'target-id': { type: 'string' },
     'max-iterations': { type: 'string', default: '3' },
+    'original-screenshot': { type: 'string' },
     help: { type: 'boolean' },
   },
 });
@@ -124,6 +125,9 @@ while (iteration < maxIterations) {
       '--screenshots', resolve(baseDir, 'screenshots'),
     ];
     if (targetId) qaArgs.push('--target-id', String(targetId));
+    if (args['original-screenshot'] && existsSync(args['original-screenshot'])) {
+      qaArgs.push('--original', args['original-screenshot']);
+    }
 
     const stdout = execFileSync('node', qaArgs, {
       cwd: demoRoot,
@@ -194,6 +198,10 @@ while (iteration < maxIterations) {
     ? `\nPage-specific issues:\n${lastResult.page_issues.map(i => `  [${i.severity}] ${i.page} (${i.dimension}): ${i.issue}`).join('\n')}`
     : '';
 
+  const originalContext = args['original-screenshot'] && existsSync(args['original-screenshot'])
+    ? `\nIMPORTANT: The original contractor website screenshot is at: ${args['original-screenshot']}. Read it first to understand what the demo SHOULD look like. Your fixes should make the demo match the original contractor's branding, colours, and overall feel more closely.`
+    : '';
+
   const fixPrompt = `A ConversionOS demo site for ${siteId} scored poorly on visual QA.
 
 Scores:
@@ -203,6 +211,7 @@ Notes: ${lastResult.notes || 'none'}
 ${pageIssuesSection}
 
 Low-scoring dimensions: ${lowDims.join(', ')}
+${originalContext}
 
 The site is powered by Supabase admin_settings (keys: business_info, branding, company_profile).
 What specific changes should be made to improve the low-scoring dimensions?
