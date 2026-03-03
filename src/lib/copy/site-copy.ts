@@ -38,7 +38,7 @@ interface CTASectionCopy {
 // ---------------------------------------------------------------------------
 
 export function getHeaderCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get Quote', href: '/visualizer' };
+  if (hasQuotes(ctx)) return { label: 'Start Your Project', href: '/visualizer' };
   return { label: 'Contact Us', href: '/contact' };
 }
 
@@ -47,7 +47,7 @@ export function getHeaderCTA(ctx: CopyContext): CTACopy {
 // ---------------------------------------------------------------------------
 
 export function getMobileCTA(ctx: CopyContext): CTACopy {
-  if (hasQuotes(ctx)) return { label: 'Get Estimate', href: '/visualizer' };
+  if (hasQuotes(ctx)) return { label: 'Start Your Project', href: '/visualizer' };
   return { label: 'Contact Us', href: '/contact' };
 }
 
@@ -209,21 +209,11 @@ export function getServiceDetailCTA(
 // ---------------------------------------------------------------------------
 
 export function getProjectsCTA(ctx: CopyContext): CTASectionCopy {
-  if (hasQuotes(ctx)) {
-    return {
-      heading: 'Ready to Start Your Project?',
-      description:
-        "Let's create something amazing together. Get a personalized quote and see what your renovation could look like.",
-      primary: { label: 'Get a Quote', href: '/visualizer' },
-      secondary: { label: 'Try the Visualizer', href: '/visualizer' },
-    };
-  }
   return {
-    heading: 'Ready to Start Your Project?',
+    heading: 'Inspired by Our Work?',
     description:
-      "Let's create something amazing together. Contact us to discuss your renovation.",
-    primary: { label: 'Contact Us', href: '/contact' },
-    secondary: { label: 'Try the Visualizer', href: '/visualizer' },
+      'See what your own room could look like. Upload a photo and get AI-generated design concepts in seconds.',
+    primary: { label: 'Start Your Project', href: '/visualizer' },
   };
 }
 

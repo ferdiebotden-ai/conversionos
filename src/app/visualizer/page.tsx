@@ -20,7 +20,7 @@ export default function VisualizerPage() {
       {/* Hero section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-primary/3 to-background">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
-        <div className="relative container mx-auto px-4 py-14 sm:py-16 text-center">
+        <div className="relative container mx-auto px-4 py-10 sm:py-12 text-center">
           <FadeInUp>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               Visualise Your{' '}
@@ -36,7 +36,7 @@ export default function VisualizerPage() {
       </section>
 
       {/* Form section */}
-      <section className="container mx-auto px-4 py-8 sm:py-12">
+      <section className="container mx-auto px-4 py-4 sm:py-6">
         <VisualizerForm />
       </section>
 

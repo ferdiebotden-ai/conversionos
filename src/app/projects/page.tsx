@@ -69,51 +69,22 @@ export default async function ProjectsPage() {
         </div>
       </section>
 
-      {/* Visualizer CTA — only when gallery has 3+ projects */}
-      {dbProjects.length >= 3 && (
-        <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
-          <div className="container mx-auto text-center">
-            <div className="mx-auto max-w-xl">
-              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="size-6 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Inspired by Our Work?
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                See what your own room could look like. Upload a photo and get four AI-generated design concepts in seconds.
-              </p>
-              <Button asChild size="lg" className="mt-6 h-12 rounded-full px-8">
-                <Link href="/visualizer">Try the AI Visualizer</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* CTA Section */}
-      <section className="border-t border-border px-4 py-12 md:py-16">
+      <section className="border-t border-border bg-muted/30 px-4 py-12 md:py-16">
         <div className="container mx-auto text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {cta.heading}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            {cta.description}
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" className="h-12 w-full px-8 sm:w-auto">
+          <div className="mx-auto max-w-xl">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <Sparkles className="size-6 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {cta.heading}
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              {cta.description}
+            </p>
+            <Button asChild size="lg" className="mt-6 h-12 rounded-full px-8">
               <Link href={cta.primary.href}>{cta.primary.label}</Link>
             </Button>
-            {cta.secondary && (
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="h-12 w-full px-8 sm:w-auto"
-              >
-                <Link href={cta.secondary.href}>{cta.secondary.label}</Link>
-              </Button>
-            )}
           </div>
         </div>
       </section>

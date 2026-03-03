@@ -25,6 +25,7 @@ const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ] as const
 
 export function Header() {
@@ -35,6 +36,9 @@ export function Header() {
   const cta = getHeaderCTA(copyCtx)
   const { canAccess } = useTier()
   const showAdmin = canAccess('admin_dashboard')
+
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   // Hide public header on admin routes
   if (pathname.startsWith('/admin')) {
@@ -71,7 +75,7 @@ export function Header() {
                   <SheetClose asChild key={link.href}>
                     <Link
                       href={link.href}
-                      className="flex h-12 items-center rounded-md px-4 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      className={`flex h-12 items-center rounded-md px-4 text-base font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(link.href) ? 'bg-accent text-accent-foreground' : 'text-foreground'}`}
                     >
                       {link.label}
                     </Link>
@@ -117,7 +121,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-md px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground ${isActive(link.href) ? 'text-foreground bg-accent/50' : 'text-foreground/80'}`}
             >
               {link.label}
             </Link>

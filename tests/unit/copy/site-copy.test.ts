@@ -45,7 +45,7 @@ describe('getHeaderCTA', () => {
     const cta = getHeaderCTA(ctx);
     if (quotesOn) {
       expect(cta.href).toBe('/visualizer');
-      expect(cta.label).toContain('Quote');
+      expect(cta.label).toBe('Start Your Project');
     } else {
       expect(cta.href).toBe('/contact');
       expect(cta.label).toContain('Contact');
@@ -169,11 +169,15 @@ describe('getServiceDetailCTA', () => {
 });
 
 describe('getProjectsCTA', () => {
-  it('primary goes to /estimate when quotes on', () => {
+  it('always goes to /visualizer regardless of tier', () => {
     expect(getProjectsCTA({ tier: 'accelerate', quoteMode: 'range' }).primary.href).toBe('/visualizer');
+    expect(getProjectsCTA({ tier: 'elevate', quoteMode: 'none' }).primary.href).toBe('/visualizer');
   });
-  it('primary goes to /contact when quotes off', () => {
-    expect(getProjectsCTA({ tier: 'elevate', quoteMode: 'none' }).primary.href).toBe('/contact');
+  it('uses "Start Your Project" label', () => {
+    expect(getProjectsCTA({ tier: 'accelerate', quoteMode: 'range' }).primary.label).toBe('Start Your Project');
+  });
+  it('has no secondary button', () => {
+    expect(getProjectsCTA({ tier: 'accelerate', quoteMode: 'range' }).secondary).toBeUndefined();
   });
 });
 

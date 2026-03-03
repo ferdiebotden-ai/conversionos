@@ -258,7 +258,7 @@ export default async function AboutPage() {
             }
 
             return (
-              <div className={`mt-10 grid gap-6 ${members.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl' : 'sm:grid-cols-2 max-w-2xl'} mx-auto`}>
+              <div className={`mt-10 grid gap-6 ${members.length === 1 ? 'max-w-sm' : members.length <= 2 ? 'sm:grid-cols-2 max-w-2xl' : 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl'} mx-auto`}>
                 {members.map((member, i) => (
                   <Card key={i}>
                     <CardContent className="p-6 text-center">

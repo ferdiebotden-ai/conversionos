@@ -491,7 +491,7 @@ function VisualizerFormInner() {
           <button
             type="button"
             onClick={() => setCurrentStep('no_photo_chat')}
-            className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+            className="inline-flex items-center rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             {getSkipPhotoText(copyCtx)}
           </button>
