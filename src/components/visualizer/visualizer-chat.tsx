@@ -26,11 +26,6 @@ import {
   Package,
   CircleCheck,
 } from 'lucide-react';
-import { VoiceProvider } from '@/components/voice/voice-provider';
-import { TalkButton } from '@/components/voice/talk-button';
-import { VoiceIndicator } from '@/components/voice/voice-indicator';
-import { VoiceTranscriptMessage } from '@/components/voice/voice-transcript-message';
-import { useVoice } from '@/components/voice/voice-provider';
 import type { DesignStyle, RoomType } from '@/lib/schemas/visualization';
 import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
 
@@ -68,11 +63,7 @@ interface VisualizerChatProps {
 }
 
 export function VisualizerChat(props: VisualizerChatProps) {
-  return (
-    <VoiceProvider>
-      <VisualizerChatInner {...props} />
-    </VoiceProvider>
-  );
+  return <VisualizerChatInner {...props} />;
 }
 
 function VisualizerChatInner({
@@ -478,9 +469,6 @@ function VisualizerChatInner({
           </div>
         )}
 
-      {/* Voice Indicator — inline when voice is active */}
-      <VisualizerVoiceIndicator extractedData={extractedData} setExtractedData={setExtractedData} />
-
       {/* Input area */}
       <div className="p-4 border-t border-border">
         <div className="flex gap-2">
@@ -493,11 +481,6 @@ function VisualizerChatInner({
             disabled={isLoading || isAnalyzing}
             className="flex-1"
             aria-label="Message to Emma"
-          />
-          <TalkButton
-            context="visualizer"
-            variant="inline"
-            disabled={isLoading || isAnalyzing}
           />
           <Button
             onClick={handleSend}
@@ -651,64 +634,3 @@ function AnalysisFeedback({
   );
 }
 
-/**
- * Visualizer Voice Indicator
- * Shows voice indicator and extracts design intent from voice transcript
- */
-function VisualizerVoiceIndicator({
-  extractedData,
-  setExtractedData,
-}: {
-  extractedData: ExtractedData;
-  setExtractedData: React.Dispatch<React.SetStateAction<ExtractedData>>;
-}) {
-  const { status, transcript } = useVoice();
-  const processedCountRef = useRef(0);
-
-  // Extract style/material data from voice transcript entries
-  useEffect(() => {
-    if (transcript.length <= processedCountRef.current) return;
-
-    const newEntries = transcript.slice(processedCountRef.current);
-    processedCountRef.current = transcript.length;
-
-    for (const entry of newEntries) {
-      const lower = entry.content.toLowerCase();
-
-      // Extract style preferences
-      const styles: Record<string, DesignStyle> = {
-        modern: 'modern',
-        traditional: 'traditional',
-        farmhouse: 'farmhouse',
-        industrial: 'industrial',
-        minimalist: 'minimalist',
-        contemporary: 'contemporary',
-      };
-      for (const [keyword, style] of Object.entries(styles)) {
-        if (lower.includes(keyword)) {
-          setExtractedData((prev) => ({
-            ...prev,
-            stylePreference: prev.stylePreference || style,
-          }));
-          break;
-        }
-      }
-
-      // Extract materials mentioned
-      const materials = ['marble', 'granite', 'quartz', 'wood', 'tile', 'brass', 'stainless steel', 'subway tile'];
-      for (const mat of materials) {
-        if (lower.includes(mat)) {
-          setExtractedData((prev) => ({
-            ...prev,
-            materialPreferences: [...new Set([...prev.materialPreferences, mat])],
-          }));
-        }
-      }
-    }
-  }, [transcript, setExtractedData]);
-
-  const isVoiceActive = status === 'connected' || status === 'connecting';
-  if (!isVoiceActive) return null;
-
-  return <VoiceIndicator context="visualizer" />;
-}

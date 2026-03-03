@@ -3,7 +3,7 @@
 /**
  * Visualizer Form
  * Streamlined single-page form for AI design visualization
- * Flow: Upload Photo → Room Type → Style → Preferences (text + voice) → Generate → Results
+ * Flow: Upload Photo → Room Type → Style → Preferences → Generate → Results
  */
 
 import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
@@ -19,15 +19,13 @@ import { FloatingGenerateButton } from './floating-generate-button';
 import { PhotoSummaryBar } from './photo-summary-bar';
 import { ResultDisplay } from './result-display';
 import { GenerationLoading } from './generation-loading';
-import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
 import { useVisualizationStream } from '@/hooks/use-visualization-stream';
-import { mergeDesignIntent, type DesignPreferences, type VoiceExtractedPreferences } from '@/lib/schemas/design-preferences';
+import { mergeDesignIntent, type DesignPreferences } from '@/lib/schemas/design-preferences';
 import type {
   VisualizationResponse,
   VisualizationError,
 } from '@/lib/schemas/visualization';
 import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
-import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 import { useTier } from '@/components/tier-provider';
 import { NoPhotoChatPanel } from './no-photo-chat-panel';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
@@ -48,9 +46,6 @@ interface FormData {
   style: DesignStyleSelection | null;
   customStyle: string;
   textPreferences: string;
-  voiceTranscript: VoiceTranscriptEntry[];
-  voicePreferencesSummary?: string;
-  voiceExtractedPreferences?: VoiceExtractedPreferences;
   photoAnalysis?: RoomAnalysis;
 }
 
@@ -131,7 +126,6 @@ function VisualizerFormInner() {
     style: null,
     customStyle: '',
     textPreferences: '',
-    voiceTranscript: [],
   });
   const [visualization, setVisualization] = useState<VisualizationResponse | null>(null);
   const [error, setError] = useState<VisualizationError | null>(null);
@@ -144,14 +138,6 @@ function VisualizerFormInner() {
   // Refs for auto-scroll behavior
   const styleSectionRef = useRef<HTMLDivElement>(null);
   const preferencesSectionRef = useRef<HTMLDivElement>(null);
-
-  // Sync voice transcript from VoiceProvider
-  const { transcript: voiceTranscript, endVoice, status: voiceStatus } = useVoice();
-  useEffect(() => {
-    if (voiceTranscript.length > 0) {
-      setFormData(prev => ({ ...prev, voiceTranscript }));
-    }
-  }, [voiceTranscript]);
 
   // Auto-scroll with offset — keeps the selected item visible above the fold
   // Smaller offset on mobile where header is shorter
@@ -228,15 +214,6 @@ function VisualizerFormInner() {
     setCurrentStep('photo');
   }, []);
 
-  // Voice summary callback
-  const handleVoiceSummaryReady = useCallback((summary: string, extracted: VoiceExtractedPreferences) => {
-    setFormData(prev => ({
-      ...prev,
-      voicePreferencesSummary: summary,
-      voiceExtractedPreferences: extracted,
-    }));
-  }, []);
-
   // Start SSE generation (called after transition delay)
   const startStreamGeneration = useCallback(() => {
     if (!formData.photo || !formData.roomType || !formData.style) return;
@@ -247,13 +224,6 @@ function VisualizerFormInner() {
       style: formData.style,
       customStyle: formData.style === 'other' ? formData.customStyle : undefined,
       textPreferences: formData.textPreferences,
-      voiceTranscript: formData.voiceTranscript.map(t => ({
-        role: t.role,
-        content: t.content,
-        timestamp: t.timestamp,
-      })),
-      voicePreferencesSummary: formData.voicePreferencesSummary,
-      voiceExtractedPreferences: formData.voiceExtractedPreferences,
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
     };
 
@@ -269,14 +239,6 @@ function VisualizerFormInner() {
       count: 4,
       mode: 'streamlined',
       designIntent,
-      voicePreferencesSummary: formData.voicePreferencesSummary,
-      voiceTranscript: formData.voiceTranscript.length > 0
-        ? formData.voiceTranscript.map(t => ({
-            role: t.role,
-            content: t.content,
-            timestamp: t.timestamp,
-          }))
-        : undefined,
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
     });
   }, [formData, stream]);
@@ -285,13 +247,9 @@ function VisualizerFormInner() {
   const handleGenerate = useCallback(async () => {
     if (!formData.photo || !formData.roomType || !formData.style) return;
 
-    if (voiceStatus === 'connected' || voiceStatus === 'connecting') {
-      await endVoice();
-    }
-
     setError(null);
     setCurrentStep('transitioning');
-  }, [formData, endVoice, voiceStatus]);
+  }, [formData]);
 
   // Scroll to top when entering transition/generation — prevents viewport showing footer
   useEffect(() => {
@@ -334,7 +292,6 @@ function VisualizerFormInner() {
       style: null,
       customStyle: '',
       textPreferences: '',
-      voiceTranscript: [],
     });
     setVisualization(null);
     setError(null);
@@ -344,20 +301,12 @@ function VisualizerFormInner() {
 
   // Try another style — keeps photo + room type, resets style and preferences
   const handleTryAnotherStyle = useCallback(() => {
-    setFormData(prev => {
-      const {
-        voicePreferencesSummary: _vs, // eslint-disable-line @typescript-eslint/no-unused-vars
-        voiceExtractedPreferences: _ve, // eslint-disable-line @typescript-eslint/no-unused-vars
-        ...rest
-      } = prev;
-      return {
-        ...rest,
-        style: null,
-        customStyle: '',
-        textPreferences: '',
-        voiceTranscript: [],
-      };
-    });
+    setFormData(prev => ({
+      ...prev,
+      style: null,
+      customStyle: '',
+      textPreferences: '',
+    }));
     setVisualization(null);
     setFavouritedIndices(new Set());
     setCurrentStep('form');
@@ -376,11 +325,8 @@ function VisualizerFormInner() {
       return;
     }
 
-    // Accelerate+: Serialize full context for estimate handoff — include ALL captured data
-    const messages = formData.voiceTranscript.map(t => ({
-      role: t.role as 'user' | 'assistant',
-      content: t.content,
-    }));
+    // Accelerate+: Serialize full context for estimate handoff
+    const messages: { role: 'user' | 'assistant'; content: string }[] = [];
 
     const roomLabel = formData.roomType === 'other'
       ? formData.customRoomType
@@ -406,13 +352,6 @@ function VisualizerFormInner() {
           spatialZones: formData.photoAnalysis.spatialZones,
         } : undefined;
 
-        // Build voice-extracted structured preferences
-        const voiceExtracted = formData.voiceExtractedPreferences ? {
-          desiredChanges: formData.voiceExtractedPreferences.desiredChanges,
-          materialPreferences: formData.voiceExtractedPreferences.materialPreferences,
-          preservationNotes: formData.voiceExtractedPreferences.preservationNotes,
-        } : undefined;
-
         const handoffData = {
           fromPersona: 'design-consultant' as const,
           toPersona: 'quote-specialist' as const,
@@ -424,7 +363,6 @@ function VisualizerFormInner() {
             style: formData.style || '',
             customStyle: formData.customStyle,
             textPreferences: formData.textPreferences,
-            voicePreferencesSummary: formData.voicePreferencesSummary,
           },
           visualizationData: visualization ? {
             id: visualization.id,
@@ -437,7 +375,6 @@ function VisualizerFormInner() {
             ? Array.from(favouritedIndices)
             : undefined,
           photoAnalysis: photoAnalysisHandoff,
-          voiceExtractedPreferences: voiceExtracted,
           // quoteAssistanceMode and costSignals will be injected server-side
           // by the estimate page API based on tenant config
           timestamp: Date.now(),
@@ -601,7 +538,7 @@ function VisualizerFormInner() {
         />
       </section>
 
-      {/* Preferences Section (text + voice) — animates in after style selection */}
+      {/* Preferences Section — animates in after style selection */}
       <AnimatePresence>
         {formData.style && (
           <motion.section
@@ -615,9 +552,6 @@ function VisualizerFormInner() {
             <PreferencesSection
               textValue={formData.textPreferences}
               onTextChange={(v) => setFormData(prev => ({ ...prev, textPreferences: v }))}
-              voiceTranscript={formData.voiceTranscript}
-              voiceSummary={formData.voicePreferencesSummary}
-              onVoiceSummaryReady={handleVoiceSummaryReady}
             />
           </motion.section>
         )}
@@ -642,11 +576,6 @@ function VisualizerFormInner() {
               &ldquo;{formData.textPreferences}&rdquo;
             </p>
           )}
-          {formData.voicePreferencesSummary && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              Voice: &ldquo;{formData.voicePreferencesSummary}&rdquo;
-            </p>
-          )}
         </div>
       )}
 
@@ -661,14 +590,12 @@ function VisualizerFormInner() {
 }
 
 /**
- * VisualizerForm — wraps inner component with VoiceProvider
+ * VisualizerForm — wraps inner component with Suspense for searchParams
  */
 export function VisualizerForm() {
   return (
     <Suspense fallback={null}>
-      <VoiceProvider>
-        <VisualizerFormInner />
-      </VoiceProvider>
+      <VisualizerFormInner />
     </Suspense>
   );
 }

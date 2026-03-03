@@ -20,13 +20,9 @@ import { ProgressIndicator, detectProgressStep, type ProgressStep } from './prog
 import { SaveProgressModal } from './save-progress-modal';
 import { SubmitRequestModal } from './submit-request-modal';
 import { ProjectFormModal } from './project-form-modal';
-import { VoiceProvider, useVoice } from '@/components/voice/voice-provider';
-import { VoiceIndicator } from '@/components/voice/voice-indicator';
-import { VoiceTranscriptMessage } from '@/components/voice/voice-transcript-message';
 import { compressImage, fileToBase64 } from '@/lib/utils/image';
 import { readHandoffContext, clearHandoffContext, type HandoffContext } from '@/lib/chat/handoff';
 import { Save, FileText, Send } from 'lucide-react';
-import type { VoiceTranscriptEntry } from '@/lib/voice/config';
 import { useBranding } from '@/components/branding-provider';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
 import { getChatWelcome, getChatHandoffWelcome, getChatSkipText } from '@/lib/copy/site-copy';
@@ -115,7 +111,6 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
-  const [voiceTranscriptMessages, setVoiceTranscriptMessages] = useState<ChatMessage[]>([]);
   const [handoffContext, setHandoffContext] = useState<HandoffContext | null>(propHandoffContext ?? null);
 
   // ── Live rendering refinement state ────────────────────────────────────────
@@ -149,28 +144,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
     }
   }, [handoffContext]);
 
-  // Subscribe to voice transcript from VoiceProvider
-  const { transcript: voiceTranscript } = useVoice();
-  const processedVoiceIdsRef = useRef<Set<string>>(new Set());
   const parseEstimateRef = useRef<(content: string, role?: 'user' | 'assistant') => void>(() => {});
-
-  // Sync voice transcript entries into voiceTranscriptMessages (and parse estimate data)
-  useEffect(() => {
-    for (const entry of voiceTranscript) {
-      if (!processedVoiceIdsRef.current.has(entry.id)) {
-        processedVoiceIdsRef.current.add(entry.id);
-        const msg: ChatMessage = {
-          id: entry.id,
-          role: entry.role,
-          content: entry.content,
-          createdAt: entry.timestamp,
-          source: 'voice',
-        };
-        setVoiceTranscriptMessages((prev) => [...prev, msg]); // eslint-disable-line react-hooks/set-state-in-effect
-        parseEstimateRef.current(entry.content, entry.role);
-      }
-    }
-  }, [voiceTranscript]);
 
   // Determine starting messages based on context
   const getHandoffWelcome = (ctx: HandoffContext): string => {
@@ -323,7 +297,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         }
       });
     }
-  }, [localMessages, voiceTranscriptMessages, isLoading]);
+  }, [localMessages, isLoading]);
 
   // ── Rendering readiness check + auto-trigger ────────────────────────────────
   useEffect(() => {
@@ -376,19 +350,6 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       })
       .finally(() => setIsRefining(false));
   }, [accumulatedSignals, currentRendering, isRefining, refinementCount, lastRefinementTime, handoffContext, visualizationContext, estimateData]);  
-
-  // Handle voice transcript entries — parse estimate data in real-time
-  const handleVoiceMessage = useCallback((entry: VoiceTranscriptEntry) => {
-    const msg: ChatMessage = {
-      id: entry.id,
-      role: entry.role,
-      content: entry.content,
-      createdAt: entry.timestamp,
-      source: 'voice',
-    };
-    setVoiceTranscriptMessages((prev) => [...prev, msg]);
-    parseEstimateRef.current(entry.content, entry.role);
-  }, []);
 
   // Parse estimate data from AI response and user messages
   const parseEstimateFromResponse = useCallback((content: string, role?: 'user' | 'assistant') => {
@@ -541,13 +502,12 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
 
   // Handle save progress
   const handleSaveProgress = async (email: string) => {
-    const allMessages = [...localMessages, ...voiceTranscriptMessages];
     const response = await fetch('/api/sessions/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        messages: allMessages,
+        messages: localMessages,
         extractedData: estimateData,
         sessionId,
       }),
@@ -590,7 +550,6 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
   // Handle submit request
   const handleSubmitRequest = useCallback(
     async (contactInfo: { name: string; email: string; phone?: string; additionalNotes?: string }) => {
-      const allMessages = [...localMessages, ...voiceTranscriptMessages];
       const goalsText = [estimateData.goals, contactInfo.additionalNotes].filter(Boolean).join('. ') || undefined;
       const leadData = {
         name: contactInfo.name,
@@ -601,7 +560,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         finishLevel: estimateData.finishLevel,
         timeline: mapTimelineToApi(estimateData.timeline),
         goalsText,
-        chatTranscript: allMessages.map((m) => ({
+        chatTranscript: localMessages.map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
@@ -626,7 +585,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         ...(contactInfo.phone && { contactPhone: contactInfo.phone }),
       }));
     },
-    [estimateData, localMessages, voiceTranscriptMessages, visualizationContext]
+    [estimateData, localMessages, visualizationContext]
   );
 
   // Handle form submission
@@ -641,7 +600,6 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
       finishLevel: string;
       goals: string;
     }) => {
-      const allMessages = [...localMessages, ...voiceTranscriptMessages];
       const leadData = {
         name: formData.name,
         email: formData.email,
@@ -651,7 +609,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         finishLevel: formData.finishLevel || undefined,
         timeline: mapTimelineToApi(formData.timeline),
         goalsText: formData.goals || undefined,
-        chatTranscript: allMessages.map((m) => ({
+        chatTranscript: localMessages.map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
@@ -684,11 +642,11 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
 
       setEstimateData((prev) => ({ ...prev, ...newData }));
     },
-    [localMessages, voiceTranscriptMessages, visualizationContext]
+    [localMessages, visualizationContext]
   );
 
   // Show save button only after conversation has started
-  const showSaveButton = localMessages.length > 1 || voiceTranscriptMessages.length > 0;
+  const showSaveButton = localMessages.length > 1;
 
   // Count photos for sidebar
   const photosCount = Array.from(uploadedImages.values()).reduce(
@@ -702,8 +660,8 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
     photosCount,
   };
 
-  // All messages for display (text + voice transcript)
-  const allDisplayMessages = [...localMessages, ...voiceTranscriptMessages];
+  // All messages for display
+  const allDisplayMessages = localMessages;
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden bg-background">
@@ -748,18 +706,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
         {/* Messages */}
         <ScrollArea ref={scrollRef} className="flex-1 min-h-0 p-4 bg-gradient-to-b from-muted/15 to-transparent">
           <div className="max-w-3xl mx-auto space-y-1">
-            {allDisplayMessages.map((message) => {
-              if (message.source === 'voice') {
-                return (
-                  <VoiceTranscriptMessage
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    agentName={message.role === 'assistant' ? 'Emma' : undefined}
-                  />
-                );
-              }
-              return (
+            {allDisplayMessages.map((message) => (
                 <MessageBubble
                   key={message.id}
                   role={message.role}
@@ -768,8 +715,7 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
                   timestamp={message.createdAt}
                   data-testid={`${message.role}-message`}
                 />
-              );
-            })}
+            ))}
             {isLoading && <TypingIndicator />}
             {error && (
               <div className="px-4 py-3 text-sm text-destructive">
@@ -778,9 +724,6 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
             )}
           </div>
         </ScrollArea>
-
-        {/* Voice Indicator — inline when voice active */}
-        <VoiceIndicator context="estimate" />
 
         {/* Mobile rendering panel */}
         {currentRendering && (
@@ -905,9 +848,5 @@ function ChatInterfaceInner({ initialMessages, sessionId: initialSessionId, visu
  * ChatInterface — wraps inner component with VoiceProvider
  */
 export function ChatInterface(props: ChatInterfaceProps) {
-  return (
-    <VoiceProvider>
-      <ChatInterfaceInner {...props} />
-    </VoiceProvider>
-  );
+  return <ChatInterfaceInner {...props} />;
 }

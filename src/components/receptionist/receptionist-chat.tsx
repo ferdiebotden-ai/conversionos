@@ -117,7 +117,6 @@ export function ReceptionistChat() {
       <ReceptionistInput
         onSend={handleSend}
         disabled={isLoading}
-        context="general"
       />
 
       {/* Screen reader announcements */}

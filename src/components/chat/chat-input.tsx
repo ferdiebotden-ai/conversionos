@@ -10,7 +10,6 @@ import { useState, useRef, type KeyboardEvent, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ImagePlus, Send, X } from 'lucide-react';
-import { TalkButton } from '@/components/voice/talk-button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -152,13 +151,6 @@ export function ChatInput({
           rows={1}
           className="min-h-[40px] max-h-[120px] resize-none py-2.5"
           data-testid="chat-input"
-        />
-
-        {/* Talk to Emma button */}
-        <TalkButton
-          context="estimate"
-          variant="inline"
-          disabled={disabled}
         />
 
         {/* Send button */}

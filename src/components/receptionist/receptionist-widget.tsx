@@ -15,7 +15,6 @@ import { MessageCircle, X } from 'lucide-react';
 import { ReceptionistChat } from './receptionist-chat';
 import { panelSpring } from '@/lib/animations';
 import { useBranding } from '@/components/branding-provider';
-import { VoiceProvider } from '@/components/voice/voice-provider';
 
 /** Pages where the widget is hidden (these have their own AI chat) */
 const HIDDEN_PATHS = ['/estimate', '/visualizer'];
@@ -67,9 +66,7 @@ export function ReceptionistWidget() {
             <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
             <div className="flex-1 min-h-0">
               <ChatErrorBoundary>
-                <VoiceProvider>
-                  <ReceptionistChat />
-                </VoiceProvider>
+                <ReceptionistChat />
               </ChatErrorBoundary>
             </div>
           </motion.div>

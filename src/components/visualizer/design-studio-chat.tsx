@@ -21,10 +21,7 @@ import {
   Sparkles,
   ArrowRight,
   Mail,
-  Mic,
-  MicOff,
 } from 'lucide-react';
-import { useDictation } from '@/hooks/use-dictation';
 import { extractDesignSignals, type DesignSignal } from '@/lib/ai/rendering-gate';
 import { RENDERING_CONFIG } from '@/lib/ai/rendering-gate';
 import { buildDesignStudioPrompt } from '@/lib/ai/personas/emma';
@@ -158,26 +155,6 @@ export function DesignStudioChat({
   const [isRefining, setIsRefining] = useState(false);
   const [accumulatedSignals, setAccumulatedSignals] = useState<DesignSignal[]>([]);
   const [prevStarredIndex, setPrevStarredIndex] = useState(starredIndex);
-  const { status: dictationStatus, transcript, startDictation, stopDictation, clearTranscript } = useDictation();
-
-  // Sync dictation transcript into input field
-  useEffect(() => {
-    if (transcript) {
-      setInputValue(transcript);
-    }
-  }, [transcript]);
-
-  // Handle mic toggle
-  const handleMicToggle = useCallback(() => {
-    if (dictationStatus === 'recording') {
-      stopDictation();
-      clearTranscript();
-    } else {
-      clearTranscript();
-      startDictation();
-    }
-  }, [dictationStatus, startDictation, stopDictation, clearTranscript]);
-
   // Notify parent of refining state changes
   const updateRefining = useCallback((refining: boolean) => {
     setIsRefining(refining);
@@ -283,10 +260,8 @@ export function DesignStudioChat({
     }
 
     setInputValue('');
-    clearTranscript();
-    if (dictationStatus === 'recording') stopDictation();
     await sendMessage({ text: messageText });
-  }, [inputValue, isLoading, sendMessage, clearTranscript, dictationStatus, stopDictation]);
+  }, [inputValue, isLoading, sendMessage]);
 
   // Handle refinement
   const handleRefine = useCallback(async () => {
@@ -552,7 +527,7 @@ export function DesignStudioChat({
         {/* Chat input — always at the bottom: [Input] [Mic] [Send] */}
         <div className="p-3">
           <form
-            onSubmit={(e) => { e.preventDefault(); if (dictationStatus === 'recording') { stopDictation(); clearTranscript(); } handleSend(); }}
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             className="flex gap-2"
           >
             <Input
@@ -563,26 +538,6 @@ export function DesignStudioChat({
               disabled={isLoading || isRefining}
               className="flex-1 rounded-full bg-muted border-0"
             />
-            {dictationStatus !== 'unsupported' && (
-              <Button
-                type="button"
-                size="icon"
-                variant={dictationStatus === 'recording' ? 'destructive' : 'ghost'}
-                className={cn(
-                  'rounded-full shrink-0 h-10 w-10',
-                  dictationStatus === 'recording' && 'animate-pulse',
-                )}
-                onClick={handleMicToggle}
-                disabled={isLoading || isRefining}
-                title={dictationStatus === 'recording' ? 'Stop dictation' : 'Dictate your feedback'}
-              >
-                {dictationStatus === 'recording' ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </Button>
-            )}
             <Button
               type="submit"
               size="icon"

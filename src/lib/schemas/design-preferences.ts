@@ -15,34 +15,7 @@ export type RoomTypeSelection = z.infer<typeof roomTypeSelectionSchema>;
 export const designStyleSelectionSchema = z.union([designStyleSchema, z.literal('other')]);
 export type DesignStyleSelection = z.infer<typeof designStyleSelectionSchema>;
 
-// Voice transcript entry (matches VoiceTranscriptEntry from voice config)
-export const voiceTranscriptEntrySchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.string(),
-  timestamp: z.coerce.date(),
-});
-
-export type VoiceTranscriptEntry = z.infer<typeof voiceTranscriptEntrySchema>;
-
-// AI-extracted preferences from voice consultation
-export const voiceExtractedPreferencesSchema = z.object({
-  desiredChanges: z.array(z.string()),
-  materialPreferences: z.array(z.string()),
-  styleIndicators: z.array(z.string()),
-  preservationNotes: z.array(z.string()),
-});
-
-export type VoiceExtractedPreferences = z.infer<typeof voiceExtractedPreferencesSchema>;
-
-// Voice summary response from /api/ai/summarize-voice
-export const voiceSummaryResponseSchema = z.object({
-  summary: z.string(),
-  extractedPreferences: voiceExtractedPreferencesSchema,
-});
-
-export type VoiceSummaryResponse = z.infer<typeof voiceSummaryResponseSchema>;
-
-// Design intent (unified from text + voice sources)
+// Design intent (from text preferences)
 export const designIntentSchema = z.object({
   desiredChanges: z.array(z.string()),
   constraintsToPreserve: z.array(z.string()),
@@ -67,11 +40,6 @@ export const designPreferencesSchema = z.object({
   // Text preferences (free-text input from the form)
   textPreferences: z.string().max(500).default(''),
 
-  // Voice consultation data
-  voiceTranscript: z.array(voiceTranscriptEntrySchema).default([]),
-  voicePreferencesSummary: z.string().optional(),
-  voiceExtractedPreferences: voiceExtractedPreferencesSchema.optional(),
-
   // Photo analysis (from GPT Vision, run async after upload)
   photoAnalysis: photoAnalysisSchema.optional(),
 
@@ -92,13 +60,6 @@ export function mergeDesignIntent(prefs: DesignPreferences): DesignIntent {
   // From text preferences
   if (prefs.textPreferences.trim()) {
     desiredChanges.push(prefs.textPreferences.trim());
-  }
-
-  // From voice extracted preferences
-  if (prefs.voiceExtractedPreferences) {
-    desiredChanges.push(...prefs.voiceExtractedPreferences.desiredChanges);
-    materialPreferences.push(...prefs.voiceExtractedPreferences.materialPreferences);
-    constraintsToPreserve.push(...prefs.voiceExtractedPreferences.preservationNotes);
   }
 
   // From existing design intent (if already partially built)

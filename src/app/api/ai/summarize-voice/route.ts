@@ -8,7 +8,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { openai } from '@/lib/ai/providers';
 import { z } from 'zod';
-import { voiceSummaryResponseSchema } from '@/lib/schemas/design-preferences';
+
+// Schema defined inline — this endpoint is unused (voice features removed)
+const voiceSummaryResponseSchema = z.object({
+  summary: z.string(),
+  extractedPreferences: z.object({
+    desiredChanges: z.array(z.string()),
+    materialPreferences: z.array(z.string()),
+    styleIndicators: z.array(z.string()),
+    preservationNotes: z.array(z.string()),
+  }),
+});
 import { applyRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
