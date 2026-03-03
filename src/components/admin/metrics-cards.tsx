@@ -5,6 +5,7 @@
  * KPI cards for the admin dashboard
  */
 
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -26,6 +27,7 @@ interface MetricCardProps {
     isPositive: boolean;
   } | undefined;
   className?: string | undefined;
+  href?: string | undefined;
 }
 
 function MetricCard({
@@ -35,9 +37,10 @@ function MetricCard({
   icon: Icon,
   trend,
   className,
+  href,
 }: MetricCardProps) {
-  return (
-    <Card className={className}>
+  const card = (
+    <Card className={cn(href && 'transition-colors hover:bg-muted/50 cursor-pointer', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -69,6 +72,12 @@ function MetricCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href} className="block">{card}</Link>;
+  }
+
+  return card;
 }
 
 interface MetricsData {
@@ -122,6 +131,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
         value={metrics.newLeads.today}
         description={`${metrics.newLeads.week} this week`}
         icon={Users}
+        href="/admin/leads?status=new"
         trend={
           metrics.newLeads.trend !== 0
             ? { value: metrics.newLeads.trend, isPositive: metrics.newLeads.trend > 0 }

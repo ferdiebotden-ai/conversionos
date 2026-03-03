@@ -48,7 +48,7 @@ tenant-builder/
     logo-extract.mjs     # 4-level logo extraction fallback
     logo-vision.mjs      # Claude Vision logo identification
   fixtures/
-    sample-leads.json    # 3 sample leads (Playwright-captured, UUID placeholders)
+    sample-leads.json    # 1 sample lead (Playwright-captured, UUID placeholders)
   provision/
     provision-tenant.mjs # Per-target provisioning sequence
     seed-sample-leads.mjs # Fixture seeder (reads sample-leads.json, inserts per tenant)
@@ -398,12 +398,10 @@ Every new tenant is seeded with 3 sample leads so prospects see a populated admi
 **Seeder:** `provision/seed-sample-leads.mjs` — reads fixture, generates fresh UUIDs, inserts per tenant
 **Images:** `public/images/sample-data/` — AI-generated concept images (static, no per-tenant duplication)
 
-### Sample Leads
+### Sample Lead
 | Lead | Status | Source | Project |
 |------|--------|--------|---------|
 | Margaret Wilson | new | ai_chat | Bathroom (with visualization + 4 AI concepts) |
-| Derek Fournier | sent | chat_no_photo | Kitchen (AI quote draft) |
-| Steve & Karen Brodie | won | contractor_intake | Basement |
 
 ### Seeder API
 ```javascript
@@ -411,7 +409,7 @@ import { seedSampleLeads } from './seed-sample-leads.mjs';
 
 // Normal use (in provision-tenant.mjs Step 2c)
 const result = await seedSampleLeads(siteId);
-// { seeded: true, counts: { leads: 3, visualizations: 1, ... } }
+// { seeded: true, counts: { leads: 1, visualizations: 1, ... } }
 // or { seeded: false, reason: 'leads already exist for this site_id' }
 
 // Dry run
