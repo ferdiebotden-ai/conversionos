@@ -68,7 +68,6 @@ The homeowner is the end-user of the platform — the person uploading photos an
 - Fully branded website (company name, colours, logo, services, testimonials)
 - AI Design Studio (4 photorealistic concepts per upload, before/after slider at 85% opacity)
 - Emma AI text chat (design guidance, context-aware, concept-specific awareness)
-- Dictation input (Web Speech API — speak instead of type, review before sending)
 - Concept starring + email favourites
 - Lead capture + email notification (with optional "anything else" free-text field)
 - Mobile camera capture (take a photo, get concepts instantly)
@@ -77,7 +76,7 @@ The homeowner is the end-user of the platform — the person uploading photos an
 - Admin dashboard (leads, quotes, invoicing, settings)
 - AI Quote Engine (auto-generated quotes from room analysis with full cost breakdowns)
 - PDF quotes with e-signature acceptance
-- Contractor lead intake (voice dictation, text, form)
+- Contractor lead intake (text, form)
 - Cost range indicator on visualizer results
 - Live design refinement (up to 3 AI-powered re-renders)
 - Assembly templates, CSV price upload, analytics
@@ -101,7 +100,7 @@ The homeowner takes a photo of their kitchen, bathroom, or basement (camera on m
 **No-photo fallback:** A skip link below the upload area ("Don't have a photo? Tell us about your project...") opens an alternative path with an embedded Emma chat panel and a standalone lead capture form. This is also accessible via `/visualizer?mode=chat` (linked from the homepage final CTA). The lead form captures name, email, phone, project type (7 options), timeline, and notes — and submits with `source: 'chat_no_photo'` for separate tracking in analytics.
 
 ### Step 2: Choose a Style
-Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones") or use dictation to speak them.
+Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones").
 
 ### Step 3: AI Generates 4 Concepts (~30 seconds)
 Four photorealistic concepts stream in progressively via SSE with a smooth, dopamine-inducing loading experience. A RAF-based progress bar interpolates smoothly (no 20% jumps), staged status messages explain what's happening ("Analysing your space...", "Designing concepts..."), and each concept cross-fades from blur to sharp as it arrives. A concept counter ("2 of 4 concepts ready!") keeps the homeowner engaged. Each concept preserves the actual room geometry while applying the chosen style.
@@ -114,7 +113,7 @@ Four photorealistic concepts stream in progressively via SSE with a smooth, dopa
 - **Before/after slider:** Drag to compare original vs. concept. During refinement, an "Updating..." overlay appears on the slider. After refinement, the slider label updates to show the version (e.g., "Concept 2 — V2").
 - **Version badges:** When a concept is refined, its thumbnail updates to show the new image with a version badge (V2, V3) in the bottom-left corner.
 - **Concept awareness header:** A subtle header bar above the chat shows the active concept thumbnail and "Discussing Concept N". When the user switches concepts, a divider appears in the conversation. Emma's prompt includes an emphatic ACTIVE CONCEPT section — she always references the correct concept number.
-- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "Tap the concept that catches your eye — I'll help you refine it" and waits for the homeowner to engage — no buttons until they do. A dictation button beside the text input lets users speak instead of type (Web Speech API, live transcription, review before sending).
+- **Chat with Emma:** An inline AI design advisor appears below the results. Emma opens with "Tap the concept that catches your eye — I'll help you refine it" and waits for the homeowner to engage — no buttons until they do.
 - **Suggestion chips:** After each response, Emma offers 2 short clickable suggestions (max 8 words each) inline below her message. They scroll naturally with the conversation. Clicking sends the suggestion as a message.
 - **Quick action toolbar:** A compact fixed toolbar sits above the chat input with contextual actions:
   - After the 1st exchange: "Apply My Feedback" (with tooltip explaining it refines the active concept based on the conversation)
@@ -166,9 +165,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 **Personality:** Warm, concise (2-3 sentences), conversational. Uses "we" language. Guides without pushing — never says "2 refinements remaining" or creates urgency.
 
-**Voice:** Voice chat removed from the visualizer (ElevenLabs unreliable — to be reintroduced later). Voice infrastructure (API routes, provider) retained but UI disconnected. Phone/Twilio on Dominate only.
-
-**Dictation:** Web Speech API dictation available in Design Studio chat input. Mic button shows live transcription; text populates the input field for review before sending (never auto-sends). Hidden on unsupported browsers (Firefox).
+**Voice:** All voice and dictation features removed from chat interfaces (ElevenLabs unreliable, Web Speech API inconsistent). All chat UIs are text-only. Voice API routes and provider components retained in codebase but fully disconnected from UI. Phone/Twilio on Dominate only (not yet deployed).
 
 **Tier awareness:**
 - **Elevate:** Emma never discusses dollar amounts. Routes pricing questions to the contractor's contact page.
@@ -187,8 +184,6 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 | Refinement | Gemini 3.1 Flash Image | Re-render starred concept | ~$0.07 |
 | Voice | ElevenLabs Conversational AI | Emma's voice (infra retained, UI removed) | ElevenLabs pricing |
 | Receptionist chat | GPT-5.2 | Emma homepage widget + no-photo chat | ~$0.01-0.03 |
-| Dictation | Web Speech API (browser-native) | Speak-to-type in Design Studio chat | Free |
-| Transcription | GPT-4o-mini (Whisper) | Contractor dictation (admin side) | ~$0.01 |
 
 **Total cost per session:** ~$0.36 (no refinements) to ~$0.56 (3 refinements). Well within the $150/mo API cap at 50 sessions/month.
 
