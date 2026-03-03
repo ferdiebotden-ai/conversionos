@@ -18,6 +18,7 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 
 ## Colour & Contrast
 
+**[2026-03-03] bl-renovations:** Logo was invisible in the header — white logo on white background. The scraper captured their white-on-dark version (`logo.webp` — 600x600, white text on light grey). Their actual website uses a dark/black version for light backgrounds. Fix: downloaded dark logo from their site header, uploaded as `logo-dark.png` to Supabase Storage, updated `company_profile.logoUrl` and `branding.logoUrl`. Pattern: when scraping logos, check if the logo has transparency (PNG/WebP with alpha). If so, check if the text/graphic is light-coloured — it may be a "logo on dark" variant. Always try to source both light and dark versions. If only a white logo is available, set `branding.logoOnDark: true` so the header wraps it in a dark pill.
 
 ## Copy & Content
 
