@@ -1,0 +1,275 @@
+{
+  "business_name": "CCR Renovations",
+  "tagline": "Excellence. Integrity. Dependability.",
+  "hero_headline": "Specialists in All Aspects of Durham Home Renovations and Remodeling",
+  "phone": "(289) 675-7366",
+  "email": "info@ccr-renovations.com",
+  "address": "801 Lawrence Ave E",
+  "city": "Whitby",
+  "province": "ON",
+  "postal": "N/A",
+  "website": "https://www.ccr-renovations.com",
+  "social_facebook": "https://www.facebook.com/CCRRENOS/",
+  "social_instagram": "https://www.instagram.com/ccr_renovations/",
+  "social_houzz": "https://www.houzz.com/professionals/kitchen-and-bath-remodelers/ccr-renovations-pfvwus-pf~1830793241",
+  "social_google": "N/A",
+  "social_twitter": "N/A",
+  "social_linkedin": "N/A",
+  "social_youtube": "N/A",
+  "social_tiktok": "N/A",
+  "social_pinterest": "N/A",
+  "booking_url": "https://www.ccr-renovations.com/durham-renovation-quote/",
+  "primary_color_hex": "#1d3d6e",
+  "logo_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2016/08/ccr-renovations-logo-white-189x100.png",
+  "hero_image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/ccr-renovations-whitby-modern-bathroom-vanity.jpg",
+  "about_image_url": null,
+  "principals": "Stuart",
+  "founded_year": "N/A",
+  "service_area": "Durham",
+  "certifications": [
+    "Public liability insurance",
+    "WSIB coverage"
+  ],
+  "about_copy": [
+    "With over 30 years of experience in the construction industry, we have built up a great reputation for excellence, integrity, dependability and strong project management capabilities."
+  ],
+  "mission": "Customer satisfaction is our priority. CCR Renovations at all times treats our clients and their property with respect and ensures that the working site remains a safe and healthy environment.",
+  "business_hours": "N/A",
+  "team_members": [
+    {
+      "name": "Stuart",
+      "role": "Founder/Site Foreman",
+      "photo_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2025/03/STUART-NEW-WEBSITE-PHOTO.jpg",
+      "bio": "As founder and site foreman of CCR Renovations, Stuart oversees every aspect of the construction side of our business."
+    },
+    {
+      "name": "Matt",
+      "role": "Sales Manager",
+      "photo_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2025/03/MATT-NEW-WEBSITE-PHOTO-cropped.jpg",
+      "bio": "Matt manages all aspects of project estimation; from the initial phone call to the signing date."
+    },
+    {
+      "name": "Conor",
+      "role": "Project Manager",
+      "photo_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2025/03/CONOR-NEW-WEBSITE-PHOTO.jpg",
+      "bio": "With an in-depth understanding of the industry and a hands-on background, Conor ensures each project is executed with precision from start to finish."
+    },
+    {
+      "name": "Tara",
+      "role": "Interior Design Coordinator",
+      "photo_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2025/03/TARA-WEBSITE-PHOTO.jpg",
+      "bio": "With a keen eye for aesthetics and years of project experience, Tara helps refine your style, offering direction on layouts, materials, and finishes."
+    }
+  ],
+  "services": [
+    {
+      "name": "Basements",
+      "description": "A finished basement/conversion will transform your living space and the way you use your entire home.",
+      "features": [],
+      "packages": [],
+      "image_urls": [
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/03/ccr-renovations-sonya-kurt-oshawa-basement-renovation-kitchen-living-area-555x369.jpg",
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/03/ccr-renovations-sonya-kurt-oshawa-basement-renovation-kitchen-living-area-640x426.jpg"
+      ]
+    },
+    {
+      "name": "Kitchens",
+      "description": "We will assist in every aspect of your project, working alongside bespoke cabinetry companies, to tailor-make your dream kitchen.",
+      "features": [],
+      "packages": [],
+      "image_urls": [
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/10/ccr-renovations-full-house-renovation-toronto-12-555x369.jpg",
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/10/ccr-renovations-full-house-renovation-toronto-12-640x426.jpg"
+      ]
+    },
+    {
+      "name": "Bathrooms",
+      "description": "Whether you are looking to renovate your existing bathroom or create a new space in a basement or new build, CCR Renovations can oblige.",
+      "features": [],
+      "packages": [],
+      "image_urls": [
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/ccr-renovations-whitby-bathroom-soaker-tub-555x369.jpg",
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/ccr-renovations-whitby-bathroom-soaker-tub-640x426.jpg"
+      ]
+    },
+    {
+      "name": "Decks",
+      "description": "From the smallest yard project to a large landscaped theme with custom 2 storey deck, we can help you convert your ideas into reality.",
+      "features": [],
+      "packages": [],
+      "image_urls": [
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/CCR-Whitby-Deck-Renovations-wood-pergola-555x369.jpg",
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/CCR-Whitby-Deck-Renovations-wood-pergola-640x426.jpg"
+      ]
+    },
+    {
+      "name": "Home Additions",
+      "description": "CCR Renovations know that extra room(s) will not only maximise the enjoyment of your home for you and your family, but will also unlock its hidden potential.",
+      "features": [],
+      "packages": [],
+      "image_urls": [
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/ccr-renovations-79-antead-cres-ajax-home-living-room-remodel-fireplace-555x369.jpg",
+        "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2018/05/ccr-renovations-79-antead-cres-ajax-home-living-room-remodel-fireplace-640x426.jpg"
+      ]
+    }
+  ],
+  "testimonials": [
+    {
+      "author": "Sonia, Toronto",
+      "quote": "Thank you to CCR Renovations for totally executing my vision to a T. There was nothing CCR wouldn't do to make sure the stain on the stairs was Perfect!",
+      "project_type": "Home Renovation",
+      "rating": 5,
+      "platform": "Website"
+    },
+    {
+      "author": "Steve, Whitby",
+      "quote": "CCR Renovations did an outstanding job, paying particular attention to detail and quality of material and workmanship. The end product was simply AWESOME.",
+      "project_type": "Deck Renovation",
+      "rating": 5,
+      "platform": "Website"
+    },
+    {
+      "author": "Syd & Amanda, Oshawa",
+      "quote": "The bathroom is everything we wanted from the very beginning, and we couldn't be happier. We wouldn't think twice about hiring CCR for future projects.",
+      "project_type": "Bathroom Renovation",
+      "rating": 5,
+      "platform": "Website"
+    }
+  ],
+  "portfolio": [
+    {
+      "title": "Melissa and Steve's Eclectic, Bold & Beautiful Main Floor!",
+      "description": "CCR Renovations is excited to share with you our recent bold renovation! This family really wanted to showcase their own style by adding all their unique elements from the tile transitions to the one of a kind rabbit lamp!",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2021/09/Eclectic-Bold-Beautiful-20f-768x1024.jpg",
+      "service_type": "Interior Renovation",
+      "location": "Whitby"
+    },
+    {
+      "title": "Arielle & Sean's Exceptional Whitby Backsplit",
+      "description": "CCR Renovations is delighted to share their most recent finished project! This was a substantial renovation for a family in Whitby who needed to update their space to make it their own!",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2021/09/Exceptional-Whitby-Backsplit-6f.jpg",
+      "service_type": "Home Renovation",
+      "location": "Whitby"
+    },
+    {
+      "title": "Mel & Andrew's Brooklin Beauty",
+      "description": "CCR Renovations are proud to present this substantial renovation project undertaken for an awesome Brooklin couple.",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2021/09/Brooklin-Beauty-19f.jpg",
+      "service_type": "Home Renovation",
+      "location": "Brooklin"
+    },
+    {
+      "title": "Mike & Virginia's Multi Level Home Showcase",
+      "description": "CCR Renovations are proud to showcase this extensive home renovation project that we have recently completed.",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/10/ccr-renovations-full-house-renovation-toronto-featured-768x1024.jpg",
+      "service_type": "Home Renovation",
+      "location": "Toronto"
+    },
+    {
+      "title": "Jiun & Bob's Whitby Main Floor Renovation",
+      "description": "Our Whitby clients wanted to breathe new life into their dated kitchen and have a modern space.",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/03/ccr-renovations-jiun-bob-whitby-main-floor-renovation-stairs-2-featured-768x1024.jpg",
+      "service_type": "Kitchen Renovation",
+      "location": "Whitby"
+    },
+    {
+      "title": "Lynda & Craig's Blackstock Entire Home Renovation",
+      "description": "CCR Renovations took on this mammoth task and completely transformed this home.",
+      "image_url": "https://www.ccr-renovations.com/wp-content/uploads/sites/260/2019/03/ccr-renovations-lynda-craig-blackstock-entire-home-renovation-laundry-room-featured-768x1024.jpg",
+      "service_type": "Home Renovation",
+      "location": "Blackstock"
+    }
+  ],
+  "trust_badges": [
+    {
+      "label": "Homestars"
+    },
+    {
+      "label": "Houzz"
+    },
+    {
+      "label": "TrustedPros"
+    }
+  ],
+  "why_choose_us": [
+    {
+      "title": "Over 30 Years of Experience",
+      "description": "CCR Renovations were proud and privileged to have taken part in the TV shows over the past 4 years."
+    },
+    {
+      "title": "Trusted Local Reputation",
+      "description": "Built on integrity and dependability, CCR Renovations has earned the trust of homeowners across Whitby through consistent, quality workmanship."
+    },
+    {
+      "title": "Full-Service Renovations",
+      "description": "From basements and kitchens to decks and home additions, we handle every aspect of your project under one roof."
+    }
+  ],
+  "process_steps": [
+    {
+      "title": "Consultation",
+      "description": "Discuss your renovation needs and vision."
+    },
+    {
+      "title": "Design Phase",
+      "description": "Develop a detailed plan and designs."
+    },
+    {
+      "title": "Construction",
+      "description": "Execute the renovation with precision and care."
+    },
+    {
+      "title": "Final Review",
+      "description": "Walk through the completed project with you."
+    }
+  ],
+  "values": [
+    {
+      "title": "Quality",
+      "description": "We deliver high-quality workmanship.",
+      "iconHint": "heart"
+    },
+    {
+      "title": "Integrity",
+      "description": "We conduct our business with honesty.",
+      "iconHint": "shield"
+    },
+    {
+      "title": "Dependability",
+      "description": "You can rely on us for timely and efficient service.",
+      "iconHint": "star"
+    }
+  ],
+  "_provenance": {
+    "why_choose_us": "ai_augmented"
+  },
+  "_meta": {
+    "source_url": "https://www.ccr-renovations.com/",
+    "scraped_at": "2026-03-03T12:39:42.765Z",
+    "primary_oklch": "1.00 0.00 0",
+    "firecrawl_credits_used": 3,
+    "audit_score": "100%",
+    "deployment_ready": true
+  },
+  "_branding": {
+    "colors": [],
+    "fonts": [],
+    "personality": {},
+    "logo_extraction": {
+      "level": 2,
+      "method": "dom",
+      "confidence": 0.8
+    }
+  },
+  "_trust_metrics": {
+    "licensed_insured": true
+  },
+  "_completeness": {
+    "score": 97,
+    "missing": [
+      "business_hours_valid"
+    ]
+  },
+  "contact_phone": "(289) 675-7366",
+  "contact_email": "info@ccr-renovations.com"
+}
