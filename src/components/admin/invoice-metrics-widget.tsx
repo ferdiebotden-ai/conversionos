@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { DollarSign, AlertCircle } from 'lucide-react';
 
 function formatCurrency(amount: number): string {
@@ -15,7 +15,7 @@ function formatCurrency(amount: number): string {
 async function getInvoiceMetrics() {
   const supabase = createServiceClient();
 
-  const siteId = getSiteId();
+  const siteId = await getSiteIdAsync();
 
   const [
     { count: totalInvoices },

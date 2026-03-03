@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { MetricsCards } from '@/components/admin/metrics-cards';
 import { RecentLeads } from '@/components/admin/recent-leads';
 import { VisualizationMetricsWidget } from '@/components/admin/visualization-metrics-widget';
@@ -20,7 +20,7 @@ async function getDashboardData() {
   monthAgo.setDate(monthAgo.getDate() - 30);
 
   // Fetch leads counts
-  const siteId = getSiteId();
+  const siteId = await getSiteIdAsync();
 
   const [
     { count: _todayCount },

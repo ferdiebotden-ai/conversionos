@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/db/server';
-import { getSiteId } from '@/lib/db/site';
+import { getSiteIdAsync } from '@/lib/db/site';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -108,7 +108,7 @@ async function getQuotes(searchParams: QuotesPageProps['searchParams']) {
         status
       )
     `, { count: 'exact' })
-    .eq('site_id', getSiteId())
+    .eq('site_id', await getSiteIdAsync())
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
