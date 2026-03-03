@@ -67,6 +67,18 @@ ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-op
 16. Go-live readiness report — 7-section markdown + JSON verdict (READY / REVIEW / NOT READY)
 17. Outreach — Gmail drafts for deployed targets (skip with `--skip-outreach`)
 
+## Gallery Upgrade (Existing Tenants)
+
+```bash
+# Upgrade a tenant's portfolio with new images
+node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images gallery-data/example.json
+
+# Dry run (no uploads, no DB changes)
+node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images data.json --dry-run
+```
+
+Image data files (JSON arrays of `{url, roomType, title}`) stored in `tenant-builder/gallery-data/`. Script downloads images, uploads to Supabase Storage, appends to `company_profile.portfolio[]`.
+
 ## Post-Build Review
 
 After `orchestrate.mjs` completes, always review the results:

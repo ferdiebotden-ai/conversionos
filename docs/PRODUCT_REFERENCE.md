@@ -67,6 +67,9 @@ The homeowner is the end-user of the platform — the person uploading photos an
 **All tiers:**
 - Fully branded website (company name, colours, logo, services, testimonials)
 - AI Design Studio (4 photorealistic concepts per upload, before/after slider at 85% opacity)
+- Portfolio gallery with full-screen lightbox, room-type filtering with count badges, and "Inspired by Our Work?" AI Visualizer CTA
+- Homepage gallery teaser (featured projects section)
+- Before/after comparison slider (where paired images exist)
 - Emma AI text chat (design guidance, context-aware, concept-specific awareness)
 - Concept starring + email favourites
 - Lead capture + email notification (with optional "anything else" free-text field)
@@ -208,14 +211,21 @@ Single codebase, single branch (`main`), unlimited contractors. Every contractor
 
 ### Current Tenants
 
-| Tenant | Domain | Tier |
-|--------|--------|------|
-| ConversionOS Demo | conversionos-demo.norbotsystems.com | Accelerate |
-| Red White Reno | red-white-reno.norbotsystems.com | Accelerate |
+| Tenant | Domain | Tier | Portfolio |
+|--------|--------|------|-----------|
+| ConversionOS Demo | conversionos-demo.norbotsystems.com | Accelerate | Base platform |
+| Red White Reno | red-white-reno.norbotsystems.com | Accelerate | 23 images |
+| BL Renovations | bl-renovations.norbotsystems.com | Accelerate | 12 images |
+| CCR Renovations | ccr-renovations.norbotsystems.com | Accelerate | 20 images |
+| McCartry Squared | mccarty-squared-inc.norbotsystems.com | Accelerate | 22 images |
 
 ### Automated Onboarding
 
-New tenants are onboarded in ~5 minutes at ~$0.07 cost. Pipeline: score contractor website (Firecrawl) → scrape brand assets → upload images → provision database → verify with Playwright QA. Triggered from Mission Control ("Build Demo" button), CLI, or Telegram.
+New tenants are onboarded via the tenant-builder pipeline. Pipeline: ICP score (6-criterion, contact completeness + geography + sophistication gap) → scrape brand assets + portfolio images (10-20 per tenant) → provision database → deploy → 9-module QA → outreach email draft. Triggered from Mission Control ("Build Demo" button), CLI, or Telegram.
+
+ICP scoring prioritises small-town Ontario contractors near Stratford with complete contact data and basic websites. Pipeline targets sorted by `icp_score` — built tenants auto-drop (`status = 'bespoke_ready'`).
+
+Gallery images are scraped from original contractor websites and uploaded to Supabase Storage. The `upgrade-tenant-gallery.mjs` script handles bulk image downloads and portfolio data updates.
 
 ---
 
