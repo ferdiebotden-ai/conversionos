@@ -54,3 +54,12 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 **[2026-03-03] general:** If `_meta.source_url` in the scraped JSON contains a city slug (e.g. `/strathroy-ontario`, `/london-ontario`), the scraper hit a regional landing page rather than the root. City-specific pages have narrower content (only mentions that city). Always prefer the root URL for the primary scrape.
 
 ## Email & Outreach
+
+**[2026-03-04] general — ferdie@norbotsystems.com showing on contact pages:** When `business_info.email` is empty string, `branding.ts` and `branding-provider.tsx` fell back to `DEMO_BRANDING.email` (`ferdie@norbotsystems.com`) because `'' || DEMO_BRANDING.email` evaluates to the fallback (empty string is falsy). Fixed by changing `|| DEMO_BRANDING.email` to `|| ''` for email/paymentEmail/quotesEmail fields. Pattern: after building any tenant, verify the Contact page shows the right email — not ferdie's. If empty, that's fine; if ferdie's, the DB email field is empty and the code fallback fired.
+
+**[2026-03-04] general — base64 hero in company_profile.heroImageUrl:** If the provisioner scrapes a hero that is embedded as a CSS `background-image` with a data URI, it may write the base64 blob directly to `heroImageUrl`. This makes the field unrenderable as an `<img>` src in the platform. Detection: if `heroImageUrl` starts with `data:` or the DB returns `<Base64-Image-Removed>` in output, it needs replacement. Fix: find a real image on the site, download it, upload to Supabase storage, update heroImageUrl to the storage URL.
+
+**[2026-03-04] general — "Not available" in socials array:** Some scrapers write `{href: "Not available", label: "Facebook"}` when a social link doesn't exist, instead of omitting the entry. These render as broken links in the footer. Fix: filter `socials` to exclude entries where `href === "Not available"` or contains "not available".
+
+**[2026-03-04] general — AI-hallucinated service packages and imageUrls:** Service `packages` arrays (with `name`, `description`, `startingPrice`) are often entirely hallucinated by the LLM during provisioning — the contractor's website has no such content. Similarly, `imageUrl` fields like `joescarpentry.ca/services/renovation1.jpg` are fabricated paths that return 404. Identify by checking: does the URL resolve? Is the pricing plausible for the service? Hallucinated packages should be cleared to `[]`. Broken imageUrls should be replaced with real uploads or set to `''`.
+
