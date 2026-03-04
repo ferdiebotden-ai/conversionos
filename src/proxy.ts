@@ -36,6 +36,14 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'ashton-renovations.norbotsystems.com': 'ashton-renovations',
   'sonce-homes.norbotsystems.com': 'sonce-homes',
   'way-mar-home-renovation-contractors.norbotsystems.com': 'way-mar-home-renovation-contractors',
+  'donmoyer-construction.norbotsystems.com': 'donmoyer-construction',
+  'lrc-construction.norbotsystems.com': 'lrc-construction',
+  'devrye-custom-renovations.norbotsystems.com': 'devrye-custom-renovations',
+  'sunny-side-kitchens.norbotsystems.com': 'sunny-side-kitchens',
+  'a-and-a-home-renovations.norbotsystems.com': 'a-and-a-home-renovations',
+  'hemeryck-homes-construction-ltd.norbotsystems.com': 'hemeryck-homes-construction-ltd',
+  'ancaster-home-renovations.norbotsystems.com': 'ancaster-home-renovations',
+  'zwicker-contracting.norbotsystems.com': 'zwicker-contracting',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
