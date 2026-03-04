@@ -219,7 +219,7 @@ Give concrete, actionable fixes as a JSON array of objects: [{ "table": "admin_s
 Only suggest fixes for things that can be changed in admin_settings. Do not suggest code changes.`;
 
   try {
-    const fixes = callClaude(fixPrompt, { model: 'sonnet', maxTurns: 3, timeoutMs: 60000 });
+    const fixes = await callClaude(fixPrompt, { timeoutMs: 60000 });
 
     if (typeof fixes === 'string') {
       logger.info(`Fix suggestions: ${fixes.slice(0, 200)}`);

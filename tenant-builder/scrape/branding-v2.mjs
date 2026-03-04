@@ -41,10 +41,8 @@ Extract:
 For logos, prioritise header/nav area logos. For colours, filter out common greys (#333, #666, #999, #ccc, etc.) and focus on actual brand colours.`;
 
   try {
-    const result = callClaude(prompt, {
-      model: 'sonnet',
+    const result = await callClaude(prompt, {
       schemaPath: resolve(import.meta.dirname, '../schemas/branding-v2.json'),
-      maxTurns: 3,
       timeoutMs: 60000,
     });
 

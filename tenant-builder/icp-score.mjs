@@ -159,10 +159,8 @@ Company: ${name}
 Content (first 3000 chars):
 ${markdown.slice(0, 3000)}`;
 
-      const result = callClaude(prompt, {
-        model: 'sonnet',
+      const result = await callClaude(prompt, {
         schemaPath: resolve(import.meta.dirname, 'schemas/icp-score.json'),
-        maxTurns: 3,
         timeoutMs: 60000,
       });
       sophisticationLevel = result.sophistication_level || sophisticationLevel;

@@ -1,96 +1,70 @@
 /**
- * Claude CLI wrapper for AI generation and review.
- * Calls `claude -p` with --output-format json and optional --json-schema.
- * Strips CLAUDECODE env var to avoid nested session issues.
+ * AI generation wrapper using OpenAI API (GPT Business plan).
+ *
+ * Replaces the previous Claude CLI (`claude -p`) approach to avoid
+ * nested session issues and Claude Code token consumption.
+ * JSON schemas are directly compatible with OpenAI structured outputs.
+ *
+ * Exports both `callClaude` (backward-compatible name) and `callAI`.
  */
 
-import { execFileSync } from 'node:child_process';
+import OpenAI from 'openai';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as logger from './logger.mjs';
 
-/**
- * Find the claude CLI binary path.
- * @returns {string}
- */
-function findClaude() {
-  // Common locations
-  const candidates = [
-    process.env.HOME + '/.local/bin/claude',
-    '/usr/local/bin/claude',
-    '/opt/homebrew/bin/claude',
-  ];
-  for (const p of candidates) {
-    try {
-      execFileSync(p, ['--version'], { stdio: 'pipe' });
-      return p;
-    } catch { /* not found */ }
-  }
-  // Fall back to PATH
-  return 'claude';
+let _client;
+function getClient() {
+  if (!_client) _client = new OpenAI(); // Uses OPENAI_API_KEY from env (set by loadEnv())
+  return _client;
 }
 
-const CLAUDE_BIN = findClaude();
-
 /**
- * Call claude -p with a prompt and return the parsed result.
+ * Call OpenAI API with a prompt and return the parsed result.
  *
  * @param {string} prompt - The prompt text
  * @param {object} [options]
- * @param {string} [options.model='sonnet'] - Model to use (opus, sonnet, haiku)
+ * @param {string} [options.model='gpt-4o'] - OpenAI model to use
  * @param {string} [options.schemaPath] - Path to a JSON schema file for structured output
- * @param {number} [options.maxTurns=3] - Max conversation turns
+ * @param {number} [options.maxTurns] - Unused (kept for backward compatibility)
  * @param {number} [options.timeoutMs=120000] - Timeout in milliseconds
- * @returns {any} Parsed structured_output (with schema) or result (plain text)
+ * @returns {Promise<any>} Parsed structured output (with schema) or text content
  */
-export function callClaude(prompt, options = {}) {
+export async function callAI(prompt, options = {}) {
   const {
-    model = 'sonnet',
+    model = 'gpt-4o',
     schemaPath,
-    maxTurns = 3,
     timeoutMs = 120000,
   } = options;
 
-  const args = [
-    '-p', prompt,
-    '--output-format', 'json',
-    '--max-turns', String(maxTurns),
-    '--model', model,
-  ];
-
+  let responseFormat;
   if (schemaPath) {
-    const schemaContent = readFileSync(resolve(schemaPath), 'utf-8');
-    args.push('--json-schema', schemaContent);
+    const schema = JSON.parse(readFileSync(resolve(schemaPath), 'utf-8'));
+    responseFormat = {
+      type: 'json_schema',
+      json_schema: { name: 'result', strict: true, schema },
+    };
   }
 
-  // Strip CLAUDECODE to avoid nested session issues
-  const env = { ...process.env };
-  delete env.CLAUDECODE;
+  logger.debug(`OpenAI API [model=${model}, schema=${schemaPath ? 'yes' : 'no'}]`);
 
-  logger.debug(`claude -p [model=${model}, schema=${schemaPath ? 'yes' : 'no'}]`);
+  const response = await getClient().chat.completions.create({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    ...(responseFormat ? { response_format: responseFormat } : {}),
+  }, { timeout: timeoutMs });
 
-  const stdout = execFileSync(CLAUDE_BIN, args, {
-    env,
-    timeout: timeoutMs,
-    maxBuffer: 10 * 1024 * 1024, // 10MB
-    encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-
-  const envelope = JSON.parse(stdout);
-
-  // Check for errors (max_turns, etc.)
-  if (envelope.subtype === 'error_max_turns' || envelope.is_error) {
-    throw new Error(`Claude CLI error: ${envelope.subtype || 'unknown'} (turns: ${envelope.num_turns})`);
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error(`OpenAI returned no content (finish_reason: ${response.choices[0]?.finish_reason})`);
   }
 
-  // --json-schema puts result in structured_output; plain text in result
-  if (schemaPath && envelope.structured_output !== undefined) {
-    return envelope.structured_output;
+  // With structured output, parse JSON; otherwise return text
+  if (schemaPath) {
+    return JSON.parse(content);
   }
-  if (envelope.result !== undefined) {
-    return envelope.result;
-  }
-
-  throw new Error(`Claude CLI returned no result or structured_output (type: ${envelope.type}, subtype: ${envelope.subtype})`);
+  return content;
 }
+
+// Backward-compatible export — callers can use either name
+export const callClaude = callAI;
