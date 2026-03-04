@@ -31,7 +31,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/settings': 'Settings',
 };
 
-const SPLASH_KEY = 'conversionos-demo-splash-seen';
 
 const staggerContainer = {
   hidden: {},
@@ -58,20 +57,16 @@ export function AdminLayoutClient({
   const pathname = usePathname();
   const branding = useBranding();
 
-  // Demo interstitial — show once per browser session
-  // Initialise to false on both server and client to avoid hydration mismatch,
-  // then check sessionStorage after mount
+  // Demo interstitial — show on every visit (demo mode)
+  // Initialise to false to avoid hydration mismatch, then show after mount
   const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
-    if (!sessionStorage.getItem(SPLASH_KEY)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage unavailable during SSR, must check after mount
-      setShowSplash(true);
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage unavailable during SSR; must set after mount to avoid hydration mismatch
+    setShowSplash(true);
   }, []);
 
   const dismissSplash = useCallback(() => {
-    sessionStorage.setItem(SPLASH_KEY, '1');
     setShowSplash(false);
   }, []);
 
