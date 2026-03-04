@@ -30,6 +30,12 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 
 ## Services & Portfolio
 
+**[2026-03-04] brouwer-home-renovations:** `filterServices` silently dropped all 7 services because they had empty descriptions (gate requires `description.length >= 10`). Result: `company_profile.services = []` and the homepage services section was completely blank. The descriptions DO exist — they're on each `/service-name` sub-page as the hero paragraph — but Firecrawl only scrapes the homepage and doesn't follow service sub-page links. Fix: after any build where services count is 0, manually scrape each service sub-page for the description paragraph and re-provision. Long-term: scraper should visit each detected service link and capture its description.
+
+**[2026-03-04] brouwer-home-renovations:** Service page background images are the highest-quality photos for each service — far better than generic gallery images. Each background is confirmed by page context (page title = service name = image subject). Pattern: when a contractor has per-service sub-pages, scrape those backgrounds as `imageUrl` for each service in `company_profile.services`.
+
+**[2026-03-04] general — portfolio description integrity:** Gallery images on contractor sites typically have NO individual labels (alt text is the business name). Any specific descriptions like "— Vanity & Mirror" or "— Glass Shower Enclosure" are AI-guesses and must NOT be used. Correct approach: titles should be generic room-type only ("Bathroom Renovation") and `description` should be empty string unless the original site explicitly labels that photo. Never add detail suffixes without a confirmed source URL.
+
 **[2026-03-03] mccarty-squared-inc:** Page completeness checker false-positive FAILs on `/services` (0 cards) and `/projects` (no items) even though all content rendered correctly. Root cause: selectors used class-name substring matching (`[class*="service"] [class*="card"]`) which doesn't match shadcn/ui components — these use `data-slot="card"` with Tailwind utility classes, no "card" in class names. Fix: use `[data-slot="card"]` selector in page-completeness.mjs. Also: `img.naturalWidth > 0` returns 0 for lazy-loaded images; use `img.srcset || img.src` instead.
 
 ## Layout & Responsive
@@ -40,6 +46,10 @@ Accumulated learnings from tenant builds. Read at session start. Append after co
 **[2026-03-03] bl-renovations:** About page showed hardcoded RenoMark benefit cards (2-Year Warranty, $2M Insurance, Code of Conduct, Written Contracts, 2-Day Response) even though BL Renovations only has "Commercially Bonded" and "Insured" — they are NOT a RenoMark member. This is false certification and could be legally problematic. Root cause: the About page rendered RenoMark details unconditionally for any tenant with certifications. Fix: gated the RenoMark details section behind `config.certifications.some(c => /renomark/i.test(c))`. Pattern: certification details must NEVER be shown unless the tenant's scraped data explicitly includes that certification. Only McCarty Squared Inc. has RenoMark. The scraper must capture exact certification names and the platform must gate org-specific benefit claims behind presence of that certification.
 
 ## Scraping Edge Cases
+
+**[2026-03-04] brouwer-home-renovations:** Gallery was hidden under Resources → Gallery (`/gallery`), not linked from the homepage. Firecrawl only follows homepage links so it missed 18 project photos entirely. Scraped portfolio = 0. When `portfolio.length === 0` after a build, check if the site has a `/gallery`, `/portfolio`, or `/projects` page under a secondary nav menu and scrape it separately. This is a common pattern for sites built on OneLocal/Duda/Wix.
+
+**[2026-03-04] brouwer-home-renovations:** Hero image was the logo — both `hero_image_url` and `logo_url` resolved to the same CDN path (`Brouwer-Home-Renovations-LogoBlack-68eca2be-1920w.jpg`). The actual site hero is a CSS `background-image` property, not an `<img>` tag. Firecrawl's v2 branding extractor saw the logo `<img>` tag and set both fields to it. Fix: after provisioning, verify that `heroImageUrl !== logoUrl`. If they match, it's a scraping confusion — look for CSS background images in the hero section instead.
 
 **[2026-03-03] general:** If `_meta.source_url` in the scraped JSON contains a city slug (e.g. `/strathroy-ontario`, `/london-ontario`), the scraper hit a regional landing page rather than the root. City-specific pages have narrower content (only mentions that city). Always prefer the root URL for the primary scrape.
 
