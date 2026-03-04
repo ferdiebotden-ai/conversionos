@@ -1,192 +1,227 @@
-# Tenant Builder — Phase 2 Enhancements
+# ICP Scoring Audit + Gallery Feature Build
 
 ## Context
 
-Deliverables 1-3 from Phase 1 are **DONE** (CLAUDE.md trimmed 452→118 lines, custom agent created, per-page visual QA expanded, stale skills cleaned up, 223 tests pass). This plan covers two additions:
-
-1. **Learned Patterns System** — accumulate build learnings across sessions without modifying pipeline code
-2. **Original Website Comparison in Refinement Loop** — give Claude Vision the original website screenshots during autonomous fix cycles so corrections align with what the contractor's site actually looks like
-
-## Clarification: Custom Agent vs CLAUDE.md
-
-**They serve different purposes:**
-
-| File | When It Loads | What It Does |
-|------|--------------|--------------|
-| `tenant-builder/CLAUDE.md` | **Auto-loaded** when you open the folder | The "expert employee" brain — pipeline instructions, post-build review, quality bar |
-| `.claude/agents/tenant-builder.md` | When spawned via Agent tool | For subagent spawning from another context (Mission Control, Agent Teams, parent session) |
-
-**Opening the tenant-builder folder directly = CLAUDE.md is your agent.** The custom agent file is bonus for when you want to spawn a tenant-builder worker from a different root folder or context. Both contain the same operational instructions, so either path gives the same behaviour. For your daily workflow (open folder → build tenants), CLAUDE.md is all you need.
+Ferdie wants: (1) ICP scoring that properly prioritizes small-town, owner-operator contractors with contact data and basic websites, so "top 10 next targets" reflects the actual sales strategy. (2) A premium gallery/portfolio feature for ConversionOS, built directly, based on competitor research of 16 Ontario contractor websites.
 
 ---
 
-## Deliverable 4: Learned Patterns System
+## Part 1: ICP Scoring Fixes
 
-### What
+### Four Gaps Found
 
-A `docs/learned-patterns.md` file that accumulates build-specific learnings. Claude reads it at session start and applies patterns proactively. No pipeline code changes.
+**Gap 1 (CRITICAL): Pipeline uses wrong score.** `discover.mjs` line 64 sorts by `score` (old Python scorer), not `icp_score`. Fix: `ORDER BY COALESCE(icp_score, 0) DESC, score DESC` + contact pre-filter.
+
+**Gap 2: Contact data ignored.** Email, phone, owner_name not in scoring. Fix: Replace `years_in_business` (15 pts, weakest signal) with `contact_completeness` — has all 3 = 15 pts, 2 of 3 = 10, 1 = 5, none = 0.
+
+**Gap 3: Geography favours big cities.** Phase 1 (London, K-W) gets max points, but ICP wants small towns. Fix: Invert — small towns near Stratford (Woodstock, Ingersoll, Tillsonburg, St. Thomas) = 15 pts, mid-size cities = 12, farther/larger = 9.
+
+**Gap 4: Built targets don't auto-drop.** Fix: `UPDATE targets SET status = 'bespoke_ready'` after provision+deploy in `orchestrate.mjs`.
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `discover.mjs` | SQL ordering + contact pre-filter |
+| `icp-score.mjs` | New `scoreContactCompleteness()`, invert `scoreGeography()` |
+| `config.yaml` | Weight rename, `small_town_cities` list, reorder cities |
+| `orchestrate.mjs` | Status update after deploy |
+| `CLAUDE.md` | "Getting Next Targets" section |
+| `docs/icp-scoring.md` | Updated documentation |
+| Tests | Update ICP scoring tests |
+
+---
+
+## Part 2: Gallery Feature Build
+
+### Research Basis (16 Ontario Contractors Surveyed)
+
+- 62% have some gallery — all weak (4-12 photos, basic grid, no descriptions)
+- 38% have NO gallery at all
+- Before/after sliders: 6% (1 site)
+- ConversionOS already has `/projects` page with `ProjectGallery`, filtering tabs, animated cards
+- Gap: image depth (3-5 scraped) and presentation (no lightbox, no before/after)
+
+### Design Approach
+
+Enhance the existing `/projects` page and components. No new pages, no new routes — upgrade what's there to feel premium.
+
+**Gallery Grid Enhancement:**
+- Keep existing 3-column responsive grid (it's correct)
+- Add image zoom-on-hover with subtle scale + shadow elevation
+- Improve card aspect ratio to 3:2 (currently 4:3) for more cinematic feel
+- Add project count badge per category in filter tabs
+
+**Lightbox/Modal:**
+- Full-screen overlay using shadcn Dialog (already in the project)
+- Large image display with project title, description, service type, location
+- Keyboard nav (arrow keys, Escape)
+- Swipe support on mobile (touch events)
+- Counter: "3 of 12"
+
+**Before/After Slider:**
+- Interactive drag slider comparing before and after images
+- Only renders when `beforeImageUrl` exists in portfolio data
+- CSS-based clip-path approach (no external library — keeps bundle small)
+- Touch-friendly drag handle with thumb indicator
+
+**Visualizer CTA Section:**
+- Below gallery grid, above page CTA
+- "Inspired by our work? See what YOUR room could look like"
+- Button links to `/visualizer`
+- Only shows when gallery has 3+ projects (skip for sparse portfolios)
+
+**Homepage Gallery Teaser (new section):**
+- 3-4 featured project images on homepage (between "Why Choose Us" and Testimonials)
+- "View All Projects" link to `/projects`
+- Uses existing portfolio data, no new DB queries
+
+### Scraper Changes (Tenant Builder)
+
+- Increase portfolio image capture from ~5 to ~15-20
+- Follow `/gallery`, `/portfolio`, `/our-work` subpages during scrape
+- Optional `beforeImageUrl` field in portfolio items (detect paired images)
+- Update `provision-tenant.mjs` to upload additional images
+
+### Data Shape Update
+
+Existing `company_profile.portfolio[]`:
+```typescript
+{
+  title: string
+  description: string
+  imageUrl: string
+  serviceType: string
+  location: string
+  beforeImageUrl?: string  // NEW — optional, for before/after pairs
+}
+```
+
+No new DB tables. No schema migration. Just an optional field on existing JSON.
+
+### Tier Gating
+
+- Gallery page with grid + filtering: **All tiers** (Elevate, Accelerate, Dominate)
+- Lightbox: **All tiers**
+- Before/after slider: **All tiers** (it's a visual feature, not a gated capability)
+- Visualizer CTA on gallery: **All tiers** (drives lead conversion)
+- Homepage gallery teaser: **All tiers**
+
+No tier gating needed — gallery is a presentation layer, not a feature capability.
 
 ### Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| `docs/learned-patterns.md` | **Create** — starter file with section headers and format instructions |
-| `CLAUDE.md` | **Edit** — add reference in Deep Reference table + instruction to read/append during sessions |
+| `src/components/project-gallery.tsx` | Enhance grid, add lightbox trigger |
+| `src/components/project-card.tsx` | Improve hover effects, aspect ratio, before/after badge |
+| `src/components/gallery-lightbox.tsx` | **New** — full-screen image viewer with nav |
+| `src/components/before-after-slider.tsx` | **New** — interactive comparison slider |
+| `src/app/projects/page.tsx` | Add visualizer CTA section |
+| `src/components/home/gallery-teaser.tsx` | **New** — homepage featured projects |
+| `src/app/page.tsx` | Add gallery teaser section |
+| `tenant-builder/lib/scrape-enhanced.mjs` | Increase image limit, follow gallery pages |
+| `tenant-builder/provision/upload-images.mjs` | Handle additional images |
+| Tests | E2E tests for lightbox, before/after, responsive |
 
-### learned-patterns.md Structure
+### Testing Plan
 
-```markdown
-# Learned Patterns
-
-Accumulated learnings from tenant builds. Read at session start. Append after corrections.
-
-## How to Use This File
-- Read at the start of every build session
-- After fixing an issue in a tenant, ask: "Is this a pattern that will repeat?"
-- If yes, append it here with: what the issue was, what caused it, what the fix was, which build it came from
-- Every ~10 builds, review for patterns worth codifying into the pipeline
-
-## Hero Images
-(empty — will fill as builds accumulate)
-
-## Colour & Contrast
-(empty)
-
-## Copy & Content
-(empty)
-
-## Services & Portfolio
-(empty)
-
-## Layout & Responsive
-(empty)
-
-## Scraping Edge Cases
-(empty)
-```
-
-### CLAUDE.md Changes
-
-Add to the Deep Reference table:
-```
-| Accumulated build learnings | `docs/learned-patterns.md` |
-```
-
-Add to the Post-Build Review section (step 7):
-```
-7. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
-```
-
-### Why This Is Safe
-
-- **Read-only reference** — Claude reads it for context, never modifies pipeline code based on it
-- **Human-gated writes** — Claude asks Ferdie before appending (not autonomous)
-- **Git-tracked** — all changes are committable and reviewable
-- **Zero pipeline risk** — no code changes, no threshold changes, no config changes
-
-**Complexity: LOW.** 1 new file, 2 small edits to CLAUDE.md.
+1. **Unit tests:** Gallery components render with 0, 1, 3, 10, 20 projects
+2. **E2E (Playwright):** Lightbox opens/closes, keyboard nav, before/after drag, mobile swipe, filter tabs, visualizer CTA link
+3. **Visual verification:** Playwright screenshots of gallery on desktop + mobile for Red White Reno tenant
+4. **Multi-tenant:** Verify gallery works with `?__site_id=` override for different tenants
+5. **Empty state:** Verify graceful display when portfolio is empty or has 1-2 items
 
 ---
 
-## Deliverable 5: Original Website Screenshots in Refinement Loop
+## Part 3: Existing Tenant Upgrades (4 Bespoke Builds)
 
-### Problem
+After the gallery feature is built, tested, and deployed — upgrade all 4 existing bespoke tenants so they're outreach-ready.
 
-The refinement loop (`refinement-loop.mjs`) tries to fix visual QA failures by having Claude analyse the demo's screenshots and suggest admin_settings fixes. But Claude never sees the **original contractor website** — it's guessing what the demo should look like based on scores alone. `visual-qa.mjs` already supports an `--original` flag, but nobody passes it.
+### Tenants to Upgrade
 
-### Solution
+| Site ID | Domain | Original Website |
+|---------|--------|-----------------|
+| `red-white-reno` | red-white-reno.norbotsystems.com | redwhitereno.com |
+| `bl-renovations` | bl-renovations.norbotsystems.com | (check Turso) |
+| `ccr-renovations` | ccr-renovations.norbotsystems.com | (check Turso) |
+| `mccarty-squared-inc` | mccarty-squared-inc.norbotsystems.com | mccartysquared.ca |
 
-1. Capture one screenshot of the original contractor website during the pipeline (before QA)
-2. Pass it through the refinement loop to visual-qa.mjs
-3. Include it in the fix analysis prompt so Claude knows what the demo SHOULD match
+### Per-Tenant Upgrade Process
 
-### Files to Modify
+For each tenant:
 
-| File | Change | Risk |
-|------|--------|------|
-| `orchestrate.mjs` (~3 lines) | Before step 5f, capture original homepage screenshot using Playwright subprocess | LOW |
-| `qa/refinement-loop.mjs` (~10 lines) | Accept `--original-url` flag, capture original screenshot on first iteration, pass `--original` to visual-qa.mjs | LOW |
-| `qa/refinement-loop.mjs` fix prompt (~5 lines) | Add original website context to the fix analysis prompt | LOW |
+1. **Re-scrape original website for gallery images** — target 10-20 portfolio images (current builds have ~3-5). Use the enhanced scraper that follows gallery/portfolio subpages.
 
-### Implementation Detail
+2. **Upload new images to Supabase Storage** — append to existing `{site_id}/portfolio/` bucket. Don't overwrite existing images that are already working.
 
-**Option A (simpler — recommended): Capture in orchestrate.mjs**
+3. **Update `company_profile.portfolio[]`** in Supabase `admin_settings` — add the new portfolio items with title, description, serviceType, location.
 
-In `orchestrate.mjs`, after step 5e (screenshots) and before step 5f (refinement loop), add:
+4. **Run content QA checks:**
+   - Hero section: correct tagline, correct image (not logo, not generic)
+   - Copy: company name, city, services match the original site
+   - Contact: phone, email present and correct
+   - Team members: names and roles from original site
+   - Testimonials: real quotes (not fabricated)
 
-```javascript
-// Capture original website for visual comparison
-const originalScreenshotPath = resolve(outputDir, 'screenshots/original-homepage.png');
-if (target.website && !auditOnly) {
-  try {
-    execFileSync('node', ['-e', `
-      const { chromium } = require('playwright');
-      (async () => {
-        const b = await chromium.launch({ headless: true });
-        const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
-        await p.goto('${target.website}', { waitUntil: 'networkidle', timeout: 30000 });
-        await p.screenshot({ path: '${originalScreenshotPath}' });
-        await b.close();
-      })();
-    `], { timeout: 45000, stdio: 'pipe' });
-  } catch { /* original site may be unreachable */ }
-}
-```
+5. **Run visual QA** — Playwright screenshots of all pages (homepage, services, about, projects, contact) on desktop + mobile. Verify:
+   - Gallery page shows new images with filtering
+   - Lightbox works
+   - Homepage teaser shows featured projects
+   - Mobile layout is clean
+   - No broken images
 
-Then pass to refinement loop:
-```javascript
-if (existsSync(originalScreenshotPath)) {
-  qaArgs.push('--original-screenshot', originalScreenshotPath);
-}
-```
+6. **Fix any issues found** — direct Supabase patches for content, code fixes if structural
 
-**In refinement-loop.mjs:**
+7. **Verify on live URL** — Playwright screenshot of the actual deployed domain
 
-Add `--original-screenshot` to parseArgs options. Pass to visual-qa.mjs:
-```javascript
-if (args['original-screenshot'] && existsSync(args['original-screenshot'])) {
-  qaArgs.push('--original', args['original-screenshot']);
-}
-```
+### What NOT to Redo
 
-Enhance the fix prompt:
-```javascript
-const originalContext = args['original-screenshot']
-  ? `\nThe original contractor website screenshot is at: ${args['original-screenshot']}. Read it to understand what the demo SHOULD look like. Fixes should make the demo match the original more closely.`
-  : '';
-```
+- Don't re-run the full 16-step pipeline — these tenants are already provisioned
+- Don't re-provision DB rows — just update `company_profile` portfolio data
+- Don't re-register domains — already done
+- Don't re-run outreach — Ferdie sends emails manually after verification
 
-**In visual-qa.mjs**: Already supports `--original` — no changes needed. The prompt already says "Also read the original contractor website screenshot for comparison."
+### Known Issues per Tenant (from learned patterns)
 
-### What This Enables
+- **mccarty-squared-inc:** Hero was logo CDN URL (fixed to portfolio/0.jpg). About copy referenced Strathroy not London (fixed). Image URLs ending in `/` (provisioner bug — manually patched).
+- **red-white-reno:** Hero tagline was template text (fixed to "Building Trust With Quality Work"). Michel's contact info added. Hero image replaced.
+- **bl-renovations, ccr-renovations:** Need fresh audit — built after pipeline improvements but before gallery feature.
 
-- Claude Vision sees BOTH the demo and the original site during scoring
-- Fix suggestions are informed by what the contractor's site actually looks like
-- Example: "The original has a dark wood-toned hero, but the demo shows a generic light bathroom. Suggestion: update hero image" vs "Layout integrity is low" (unhelpful)
-- The `page_issues` from per-page visual QA now have real comparison context
+### Mobile-First Design Priority
 
-### Cost Impact
-
-- One additional Playwright screenshot per build (~2-3 seconds, free)
-- visual-qa.mjs already processes the `--original` image at no extra cost (same Claude CLI call)
-- Net cost increase: ~$0.00 per build
-
-**Complexity: LOW.** ~20 lines across 2 files. No schema changes. Non-blocking (graceful fallback if original site is unreachable).
+All gallery work must prioritize mobile:
+- Touch-friendly lightbox (swipe to navigate, tap to close)
+- Before/after slider with touch drag (not just mouse)
+- Gallery grid: 1 column on mobile, 2 on tablet, 3 on desktop
+- Images lazy-loaded with blur placeholder
+- Card text readable at mobile font sizes
+- No horizontal scroll on any viewport
+- Test at 375px (iPhone SE) and 390px (iPhone 14)
 
 ---
 
 ## Sequencing
 
-1. **Deliverable 4** first (learned-patterns.md) — 5 minutes, zero risk
-2. **Deliverable 5** second (original screenshot) — 20 minutes, low risk
+1. **ICP scoring fixes** — ~45 min
+2. **Gallery feature build** — ~3-4 hours (components, scraper, tests)
+3. **Deploy to Vercel** — push to main, verify gallery on conversionos.norbotsystems.com
+4. **Tenant upgrades** — ~30-45 min per tenant (re-scrape, upload images, QA, fix)
+   - Red White Reno → BL Renovations → CCR Renovations → McCartry Squared
+5. **Final verification** — Playwright screenshots of all 4 tenants, desktop + mobile
 
 ## Verification
 
-- **Deliverable 4:** `docs/learned-patterns.md` exists. CLAUDE.md references it. `/prime` shows it in context.
-- **Deliverable 5:** Run `node orchestrate.mjs --target-id 22 --dry-run` — should NOT create original screenshot (dry-run skips provision). Run `node orchestrate.mjs --audit-only --site-id red-white-reno --url https://red-white-reno.norbotsystems.com --skip-git` — should work (audit-only doesn't have original URL, graceful skip). Full build with `--target-id` should produce `screenshots/original-homepage.png`. Unit tests still pass (223+).
+- `node icp-score.mjs --all --limit 20 --dry-run` — small-town contractors with contact data rank highest
+- `node discover.mjs --pipeline --limit 10` — ICP score ordering works
+- `npm run test:unit` passes (tenant-builder + main app)
+- `npm run build` passes
+- Playwright screenshots of `/projects` on all 4 tenants — gallery, lightbox, mobile
+- Playwright screenshots of homepage on all 4 tenants — gallery teaser visible
+- All 4 tenants: hero correct, copy correct, contact data present, no broken images
 
 ---
 
-**TLDR:** Two small additions to the implemented system. (1) `learned-patterns.md` — a knowledge file that Claude reads each session and appends to when corrections are made, human-gated writes, zero pipeline risk. (2) Pass the original contractor website screenshot to the refinement loop so Claude Vision can compare demo vs original when suggesting fixes — 20 lines of code, $0 extra cost, makes autonomous corrections dramatically smarter.
+**TLDR:** Three-part plan. (1) Fix ICP scoring — 4 gaps: wrong SQL ordering, no contact scoring, geography favours big cities, built targets don't drop. (2) Build premium gallery — lightbox, before/after slider, homepage teaser, visualizer CTA, plus scraper image capture increase from ~5 to ~15-20. Mobile-first. (3) Upgrade all 4 existing bespoke tenants — re-scrape for gallery images, run QA, fix any issues — so Ferdie can send outreach with confidence. After this, the system is ready for the first new batch.
 
-**Complexity:** LOW for both. Total ~30 minutes implementation.
+**Complexity:** LOW for ICP fixes. MEDIUM for gallery build. MEDIUM for tenant upgrades (4 tenants x 30-45 min each, mostly data work). Total session: ~6-8 hours.

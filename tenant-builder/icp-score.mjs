@@ -7,6 +7,7 @@
  *   node icp-score.mjs --target-id 42
  *   node icp-score.mjs --all --limit 20
  *   node icp-score.mjs --all --limit 20 --dry-run
+ *   node icp-score.mjs --all --limit 110 --force   # Re-score already-scored targets
  */
 
 import { parseArgs } from 'node:util';
@@ -33,6 +34,7 @@ const { values: args } = parseArgs({
     all: { type: 'boolean', default: false },
     limit: { type: 'string', default: '20' },
     'dry-run': { type: 'boolean', default: false },
+    force: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -41,7 +43,8 @@ if (args.help || (!args['target-id'] && !args.all)) {
   console.log(`Usage:
   node icp-score.mjs --target-id 42
   node icp-score.mjs --all --limit 20
-  node icp-score.mjs --all --limit 20 --dry-run`);
+  node icp-score.mjs --all --limit 20 --dry-run
+  node icp-score.mjs --all --limit 110 --force   # Re-score already-scored targets`);
   process.exit(args.help ? 0 : 1);
 }
 
@@ -210,6 +213,7 @@ ${markdown.slice(0, 3000)}`;
 // ──────────────────────────────────────────────────────────
 
 const dryRun = args['dry-run'];
+const force = args.force;
 const limit = parseInt(args.limit, 10);
 
 let targets;
@@ -220,16 +224,22 @@ if (args['target-id']) {
     process.exit(1);
   }
 } else {
-  // Score all unscored targets that are qualified or draft_ready
-  targets = await query(
-    `SELECT * FROM targets
-     WHERE icp_score IS NULL
-       AND status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
-       AND website IS NOT NULL
-     ORDER BY score DESC
-     LIMIT ?`,
-    [limit]
-  );
+  // Score targets that are qualified or draft_ready.
+  // --force re-scores already-scored targets (useful after model updates).
+  if (force) logger.info('--force: re-scoring already-scored targets (model update)');
+  const sql = force
+    ? `SELECT * FROM targets
+       WHERE status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
+         AND website IS NOT NULL
+       ORDER BY score DESC
+       LIMIT ?`
+    : `SELECT * FROM targets
+       WHERE icp_score IS NULL
+         AND status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
+         AND website IS NOT NULL
+       ORDER BY score DESC
+       LIMIT ?`;
+  targets = await query(sql, [limit]);
 }
 
 logger.info(`Scoring ${targets.length} target(s)${dryRun ? ' (dry run)' : ''}`);
