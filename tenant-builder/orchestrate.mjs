@@ -484,12 +484,20 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
 
       // 5e.5. Capture original website screenshot for visual comparison
       const originalScreenshotPath = resolve(outputDir, 'screenshots/original-homepage.png');
-      if (target.website && !auditOnly) {
+      const targetWebsite = (() => {
+        try {
+          if (existsSync(scrapedPath)) {
+            return JSON.parse(readFileSync(scrapedPath, 'utf-8'))?._meta?.source_url || null;
+          }
+        } catch { /* ignore */ }
+        return null;
+      })();
+      if (targetWebsite && !auditOnly) {
         try {
           logger.info(`[${siteId}] Capturing original website screenshot...`);
           execFileSync('node', [
             resolve(TB_ROOT, 'qa/screenshot.mjs'),
-            '--url', target.website,
+            '--url', targetWebsite,
             '--site-id', `${siteId}-original`,
             '--output', resolve(outputDir, 'screenshots/original'),
             '--skip-upload',
