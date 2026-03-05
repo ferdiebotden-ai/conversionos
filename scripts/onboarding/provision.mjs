@@ -116,7 +116,7 @@ const branding = {
 };
 
 const companyProfile = {
-  principals: data.principals || '',
+  principals: Array.isArray(data.principals) ? data.principals.join(', ') : (data.principals || ''),
   founded: sanitizeNA(data.founded_year),
   booking: sanitizeNA(data.booking_url),
   serviceArea: data.service_area || `${data.city || ''}, ${data.province || 'ON'} and surrounding areas`,

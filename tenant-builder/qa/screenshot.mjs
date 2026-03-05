@@ -100,6 +100,18 @@ try {
           continue;
         }
 
+        // Scroll through page to trigger IntersectionObserver animations before capture
+        await page.evaluate(() => new Promise(resolve => {
+          let pos = 0;
+          const step = () => {
+            pos += window.innerHeight;
+            window.scrollTo(0, pos);
+            if (pos < document.body.scrollHeight) requestAnimationFrame(step);
+            else { window.scrollTo(0, 0); setTimeout(resolve, 200); }
+          };
+          requestAnimationFrame(step);
+        }));
+        await page.waitForTimeout(300);
         await page.screenshot({ path: filePath, fullPage: true });
         logger.info(`Full-page screenshot: ${filename}`);
       } catch (e) {
