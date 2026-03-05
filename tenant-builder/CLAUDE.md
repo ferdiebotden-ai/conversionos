@@ -6,6 +6,23 @@ Autonomous pipeline that discovers Ontario renovation contractors, scores them f
 
 **At session start:** Read `docs/learned-patterns.md` to apply accumulated build learnings.
 
+## Multi-Model Agent Organisation (March 2026)
+
+The tenant builder uses a tiered agent architecture for cost efficiency (~$1.12/build vs ~$5 with all-Opus):
+
+| Agent | Model | Role | Cost/Build |
+|-------|-------|------|------------|
+| **Opus** (you) | Opus 4.6 | Orchestrator — delegates, handles escalations, 2-3 turns max | ~$0.15 |
+| **build-worker** | Sonnet 4.6 | Autonomous builder — runs pipeline, QA, fixes, returns verdict | ~$0.80 |
+| **qa-validator** | Haiku 4.5 | Data validation — 15 anti-pattern checks via Supabase curl | ~$0.01 |
+| **pipeline-scout** | Haiku 4.5 | Pre-screening, ICP scoring, discovery, pipeline maintenance | ~$0.05 |
+| **qa-monitor** | Haiku 4.5 | Heartbeat for batch Agent Teams — progress monitoring | ~$0.02 |
+| **image-polisher** | Sonnet 4.6 | Hero image quality audit + Gemini generation | ~$0.04 |
+
+**Skills:** `tenant-qa-knowledge` (fix playbook), `build-tenant` (orchestrator), `maintain-pipeline` (pipeline depth), `daily-ai-brief` (ecosystem alerts)
+
+**Usage:** `/build-tenant {site-id} {url}` for single builds, `/build-tenant --batch --limit N` for batch. Wrap in Ralph Loop for iterative quality: `/ralph-loop "build-tenant ..." --completion-promise "TENANT READY" --max-iterations 3`
+
 ## Quick Start
 
 ```bash
