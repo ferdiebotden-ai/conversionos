@@ -1,240 +1,218 @@
 # ConversionOS Tenant Builder
 
-Autonomous pipeline that discovers Ontario renovation contractors, scrapes their sites, provisions branded demos, runs 9-module QA, and creates outreach drafts.
+Autonomous pipeline that discovers Ontario renovation contractors, scores them for demo fitness, scrapes their websites, provisions branded ConversionOS demo tenants, runs 9-module visual QA, and creates outreach email drafts.
 
-**You are Sonnet 4.6.** You are the session lead — you delegate aggressively and minimise your own token spend. Haiku handles all cheap work. You only build/fix/review. Escalate to Opus only for novel code changes.
+**Model preference:** Use Sonnet 4.6 for routine builds. Opus 4.6 only for deep code modifications or debugging.
 
----
+**At session start:** Read `docs/learned-patterns.md` to apply accumulated build learnings.
 
-## Session Start Protocol (Always Do This First)
+## Multi-Model Agent Organisation (March 2026)
 
-```bash
-# 1. Check what's left to build
-source ~/pipeline/scripts/.env
-node tenant-builder/discover.mjs --pipeline --limit 15 2>&1 | tail -5
+The tenant builder uses a tiered agent architecture for cost efficiency (~$1.12/build vs ~$5 with all-Opus):
 
-# 2. Check last batch results (if resuming)
-ls tenant-builder/results/ | tail -3
+| Agent | Model | Role | Cost/Build |
+|-------|-------|------|------------|
+| **Opus** (you) | Opus 4.6 | Orchestrator — delegates, handles escalations, 2-3 turns max | ~$0.15 |
+| **build-worker** | Sonnet 4.6 | Autonomous builder — runs pipeline, QA, fixes, returns verdict | ~$0.80 |
+| **qa-validator** | Haiku 4.5 | Data validation — 15 anti-pattern checks via Supabase curl | ~$0.01 |
+| **pipeline-scout** | Haiku 4.5 | Pre-screening, ICP scoring, discovery, pipeline maintenance | ~$0.05 |
+| **qa-monitor** | Haiku 4.5 | Heartbeat for batch Agent Teams — progress monitoring | ~$0.02 |
+| **image-polisher** | Sonnet 4.6 | Hero image quality audit + Gemini generation | ~$0.04 |
 
-# 3. Read accumulated patterns
-# (already auto-loaded by CLAUDE.md — contents above)
-```
+**Skills:** `tenant-qa-knowledge` (fix playbook), `build-tenant` (orchestrator), `maintain-pipeline` (pipeline depth), `daily-ai-brief` (ecosystem alerts)
 
-If resuming a previous session, check `tenant-builder/results/{date}/batch-summary.json` to see what completed and what needs fixing.
+**Usage:** `/build-tenant {site-id} {url}` for single builds, `/build-tenant --batch --limit N` for batch. Wrap in Ralph Loop for iterative quality: `/ralph-loop "build-tenant ..." --completion-promise "TENANT READY" --max-iterations 3`
 
----
-
-## Model Hierarchy — Cost Discipline
-
-**You (Sonnet):** Lead the session, decide what to do, run builds when needed, apply targeted fixes. Target: ~5-10 turns per session.
-
-**Haiku subagents** (spawn via `Agent` tool) — use for EVERYTHING cheap:
-- Checking pipeline status (Turso queries)
-- Validating Supabase data (15 anti-pattern checks)
-- Reading QA result files and summarising
-- Monitoring batch progress
-- Pre-screening targets before expensive builds
-
-**DO NOT** use Sonnet subagents for data validation, progress checks, or simple reads. That's Haiku's job.
-
-**Escalate to Opus (open new session)** only if:
-- You need to modify pipeline code (`.mjs` files)
-- A build has a novel issue not in `docs/learned-patterns.md`
-- Architecture decisions needed
-
----
-
-## How to Run Builds
-
-### Option A: Direct batch (recommended for ≥ 3 tenants)
-
-The pipeline handles concurrency natively. This is the most reliable approach.
+## Quick Start
 
 ```bash
 cd ~/norbot-ops/products/demo
-node tenant-builder/orchestrate.mjs --target-ids "465,590,607,8,468" --concurrency 4 --skip-outreach
-```
 
-After completion, spawn Haiku to read the results and summarise.
+# Single target by ID (from Turso pipeline DB)
+node tenant-builder/orchestrate.mjs --target-id 42
 
-### Option B: Single build with QA review
+# Single target by URL (bypass pipeline DB)
+node tenant-builder/orchestrate.mjs --url https://example.com --site-id example --tier accelerate
 
-```bash
-cd ~/norbot-ops/products/demo
-node tenant-builder/orchestrate.mjs --target-id 465 --skip-outreach
-```
+# Batch from pipeline DB
+node tenant-builder/orchestrate.mjs --batch --limit 10
 
-Then spawn Haiku qa-validator to check the data, fix known issues yourself via Supabase curl.
+# Discover + build new targets
+node tenant-builder/orchestrate.mjs --discover --cities "London,Kitchener" --limit 5
 
-### Option C: Audit-only (fix existing tenants)
-
-```bash
+# Audit-only (QA on existing tenant, no scrape/provision)
 node tenant-builder/orchestrate.mjs --audit-only --site-id example --url https://example.norbotsystems.com --skip-git
+
+# Nightly (batch with config defaults: 10 targets, concurrency 4)
+node tenant-builder/orchestrate.mjs --nightly
 ```
 
----
+**Flags:** `--concurrency N` (default 4), `--dry-run`, `--skip-qa`, `--skip-git`, `--skip-outreach`, `--skip-sample-data`, `--timeout-multiplier N`
 
-## Haiku Delegation Pattern
-
-Spawn Haiku for any read/check/validate task:
-
-```
-Agent(
-  description: "Check QA results for batch",
-  subagent_type: "general-purpose",
-  prompt: "
-    Read these files and summarise verdicts:
-    - ~/norbot-ops/products/demo/tenant-builder/results/2026-03-05/*/go-live-readiness.json
-
-    For each, report: site-id, verdict, top failure reason.
-    Keep it under 10 lines total.
-  "
-)
-```
-
-Cost: ~$0.01-0.02 per Haiku read task vs ~$0.15 for you to do it.
-
-### Haiku qa-validator pattern
-
-```
-Agent(
-  description: "Validate Supabase data for site {site-id}",
-  prompt: "
-    source ~/pipeline/scripts/.env && source ~/norbot-ops/products/demo/.env.local
-
-    Read admin_settings from Supabase for site_id={site-id}. Check:
-    1. heroImageUrl: empty/ends-with-/ → FAIL
-    2. heroImageUrl === logoUrl → FAIL
-    3. email = ferdie@norbotsystems.com → FAIL
-    4. socials with href='Not available' → FAIL
-    5. services[].packages non-empty (hallucinated) → FAIL
-
-    curl command:
-    curl -s \"${NEXT_PUBLIC_SUPABASE_URL}/rest/v1/admin_settings?site_id=eq.{SITE_ID}&select=key,value\" \
-      -H \"apikey: ${SUPABASE_SERVICE_ROLE_KEY}\" \
-      -H \"Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}\"
-
-    Report PASS/FAIL per check. One line each.
-  "
-)
-```
-
----
-
-## Post-Build Fix Patterns (Apply These Yourself)
-
-Source envs first: `source ~/pipeline/scripts/.env && source ~/norbot-ops/products/demo/.env.local`
-
-### Fix: heroImageUrl ends with `/` or equals logoUrl
+## Getting Next Targets
 
 ```bash
-# Read current
-CURRENT=$(curl -s "${NEXT_PUBLIC_SUPABASE_URL}/rest/v1/admin_settings?site_id=eq.${SITE_ID}&key=eq.company_profile&select=value" \
-  -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+# Top 10 pipeline targets — sorted by ICP score, built targets auto-drop
+node tenant-builder/discover.mjs --pipeline --limit 10
 
-# Fix
-echo "$CURRENT" | node -e "
-const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf-8'));
-const v=d[0].value;
-v.heroImageUrl='portfolio/0.jpg';
-process.stdout.write(JSON.stringify({value:v}));
-" | curl -s -X PATCH "${NEXT_PUBLIC_SUPABASE_URL}/rest/v1/admin_settings?site_id=eq.${SITE_ID}&key=eq.company_profile" \
-  -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-  -H "Content-Type: application/json" -d @-
+# Re-score all unscored targets
+node tenant-builder/icp-score.mjs --all --limit 50
+
+# Score a specific target
+node tenant-builder/icp-score.mjs --target-id 42
 ```
 
-### Fix: "Not available" socials
+ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-operators (15 pts company size), basic websites (20 pts sophistication gap), complete contact data (15 pts email/phone/name). See `docs/icp-scoring.md` for full breakdown. Targets auto-drop from the pipeline after a demo is built (`status = 'bespoke_ready'`).
+
+## Pipeline Flow (16 Steps)
+
+1. Select targets — Turso DB, direct URL, or Firecrawl discovery
+2. ICP score — 6-criterion model (100 pts), threshold 50/70
+3. Scrape — branding v2 + 7-stage scrape + 4-level logo extraction + social links
+4. Quality gates — testimonials (min 2), portfolio (images), services (name+desc), hero (reject generic)
+5. Provision — upload images, seed Supabase (5 keys), write proxy fragment, seed sample leads
+6. Merge proxy — combine fragments into proxy.ts
+7. Git + deploy — commit, push, wait for Vercel. Domain routing via wildcard DNS
+8. QA: Page completeness — 6 pages + footer data verification
+9. QA: Data-gap resolution — auto-fix gaps (socials, N/A hours, favicon). Up to 2 attempts
+10. QA: Content integrity — 12 checks + auto-fix (demo leakage, broken images, fabrication, placeholders)
+11. QA: Visual QA — Claude Vision 6-dimension rubric + refinement loop (plateau/regression detection)
+12. QA: Live site audit — 8 Playwright checks (branding, nav, responsive, WCAG, SEO, images, footer, admin)
+13. QA: Original vs demo — 7-field comparison (name, phone, email, services, testimonials, colour, logo)
+14. QA: PDF branding — Supabase completeness for PDF generation
+15. QA: Email branding — admin_settings + template source scan
+16. Go-live readiness report — 7-section markdown + JSON verdict (READY / REVIEW / NOT READY)
+17. Outreach — Gmail drafts for deployed targets (skip with `--skip-outreach`)
+
+## Gallery Upgrade (Existing Tenants)
 
 ```bash
-# Same pattern, modify v.socials = v.socials.filter(s => s.href && s.href !== 'Not available')
+# Upgrade a tenant's portfolio with new images
+node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images gallery-data/example.json
+
+# Dry run (no uploads, no DB changes)
+node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images data.json --dry-run
 ```
 
-### Fix: Hallucinated service packages
+Image data files (JSON arrays of `{url, roomType, title}`) stored in `tenant-builder/gallery-data/`. Script downloads images, uploads to Supabase Storage, appends to `company_profile.portfolio[]`.
 
-```bash
-# Same pattern, modify: for(const s of v.services) { s.packages = []; }
-```
+## Post-Build Review
 
-See `docs/learned-patterns.md` for the complete catalogue.
+After `orchestrate.mjs` completes, always review the results:
 
----
+1. **Read batch summary** — `results/{date}/batch-summary.json` → success/fail counts
+2. **Classify each tenant** — Read `go-live-readiness.json` → READY / REVIEW / NOT READY
+3. **Review failures** — For REVIEW/NOT READY: read `audit-report.md` + `visual-qa.json`, identify specific failures
+4. **Visual check** — Read screenshots (`results/{date}/{site-id}/screenshots/`) to verify logos, colours, layout
+5. **Review email drafts** — Search Gmail for drafts matching the company name. Verify: no banned terms, CASL footer, correct city/company/URL, call day/time filled
+6. **Present summary** — Structured report with action items for Ferdie
+7. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
 
-## Pipeline Status Checks (Delegate to Haiku)
-
-Use Haiku to run these — don't do it yourself:
-
-```bash
-# Pipeline depth
-source ~/pipeline/scripts/.env
-node -e "import('./tenant-builder/lib/turso-client.mjs').then(({query})=>{
-  return query('SELECT COUNT(*) as c, status FROM targets WHERE website IS NOT NULL GROUP BY status ORDER BY c DESC');
-}).then(r=>r.forEach(row=>console.log(row.status+':',row.c)))"
-
-# Top buildable targets
-node tenant-builder/discover.mjs --pipeline --limit 10 2>&1 | tail -10
-
-# Draft count
-node scripts/outreach/maintain-drafts.mjs --report 2>&1
-```
-
----
-
-## Known Pipeline Bugs (Fixed Mar 5, 2026)
-
-1. ✅ **OG image = NOT READY** — Downgraded to REVIEW in `qa/audit-report.mjs`
-2. ✅ **Demo phone (226) 444-3478 leaking** — Fixed in `src/lib/branding.ts` (fallback to '')
-3. ✅ **Hotlinked images not re-uploaded** — Fixed in `scripts/onboarding/upload-images.mjs` (content-type validation + clear broken URLs)
-
----
-
-## Pending Batch (Incomplete from Mar 5 Session)
-
-These 3 targets did NOT complete in the previous batch (workers went idle):
-
-| ID | Company | City | ICP |
-|----|---------|------|-----|
-| 468 | A and A Home Renovations | Oakville | 82 |
-| 598 | Zwicker Contracting | Oshawa | 81 |
-| 480 | A.P. Hurley Construction | Woodstock | 80 |
-
-Plus these 5 need post-build fixes (already deployed, QA failed):
-
-| Site ID | Issue |
-|---------|-------|
-| donmoyer-construction | Demo leakage: phone (226) 444-3478 — Supabase PATCH needed |
-| house-renovations | 3 broken images — clear image_url fields |
-| sonce-homes | 10 broken images — clear image_url fields |
-| rose-building-group | Placeholder "tbd" in content |
-| sunny-side-kitchens | Missing OG image only — now REVIEW not NOT READY (re-audit) |
-
-**Recommended session start:** Build the 3 incomplete targets first, then fix the 5 existing tenants.
-
-```bash
-# Build 3 incomplete
-node tenant-builder/orchestrate.mjs --target-ids "468,598,480" --concurrency 3 --skip-outreach
-
-# Re-audit sunny-side-kitchens (fix threshold changes)
-node tenant-builder/orchestrate.mjs --audit-only --site-id sunny-side-kitchens --url https://sunny-side-kitchens.norbotsystems.com --skip-git
-```
-
----
-
-## Environment
-
-Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env`.
-
-Required: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `FIRECRAWL_API_KEY`
-
-Optional (not yet set): `REPLICATE_API_TOKEN` — for Real-ESRGAN image upscaling ($0.002/img). Get from replicate.com when ready.
-
----
-
-## Reference Docs
+## Deep Reference
 
 | Topic | File |
 |-------|------|
-| All fix patterns | `docs/learned-patterns.md` |
-| QA modules | `docs/qa-modules.md` |
-| Pipeline architecture | `docs/pipeline-architecture.md` |
-| ICP scoring | `docs/icp-scoring.md` |
-| Agents + skills available | `../.claude/agents/` and `../.claude/skills/` |
+| Module structure, scrape/provision details | `docs/pipeline-architecture.md` |
+| All 9 QA modules with checks and thresholds | `docs/qa-modules.md` |
+| ICP scoring dimensions and logic | `docs/icp-scoring.md` |
+| Sample lead fixtures and regeneration | `docs/sample-data.md` |
+| Outreach integration (Step 6) | `docs/outreach-integration.md` |
+| Data shape interfaces | `SHARED_INTERFACES.md` |
+| Accumulated build learnings | `docs/learned-patterns.md` |
+| Outreach rules (CASL, template, slots) | `../scripts/outreach/README.md` |
+
+## Environment Variables
+
+Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env`:
+
+| Variable | Source | Required For |
+|----------|--------|-------------|
+| TURSO_DATABASE_URL | pipeline .env | All (CRM database) |
+| TURSO_AUTH_TOKEN | pipeline .env | All (CRM database) |
+| FIRECRAWL_API_KEY | pipeline .env | Discovery, scraping |
+| NEXT_PUBLIC_SUPABASE_URL | demo .env.local | Provisioning, QA |
+| SUPABASE_SERVICE_ROLE_KEY | demo .env.local | Provisioning, QA |
+| VERCEL_TOKEN + VERCEL_PROJECT_ID + VERCEL_TEAM_ID | pipeline .env | Domain registration + SSL (optional) |
+
+## Testing
+
+```bash
+cd ~/norbot-ops/products/demo/tenant-builder
+npm run test:unit          # 223 tests, ~400ms, no API calls
+npm run test:integration   # 26 tests, ~4 min, real APIs (~$0.50/run)
+npm test                   # All tests
+npm run cleanup            # Remove test artifacts
+```
+
+Test constants: site_id `redwhitereno-test`, target_id 22, URL `https://www.redwhitereno.com`
+
+## Key Patterns
+
+- All files are ES modules (.mjs)
+- Existing onboarding scripts called as subprocesses (`execFileSync` — not `execSync`)
+- Proxy fragments enable parallel-safe proxy.ts updates
+- `[PROGRESS]` and `[SUMMARY]` JSON lines for Mission Control parsing
+- Claude CLI calls strip `CLAUDECODE` env var to avoid nested sessions
+- CRLF fix for new .mjs files: `perl -pi -e 's/\r\n/\n/g'`
+- `(supabase as any).from('table')` for tables not in generated types
+- Provenance tracking: `_provenance` field on scraped data marks AI-generated content
+
+## Self-Improving Documentation
+
+After any tenant-builder change:
+1. Update this CLAUDE.md
+2. Update topic files in `docs/` if affected
+3. Update `SHARED_INTERFACES.md` if data shapes changed
+4. Update `~/.claude/projects/-Users-norbot-norbot-ops-products-demo/memory/MEMORY.md`
+
+## Session Lead Cost Discipline (March 2026)
+
+**You are the session lead — delegate aggressively.** Your model (Sonnet or Opus) is expensive. Haiku is 3-5x cheaper.
+
+### What to delegate to Haiku subagents
+- Pipeline status checks (Turso queries)
+- Reading and summarising QA result files
+- Supabase data validation (15 anti-pattern checks)
+- Monitoring batch build progress
+- Pre-screening targets before builds
+
+### What you (Sonnet/Opus) do yourself
+- Run `orchestrate.mjs` builds (these are bash commands, not LLM work)
+- Apply Supabase data fixes (curl PATCH commands from `tenant-qa-knowledge` skill)
+- Decide what to fix vs escalate vs flag for Ferdie
+- Present structured summaries
+
+### What requires Opus (start a new session)
+- Modifying pipeline `.mjs` files
+- Novel issues not in `docs/learned-patterns.md`
+- Architecture decisions
+
+## Agent Teams Learning (March 2026)
+
+**DO NOT use Agent Teams for batch builds.** The builds are long-running single processes — Agent Teams workers go idle before completing their assigned tasks. Instead:
+
+1. Run `orchestrate.mjs --target-ids "X,Y,Z" --concurrency 4` directly (pipeline handles parallelism natively)
+2. After the batch completes, spawn Haiku to read results and summarise
+3. Apply fixes yourself (Supabase curl from the `tenant-qa-knowledge` skill)
+4. Agent Teams IS useful for: research tasks, parallel QA checks, anything where each task is short and independent
+
+## Pending Work (From Mar 5 Batch)
+
+### 3 incomplete builds (workers went idle)
+```bash
+node tenant-builder/orchestrate.mjs --target-ids "468,598,480" --concurrency 3 --skip-outreach
+```
+
+### 5 tenants needing fixes (already deployed, QA failed)
+| Site ID | Issue | Fix |
+|---------|-------|-----|
+| donmoyer-construction | Demo phone leakage | Re-run QA (branding.ts fix deployed) |
+| house-renovations | 3 broken images | Clear broken image_url fields via Supabase |
+| sonce-homes | 10 broken images | Clear broken image_url fields via Supabase |
+| rose-building-group | Placeholder "tbd" | Find and clear placeholder text |
+| sunny-side-kitchens | Missing OG image | Now REVIEW not NOT READY (threshold fixed) |
+
+### Pipeline bugs fixed (already committed)
+1. ✅ `upload-images.mjs` — content-type validation + clear failed portfolio URLs
+2. ✅ `branding.ts` — phone fallback to `''` instead of NorBot demo number
+3. ✅ `audit-report.mjs` — `seo_meta` downgraded to REVIEW (was critical → NOT READY)
