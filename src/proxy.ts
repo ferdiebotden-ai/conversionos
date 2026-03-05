@@ -47,6 +47,7 @@ const DOMAIN_TO_SITE: Record<string, string> = {
   'house-renovations.norbotsystems.com': 'house-renovations',
   'running-renos.norbotsystems.com': 'running-renos',
   'rose-building-group.norbotsystems.com': 'rose-building-group',
+  'a-p-hurley-construction.norbotsystems.com': 'a-p-hurley-construction',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
