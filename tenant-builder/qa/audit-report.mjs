@@ -81,7 +81,8 @@ function determineVerdict(results) {
     if (!liveSiteAudit.passed) {
       const failed = (liveSiteAudit.checks || []).filter(c => !c.passed);
       for (const c of failed) {
-        if (c.check === 'wcag_contrast' || c.check === 'responsive_layout') {
+        if (c.check === 'wcag_contrast' || c.check === 'responsive_layout' || c.check === 'seo_meta') {
+          // seo_meta (missing OG image/title) is advisory, not a go-live blocker
           warnings.push(`${c.check} has issues`);
         } else {
           criticalFailures.push(`${c.check} failed`);

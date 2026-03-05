@@ -159,6 +159,11 @@ async function downloadAndUpload(url, storagePath, imageType = 'portfolio') {
         return null;
       }
       contentType = response.headers.get('content-type') || 'image/jpeg';
+      // Reject non-image responses (e.g. HTML pages scraped as image URLs)
+      if (!contentType.startsWith('image/') && !contentType.startsWith('application/octet-stream')) {
+        console.log(`    Skipping: not an image (content-type: ${contentType})`);
+        return null;
+      }
       buffer = Buffer.from(await response.arrayBuffer());
     }
 
@@ -243,7 +248,12 @@ if (data.portfolio?.length > 0) {
     if (project.image_url) {
       const ext = project.image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
       const newUrl = await downloadAndUpload(project.image_url, `portfolio/${i}.${ext}`, 'portfolio');
-      if (newUrl) project.image_url = newUrl;
+      if (newUrl) {
+        project.image_url = newUrl;
+      } else {
+        // Clear broken/non-image URLs rather than keeping them (they cause broken images in the platform)
+        project.image_url = '';
+      }
     }
   }
 }

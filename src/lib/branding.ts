@@ -80,7 +80,7 @@ export async function getBranding(): Promise<Branding> {
     return {
       name: (info['name'] as string) || DEMO_BRANDING.name,
       tagline: (brand['tagline'] as string) || (info['tagline'] as string) || DEMO_BRANDING.tagline,
-      phone: (info['phone'] as string) || DEMO_BRANDING.phone,
+      phone: (info['phone'] as string) || '',
       email: (info['email'] as string) || '',
       website: (info['website'] as string) || DEMO_BRANDING.website,
       address: (info['address'] as string) ?? DEMO_BRANDING.address,
