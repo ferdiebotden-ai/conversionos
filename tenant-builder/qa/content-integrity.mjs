@@ -358,10 +358,16 @@ const GENERIC_PHRASES = [
  */
 async function checkPlaceholderText(page, pageUrl) {
   const violations = [];
-  const bodyText = (await page.textContent('body') || '').toLowerCase();
+  // Use innerText to get only visible rendered text (excludes script/style/hidden)
+  // and strip URL-like tokens (href params that may contain phrase substrings)
+  const rawText = await page.evaluate(() => document.body.innerText || '') || '';
+  const bodyText = rawText.toLowerCase().replace(/https?:\/\/\S+/g, '');
   for (const phrase of GENERIC_PHRASES) {
-    if (bodyText.includes(phrase)) {
-      const idx = bodyText.indexOf(phrase);
+    // Use word-boundary matching for short phrases to avoid substring false positives
+    const re = phrase.length <= 5 ? new RegExp(`\\b${phrase}\\b`, 'i') : null;
+    const matched = re ? re.test(bodyText) : bodyText.includes(phrase);
+    if (matched) {
+      const idx = bodyText.search(re || phrase);
       const context = bodyText.slice(Math.max(0, idx - 30), idx + phrase.length + 30).trim();
       violations.push({ page: pageUrl, phrase, context });
     }
