@@ -21,6 +21,7 @@ import { loadEnv, requireEnv } from './lib/env-loader.mjs';
 import { query, execute } from './lib/turso-client.mjs';
 import { pool } from './lib/concurrency.mjs';
 import * as logger from './lib/logger.mjs';
+import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '../scripts/polish/queue-utils.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
@@ -47,6 +48,7 @@ const { values: args } = parseArgs({
     'skip-qa': { type: 'boolean', default: false },
     'skip-git': { type: 'boolean', default: false },
     'skip-outreach': { type: 'boolean', default: false },
+    'skip-polish': { type: 'boolean', default: false },
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
@@ -71,13 +73,15 @@ Options:
   --dry-run          Score + scrape only, no provisioning
   --skip-qa          Skip QA checks
   --skip-git         Skip git commit + push
-  --skip-outreach    Skip outreach email drafts`);
+  --skip-outreach    Skip outreach email drafts
+  --skip-polish      Bypass the Codex polish queue and allow immediate outreach`);
   process.exit(0);
 }
 
 const limit = parseInt(args.limit, 10);
 const concurrency = parseInt(args.concurrency, 10);
 const dryRun = args['dry-run'];
+const skipPolish = args['skip-polish'];
 const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
 const auditOnly = args['audit-only'];
 
@@ -379,6 +383,7 @@ if (!dryRun && !auditOnly && !args['skip-qa'] && !args['skip-git']) {
 // ──────────────────────────────────────────────────────────
 
 const qaResults = [];
+const polishQueue = [];
 
 if ((!dryRun || auditOnly) && !args['skip-qa']) {
   for (const r of results) {
@@ -563,7 +568,15 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         logger.warn(`[${siteId}] Audit report generation failed: ${e.message?.slice(0, 100)}`);
       }
 
-      qaResults.push({ siteId, pass: qaStatus === 'complete', status: qaStatus });
+      qaResults.push({
+        siteId,
+        targetId,
+        pass: qaStatus === 'complete',
+        status: qaStatus,
+        outputDir,
+        siteUrl,
+        scrapedPath,
+      });
       logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'complete', detail: qaStatus });
     } catch (e) {
       // Generate audit report even on failure
@@ -572,14 +585,91 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         generateAuditReport(siteId, outputDir);
       } catch { /* best effort */ }
 
-      qaResults.push({ siteId, pass: false, error: e.message?.slice(0, 100) });
+      qaResults.push({
+        siteId,
+        targetId,
+        pass: false,
+        error: e.message?.slice(0, 100),
+        outputDir,
+        siteUrl,
+        scrapedPath,
+      });
       logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
     }
   }
 }
 
 // ──────────────────────────────────────────────────────────
-// Step 5j: Update Turso status for deployed targets (auto-drop from pipeline)
+// Step 5j: Queue tenants for Codex polish or manual review
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun && !auditOnly) {
+  ensureQueueDirs();
+  const targetBySiteId = new Map(targets.map(t => [t.slug, t]));
+
+  for (const result of qaResults.filter(qr => !qr.error)) {
+    if (skipPolish) break;
+
+    const target = targetBySiteId.get(result.siteId);
+    const readinessPath = resolve(result.outputDir, 'go-live-readiness.json');
+    const visualQaPath = resolve(result.outputDir, 'visual-qa.json');
+    const readiness = readJsonIfExists(readinessPath);
+    const visualQa = readJsonIfExists(visualQaPath);
+    const verdict =
+      readiness?.verdict ||
+      (result.status === 'not_ready' ? 'NOT READY' : result.status === 'review' ? 'REVIEW' : 'READY');
+    const queueType = verdict === 'NOT READY' ? 'manual_review' : 'codex_polish';
+    const queueItem = {
+      id: `tenant-polish:${TODAY}:${result.siteId}`,
+      site_id: result.siteId,
+      target_id: result.targetId ?? null,
+      tier: args.tier || CONFIG.provisioning.default_tier,
+      trigger: 'post_qa',
+      queue_type: queueType,
+      live_url: result.siteUrl,
+      original_url: target?.website || null,
+      results_dir: result.outputDir,
+      verdict,
+      qa_status: result.status,
+      bespoke_score: visualQa?.average ?? null,
+      created_at: new Date().toISOString(),
+      outreach_hold: true,
+      allowed_mutations: [
+        'admin_settings.business_info',
+        'admin_settings.branding',
+        'admin_settings.company_profile',
+      ],
+      blocked_mutations: [
+        'shared_code',
+        'proxy',
+        'tenant_builder_scripts',
+        'turso_schema',
+      ],
+      artifacts: {
+        go_live_readiness: readinessPath,
+        audit_report: resolve(result.outputDir, 'audit-report.md'),
+        visual_qa: visualQaPath,
+        scraped_data: result.scrapedPath,
+      },
+      rerun_checks: [
+        'page-completeness',
+        'content-integrity',
+        'live-site-audit',
+      ],
+    };
+
+    writePendingQueueItem(queueItem);
+    polishQueue.push(queueItem);
+    logger.info(`[${result.siteId}] Queued for ${queueType === 'codex_polish' ? 'Codex polish' : 'manual review'}`);
+  }
+
+  if (skipPolish) {
+    logger.info('Codex polish queue skipped (--skip-polish) — outreach may proceed immediately');
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Step 5k: Update Turso status for deployed targets (auto-drop from pipeline)
 // ──────────────────────────────────────────────────────────
 
 if (!dryRun && !auditOnly) {
@@ -597,18 +687,22 @@ if (!dryRun && !auditOnly) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Step 6: Outreach (email drafts for all deployed targets)
-// QA is informational — a live site should get outreach regardless of QA verdict
+// Step 6: Outreach (only tenants with no active polish queue)
 // ──────────────────────────────────────────────────────────
 
 if (!dryRun && !auditOnly && !args['skip-outreach'] && qaResults.length > 0) {
-  // Include all targets that have QA results (meaning they were deployed and reachable)
-  const deployed = qaResults.filter(r => !r.error);
-  if (deployed.length > 0) {
-    logger.info(`Creating outreach drafts for ${deployed.length} deployed target(s) (QA: ${deployed.filter(r => r.pass).length} passed, ${deployed.filter(r => !r.pass).length} review/not-ready)`);
+  const readyForOutreach = qaResults.filter(r => !r.error && !hasActivePolishQueue(r.siteId));
+  const blockedByPolish = qaResults.filter(r => !r.error && hasActivePolishQueue(r.siteId));
+
+  if (blockedByPolish.length > 0) {
+    logger.info(`Holding outreach for ${blockedByPolish.length} tenant(s) pending polish/manual review: ${blockedByPolish.map(r => r.siteId).join(', ')}`);
+  }
+
+  if (readyForOutreach.length > 0) {
+    logger.info(`Creating outreach drafts for ${readyForOutreach.length} deployed target(s) with no active polish hold`);
     try {
       const deployedIds = [];
-      for (const r of deployed) {
+      for (const r of readyForOutreach) {
         const rows = await query('SELECT id FROM targets WHERE slug = ?', [r.siteId]);
         if (rows.length > 0) deployedIds.push(rows[0].id);
       }
@@ -621,6 +715,8 @@ if (!dryRun && !auditOnly && !args['skip-outreach'] && qaResults.length > 0) {
     } catch (e) {
       logger.warn(`Outreach step failed: ${e.message?.slice(0, 200)}`);
     }
+  } else if (blockedByPolish.length > 0) {
+    logger.info('Outreach skipped — all deployed tenants are waiting on polish completion');
   }
 }
 
@@ -640,6 +736,7 @@ const summaryData = {
   failed,
   skipped,
   dryRun,
+  skipPolish,
   targets: targets.map(t => ({
     id: t.id,
     name: t.company_name,
@@ -647,6 +744,12 @@ const summaryData = {
     icp_score: t.icp_score,
   })),
   qa: qaResults,
+  polish: polishQueue.map(item => ({
+    site_id: item.site_id,
+    queue_type: item.queue_type,
+    verdict: item.verdict,
+    original_url: item.original_url,
+  })),
 };
 
 const summaryDir = resolve(TB_ROOT, `results/${TODAY}`);
@@ -674,6 +777,15 @@ function extractStderr(e) {
   if (!stderr.trim()) return null;
   const lines = stderr.trim().split('\n');
   return lines.slice(-20).join('\n');
+}
+
+function readJsonIfExists(path) {
+  try {
+    if (!existsSync(path)) return null;
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  } catch {
+    return null;
+  }
 }
 
 /**

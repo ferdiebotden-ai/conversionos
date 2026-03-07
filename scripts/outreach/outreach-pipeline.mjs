@@ -4,7 +4,7 @@
  * For targets with built demos: fill email template → create Gmail draft.
  *
  * Usage:
- *   node scripts/outreach/outreach-pipeline.mjs                      # All demo_built targets
+ *   node scripts/outreach/outreach-pipeline.mjs                      # All built targets ready for outreach
  *   node scripts/outreach/outreach-pipeline.mjs --target-id 42       # Single target
  *   node scripts/outreach/outreach-pipeline.mjs --target-ids 42,43   # Multiple targets
  *   node scripts/outreach/outreach-pipeline.mjs --dry-run             # Preview email only
@@ -20,6 +20,7 @@ loadEnv();
 
 const { query, execute } = await import(resolve(DEMO_ROOT, 'tenant-builder/lib/turso-client.mjs'));
 const logger = await import(resolve(DEMO_ROOT, 'tenant-builder/lib/logger.mjs'));
+const { hasActivePolishQueue } = await import(resolve(DEMO_ROOT, 'scripts/polish/queue-utils.mjs'));
 import { generateEmail, validateEmail, CALL_SLOTS } from './generate-email.mjs';
 import { createGmailDraft } from './create-draft.mjs';
 import { findNextSlot, formatSlotForEmail } from './calendar.mjs';
@@ -44,7 +45,7 @@ if (args.help) {
   console.log(`Outreach Pipeline — Create Gmail drafts for built demos
 
 Usage:
-  node scripts/outreach/outreach-pipeline.mjs                      # All demo_built targets
+  node scripts/outreach/outreach-pipeline.mjs                      # All built targets ready for outreach
   node scripts/outreach/outreach-pipeline.mjs --target-id 42       # Single target
   node scripts/outreach/outreach-pipeline.mjs --target-ids 42,43   # Multiple targets
   node scripts/outreach/outreach-pipeline.mjs --dry-run             # Preview only`);
@@ -68,9 +69,20 @@ if (args['target-id']) {
     `SELECT * FROM targets
      WHERE demo_url IS NOT NULL
        AND email IS NOT NULL AND email != ''
-       AND (status = 'demo_built' OR (demo_built_at IS NOT NULL AND email_message_id IS NULL))
+       AND (
+         status = 'bespoke_ready'
+         OR status = 'demo_built'
+         OR (demo_built_at IS NOT NULL AND email_message_id IS NULL)
+       )
      ORDER BY icp_score DESC`
   );
+}
+
+const blockedTargets = targets.filter(t => hasActivePolishQueue(t.slug));
+targets = targets.filter(t => !hasActivePolishQueue(t.slug));
+
+if (blockedTargets.length > 0) {
+  logger.info(`Skipping ${blockedTargets.length} target(s) still waiting on polish/manual review: ${blockedTargets.map(t => t.slug).join(', ')}`);
 }
 
 if (targets.length === 0) {

@@ -71,6 +71,40 @@ All other stdout is human-readable log lines (displayed as-is in BuildProgressPa
 
 ---
 
+### PolishQueueItem (written post-QA, consumed by Codex/manual review)
+
+```typescript
+interface PolishQueueItem {
+  id: string
+  site_id: string
+  target_id: number | null
+  tier: 'elevate' | 'accelerate' | 'dominate'
+  trigger: 'post_qa'
+  queue_type: 'codex_polish' | 'manual_review'
+  live_url: string
+  original_url: string | null
+  results_dir: string
+  verdict: 'READY' | 'REVIEW' | 'NOT READY'
+  qa_status: 'complete' | 'review' | 'not_ready'
+  bespoke_score: number | null
+  created_at: string
+  outreach_hold: true
+  allowed_mutations: string[]
+  blocked_mutations: string[]
+  artifacts: {
+    go_live_readiness: string
+    audit_report: string
+    visual_qa: string
+    scraped_data: string
+  }
+  rerun_checks: string[]
+}
+```
+
+Queue files live in `codex-polish/queue/pending/{site-id}.json`. Presence of the file means outreach must stay blocked until the tenant is polished or manually cleared.
+
+---
+
 ## 3. Orchestrator CLI Interface
 
 ```bash

@@ -64,7 +64,7 @@ node tenant-builder/icp-score.mjs --target-id 42
 
 ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-operators (15 pts company size), basic websites (20 pts sophistication gap), complete contact data (15 pts email/phone/name). See `docs/icp-scoring.md` for full breakdown. Targets auto-drop from the pipeline after a demo is built (`status = 'bespoke_ready'`).
 
-## Pipeline Flow (16 Steps)
+## Pipeline Flow (18 Steps)
 
 1. Select targets — Turso DB, direct URL, or Firecrawl discovery
 2. ICP score — 6-criterion model (100 pts), threshold 50/70
@@ -82,7 +82,8 @@ ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-op
 14. QA: PDF branding — Supabase completeness for PDF generation
 15. QA: Email branding — admin_settings + template source scan
 16. Go-live readiness report — 7-section markdown + JSON verdict (READY / REVIEW / NOT READY)
-17. Outreach — Gmail drafts for deployed targets (skip with `--skip-outreach`)
+17. Polish queue handoff — write `codex-polish/queue/pending/{site-id}.json` for post-QA Codex polish or manual review
+18. Outreach — Gmail drafts only after the active polish queue item is cleared (skip with `--skip-outreach`, bypass queue with `--skip-polish`)
 
 ## Gallery Upgrade (Existing Tenants)
 
@@ -102,17 +103,19 @@ After `orchestrate.mjs` completes, always review the results:
 
 1. **Read batch summary** — `results/{date}/batch-summary.json` → success/fail counts
 2. **Classify each tenant** — Read `go-live-readiness.json` → READY / REVIEW / NOT READY
-3. **Review failures** — For REVIEW/NOT READY: read `audit-report.md` + `visual-qa.json`, identify specific failures
-4. **Visual check** — Read screenshots (`results/{date}/{site-id}/screenshots/`) to verify logos, colours, layout
-5. **Review email drafts** — Search Gmail for drafts matching the company name. Verify: no banned terms, CASL footer, correct city/company/URL, call day/time filled
-6. **Present summary** — Structured report with action items for Ferdie
-7. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
+3. **Queue follow-up** — Check `codex-polish/queue/pending/{site-id}.json` for the post-QA polish/manual-review handoff
+4. **Review failures** — For REVIEW/NOT READY: read `audit-report.md` + `visual-qa.json`, identify specific failures
+5. **Visual check** — Read screenshots (`results/{date}/{site-id}/screenshots/`) to verify logos, colours, layout
+6. **Review email drafts** — Only after the queue item is cleared. Verify: no banned terms, CASL footer, correct city/company/URL, call day/time filled
+7. **Present summary** — Structured report with action items for Ferdie
+8. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
 
 ## Deep Reference
 
 | Topic | File |
 |-------|------|
 | Module structure, scrape/provision details | `docs/pipeline-architecture.md` |
+| Post-QA polish queue + outreach hold | `../codex-polish/README.md` |
 | All 9 QA modules with checks and thresholds | `docs/qa-modules.md` |
 | ICP scoring dimensions and logic | `docs/icp-scoring.md` |
 | Sample lead fixtures and regeneration | `docs/sample-data.md` |

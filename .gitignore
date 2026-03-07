@@ -58,3 +58,6 @@ playwright-report/
 
 # plan files
 ~/.claude/plans/
+
+# codex polish (dumped tenant state; patches in codex-polish/patches/ have their own .gitignore)
+codex-polish/current-tenant.json

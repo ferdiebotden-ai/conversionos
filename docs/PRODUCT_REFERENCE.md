@@ -221,9 +221,11 @@ Single codebase, single branch (`main`), unlimited contractors. Every contractor
 
 ### Automated Onboarding
 
-New tenants are onboarded via the tenant-builder pipeline. Pipeline: ICP score (6-criterion, contact completeness + geography + sophistication gap) → scrape brand assets + portfolio images (10-20 per tenant) → provision database → deploy → 9-module QA → outreach email draft. Triggered from Mission Control ("Build Demo" button), CLI, or Telegram.
+New tenants are onboarded via the tenant-builder pipeline. Pipeline: ICP score (6-criterion, contact completeness + geography + sophistication gap) → scrape brand assets + portfolio images (10-20 per tenant) → provision database → deploy → 9-module QA → post-QA polish queue/manual review → outreach email draft. Triggered from Mission Control ("Build Demo" button), CLI, or Telegram.
 
 ICP scoring prioritises small-town Ontario contractors near Stratford with complete contact data and basic websites. Pipeline targets sorted by `icp_score` — built tenants auto-drop (`status = 'bespoke_ready'`).
+
+After QA, the builder writes `codex-polish/queue/pending/{site-id}.json`. While that queue item exists, outreach is held. Codex (or Ferdie manually) clears the queue by applying a tenant-scoped `admin_settings` patch or marking the polish job complete, then the draft-creation scripts pick the tenant up automatically.
 
 Gallery images are scraped from original contractor websites and uploaded to Supabase Storage. The `upgrade-tenant-gallery.mjs` script handles bulk image downloads and portfolio data updates.
 

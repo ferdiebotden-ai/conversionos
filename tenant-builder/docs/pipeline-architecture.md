@@ -55,6 +55,18 @@ Merge: Branding v2 colours override hex-counted colours. Logo extraction overrid
 6. **Voice agent** — ElevenLabs duplication stub (Dominate tier only)
 7. **Turso update** — `bespoke_status` → 'generating'/'complete'/'failed', `bespoke_score` from QA
 
+## Post-QA Polish Handoff
+
+After QA completes and `go-live-readiness.json` is written:
+
+1. The orchestrator writes a queue file to `../codex-polish/queue/pending/{site-id}.json`
+2. `queue_type = "codex_polish"` for `READY` / `REVIEW` tenants
+3. `queue_type = "manual_review"` for `NOT READY` tenants
+4. Outreach is held while the queue item exists
+5. Clearing the queue item (via `apply-polish-patch.mjs` or `complete-polish.mjs`) releases the tenant for outreach draft creation
+
+This keeps the build pipeline stable while inserting a safe, tenant-scoped polish phase before Gmail drafts are created.
+
 ## Quality Gates (Pre-Provision)
 
 | Gate | Logic | Fallback |
@@ -87,4 +99,6 @@ results/{date}/{site-id}/
   screenshots/              # Desktop + mobile per page
 results/{date}/proxy-fragments/   # Parallel-safe proxy.ts fragments
 results/{date}/batch-summary.json # Batch run summary
+../codex-polish/queue/pending/    # Active post-QA polish/manual-review jobs
+../codex-polish/queue/done/       # Archived queue items after polish completion
 ```
