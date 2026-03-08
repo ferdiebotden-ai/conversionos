@@ -13,6 +13,10 @@ import {
   filterTestimonials,
   filterPortfolio,
   filterServices,
+  normalizeTestimonial,
+  normalizeAboutCopy,
+  diversifyPortfolioTitles,
+  detectForeignBrandNames,
 } from '../../../scripts/onboarding/lib/quality-gates.mjs';
 
 // ─── Tests ───
@@ -418,5 +422,279 @@ describe('sanitizeNA logic', () => {
   it('handles non-string values', () => {
     expect(sanitizeNA(42)).toBe('');
     expect(sanitizeNA(true)).toBe('');
+  });
+});
+
+// ─── normalizeTestimonial (Issue #2 — Mar 8, 2026) ─────────────────────────
+
+describe('normalizeTestimonial', () => {
+  it('passes through canonical field names (author/quote)', () => {
+    const result = normalizeTestimonial({ author: 'Sarah M.', quote: 'Great work on our renovation.' });
+    expect(result.author).toBe('Sarah M.');
+    expect(result.quote).toBe('Great work on our renovation.');
+  });
+
+  it('normalizes name→author', () => {
+    const result = normalizeTestimonial({ name: 'Sarah M.', text: 'Great work on our renovation.' });
+    expect(result.author).toBe('Sarah M.');
+    expect(result.quote).toBe('Great work on our renovation.');
+  });
+
+  it('normalizes reviewer→author', () => {
+    const result = normalizeTestimonial({ reviewer: 'Sarah M.', review: 'Great work!' });
+    expect(result.author).toBe('Sarah M.');
+    expect(result.quote).toBe('Great work!');
+  });
+
+  it('normalizes content→quote', () => {
+    const result = normalizeTestimonial({ author: 'Sarah M.', content: 'Great work!' });
+    expect(result.quote).toBe('Great work!');
+  });
+
+  it('normalizes type→project_type', () => {
+    const result = normalizeTestimonial({ author: 'Sarah', quote: 'Good', type: 'Kitchen' });
+    expect(result.project_type).toBe('Kitchen');
+  });
+
+  it('normalizes project→project_type', () => {
+    const result = normalizeTestimonial({ author: 'Sarah', quote: 'Good', project: 'Bathroom' });
+    expect(result.project_type).toBe('Bathroom');
+  });
+
+  it('returns empty strings for missing fields', () => {
+    const result = normalizeTestimonial({});
+    expect(result.author).toBe('');
+    expect(result.quote).toBe('');
+    expect(result.project_type).toBe('');
+  });
+
+  it('prefers canonical field names over variants', () => {
+    const result = normalizeTestimonial({
+      author: 'Canonical',
+      name: 'Variant',
+      quote: 'Canonical quote',
+      text: 'Variant text',
+    });
+    expect(result.author).toBe('Canonical');
+    expect(result.quote).toBe('Canonical quote');
+  });
+});
+
+describe('filterTestimonials with normalization', () => {
+  it('accepts testimonials using name/text field names', () => {
+    const input = [
+      { name: 'Sarah M., London', text: 'Excellent work on our kitchen renovation. Very professional team.' },
+      { name: 'James R., Kitchener', text: 'Transformed our basement into a beautiful living space.' },
+    ];
+    const result = filterTestimonials(input);
+    expect(result).toHaveLength(2);
+    expect(result[0].author).toBe('Sarah M., London');
+    expect(result[0].quote).toBe('Excellent work on our kitchen renovation. Very professional team.');
+  });
+
+  it('accepts mixed field name styles', () => {
+    const input = [
+      { author: 'Sarah M.', quote: 'Excellent craftsmanship and great service from the team.' },
+      { name: 'James R.', text: 'Transformed our basement into a beautiful living space.' },
+      { reviewer: 'Priya K.', review: 'Outstanding renovation quality and attention to detail.' },
+    ];
+    const result = filterTestimonials(input);
+    expect(result).toHaveLength(3);
+  });
+});
+
+// ─── normalizeAboutCopy (Issue #5 — Mar 8, 2026) ────────────────────────────
+
+describe('normalizeAboutCopy', () => {
+  it('wraps a string in an array', () => {
+    expect(normalizeAboutCopy('About us paragraph.')).toEqual(['About us paragraph.']);
+  });
+
+  it('passes through a valid array', () => {
+    expect(normalizeAboutCopy(['Para 1', 'Para 2'])).toEqual(['Para 1', 'Para 2']);
+  });
+
+  it('filters empty strings from array', () => {
+    expect(normalizeAboutCopy(['Para 1', '', '  ', 'Para 2'])).toEqual(['Para 1', 'Para 2']);
+  });
+
+  it('returns [] for null', () => {
+    expect(normalizeAboutCopy(null)).toEqual([]);
+  });
+
+  it('returns [] for undefined', () => {
+    expect(normalizeAboutCopy(undefined)).toEqual([]);
+  });
+
+  it('returns [] for empty string', () => {
+    expect(normalizeAboutCopy('')).toEqual([]);
+  });
+
+  it('returns [] for whitespace-only string', () => {
+    expect(normalizeAboutCopy('   ')).toEqual([]);
+  });
+
+  it('trims string values', () => {
+    expect(normalizeAboutCopy('  Hello world  ')).toEqual(['Hello world']);
+  });
+
+  it('returns [] for non-string non-array values', () => {
+    expect(normalizeAboutCopy(42)).toEqual([]);
+    expect(normalizeAboutCopy(true)).toEqual([]);
+    expect(normalizeAboutCopy({})).toEqual([]);
+  });
+});
+
+// ─── diversifyPortfolioTitles (Issue #4 — Mar 8, 2026) ──────────────────────
+
+describe('diversifyPortfolioTitles', () => {
+  it('leaves diverse titles unchanged', () => {
+    const input = [
+      { title: 'Kitchen Renovation', image_url: 'https://img1.jpg' },
+      { title: 'Bathroom Remodel', image_url: 'https://img2.jpg' },
+      { title: 'Basement Finishing', image_url: 'https://img3.jpg' },
+    ];
+    const result = diversifyPortfolioTitles(input);
+    expect(result.map(p => p.title)).toEqual(['Kitchen Renovation', 'Bathroom Remodel', 'Basement Finishing']);
+  });
+
+  it('diversifies when >50% share the same title', () => {
+    const input = [
+      { title: 'Custom Renovation', image_url: 'https://img1.jpg', service_type: 'Kitchen' },
+      { title: 'Custom Renovation', image_url: 'https://img2.jpg', service_type: 'Bathroom' },
+      { title: 'Unique Title', image_url: 'https://img3.jpg' },
+    ];
+    const result = diversifyPortfolioTitles(input);
+    // First two should be diversified, third should stay
+    expect(result[0].title).toBe('Kitchen Renovation');
+    expect(result[1].title).toBe('Bathroom Renovation');
+    expect(result[2].title).toBe('Unique Title');
+  });
+
+  it('detects known generic titles', () => {
+    const input = [
+      { title: 'Renovation', image_url: 'https://img1.jpg', service_type: 'Basement' },
+      { title: 'Project', image_url: 'https://img2.jpg', service_type: 'Kitchen' },
+      { title: 'Portfolio', image_url: 'https://img3.jpg' },
+    ];
+    const result = diversifyPortfolioTitles(input);
+    expect(result[0].title).toBe('Basement Renovation');
+    expect(result[1].title).toBe('Kitchen Renovation');
+    expect(result[2].title).toBe('Project 1'); // no room type → fallback
+  });
+
+  it('uses "Project N" when no room type available', () => {
+    const input = [
+      { title: 'Custom Renovation', image_url: 'https://img1.jpg' },
+      { title: 'Custom Renovation', image_url: 'https://img2.jpg' },
+    ];
+    const result = diversifyPortfolioTitles(input);
+    expect(result[0].title).toBe('Project 1');
+    expect(result[1].title).toBe('Project 2');
+  });
+
+  it('returns single-item portfolio unchanged', () => {
+    const input = [{ title: 'Custom Renovation', image_url: 'https://img1.jpg' }];
+    const result = diversifyPortfolioTitles(input);
+    expect(result[0].title).toBe('Custom Renovation');
+  });
+
+  it('does not modify original objects', () => {
+    const original = { title: 'Custom Renovation', image_url: 'https://img1.jpg', service_type: 'Kitchen' };
+    const input = [original, { title: 'Custom Renovation', image_url: 'https://img2.jpg' }];
+    diversifyPortfolioTitles(input);
+    expect(original.title).toBe('Custom Renovation'); // original unchanged
+  });
+});
+
+describe('filterPortfolio with diversification', () => {
+  it('diversifies generic titles after filtering', () => {
+    const input = [
+      { title: 'Custom Renovation', image_url: 'https://img1.jpg', service_type: 'Kitchen' },
+      { title: 'Custom Renovation', image_url: 'https://img2.jpg', service_type: 'Bathroom' },
+      { title: '', image_url: 'https://img3.jpg' }, // filtered out (no title)
+    ];
+    const result = filterPortfolio(input);
+    expect(result).toHaveLength(2);
+    expect(result[0].title).toBe('Kitchen Renovation');
+    expect(result[1].title).toBe('Bathroom Renovation');
+  });
+});
+
+// ─── detectForeignBrandNames (Issue #5 — Mar 8, 2026) ───────────────────────
+
+describe('detectForeignBrandNames', () => {
+  it('returns empty for clean data', () => {
+    const data = {
+      about_copy: ['We are Acme Renovations, serving Ontario since 2005.'],
+      why_choose_us: [{ description: 'Best in the business.' }],
+    };
+    const result = detectForeignBrandNames(data, 'Acme Renovations');
+    expect(result).toHaveLength(0);
+  });
+
+  it('detects "Manzine Contracting" in another tenants data', () => {
+    const data = {
+      about_copy: ['Manzine Contracting has been providing quality renovations since 1998.'],
+    };
+    const result = detectForeignBrandNames(data, 'Ancaster Home Renovations');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0].foreignName).toMatch(/Manzine Contracting/);
+  });
+
+  it('ignores the tenants own name', () => {
+    const data = {
+      about_copy: ['Ancaster Home Renovations is your trusted partner for renovations.'],
+    };
+    const result = detectForeignBrandNames(data, 'Ancaster Home Renovations');
+    expect(result).toHaveLength(0);
+  });
+
+  it('handles aboutCopy as string', () => {
+    const data = {
+      about_copy: 'Smith Contracting did our foundation work.',
+    };
+    const result = detectForeignBrandNames(data, 'Jones Construction');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('handles aboutCopy as array', () => {
+    const data = {
+      about_copy: ['Para 1 with no names.', 'Para 2 mentions Widget Builders somehow.'],
+    };
+    const result = detectForeignBrandNames(data, 'Other Company');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0].foreignName).toMatch(/Widget Builders/);
+  });
+
+  it('returns empty when no business name provided', () => {
+    const data = { about_copy: ['Smith Contracting is great.'] };
+    expect(detectForeignBrandNames(data, '')).toHaveLength(0);
+    expect(detectForeignBrandNames(data, null)).toHaveLength(0);
+  });
+
+  it('checks why_choose_us field', () => {
+    const data = {
+      why_choose_us: [{ title: 'Quality', description: 'Unlike Random Homes, we deliver on time.' }],
+    };
+    const result = detectForeignBrandNames(data, 'Our Company');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0].field).toBe('why_choose_us');
+  });
+
+  it('checks mission field', () => {
+    const data = {
+      mission: 'Based on principles learned at Big Corp Construction, we strive for excellence.',
+    };
+    const result = detectForeignBrandNames(data, 'My Renovations');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('skips very short prefix matches', () => {
+    const data = {
+      about_copy: ['We do construction work.'], // "do construction" — prefix too short
+    };
+    const result = detectForeignBrandNames(data, 'My Renovations');
+    expect(result).toHaveLength(0);
   });
 });

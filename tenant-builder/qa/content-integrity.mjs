@@ -399,6 +399,54 @@ async function checkBusinessNamePresence(page, pageUrl, businessName) {
 }
 
 /**
+ * Check 13: Foreign brand name detection on rendered page.
+ * Finds contractor-name patterns (e.g., "X Contracting", "Y Renovations") that don't match
+ * the expected business name. Warning-level — may produce false positives for suppliers/partners.
+ * @param {import('playwright').Page} page
+ * @param {string} pageUrl
+ * @param {string} expectedBusinessName
+ * @returns {Promise<Array<{ page: string, foreignName: string, context: string }>>}
+ */
+async function checkForeignBrandNamesOnPage(page, pageUrl, expectedBusinessName) {
+  if (!expectedBusinessName) return [];
+  const violations = [];
+  const bodyText = await page.textContent('body') || '';
+  const normalizedExpected = expectedBusinessName.toLowerCase().trim();
+
+  // Match contractor-name patterns: "Word(s) Contracting/Renovations/Construction/etc."
+  const re = /\b(\w[\w\s'-]*?)\s+(contracting|renovations?|construction|homes?|builders?|carpentry|interiors?|craftsmen)\b/gi;
+  let match;
+  while ((match = re.exec(bodyText)) !== null) {
+    const candidateName = match[0].trim();
+    const candidateLower = candidateName.toLowerCase();
+
+    const prefix = match[1].trim();
+    // Skip if it matches the expected business name
+    if (normalizedExpected.includes(candidateLower) || candidateLower.includes(normalizedExpected)) continue;
+    // Skip very short prefix matches
+    if (prefix.length < 3) continue;
+    // Skip common false positives (articles, pronouns before suffix)
+    if (/^(the|our|my|a|an|in|or|we|is|of|no|do|to)\b/i.test(prefix)) continue;
+    // Skip if prefix ends with a preposition/article (e.g., "trusted partner for renovations")
+    if (/\b(the|our|my|a|an|in|or|for|we|is|of|no|do|to|with|and|your|at|by|as|its)\s*$/i.test(prefix)) continue;
+    // Skip if candidate shares significant words with expected name
+    const expectedWords = normalizedExpected.split(/\s+/).filter(w => w.length > 2);
+    const candidateWords = candidateLower.split(/\s+/).filter(w => w.length > 2);
+    const overlap = candidateWords.filter(w => expectedWords.includes(w));
+    if (overlap.length >= candidateWords.length * 0.5) continue;
+
+    const contextStart = Math.max(0, match.index - 30);
+    const contextEnd = Math.min(bodyText.length, match.index + match[0].length + 30);
+    violations.push({
+      page: pageUrl,
+      foreignName: candidateName,
+      context: bodyText.slice(contextStart, contextEnd).trim(),
+    });
+  }
+  return violations;
+}
+
+/**
  * Check copyright line in footer for formatting issues.
  * @param {import('playwright').Page} page
  * @param {string} pageUrl
@@ -732,6 +780,16 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
           }
           if (!summary.og_image) summary.og_image = 0;
           summary.og_image += ogViolations.length;
+        }
+
+        // 13. Foreign brand name detection (all pages, needs business name)
+        if (businessName) {
+          const foreignViolations = await checkForeignBrandNamesOnPage(page, pageUrl, businessName);
+          for (const v of foreignViolations) {
+            allViolations.push({ check: 'foreign_brand_name', ...v });
+          }
+          if (!summary.foreign_brand_name) summary.foreign_brand_name = 0;
+          summary.foreign_brand_name += foreignViolations.length;
         }
 
         // 5. Colour consistency (homepage only, if expected colour provided)

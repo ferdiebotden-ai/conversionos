@@ -65,6 +65,7 @@ if (skipOptimize) console.log('  (optimization disabled — uploading originals)
 console.log('─'.repeat(50));
 
 const urlMapping = {};
+const failedUploads = [];
 let totalOriginalKB = 0;
 let totalOptimizedKB = 0;
 
@@ -212,21 +213,39 @@ async function downloadAndUpload(url, storagePath, imageType = 'portfolio') {
 if (data.hero_image_url) {
   const ext = data.hero_image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
   const newUrl = await downloadAndUpload(data.hero_image_url, `hero.${ext}`, 'hero');
-  if (newUrl) data.hero_image_url = newUrl;
+  if (newUrl) {
+    data.hero_image_url = newUrl;
+  } else {
+    console.log(`  Clearing failed hero_image_url: ${data.hero_image_url.substring(0, 80)}`);
+    failedUploads.push({ type: 'hero', originalUrl: data.hero_image_url });
+    data.hero_image_url = '';
+  }
 }
 
 // Upload logo
 if (data.logo_url) {
   const ext = data.logo_url.match(/\.(svg|png|jpg|jpeg|webp)/i)?.[1] || 'png';
   const newUrl = await downloadAndUpload(data.logo_url, `logo.${ext}`, 'logo');
-  if (newUrl) data.logo_url = newUrl;
+  if (newUrl) {
+    data.logo_url = newUrl;
+  } else {
+    console.log(`  Clearing failed logo_url: ${data.logo_url.substring(0, 80)}`);
+    failedUploads.push({ type: 'logo', originalUrl: data.logo_url });
+    data.logo_url = '';
+  }
 }
 
 // Upload about image
 if (data.about_image_url) {
   const ext = data.about_image_url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
   const newUrl = await downloadAndUpload(data.about_image_url, `about.${ext}`, 'about');
-  if (newUrl) data.about_image_url = newUrl;
+  if (newUrl) {
+    data.about_image_url = newUrl;
+  } else {
+    console.log(`  Clearing failed about_image_url: ${data.about_image_url.substring(0, 80)}`);
+    failedUploads.push({ type: 'about', originalUrl: data.about_image_url });
+    data.about_image_url = '';
+  }
 }
 
 // Upload team photos
@@ -252,6 +271,7 @@ if (data.portfolio?.length > 0) {
         project.image_url = newUrl;
       } else {
         // Clear broken/non-image URLs rather than keeping them (they cause broken images in the platform)
+        failedUploads.push({ type: `portfolio[${i}]`, originalUrl: project.image_url });
         project.image_url = '';
       }
     }
@@ -282,6 +302,14 @@ console.log(`\nUploaded ${imageCount} images`);
 if (!skipOptimize && totalOriginalKB > 0) {
   const totalSavings = ((1 - totalOptimizedKB / totalOriginalKB) * 100).toFixed(0);
   console.log(`Total savings: ${totalOriginalKB.toFixed(0)}KB → ${totalOptimizedKB.toFixed(0)}KB (${totalSavings}% reduction)`);
+}
+
+if (failedUploads.length > 0) {
+  console.log(`\nFailed uploads (${failedUploads.length}):`);
+  for (const f of failedUploads) {
+    console.log(`  ${f.type}: ${f.originalUrl.substring(0, 80)}`);
+  }
+  data._upload_failures = failedUploads;
 }
 
 // Write updated data

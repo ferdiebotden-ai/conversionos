@@ -426,7 +426,16 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
           '--site-id', siteId,
           '--output', outputDir,
         ];
-        if (existsSync(scrapedPath)) ciArgs.push('--scraped-data', scrapedPath);
+        if (existsSync(scrapedPath)) {
+          ciArgs.push('--scraped-data', scrapedPath);
+          // Pass business name for foreign brand name detection (Check 13)
+          try {
+            const scrapedForBizName = JSON.parse(readFileSync(scrapedPath, 'utf-8'));
+            if (scrapedForBizName.business_name) {
+              ciArgs.push('--business-name', scrapedForBizName.business_name);
+            }
+          } catch { /* scraped.json read error — skip business-name flag */ }
+        }
 
         execFileSync('node', ciArgs, {
           cwd: DEMO_ROOT, env: process.env, timeout: 120000,

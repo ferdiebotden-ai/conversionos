@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { inferServiceIcon, inferBadgeIcon, isStrongHero as _isStrongHero, filterTestimonials, filterPortfolio, filterServices } from './lib/quality-gates.mjs';
+import { inferServiceIcon, inferBadgeIcon, isStrongHero as _isStrongHero, filterTestimonials, filterPortfolio, filterServices, normalizeAboutCopy, detectForeignBrandNames } from './lib/quality-gates.mjs';
 
 function loadEnv() {
   for (const envFile of ['.env.local', resolve(process.env.HOME, 'pipeline/scripts/.env')]) {
@@ -82,6 +82,15 @@ const testimonials = filterTestimonials(data.testimonials || []);
 const validPortfolio = filterPortfolio(data.portfolio || []);
 const validServices = filterServices(data.services || []);
 
+// Foreign brand name detection (warning-only — does not block provisioning)
+const foreignNames = detectForeignBrandNames(data, data.business_name);
+if (foreignNames.length > 0) {
+  console.log(`  WARNING: Possible foreign brand name contamination:`);
+  for (const w of foreignNames) {
+    console.log(`    ${w.label}: "${w.foreignName}" in "...${w.context.substring(0, 60)}..."`);
+  }
+}
+
 // Build admin_settings rows
 const businessInfo = {
   name: data.business_name || siteId,
@@ -127,7 +136,7 @@ const companyProfile = {
     quote: t.quote,
     projectType: t.project_type || 'Renovation',
   })),
-  aboutCopy: data.about_copy || [],
+  aboutCopy: normalizeAboutCopy(data.about_copy),
   mission: sanitizeNA(data.mission),
   services: validServices.map(s => ({
     name: s.name,
