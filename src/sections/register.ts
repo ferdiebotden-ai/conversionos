@@ -1,6 +1,6 @@
 /**
  * Section registration — side-effect import.
- * Imports all 46 section components and registers them with the section registry.
+ * Imports all 47 section components and registers them with the section registry.
  * This file is imported by SectionRenderer as a side effect.
  */
 
@@ -69,11 +69,12 @@ import { FooterMultiColumn4 } from '@/sections/footer/multi-column-4';
 import { FooterSimpleCentered } from '@/sections/footer/simple-centered';
 import { FooterMinimalBar } from '@/sections/footer/minimal-bar';
 
-// Misc sections (4)
+// Misc sections (5)
 import { MiscProcessSteps } from '@/sections/misc/process-steps';
 import { MiscFAQAccordion } from '@/sections/misc/faq-accordion';
 import { MiscServiceAreaMap } from '@/sections/misc/service-area-map';
 import { MiscPartnerLogos } from '@/sections/misc/partner-logos';
+import { MiscVisualizerTeaser } from '@/sections/misc/visualizer-teaser';
 
 // ─── Register all sections ──────────────────────────────────────────────────
 
@@ -145,6 +146,7 @@ const sections: [SectionId, Parameters<typeof registerSection>[1]][] = [
   ['misc:faq-accordion', MiscFAQAccordion],
   ['misc:service-area-map', MiscServiceAreaMap],
   ['misc:partner-logos', MiscPartnerLogos],
+  ['misc:visualizer-teaser', MiscVisualizerTeaser],
 ];
 
 for (const [id, component] of sections) {
