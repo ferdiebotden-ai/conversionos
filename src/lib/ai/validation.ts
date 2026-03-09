@@ -26,6 +26,7 @@ const structureValidationSchema = z.object({
   windowsDoorsIntact: z.boolean().describe('Are windows and doors in the same positions?'),
   perspectiveMatches: z.boolean().describe('Does the camera angle/perspective match the original?'),
   lightingConsistent: z.boolean().describe('Is the lighting direction consistent with original?'),
+  furnitureStaged: z.boolean().describe('Has furniture been replaced with style-appropriate staging? (N/A for kitchen/bathroom/exterior — answer true)'),
   overallScore: z.number().min(0).max(1).describe('Overall structure preservation score 0-1'),
   issues: z.array(z.string()).describe('List of specific issues found'),
   recommendations: z.array(z.string()).describe('Suggestions for improvement'),
@@ -59,8 +60,10 @@ Check for:
 3. PERSPECTIVE: Same camera angle, focal length, viewing position
 4. LIGHTING DIRECTION: Light comes from the same direction/sources
 5. ARCHITECTURAL FEATURES: Columns, beams, built-ins in same positions
+6. STAGING QUALITY: Has the original furniture been replaced with style-appropriate pieces?
+   (For kitchen/bathroom/exterior: have personal items been removed and surfaces styled? Answer true.)
 
-The generated image SHOULD change finishes, colors, fixtures, and decor.
+The generated image SHOULD change finishes, colors, fixtures, decor, AND furniture.
 The generated image should NOT change room shape, window positions, or camera angle.
 
 Rate the structure preservation from 0 (completely different room) to 1 (perfect preservation).

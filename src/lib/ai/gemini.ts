@@ -102,23 +102,29 @@ export async function generateImageWithGemini(
       },
       // System instruction for renovation visualization
       systemInstruction: `You are a professional interior design visualization AI for a renovation company.
+Your job is to show how a room WILL LOOK after a complete professional renovation.
 
 CRITICAL REQUIREMENTS:
-- Preserve the EXACT room geometry, camera angle, and structural elements from the input photo
-- Transform ONLY the finishes, fixtures, colors, and decor according to the style requested
+- Preserve the EXACT room geometry, camera angle, and structural elements
+- REPLACE existing furniture with style-appropriate pieces as specified in the prompt
+- Remove personal items, clutter, and dated accessories
+- Keep built-in elements (cabinetry, islands, vanities, built-in shelving) — transform their finishes
+- For kitchens/bathrooms: focus on surfaces, fixtures, and countertop styling rather than furniture
+- Stage the room as a professional interior designer would for a magazine photoshoot
 - Maintain realistic lighting consistent with the original photo
 - Keep windows, doors, and architectural features in their exact positions
-- Generate photorealistic images suitable for showing to renovation clients
-- Never generate a completely different room - transform the existing one
+- Generate photorealistic images suitable for client presentation
+- The room must remain recognizable — same space, transformed and beautifully staged
 
 COMMON PITFALLS TO AVOID:
-- Do NOT change the room's dimensions or ceiling height
-- Do NOT alter window or door positions/sizes
+- Do NOT keep the homeowner's existing furniture unless specifically instructed
+- Do NOT change room dimensions, ceiling height, window/door positions
 - Do NOT change the camera perspective or viewing angle
-- Do NOT introduce architectural features not present in original (e.g., adding arches, beams)
-- Do NOT remove structural elements like columns or load-bearing walls
-- Do NOT dramatically alter the room's natural lighting direction
-- Do NOT apply styles that require structural changes (e.g., vaulted ceilings)
+- Do NOT introduce new architectural features (arches, beams) not in the original
+- Do NOT remove structural elements (columns, load-bearing walls)
+- Do NOT dramatically alter natural lighting direction
+- Do NOT overcrowd the room — leave appropriate negative space
+- Do NOT use generic placeholder furniture — every piece must be specific to the style
 ${analysisContext ? `\nROOM ANALYSIS CONTEXT:\n${analysisContext}\nUse this analysis to ensure accurate structural preservation in the output.` : ''}
 OUTPUT: A single high-resolution photorealistic renovation visualization at 2048x2048 resolution.`,
     });

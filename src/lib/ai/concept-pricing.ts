@@ -12,6 +12,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { openai } from './providers';
+import { AI_CONFIG } from './config';
 import {
   MATERIAL_COSTS,
   calculateCostEstimate,
@@ -97,7 +98,7 @@ const ConceptDescriptionSchema = z.object({
 
 /**
  * Analyse a generated visualization concept for materials and pricing.
- * Uses GPT-5.2 vision to identify materials in the AI-generated image,
+ * Uses GPT Vision to identify materials in the AI-generated image,
  * then prices them from the Ontario pricing database.
  *
  * Cost: ~$0.02-0.03 per concept
@@ -115,7 +116,7 @@ export async function analyzeConceptForPricing(
     .join('\n');
 
   const { object } = await generateObject({
-    model: openai('gpt-5.2'),
+    model: openai(AI_CONFIG.openai.vision),
     schema: ConceptAnalysisSchema,
     messages: [
       {
@@ -223,7 +224,7 @@ export async function generateConceptDescriptions(
   ])).flat();
 
   const { object } = await generateObject({
-    model: openai('gpt-5.2'),
+    model: openai(AI_CONFIG.openai.vision),
     schema: ConceptDescriptionSchema,
     messages: [
       {

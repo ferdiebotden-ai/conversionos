@@ -5,9 +5,9 @@
 
 export const AI_CONFIG = {
   openai: {
-    chat: 'gpt-5.2',           // Production chat model
-    extraction: 'gpt-5.2',     // Structured extraction
-    vision: 'gpt-5.2',         // Photo analysis (multimodal) — 86.3% spatial reasoning accuracy
+    chat: 'gpt-5.4',           // Production chat model
+    extraction: 'gpt-5.4',     // Structured extraction
+    vision: 'gpt-5.4',         // Photo analysis (multimodal) — 75.0% spatial reasoning (OSWorld), up from 47.3% in 5.2
     moderation: 'omni-moderation-latest',
   },
   google: {

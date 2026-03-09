@@ -112,6 +112,27 @@ export const VisualizationRoomAnalysisSchema = z.object({
     vanishingPointDescription: z.string(),
     symmetryAxis: z.string().nullable(),
   }).nullable(),
+  /**
+   * How furnished the room is
+   */
+  furnishingLevel: z.enum(['empty', 'sparse', 'moderate', 'cluttered']).nullable(),
+  /**
+   * Inventory of visible furniture and moveable items
+   */
+  furnitureInventory: z.array(z.object({
+    /** Specific item description (e.g., "brown fabric 3-seat sofa") */
+    item: z.string(),
+    /** Location in the room (e.g., "against back wall") */
+    location: z.string(),
+    /** Condition assessment */
+    condition: z.enum(['new', 'good', 'worn', 'dated', 'damaged']),
+    /** Whether this is a built-in element (kitchen island, built-in shelving, vanity) */
+    isBuiltIn: z.boolean(),
+    /** Whether to keep, replace, or remove for visualization */
+    suitability: z.enum(['keep', 'replace', 'remove']),
+    /** Brief reason for the suitability rating */
+    reason: z.string(),
+  })).nullable(),
 });
 
 export type RoomAnalysis = z.infer<typeof VisualizationRoomAnalysisSchema>;
@@ -221,6 +242,17 @@ Analyze this room photo and provide:
    - Vanishing point description (e.g., "single vanishing point centered, moderate depth")
    - Symmetry axis if any (e.g., "near-symmetric around center island", null if asymmetric)
 
+19. **Furniture Inventory**: Catalogue every piece of furniture and moveable decor:
+   - Specific item description ("brown fabric 3-seat sofa", not just "sofa")
+   - Location in the room
+   - Condition (new/good/worn/dated/damaged)
+   - Is it built-in? (kitchen island, built-in shelving, vanity = yes)
+   - Suitability for renovation visualization: keep (built-in or fits new style),
+     replace (swap with style-appropriate piece), remove (clutter/personal items)
+   - Brief reason for the suitability rating
+
+20. **Furnishing Level**: How furnished is the room? (empty/sparse/moderate/cluttered)
+
 Be specific and technical. This analysis directly impacts visualization quality.`,
             },
             {
@@ -230,7 +262,7 @@ Be specific and technical. This analysis directly impacts visualization quality.
           ],
         },
       ],
-      maxOutputTokens: 2500,
+      maxOutputTokens: 3000,
       temperature: 0.3, // Low temperature for more consistent, accurate analysis
     });
 

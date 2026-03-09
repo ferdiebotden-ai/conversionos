@@ -10,6 +10,7 @@ import {
   ROOM_CONTEXTS,
 } from '@/lib/schemas/visualization';
 import type { RoomAnalysis } from './photo-analyzer';
+import { getStagingRecommendation } from './knowledge/staging-data';
 
 /**
  * Input data for building renovation prompts
@@ -50,6 +51,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
   colors: string[];
   finishes: string[];
   fixtures: string[];
+  furniture: string[];
   lighting: string;
 }> = {
   modern: {
@@ -58,6 +60,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['crisp white', 'warm gray', 'charcoal', 'black accents', 'occasional navy or forest green'],
     finishes: ['matte lacquer', 'high-gloss paint', 'brushed metal', 'honed stone'],
     fixtures: ['frameless cabinets', 'handleless drawers', 'integrated appliances', 'waterfall countertops'],
+    furniture: ['low-profile sectional sofa', 'sculptural accent chair', 'glass-and-metal coffee table', 'minimal media console', 'geometric side table'],
     lighting: 'recessed LED lighting, linear pendant fixtures, and strategic accent lighting',
   },
   traditional: {
@@ -66,6 +69,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['warm cream', 'rich burgundy', 'forest green', 'navy blue', 'warm gold accents'],
     finishes: ['stained wood', 'glazed ceramics', 'polished brass', 'antique bronze'],
     fixtures: ['raised panel cabinets', 'decorative hardware', 'apron-front sinks', 'ornate faucets'],
+    furniture: ['rolled-arm sofa in rich fabric', 'tufted wingback chair', 'carved wood coffee table', 'antique console table', 'upholstered ottoman'],
     lighting: 'crystal chandeliers, brass sconces, and under-cabinet task lighting',
   },
   farmhouse: {
@@ -74,6 +78,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['antique white', 'soft sage green', 'barn red accents', 'natural wood tones', 'muted blue'],
     finishes: ['distressed wood', 'matte paint', 'oil-rubbed bronze', 'galvanized metal'],
     fixtures: ['farmhouse sinks', 'open shelving', 'barn door hardware', 'vintage-style faucets'],
+    furniture: ['linen-slipcovered sofa', 'distressed wood coffee table', 'ladder-back dining chairs', 'vintage storage bench', 'woven rattan accent chair'],
     lighting: 'mason jar pendants, wrought iron chandeliers, and Edison bulb fixtures',
   },
   industrial: {
@@ -82,6 +87,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['charcoal gray', 'rust orange accents', 'matte black', 'warm wood tones', 'cement gray'],
     finishes: ['raw steel', 'brushed concrete', 'oxidized metal', 'sealed brick'],
     fixtures: ['metal-frame cabinets', 'pipe shelving', 'commercial-style faucets', 'wire mesh accents'],
+    furniture: ['aged leather sofa', 'metal-frame accent chair', 'reclaimed wood coffee table on iron pipe legs', 'metal bookshelf unit', 'steel-frame side table'],
     lighting: 'exposed Edison bulbs, metal cage pendants, and track lighting on exposed conduit',
   },
   minimalist: {
@@ -90,6 +96,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['pure white', 'warm greige', 'soft black', 'natural wood', 'single accent color'],
     finishes: ['ultra-matte paint', 'satin wood', 'finger-pull cabinets', 'seamless transitions'],
     fixtures: ['handleless cabinets', 'integrated appliances', 'wall-mounted fixtures', 'hidden storage'],
+    furniture: ['low-profile sofa in solid neutral', 'single sculptural lounge chair', 'simple round coffee table', 'wall-mounted media console', 'slim nesting side tables'],
     lighting: 'concealed LED strips, minimal downlights, and large windows for natural light',
   },
   contemporary: {
@@ -98,6 +105,7 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     colors: ['bold jewel tones', 'dramatic black', 'warm metallics', 'deep teal', 'terracotta accents'],
     finishes: ['high-gloss lacquer', 'hammered metal', 'textured wallcovering', 'mixed sheens'],
     fixtures: ['sculptural hardware', 'statement faucets', 'artistic light fixtures', 'custom built-ins'],
+    furniture: ['curved modular sofa in jewel-tone velvet', 'sculptural accent chair', 'mixed-material coffee table', 'lacquered console with brass hardware', 'asymmetric metallic side table'],
     lighting: 'statement pendant clusters, sculptural chandeliers, and dramatic accent lighting',
   },
 };
@@ -158,6 +166,7 @@ Key Materials: ${details.materials.join(', ')}
 Color Palette: ${details.colors.join(', ')}
 Signature Finishes: ${details.finishes.join(', ')}
 Fixture Style: ${details.fixtures.join(', ')}
+Furniture Style: ${details.furniture.join(', ')}
 Lighting Approach: ${details.lighting}`;
 }
 
@@ -339,6 +348,54 @@ ${designIntent.materialPreferences.map(m => `- ${m}`).join('\n')}`;
 
   promptParts.push(materialsSection);
 
+  // PART 3.5: Furniture & Staging
+  const isSurfaceRoom = ['kitchen', 'bathroom', 'exterior'].includes(roomType);
+  let stagingSection = '=== FURNITURE & STAGING ===\n';
+
+  if (isSurfaceRoom) {
+    stagingSection += `Remove personal items, countertop clutter, and dated accessories.
+Stage countertops and surfaces professionally for a design photoshoot look.`;
+  } else {
+    stagingSection += `REMOVE all existing moveable furniture and personal items.
+REPLACE with style-appropriate pieces. OPTIMIZE the layout for function and flow.
+The result should look like a professional interior design photoshoot.`;
+  }
+
+  // If photo analysis identified specific items
+  if (photoAnalysis?.furnitureInventory?.length) {
+    const toRemove = photoAnalysis.furnitureInventory
+      .filter(f => f.suitability !== 'keep' && !f.isBuiltIn);
+    const toKeep = photoAnalysis.furnitureInventory
+      .filter(f => f.suitability === 'keep' || f.isBuiltIn);
+
+    if (toRemove.length > 0) {
+      stagingSection += `\n\nREMOVE these items:\n${toRemove.map(f => `- ${f.item} (${f.location})`).join('\n')}`;
+    }
+    if (toKeep.length > 0) {
+      stagingSection += `\n\nKEEP these built-in/suitable items:\n${toKeep.map(f => `- ${f.item} (${f.location})`).join('\n')}`;
+    }
+  }
+
+  // Style-specific staging recommendations
+  const staging = getStagingRecommendation(roomType, style);
+  if (staging && !isSurfaceRoom) {
+    stagingSection += `\n\nSTAGE WITH:\n${staging.primaryFurniture.map(f => `- ${f}`).join('\n')}`;
+    stagingSection += `\n\nACCENT WITH:\n${staging.accentPieces.map(a => `- ${a}`).join('\n')}`;
+    stagingSection += `\n\nLAYOUT: ${staging.layoutGuidance}`;
+    stagingSection += `\n\nAVOID: ${staging.avoidList.join(', ')}`;
+  } else if (staging && isSurfaceRoom) {
+    // Lighter version for kitchen/bathroom/exterior
+    if (staging.accentPieces.length > 0) {
+      stagingSection += `\n\nSTAGE SURFACES WITH:\n${staging.accentPieces.map(a => `- ${a}`).join('\n')}`;
+    }
+    if (staging.primaryFurniture.length > 0) {
+      stagingSection += `\n\n${staging.primaryFurniture.map(f => `- ${f}`).join('\n')}`;
+    }
+    stagingSection += `\n\nAVOID: ${staging.avoidList.join(', ')}`;
+  }
+
+  promptParts.push(stagingSection);
+
   // PART 4: Lighting Instructions
   let lightingSection = `=== LIGHTING INSTRUCTIONS ===
 ${styleDetails ? styleDetails.lighting : `Select lighting appropriate for a "${data.customStyle}" design aesthetic.`}`;
@@ -414,10 +471,10 @@ Incorporate these voiced preferences into the design, giving them equal weight t
   // Add variation hints for multiple concepts
   if (variationIndex > 0) {
     const variations = [
-      'Explore a warmer color temperature while maintaining the core style. Emphasize cozy, inviting textures.',
-      'Feature natural textures and organic materials prominently. Bring in subtle biophilic elements.',
-      'Take a more streamlined approach with extra emphasis on clean lines and negative space.',
-      'Incorporate subtle accent colors and decorative details that add personality without overwhelming.',
+      'Explore a warmer colour temperature. Use plush, inviting textures on upholstery. Feature a statement area rug.',
+      'Feature natural textures and organic materials. Include rattan or woven accent furniture. Add biophilic elements like plants.',
+      'Take a streamlined approach with fewer, bolder furniture pieces. Emphasize negative space and clean lines.',
+      'Incorporate accent colours through furniture upholstery and decorative objects. Add curated art and personality.',
     ];
     const variationHint = variations[variationIndex % variations.length];
     promptParts.push(`=== VARIATION ${variationIndex + 1} ===
@@ -465,15 +522,17 @@ CRITICAL REQUIREMENTS:
 - Preserve window/door positions exactly as shown
 - Keep the SAME camera perspective and angle
 - Apply ${style} aesthetic to surfaces, fixtures, and decor
+- REPLACE existing furniture with style-appropriate pieces — do not keep the homeowner's current furniture
+- Stage the room like a professional interior design photoshoot
 - Ensure photorealistic quality suitable for client presentation
 - Lighting should match the original room's natural light sources`;
 
   if (variationIndex > 0) {
     const variations = [
-      'Explore a slightly warmer color temperature while staying true to the style.',
-      'Emphasize natural textures and organic materials in this variation.',
-      'Focus on clean lines and a more streamlined approach.',
-      'Incorporate subtle accent colors and decorative details.',
+      'Explore a warmer colour temperature. Use plush textures on upholstery and add a statement rug.',
+      'Emphasize natural textures and organic materials. Include woven accent furniture and plants.',
+      'Focus on fewer, bolder furniture pieces with clean lines and ample negative space.',
+      'Incorporate accent colours through furniture upholstery and curated decorative objects.',
     ];
     const variationHint = variations[variationIndex % variations.length];
     prompt += `

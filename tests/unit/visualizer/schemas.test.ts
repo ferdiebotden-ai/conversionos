@@ -155,6 +155,8 @@ describe('Visualization Schemas', () => {
         spatialZones: null,
         openings: null,
         architecturalLines: null,
+        furnishingLevel: null,
+        furnitureInventory: null,
       };
       expect(() => VisualizationRoomAnalysisSchema.parse(validAnalysis)).not.toThrow();
     });
@@ -179,6 +181,10 @@ describe('Visualization Schemas', () => {
         spatialZones: [{ name: 'cooking zone', description: 'stove and prep area', approximateLocation: 'left third' }],
         openings: [{ type: 'window' as const, wall: 'left wall', approximateSize: '36x48 inches', approximatePosition: 'centered' }],
         architecturalLines: { dominantDirection: 'horizontal', vanishingPointDescription: 'centered', symmetryAxis: null },
+        furnishingLevel: 'moderate' as const,
+        furnitureInventory: [
+          { item: 'oak dining table', location: 'centre of room', condition: 'good' as const, isBuiltIn: false, suitability: 'replace' as const, reason: 'dated style' },
+        ],
       };
       expect(() => VisualizationRoomAnalysisSchema.parse(withOptionals)).not.toThrow();
     });
@@ -229,6 +235,8 @@ describe('Visualization Schemas', () => {
         spatialZones: null,
         openings: null,
         architecturalLines: null,
+        furnishingLevel: null,
+        furnitureInventory: null,
       };
 
       ['excellent', 'good', 'dated', 'needs_renovation'].forEach(condition => {

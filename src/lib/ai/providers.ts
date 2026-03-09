@@ -10,5 +10,5 @@ import { createOpenAI } from '@ai-sdk/openai';
 export const openai = createOpenAI({});
 
 // Export model references for convenience
-export const chatModel = openai('gpt-5.2');
-export const visionModel = openai('gpt-5.2');
+export const chatModel = openai('gpt-5.4');
+export const visionModel = openai('gpt-5.4');
