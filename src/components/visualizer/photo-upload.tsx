@@ -32,6 +32,7 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
@@ -152,8 +153,16 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
           </div>
         </div>
       ) : isMobile ? (
-        // Mobile upload — single button
+        // Mobile upload — camera-first two-button layout
         <div className="flex flex-col gap-3">
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="sr-only"
+          />
           <input
             ref={fileInputRef}
             type="file"
@@ -163,17 +172,35 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
           />
           <Button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => cameraInputRef.current?.click()}
             className="w-full h-14 text-base gap-3"
             disabled={isProcessing}
           >
             {isProcessing ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Upload className="w-5 h-5" />
+              <Camera className="w-5 h-5" />
             )}
-            {isProcessing ? 'Processing...' : 'Upload a Photo'}
+            {isProcessing ? 'Processing...' : 'Take a Photo of Your Room'}
           </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full h-12 text-base gap-3"
+            disabled={isProcessing}
+          >
+            <ImageIcon className="w-5 h-5" />
+            Choose from Gallery
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Tip: Take a wide-angle shot of the entire room
+          </p>
         </div>
       ) : (
         // Desktop upload — hidden input + clickable drop zone

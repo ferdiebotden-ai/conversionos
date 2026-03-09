@@ -30,7 +30,7 @@ export async function getTier(): Promise<PlanTier> {
     const plan = data.value as Record<string, unknown>;
     const tier = plan['tier'] as string | undefined;
 
-    if (tier === 'elevate' || tier === 'accelerate' || tier === 'dominate') {
+    if (tier === 'elevate' || tier === 'accelerate' || tier === 'dominate' || tier === 'black_label') {
       return tier;
     }
 
