@@ -937,8 +937,8 @@ Select top 10 targets by new ICP score. Run full pipeline. Measure:
 - [ ] Re-score all 733 targets with `--force` — operational step, requires API calls
 - [x] Add `black_label` to `PlanTier` in entitlements.ts
 - [x] Add Black Label features to `TIER_FEATURES`
-- [ ] Update `shared/BUSINESS_CONTEXT.md` with new pricing
-- [ ] Update MEMORY.md with new pricing
+- [x] Update `shared/BUSINESS_CONTEXT.md` with new pricing
+- [x] Update MEMORY.md with new pricing
 - [ ] Verify top 20 re-scored targets are premium operators — after re-scoring
 
 ### Sprint 1: Edge Config Migration

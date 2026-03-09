@@ -2,11 +2,19 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Phone } from 'lucide-react';
+import { Phone, MapPin, Sparkles, Shield, Award } from 'lucide-react';
 import type { SectionBaseProps } from '@/lib/section-types';
 import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { StaggerContainer, StaggerItem } from '@/components/motion';
+import { AuroraBackground } from '@/components/home/aurora-background';
 import { Button } from '@/components/ui/button';
+
+const BADGE_ICONS: Record<string, React.ReactNode> = {
+  'map-pin': <MapPin className="size-5 text-primary" />,
+  'sparkles': <Sparkles className="size-5 text-primary" />,
+  'shield': <Shield className="size-5 text-primary" />,
+  'award': <Award className="size-5 text-primary" />,
+};
 
 interface Props extends SectionBaseProps {
   config: CompanyConfig;
@@ -30,7 +38,7 @@ export function FullBleedOverlayHero({ branding, config, className }: Props) {
             sizes="100vw"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40" />
+          <AuroraBackground />
         )}
         <div
           className="absolute inset-0"
@@ -74,6 +82,7 @@ export function FullBleedOverlayHero({ branding, config, className }: Props) {
                   <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-white/80">
                     {badges.slice(0, 3).map((badge, i) => (
                       <div key={i} className="flex items-center gap-2">
+                        {BADGE_ICONS[badge.iconHint] ?? <Award className="size-5 text-primary" />}
                         <span>{badge.label}</span>
                       </div>
                     ))}

@@ -1,0 +1,439 @@
+{
+  "generated": "2026-03-09T17:27:18.844Z",
+  "totalSections": 47,
+  "categories": {
+    "hero": {
+      "description": "Full-viewport hero banner at the top of a page",
+      "sections": [
+        {
+          "id": "hero:full-bleed-overlay",
+          "category": "hero",
+          "variant": "full-bleed-overlay",
+          "componentName": "FullBleedOverlayHero",
+          "description": "Full-viewport hero banner at the top of a page — full bleed overlay variant"
+        },
+        {
+          "id": "hero:split-image-text",
+          "category": "hero",
+          "variant": "split-image-text",
+          "componentName": "SplitImageTextHero",
+          "description": "Full-viewport hero banner at the top of a page — split image text variant"
+        },
+        {
+          "id": "hero:editorial-centered",
+          "category": "hero",
+          "variant": "editorial-centered",
+          "componentName": "EditorialCenteredHero",
+          "description": "Full-viewport hero banner at the top of a page — editorial centered variant"
+        },
+        {
+          "id": "hero:video-background",
+          "category": "hero",
+          "variant": "video-background",
+          "componentName": "VideoBackgroundHero",
+          "description": "Full-viewport hero banner at the top of a page — video background variant"
+        },
+        {
+          "id": "hero:gradient-text",
+          "category": "hero",
+          "variant": "gradient-text",
+          "componentName": "GradientTextHero",
+          "description": "Full-viewport hero banner at the top of a page — gradient text variant"
+        }
+      ]
+    },
+    "nav": {
+      "description": "Navigation bar / header",
+      "sections": [
+        {
+          "id": "nav:sticky-simple",
+          "category": "nav",
+          "variant": "sticky-simple",
+          "componentName": "StickySimpleNav",
+          "description": "Navigation bar / header — sticky simple variant"
+        },
+        {
+          "id": "nav:sticky-transparent",
+          "category": "nav",
+          "variant": "sticky-transparent",
+          "componentName": "StickyTransparentNav",
+          "description": "Navigation bar / header — sticky transparent variant"
+        },
+        {
+          "id": "nav:split-logo-center",
+          "category": "nav",
+          "variant": "split-logo-center",
+          "componentName": "SplitLogoCenterNav",
+          "description": "Navigation bar / header — split logo center variant"
+        },
+        {
+          "id": "nav:hamburger",
+          "category": "nav",
+          "variant": "hamburger",
+          "componentName": "HamburgerNav",
+          "description": "Navigation bar / header — hamburger variant"
+        }
+      ]
+    },
+    "services": {
+      "description": "Service offering showcase grid or list",
+      "sections": [
+        {
+          "id": "services:grid-3-cards",
+          "category": "services",
+          "variant": "grid-3-cards",
+          "componentName": "ServicesGrid3Cards",
+          "description": "Service offering showcase grid or list — grid 3 cards variant"
+        },
+        {
+          "id": "services:grid-2-cards",
+          "category": "services",
+          "variant": "grid-2-cards",
+          "componentName": "ServicesGrid2Cards",
+          "description": "Service offering showcase grid or list — grid 2 cards variant"
+        },
+        {
+          "id": "services:accordion-list",
+          "category": "services",
+          "variant": "accordion-list",
+          "componentName": "ServicesAccordionList",
+          "description": "Service offering showcase grid or list — accordion list variant"
+        },
+        {
+          "id": "services:alternating-rows",
+          "category": "services",
+          "variant": "alternating-rows",
+          "componentName": "ServicesAlternatingRows",
+          "description": "Service offering showcase grid or list — alternating rows variant"
+        },
+        {
+          "id": "services:bento",
+          "category": "services",
+          "variant": "bento",
+          "componentName": "ServicesBento",
+          "description": "Service offering showcase grid or list — bento variant"
+        }
+      ]
+    },
+    "trust": {
+      "description": "Trust signals — ratings, badges, certifications, stats",
+      "sections": [
+        {
+          "id": "trust:badge-strip",
+          "category": "trust",
+          "variant": "badge-strip",
+          "componentName": "TrustBadgeStrip",
+          "description": "Trust signals — ratings, badges, certifications, stats — badge strip variant"
+        },
+        {
+          "id": "trust:stats-counter",
+          "category": "trust",
+          "variant": "stats-counter",
+          "componentName": "TrustStatsCounter",
+          "description": "Trust signals — ratings, badges, certifications, stats — stats counter variant"
+        },
+        {
+          "id": "trust:certifications",
+          "category": "trust",
+          "variant": "certifications",
+          "componentName": "TrustCertifications",
+          "description": "Trust signals — ratings, badges, certifications, stats — certifications variant"
+        },
+        {
+          "id": "trust:review-aggregate",
+          "category": "trust",
+          "variant": "review-aggregate",
+          "componentName": "TrustReviewAggregate",
+          "description": "Trust signals — ratings, badges, certifications, stats — review aggregate variant"
+        }
+      ]
+    },
+    "testimonials": {
+      "description": "Customer testimonial displays",
+      "sections": [
+        {
+          "id": "testimonials:cards-carousel",
+          "category": "testimonials",
+          "variant": "cards-carousel",
+          "componentName": "TestimonialsCardsCarousel",
+          "description": "Customer testimonial displays — cards carousel variant"
+        },
+        {
+          "id": "testimonials:single-featured",
+          "category": "testimonials",
+          "variant": "single-featured",
+          "componentName": "TestimonialsSingleFeatured",
+          "description": "Customer testimonial displays — single featured variant"
+        },
+        {
+          "id": "testimonials:masonry",
+          "category": "testimonials",
+          "variant": "masonry",
+          "componentName": "TestimonialsMasonry",
+          "description": "Customer testimonial displays — masonry variant"
+        },
+        {
+          "id": "testimonials:minimal-quotes",
+          "category": "testimonials",
+          "variant": "minimal-quotes",
+          "componentName": "TestimonialsMinimalQuotes",
+          "description": "Customer testimonial displays — minimal quotes variant"
+        }
+      ]
+    },
+    "gallery": {
+      "description": "Project portfolio / image gallery",
+      "sections": [
+        {
+          "id": "gallery:masonry-grid",
+          "category": "gallery",
+          "variant": "masonry-grid",
+          "componentName": "GalleryMasonryGrid",
+          "description": "Project portfolio / image gallery — masonry grid variant"
+        },
+        {
+          "id": "gallery:before-after-slider",
+          "category": "gallery",
+          "variant": "before-after-slider",
+          "componentName": "GalleryBeforeAfterSlider",
+          "description": "Project portfolio / image gallery — before after slider variant"
+        },
+        {
+          "id": "gallery:lightbox",
+          "category": "gallery",
+          "variant": "lightbox",
+          "componentName": "GalleryLightbox",
+          "description": "Project portfolio / image gallery — lightbox variant"
+        },
+        {
+          "id": "gallery:editorial-featured",
+          "category": "gallery",
+          "variant": "editorial-featured",
+          "componentName": "GalleryEditorialFeatured",
+          "description": "Project portfolio / image gallery — editorial featured variant"
+        }
+      ]
+    },
+    "about": {
+      "description": "About the company — team, values, story",
+      "sections": [
+        {
+          "id": "about:split-image-copy",
+          "category": "about",
+          "variant": "split-image-copy",
+          "componentName": "AboutSplitImageCopy",
+          "description": "About the company — team, values, story — split image copy variant"
+        },
+        {
+          "id": "about:timeline",
+          "category": "about",
+          "variant": "timeline",
+          "componentName": "AboutTimeline",
+          "description": "About the company — team, values, story — timeline variant"
+        },
+        {
+          "id": "about:team-grid",
+          "category": "about",
+          "variant": "team-grid",
+          "componentName": "AboutTeamGrid",
+          "description": "About the company — team, values, story — team grid variant"
+        },
+        {
+          "id": "about:values-cards",
+          "category": "about",
+          "variant": "values-cards",
+          "componentName": "AboutValuesCards",
+          "description": "About the company — team, values, story — values cards variant"
+        }
+      ]
+    },
+    "contact": {
+      "description": "Contact forms and information",
+      "sections": [
+        {
+          "id": "contact:form-with-map",
+          "category": "contact",
+          "variant": "form-with-map",
+          "componentName": "ContactFormWithMap",
+          "description": "Contact forms and information — form with map variant"
+        },
+        {
+          "id": "contact:form-simple",
+          "category": "contact",
+          "variant": "form-simple",
+          "componentName": "ContactFormSimple",
+          "description": "Contact forms and information — form simple variant"
+        },
+        {
+          "id": "contact:details-sidebar",
+          "category": "contact",
+          "variant": "details-sidebar",
+          "componentName": "ContactDetailsSidebar",
+          "description": "Contact forms and information — details sidebar variant"
+        },
+        {
+          "id": "contact:contact-cards",
+          "category": "contact",
+          "variant": "contact-cards",
+          "componentName": "ContactCards",
+          "description": "Contact forms and information — contact cards variant"
+        }
+      ]
+    },
+    "cta": {
+      "description": "Call-to-action sections",
+      "sections": [
+        {
+          "id": "cta:full-width-primary",
+          "category": "cta",
+          "variant": "full-width-primary",
+          "componentName": "CTAFullWidthPrimary",
+          "description": "Call-to-action sections — full width primary variant"
+        },
+        {
+          "id": "cta:split-with-image",
+          "category": "cta",
+          "variant": "split-with-image",
+          "componentName": "CTASplitWithImage",
+          "description": "Call-to-action sections — split with image variant"
+        },
+        {
+          "id": "cta:floating-banner",
+          "category": "cta",
+          "variant": "floating-banner",
+          "componentName": "CTAFloatingBanner",
+          "description": "Call-to-action sections — floating banner variant"
+        },
+        {
+          "id": "cta:inline-card",
+          "category": "cta",
+          "variant": "inline-card",
+          "componentName": "CTAInlineCard",
+          "description": "Call-to-action sections — inline card variant"
+        }
+      ]
+    },
+    "footer": {
+      "description": "Page footer with links and contact info",
+      "sections": [
+        {
+          "id": "footer:multi-column-3",
+          "category": "footer",
+          "variant": "multi-column-3",
+          "componentName": "FooterMultiColumn3",
+          "description": "Page footer with links and contact info — multi column 3 variant"
+        },
+        {
+          "id": "footer:multi-column-4",
+          "category": "footer",
+          "variant": "multi-column-4",
+          "componentName": "FooterMultiColumn4",
+          "description": "Page footer with links and contact info — multi column 4 variant"
+        },
+        {
+          "id": "footer:simple-centered",
+          "category": "footer",
+          "variant": "simple-centered",
+          "componentName": "FooterSimpleCentered",
+          "description": "Page footer with links and contact info — simple centered variant"
+        },
+        {
+          "id": "footer:minimal-bar",
+          "category": "footer",
+          "variant": "minimal-bar",
+          "componentName": "FooterMinimalBar",
+          "description": "Page footer with links and contact info — minimal bar variant"
+        }
+      ]
+    },
+    "misc": {
+      "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser",
+      "sections": [
+        {
+          "id": "misc:process-steps",
+          "category": "misc",
+          "variant": "process-steps",
+          "componentName": "MiscProcessSteps",
+          "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser — process steps variant"
+        },
+        {
+          "id": "misc:faq-accordion",
+          "category": "misc",
+          "variant": "faq-accordion",
+          "componentName": "MiscFAQAccordion",
+          "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser — faq accordion variant"
+        },
+        {
+          "id": "misc:service-area-map",
+          "category": "misc",
+          "variant": "service-area-map",
+          "componentName": "MiscServiceAreaMap",
+          "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser — service area map variant"
+        },
+        {
+          "id": "misc:partner-logos",
+          "category": "misc",
+          "variant": "partner-logos",
+          "componentName": "MiscPartnerLogos",
+          "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser — partner logos variant"
+        },
+        {
+          "id": "misc:visualizer-teaser",
+          "category": "misc",
+          "variant": "visualizer-teaser",
+          "componentName": "MiscVisualizerTeaser",
+          "description": "Miscellaneous sections — FAQ, process steps, maps, partner logos, visualizer teaser — visualizer teaser variant"
+        }
+      ]
+    }
+  },
+  "allSectionIds": [
+    "hero:full-bleed-overlay",
+    "hero:split-image-text",
+    "hero:editorial-centered",
+    "hero:video-background",
+    "hero:gradient-text",
+    "nav:sticky-simple",
+    "nav:sticky-transparent",
+    "nav:split-logo-center",
+    "nav:hamburger",
+    "services:grid-3-cards",
+    "services:grid-2-cards",
+    "services:accordion-list",
+    "services:alternating-rows",
+    "services:bento",
+    "trust:badge-strip",
+    "trust:stats-counter",
+    "trust:certifications",
+    "trust:review-aggregate",
+    "testimonials:cards-carousel",
+    "testimonials:single-featured",
+    "testimonials:masonry",
+    "testimonials:minimal-quotes",
+    "gallery:masonry-grid",
+    "gallery:before-after-slider",
+    "gallery:lightbox",
+    "gallery:editorial-featured",
+    "about:split-image-copy",
+    "about:timeline",
+    "about:team-grid",
+    "about:values-cards",
+    "contact:form-with-map",
+    "contact:form-simple",
+    "contact:details-sidebar",
+    "contact:contact-cards",
+    "cta:full-width-primary",
+    "cta:split-with-image",
+    "cta:floating-banner",
+    "cta:inline-card",
+    "footer:multi-column-3",
+    "footer:multi-column-4",
+    "footer:simple-centered",
+    "footer:minimal-bar",
+    "misc:process-steps",
+    "misc:faq-accordion",
+    "misc:service-area-map",
+    "misc:partner-logos",
+    "misc:visualizer-teaser"
+  ]
+}

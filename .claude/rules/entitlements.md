@@ -1,9 +1,12 @@
 # Entitlements Rules
 
 ## Pricing Tiers
-- **Elevate** ($249/mo): Branded website, AI visualizer, lead capture, Emma text chat
-- **Accelerate** ($699/mo): + Admin dashboard, AI quote engine, PDF quotes, invoicing, drawings
-- **Dominate** ($2,500/mo): + Voice agents, custom integrations, location exclusivity
+- **Elevate** ($4,500 setup + $299/mo): Branded website, AI visualizer, lead capture, Emma text chat
+- **Accelerate** ($12,000 setup + $699/mo): + Admin dashboard, AI quote engine, PDF quotes, invoicing, drawings
+- **Dominate** ($20,000 setup + $1,799/mo): + Voice agents, custom integrations, location exclusivity
+- **Black Label** ($40,000 setup + $4,999/mo): + Custom workflows, bespoke automation
+
+**Voice add-on:** $499/mo on any tier. **Guarantee:** 75% of setup fee refunded within 14 days.
 
 ## Code Patterns
 

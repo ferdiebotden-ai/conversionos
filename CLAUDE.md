@@ -1,6 +1,6 @@
 # ConversionOS — Multi-Tenant AI Renovation Platform
 
-White-label AI quoting platform for Ontario renovation contractors. Single codebase, three pricing tiers, environment + domain-driven multi-tenancy.
+White-label AI quoting platform for Ontario renovation contractors. Single codebase, four pricing tiers, environment + domain-driven multi-tenancy.
 
 ## Living Product Reference — IMPORTANT
 After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. The document must always match what's actually in the codebase. Use the `/update-product-reference` skill for detailed instructions. Do not treat this as a changelog — rewrite the affected sections to describe the product as it exists now.
@@ -25,21 +25,26 @@ npm run test:e2e     # playwright E2E tests
 
 ## Pricing Tiers & Feature Map
 
-| Feature | Elevate ($249/mo) | Accelerate ($699/mo) | Dominate ($2,500/mo) |
-|---------|:-:|:-:|:-:|
-| Branded website (all public pages) | Yes | Yes | Yes |
-| AI Visualizer | Yes | Yes | Yes |
-| Lead capture + email notify | Yes | Yes | Yes |
-| Emma text chat widget | Yes | Yes | Yes |
-| Admin Dashboard | — | Yes | Yes |
-| AI Quote Engine | — | Yes | Yes |
-| PDF quotes + email sending | — | Yes | Yes |
-| Invoicing + payment tracking | — | Yes | Yes |
-| Drawings management | — | Yes | Yes |
-| Voice agents (web) | Yes | Yes | Yes |
-| Voice agents (phone/Twilio) | — | — | Yes |
-| Custom integrations | — | — | Yes |
-| Location exclusivity | — | — | Yes |
+| Feature | Elevate ($299/mo) | Accelerate ($699/mo) | Dominate ($1,799/mo) | Black Label ($4,999/mo) |
+|---------|:-:|:-:|:-:|:-:|
+| Branded website (all public pages) | Yes | Yes | Yes | Yes |
+| AI Visualizer | Yes | Yes | Yes | Yes |
+| Lead capture + email notify | Yes | Yes | Yes | Yes |
+| Emma text chat widget | Yes | Yes | Yes | Yes |
+| Admin Dashboard | — | Yes | Yes | Yes |
+| AI Quote Engine | — | Yes | Yes | Yes |
+| PDF quotes + email sending | — | Yes | Yes | Yes |
+| Invoicing + payment tracking | — | Yes | Yes | Yes |
+| Drawings management | — | Yes | Yes | Yes |
+| Voice agents (web) | Yes | Yes | Yes | Yes |
+| Voice agents (phone/Twilio) | — | — | Yes | Yes |
+| Custom integrations | — | — | Yes | Yes |
+| Location exclusivity | — | — | Yes | Yes |
+| Custom workflows | — | — | — | Yes |
+| Bespoke automation | — | — | — | Yes |
+
+**Setup fees:** Elevate $4,500 | Accelerate $12,000 | Dominate $20,000 | Black Label $40,000
+**Voice add-on:** $499/mo on any tier. **Guarantee:** 75% of setup fee refunded within 14 days.
 
 ## Entitlements System
 - **`src/lib/entitlements.ts`** — `canAccess(tier, feature)` pure function, `PlanTier` and `Feature` types

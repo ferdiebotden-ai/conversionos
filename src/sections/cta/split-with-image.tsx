@@ -7,12 +7,16 @@ import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { FadeInUp } from '@/components/motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { useTier } from '@/components/tier-provider';
+import { canAccess } from '@/lib/entitlements';
 
 interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
 export function CTASplitWithImage({ branding, config, className }: Props) {
+  const { tier } = useTier();
+  const hasQuoteEngine = canAccess(tier, 'ai_quote_engine');
   const imageUrl = config.aboutImageUrl || config.heroImageUrl;
 
   return (
@@ -28,13 +32,15 @@ export function CTASplitWithImage({ branding, config, className }: Props) {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/visualizer">
-                Start Your Project
+              <Link href={hasQuoteEngine ? '/visualizer' : '/contact'}>
+                {hasQuoteEngine ? 'Start Your Project' : 'Get in Touch'}
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/contact">Get in Touch</Link>
+              <Link href="/contact">
+                {hasQuoteEngine ? 'Get in Touch' : 'Contact Us'}
+              </Link>
             </Button>
           </div>
         </FadeInUp>

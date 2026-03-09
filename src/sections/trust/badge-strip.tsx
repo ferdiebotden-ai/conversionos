@@ -1,6 +1,6 @@
 'use client';
 
-import { Star, Briefcase, Clock, Shield } from 'lucide-react';
+import { Star, FolderCheck, Calendar, Shield } from 'lucide-react';
 import type { SectionBaseProps } from '@/lib/section-types';
 import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { FadeIn } from '@/components/motion';
@@ -26,17 +26,17 @@ export function TrustBadgeStrip({ config, className }: Props) {
   if (metrics.years_in_business) {
     const yrs = Number(metrics.years_in_business);
     items.push({
-      icon: <Clock className="size-5 text-primary" />,
-      value: `${metrics.years_in_business}${yrs === 1 ? ' Year' : '+ Years'}`,
+      icon: <Calendar className="size-5 text-primary" />,
+      value: `${metrics.years_in_business} ${yrs === 1 ? 'Year' : 'Years'}`,
       label: 'In Business',
     });
   }
 
   if (metrics.projects_completed) {
     items.push({
-      icon: <Briefcase className="size-5 text-primary" />,
+      icon: <FolderCheck className="size-5 text-primary" />,
       value: metrics.projects_completed,
-      label: 'Projects Completed',
+      label: 'Projects',
     });
   }
 

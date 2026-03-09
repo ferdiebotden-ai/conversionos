@@ -6,12 +6,17 @@ import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { FadeInUp } from '@/components/motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { useTier } from '@/components/tier-provider';
+import { canAccess } from '@/lib/entitlements';
 
 interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
 export function CTAFullWidthPrimary({ branding, className }: Props) {
+  const { tier } = useTier();
+  const hasQuoteEngine = canAccess(tier, 'ai_quote_engine');
+
   return (
     <section className={`bg-primary py-10 md:py-20 ${className ?? ''}`}>
       <div className="mx-auto max-w-4xl px-4 text-center">
@@ -25,8 +30,8 @@ export function CTAFullWidthPrimary({ branding, className }: Props) {
           </p>
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Button variant="secondary" size="lg" asChild>
-              <Link href="/visualizer">
-                Start Your Project
+              <Link href={hasQuoteEngine ? '/visualizer' : '/contact'}>
+                {hasQuoteEngine ? 'Start Your Project' : 'Email My Designs'}
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -36,7 +41,9 @@ export function CTAFullWidthPrimary({ branding, className }: Props) {
               className="text-primary-foreground underline-offset-4 hover:text-primary-foreground/80"
               asChild
             >
-              <Link href="/contact">Contact Us</Link>
+              <Link href={hasQuoteEngine ? '/visualizer?mode=chat' : '/contact'}>
+                {hasQuoteEngine ? 'Request a Free Estimate' : 'Contact Us'}
+              </Link>
             </Button>
           </div>
         </FadeInUp>

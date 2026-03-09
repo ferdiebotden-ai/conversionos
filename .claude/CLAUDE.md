@@ -5,15 +5,15 @@ After ANY session where you implement features, fix bugs, modify AI prompts, cha
 
 ## What This Is
 ConversionOS is an AI-powered renovation platform sold to Ontario contractors.
-Single codebase, three pricing tiers, environment + domain-driven tenancy.
+Single codebase, four pricing tiers, environment + domain-driven tenancy.
 
-Business: NorBot Systems Inc. | Three tiers: Elevate ($1,500 setup + $249/mo), Accelerate ($4,500 + $699/mo), Dominate ($15,000 + $2,500/mo)
+Business: NorBot Systems Inc. | Four tiers: Elevate ($4,500 setup + $299/mo), Accelerate ($12,000 + $699/mo), Dominate ($20,000 + $1,799/mo), Black Label ($40,000 + $4,999/mo) | Voice add-on: $499/mo | Guarantee: 75% setup refund within 14 days
 Product: https://dashboard-rho-ten-70.vercel.app (internal pipeline dashboard)
 This repo: The platform. One `main` branch serves ALL tenants. Feature gating via entitlements system.
 
 ## Architecture
 - **Single codebase, single branch** (`main`). NO branches per tenant.
-- **Entitlements:** `canAccess(tier, feature)` gates features by plan tier (Elevate/Accelerate/Dominate)
+- **Entitlements:** `canAccess(tier, feature)` gates features by plan tier (Elevate/Accelerate/Dominate/Black Label)
 - **Tenant identity:** proxy resolves from hostname → `x-site-id` header, falls back to `NEXT_PUBLIC_SITE_ID` env var
 - **Branding:** `admin_settings` table stores per-tenant config (name, colors, contact, pricing, plan tier)
 - **UI:** `BrandingProvider` + `TierProvider` contexts feed branding and entitlements to client components

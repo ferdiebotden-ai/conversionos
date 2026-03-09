@@ -6,6 +6,8 @@ import type { SectionBaseProps } from '@/lib/section-types';
 import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useTier } from '@/components/tier-provider';
+import { canAccess } from '@/lib/entitlements';
 
 interface Props extends SectionBaseProps {
   config: CompanyConfig;
@@ -13,6 +15,8 @@ interface Props extends SectionBaseProps {
 
 export function CTAFloatingBanner({ branding, className }: Props) {
   const [isVisible, setIsVisible] = useState(true);
+  const { tier } = useTier();
+  const hasQuoteEngine = canAccess(tier, 'ai_quote_engine');
 
   if (!isVisible) return null;
 
@@ -27,7 +31,9 @@ export function CTAFloatingBanner({ branding, className }: Props) {
 
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" asChild>
-            <Link href="/visualizer">Get Started</Link>
+            <Link href={hasQuoteEngine ? '/visualizer' : '/contact'}>
+              {hasQuoteEngine ? 'Get Started' : 'Contact Us'}
+            </Link>
           </Button>
           <button
             onClick={() => setIsVisible(false)}
