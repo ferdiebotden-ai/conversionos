@@ -32,7 +32,6 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
@@ -153,16 +152,8 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
           </div>
         </div>
       ) : isMobile ? (
-        // Mobile upload — camera-first two-button layout
+        // Mobile upload — single button, OS handles camera vs gallery
         <div className="flex flex-col gap-3">
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileSelect}
-            className="sr-only"
-          />
           <input
             ref={fileInputRef}
             type="file"
@@ -172,7 +163,7 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
           />
           <Button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => fileInputRef.current?.click()}
             className="w-full h-14 text-base gap-3"
             disabled={isProcessing}
           >
@@ -181,25 +172,10 @@ export function PhotoUpload({ value, onChange, className }: PhotoUploadProps) {
             ) : (
               <Camera className="w-5 h-5" />
             )}
-            {isProcessing ? 'Processing...' : 'Take a Photo of Your Room'}
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 border-t border-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 border-t border-border" />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full h-12 text-base gap-3"
-            disabled={isProcessing}
-          >
-            <ImageIcon className="w-5 h-5" />
-            Choose from Gallery
+            {isProcessing ? 'Processing...' : 'Upload a Photo'}
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Tip: Take a wide-angle shot of the entire room
+            Snap a photo of your room or choose one from your gallery
           </p>
         </div>
       ) : (
