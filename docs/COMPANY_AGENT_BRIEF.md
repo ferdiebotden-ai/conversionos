@@ -38,9 +38,10 @@ B2B SaaS. NorBot sells to contractors; contractors use the platform to convert h
 
 | Tier | Setup | Monthly | Positioning |
 |------|-------|---------|-------------|
-| **Elevate** | $1,500 | $249/mo | Modern branded website + AI visualizer — entry point |
-| **Accelerate** | $4,500 | $699/mo | Full AI quoting platform for mid-size contractors |
-| **Dominate** | $20,000 | $2,500/mo | Exclusive territory + full platform + founder-led growth |
+| **Elevate** | $4,500 | $299/mo | Modern branded website + AI visualizer — entry point |
+| **Accelerate** | $12,000 | $699/mo | Full AI quoting platform for mid-size contractors |
+| **Dominate** | $20,000 | $1,799/mo | Exclusive territory + full platform + founder-led growth |
+| **Black Label** | $40,000 | $4,999/mo | White-glove, fully custom, dedicated support |
 
 **City exclusivity:** Only Dominate gets geographic exclusivity — one contractor per city. Elevate and Accelerate can have multiple contractors in the same city.
 

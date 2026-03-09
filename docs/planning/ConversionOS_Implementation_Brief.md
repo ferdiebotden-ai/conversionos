@@ -31,9 +31,10 @@ The product serves two audiences:
 **Contractors** get an admin dashboard to review leads, generate AI-assisted quotes, manage invoices, and see analytics. The Dominate tier adds voice (Emma via ElevenLabs), advanced analytics, territory exclusivity, and custom integrations.
 
 **The three pricing tiers:**
-- Elevate: $1,500 setup + $249/mo — branded site with visualizer, text Emma
-- Accelerate: $4,500 setup + $699/mo — full AI quoting, admin dashboard, text Emma
-- Dominate: $20,000 setup + $2,500/mo — everything + voice Emma, analytics, territory exclusivity
+- Elevate: $4,500 setup + $299/mo — branded site with visualizer, text Emma
+- Accelerate: $12,000 setup + $699/mo — full AI quoting, admin dashboard, text Emma
+- Dominate: $20,000 setup + $1,799/mo — everything + voice Emma, analytics, territory exclusivity
+- Black Label: $40,000 setup + $4,999/mo — white-glove, fully custom, dedicated support
 
 Current tenants: `demo` (internal), `mccarty-squared` (Dominate, real client), `redwhitereno` (Accelerate, first paying customer). 46 targets in pipeline across 51 Ontario territories.
 
@@ -69,7 +70,7 @@ The pipeline is architecturally sound. The "never-generate" guardrail (real cont
 
 **What's happening right now:** There is no pipeline step that creates or configures an ElevenLabs agent for new tenants. Every Dominate-tier demo site is either using the demo tenant's agent ID (which knows nothing about the contractor) or has no agent ID configured at all (which makes the voice widget show as unavailable). The voice feature is the most powerful differentiator at the Dominate tier, and it's currently inoperative for demo deployments.
 
-**Why this matters:** Dominate is $20,000 setup plus $2,500/month. The voice experience is one of the primary reasons a contractor would pay that premium. When a prospect visits their bespoke demo and presses the voice button, Emma needs to answer as their company's AI — knowing their company name, their services, their territory, and their tone. Right now she doesn't.
+**Why this matters:** Dominate is $20,000 setup plus $1,799/month. The voice experience is one of the primary reasons a contractor would pay that premium. When a prospect visits their bespoke demo and presses the voice button, Emma needs to answer as their company's AI — knowing their company name, their services, their territory, and their tone. Right now she doesn't.
 
 **What to build:** A voice agent configuration step that runs during provisioning, specifically after the `provision.mjs` step seeds the database and only if the tier is Dominate. This step should call the ElevenLabs REST API to create a new agent with a system prompt built from the scraped tenant data — company name, primary services, territory, phone number, certifications, and tone characteristics. The `agent_id` returned should be stored back into the tenant's `admin_settings` record (look at how `admin_settings` handles the `voice_agents` key, or create it if it doesn't exist). Enable the `override` capability for the system prompt and first message fields in the agent's security settings, because the frontend uses these to inject page-specific context.
 

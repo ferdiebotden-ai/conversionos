@@ -653,9 +653,10 @@ Set in `~/pipeline/scripts/.env` and `.env.local`:
 
 ## Tiers
 
-- **elevate** ($249/mo): Website + visualizer + chat
+- **elevate** ($299/mo): Website + visualizer + chat
 - **accelerate** ($699/mo): + Admin dashboard + quotes
-- **dominate** ($2,500/mo): + Voice agents + custom integrations
+- **dominate** ($1,799/mo): + Voice agents + custom integrations
+- **black_label** ($4,999/mo): + White-glove, fully custom, dedicated support
 ```
 
 ---

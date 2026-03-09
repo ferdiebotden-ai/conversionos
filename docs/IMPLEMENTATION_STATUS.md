@@ -138,7 +138,7 @@ Tracks implementation progress across 6 phases. Each session reads this file to 
 - All 4 concepts fire in parallel (`Promise.allSettled`) — staggered arrival is actually better UX
 - Mobile detection via `useEffect` + `useState(false)` to avoid hydration mismatch
 - Resolution minimum: 640x640 pixels
-- Analytics dashboard is Dominate-only ($2,500/mo tier) — premium design with Recharts
+- Analytics dashboard is Dominate-only ($1,799/mo tier) — premium design with Recharts
 - Chart wrapper follows shadcn/ui pattern — maps to `--chart-1` through `--chart-5` CSS vars
 - Feasibility uses simple colour-coded dots (green/yellow/red/grey) — no extra dependencies
 - Existing `/api/ai/visualize` route left untouched for backward compatibility

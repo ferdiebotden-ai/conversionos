@@ -80,7 +80,7 @@ Drafts should be sent between **7:00–8:00 AM ET, Monday–Friday only**. This 
 
 ## City Exclusivity
 
-City exclusivity is **Dominate tier only** ($2,500/mo). For Elevate and Accelerate outreach, multiple contractors in the same city is fine — there is no territory restriction at those tiers. Only enforce one-per-city when selling Dominate.
+City exclusivity is **Dominate tier only** ($1,799/mo). For Elevate and Accelerate outreach, multiple contractors in the same city is fine — there is no territory restriction at those tiers. Only enforce one-per-city when selling Dominate.
 
 ## Status Flow
 

@@ -32,12 +32,12 @@ if (canAccess('voice_web')) { /* show voice UI */ }
 ## Where Features Are Gated
 - `src/app/admin/layout.tsx` — Server component redirects Elevate to `/`
 - `src/components/admin/sidebar.tsx` — Hides nav items based on tier
-- `src/app/api/voice/signed-url/route.ts` — 403 for non-Dominate
+- `src/app/api/voice/signed-url/route.ts` — 403 when `voice_web` not in tier (currently all tiers have it)
 - `src/app/api/leads/route.ts` — Skips AI quote generation for Elevate
 - `src/app/api/quotes/**/route.ts` — 403 for non-Accelerate+
 - `src/app/api/invoices/**/route.ts` — 403 for non-Accelerate+
 - `src/app/api/drawings/**/route.ts` — 403 for non-Accelerate+
-- `src/components/receptionist/receptionist-chat.tsx` — Hides voice toggle for non-Dominate
+- `src/components/receptionist/receptionist-chat.tsx` — Voice toggle visible on all tiers (voice_web is universal)
 
 ## Adding a New Feature
 1. Add feature key to the `Feature` type in `src/lib/entitlements.ts`

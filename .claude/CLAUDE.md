@@ -1,211 +1,161 @@
-# ConversionOS — Multi-Tenant Platform
-
-## Living Product Reference — IMPORTANT
-After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. The document must always match what's actually in the codebase. Use the `/update-product-reference` skill for detailed instructions. Do not treat this as a changelog — rewrite the affected sections to describe the product as it exists now.
+# ConversionOS — Premium Website Rebuild Platform
 
 ## What This Is
-ConversionOS is an AI-powered renovation platform sold to Ontario contractors.
-Single codebase, four pricing tiers, environment + domain-driven tenancy.
+NorBot Systems rebuilds contractor websites with AI underneath — same brand, same feel, but now it captures leads, qualifies them, and generates estimates automatically. Single codebase, four pricing tiers, domain-driven multi-tenancy.
 
-Business: NorBot Systems Inc. | Four tiers: Elevate ($4,500 setup + $299/mo), Accelerate ($12,000 + $699/mo), Dominate ($20,000 + $1,799/mo), Black Label ($40,000 + $4,999/mo) | Voice add-on: $499/mo | Guarantee: 75% setup refund within 14 days
-Product: https://dashboard-rho-ten-70.vercel.app (internal pipeline dashboard)
-This repo: The platform. One `main` branch serves ALL tenants. Feature gating via entitlements system.
+**Business:** NorBot Systems Inc. | **Positioning:** "We rebuild your website" (not "adopt our platform")
+**Pricing:** Elevate ($4,500 + $299/mo) | Accelerate ($12,000 + $699/mo) | Dominate ($20,000 + $1,799/mo) | Black Label ($40,000 + $4,999/mo)
+**Voice add-on:** $499/mo on any tier. **Guarantee:** 75% setup refund within 14 days.
+**Pipeline dashboard:** https://dashboard-rho-ten-70.vercel.app
+
+This repo is the platform. One `main` branch serves ALL tenants. Feature gating via entitlements system. The autonomous build pipeline (`tenant-builder/`) is the primary delivery mechanism.
+
+## Living Product Reference — IMPORTANT
+After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. Use the `/update-product-reference` skill.
+
+---
+
+## Pipeline Operations (Core Business)
+
+The autonomous build pipeline discovers contractors, builds production-grade demos, runs QA, and creates outreach emails. This is the highest-value workflow.
+
+### Build a Tenant
+```bash
+# Single target from Turso CRM
+node tenant-builder/orchestrate.mjs --target-id 42
+
+# From URL (bypass CRM)
+node tenant-builder/orchestrate.mjs --url https://example.com --site-id example --tier accelerate
+
+# Batch (top ICP-scored targets)
+node tenant-builder/orchestrate.mjs --batch --limit 10 --concurrency 4
+
+# Discover + build new targets
+node tenant-builder/orchestrate.mjs --discover --cities "London,Kitchener" --limit 5
+
+# Nightly automated batch
+node tenant-builder/orchestrate.mjs --nightly
+```
+
+### Run QA Only
+```bash
+node tenant-builder/orchestrate.mjs --audit-only --site-id example --url https://example.norbotsystems.com
+```
+
+### Run Outreach
+```bash
+# Preview email (no Gmail API call)
+node scripts/outreach/outreach-pipeline.mjs --target-id 42 --dry-run
+
+# Create Gmail draft
+node scripts/outreach/outreach-pipeline.mjs --target-id 42
+
+# All ready targets
+node scripts/outreach/outreach-pipeline.mjs
+
+# ICP re-scoring
+node scripts/outreach/rescore-all.mjs --report
+```
+
+### Pipeline Flow
+Scrape → quality gates → upload images → provision DB → register domain → deploy → 9 QA modules → audit report → outreach email. Full 18-step breakdown in `CLAUDE.md` (repo root).
+
+### QA Verdicts
+- **READY** (score >=4.0) → outreach fires automatically
+- **REVIEW** (3.5-4.0) → queued for polish, outreach held
+- **NOT READY** (<3.5) → manual review, outreach held
+
+### What's Manual (Ferdie Handles)
+- DNS cutover to client's real domain (after sale closes)
+- Black Label instances (built as Dominate + personal review)
+- Post-sale onboarding, billing, contracts
+- Custom domain SSL and Vercel registration for client domains
+
+---
 
 ## Architecture
 - **Single codebase, single branch** (`main`). NO branches per tenant.
 - **Entitlements:** `canAccess(tier, feature)` gates features by plan tier (Elevate/Accelerate/Dominate/Black Label)
 - **Tenant identity:** proxy resolves from hostname → `x-site-id` header, falls back to `NEXT_PUBLIC_SITE_ID` env var
-- **Branding:** `admin_settings` table stores per-tenant config (name, colors, contact, pricing, plan tier)
+- **Branding:** `admin_settings` table stores per-tenant config (name, colours, contact, pricing, plan tier)
 - **UI:** `BrandingProvider` + `TierProvider` contexts feed branding and entitlements to client components
 - **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
 - **Deploy:** Single Vercel project (`conversionos`) with proxy routing + wildcard DNS
+- **Section registry:** 47 components, `SectionRenderer` renders homepage dynamically via `getPageLayout()`
 
 ## Adding a New Tenant
 
-### From Mission Control (primary — Feb 2026)
-Click **"Build Demo"** on any candidate card in the Pipeline page. This spawns the onboarding pipeline via Claude Code Bridge WebSocket with real-time streaming output in the BuildProgressPanel.
+### Autonomous (primary)
+The tenant builder handles everything: `node tenant-builder/orchestrate.mjs --target-id 42`
 
-### From CLI / Telegram (alternative)
-Use the `/onboard-tenant` skill or run the pipeline directly:
+### From Mission Control
+Click **"Build Demo"** on a candidate card in the Pipeline page. Spawns via Claude Code Bridge WebSocket.
+
+### From CLI / Telegram
 ```bash
 /onboard-tenant {site-id} {url} {tier}
 # or
 node scripts/onboarding/onboard.mjs --url {url} --site-id {site-id} --domain {site-id}.norbotsystems.com --tier {tier}
 ```
-Pipeline: score → scrape → upload images → provision DB → verify. Checkpoints in `/tmp/onboarding/{site-id}/`. See `ONBOARDING_HANDOFF.md` for full details and prerequisites.
 
 ### Manual (fallback)
 1. Seed `admin_settings` rows: `business_info`, `branding`, `company_profile`, `plan`, pricing keys
 2. Add domain → site_id mapping to `DOMAIN_TO_SITE` in `src/proxy.ts`
 3. Insert into `tenants` table with domain and plan tier
-4. Run `node scripts/onboarding/add-domain.mjs --domain {site-id}.norbotsystems.com --site-id {site-id}` (registers with Vercel + issues SSL cert)
-5. Optionally duplicate ElevenLabs voice agents for Dominate-tier tenants
-6. Push to `main` → deploy (wildcard DNS handles the subdomain automatically)
+4. Run `node scripts/onboarding/add-domain.mjs --domain {site-id}.norbotsystems.com --site-id {site-id}`
+5. Push to `main` → deploy
 
-## Onboarding Pipeline
-- **Scripts:** `scripts/onboarding/` — 9 scripts (score, scrape, schema, convert-color, upload-images, provision, onboard, verify, README)
+## Onboarding Pipeline (Legacy)
+- **Scripts:** `scripts/onboarding/` — 9 scripts (score, scrape, schema, convert-colour, upload-images, provision, onboard, verify)
 - **Skill:** `.claude/skills/onboard-tenant/SKILL.md` — invokable as `/onboard-tenant`
 - **Dependencies:** `@mendable/firecrawl-js`, `culori` (devDeps)
-- **Env vars needed:** `FIRECRAWL_API_KEY`, `OPENAI_API_KEY` (in `~/pipeline/scripts/.env`), `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (in `.env.local`)
 - **Cost:** ~$0.07/tenant
-- **Handoff report:** `ONBOARDING_HANDOFF.md` (prerequisites, test plan, file inventory)
 
 ## ElevenLabs Voice Agent
 - **Single persona: Emma** — one ElevenLabs agent per tenant, context-aware via PageContext
-- **Voice (web) on ALL tiers** — voice toggle visible on Elevate/Accelerate/Dominate. Elevate has mandatory pricing deflection.
-- **Voice (phone/Twilio) Dominate only** — `voice_phone` entitlement
-- Dynamic prompts: `buildVoiceSystemPrompt(context)` server-side, passed as session override via ElevenLabs SDK
-- Each tenant can have duplicated agents via `POST /v1/convai/agents/{id}/duplicate`
+- **Voice (web) on ALL tiers** — `voice_web` entitlement. Elevate has mandatory pricing deflection.
+- **Voice (phone)** — $499/mo add-on on any tier, bundled with Dominate/Black Label
+- Dynamic prompts: `buildVoiceSystemPrompt(context)` server-side, passed as session override
 - Single env var: `ELEVENLABS_AGENT_EMMA` per Vercel project
 
 ## Gemini Image Generation
-- Model: `gemini-3.1-flash-image-preview` (Nano Banana 2 — Pro quality at Flash speed, configured in `src/lib/ai/gemini.ts`)
-- Script: `scripts/generate-image.mjs` — reusable, takes prompt + output path
+- Model: `gemini-3.1-flash-image-preview` (Nano Banana 2 — configured in `src/lib/ai/gemini.ts`)
 - Every image must be stunning. These demos replace real contractor websites.
 
 ## Quality Standard
 Each demo must feel hand-built for the target. NOT cookie-cutter.
-- Match the target's brand aesthetic (colors, tone, visual style)
+- Match the target's brand aesthetic (colours, tone, visual style)
 - Use exact quotes from their testimonials (never paraphrase)
 - Reflect their actual services, certifications, and unique selling points
 - AI persona prompts must reference real staff names, real services, real location
 
-## Quote Assistance System (New — Session 1)
+## Quote Assistance System
 - **Per-tenant setting** stored as `quote_assistance` key in `admin_settings`
 - **Three modes:** `none` (no pricing shown), `range` (cost ranges), `estimate` (point estimate)
 - **Elevate:** Always `none` (hardcoded — no admin dashboard)
 - **Accelerate/Dominate default:** `{ mode: 'range', rangeBand: 10000 }`
-- **Helper:** `getQuoteAssistanceConfig(tier?)` in `src/lib/quote-assistance.ts`
-- **Admin UI:** "Quoting" tab in Settings page (mode dropdown + range band selector)
-- **Emma awareness:** Handoff context includes `quoteAssistanceMode` — Emma adapts pricing discussion accordingly
 
-## Context Pipeline
-- Design Studio Chat receives all context in-memory (same page): photo analysis, design preferences, cost signals, quote assistance mode, starred concepts, concept pricing
-- `buildDesignStudioPrompt()` assembles the full system prompt for inline Emma chat
-- `buildHandoffPromptPrefix()` injects structural data for the estimate resume flow (`/estimate/resume`)
-- `visualize/route.ts` writes `conversation_context` JSONB with designIntent + voice data for ALL tiers (silent capture)
-- Photo analysis cached by image hash (FNV-1a, 10min TTL)
+## Design Studio (Unified Flow)
+Single-page journey at `/visualizer`: upload → AI analysis → style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture.
 
-## Ontario Pricing Database (New — Session 2)
-- **Typed data:** `src/lib/ai/knowledge/pricing-data.ts` — 14 trade rates, 50+ material costs, 9 regional multipliers, 8 room types
-- **Pure functions:** `calculateCostEstimate()`, `snapToRangeBand()`, `formatCAD()`, `getMaterialsForRoom()` — all client-safe, no DB calls
-- **AI prompts:** `PRICING_FULL` and `PRICING_SUMMARY` in `pricing.ts` are auto-generated from typed data (backward compatible)
-- **Cost range indicator:** `src/components/visualizer/cost-range-indicator.tsx` — tier + mode gated, fetches config from `/api/admin/quote-assistance`
-
-## Concept Pricing & Descriptions (New — Session 2)
-- **Module:** `src/lib/ai/concept-pricing.ts`
-- **`generateConceptDescriptions()`** — batched GPT-5.2 call, runs before response, enriches concept descriptions
-- **`analyzeConceptForPricing()`** — GPT-5.2 vision identifies materials in generated images, prices from Ontario DB
-- Pricing analysis runs fire-and-forget, stored as `concept_pricing` JSONB on visualization record (all tiers)
-- Uses `(supabase.from() as any)` pattern since `concept_pricing` column may not be in generated types
-
-## Design Studio (Unified Flow — March 2026)
-The entire homeowner journey now happens on a single page (`/visualizer`). The `/estimate` route redirects to `/visualizer`.
-
-**Flow:** Upload photo → AI analysis → select style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture (inline form).
-
-**Key components:**
-- `src/components/visualizer/design-studio-chat.tsx` — inline Emma chat with compact action toolbar + inline suggestion chips. Purpose-built using `useChat()` from Vercel AI SDK v6 with `DefaultChatTransport`. NOT a reuse of `ChatInterface`.
-- `src/components/visualizer/lead-capture-form.tsx` — inline lead capture (not modal). Slides in below chat when user clicks "Get My Estimate".
-- `src/components/visualizer/result-display.tsx` — orchestrates results: side-by-side slider + thumbnails (desktop), version tracking, refinement overlay, chat panel, sticky CTA bar.
-- `src/components/visualizer/concept-thumbnails.tsx` — single active concept model. Click = select + star. Shows refined images + version badges (V2/V3).
-
-**Layout:** Desktop: `lg:grid lg:grid-cols-[1fr_180px]` — slider left, thumbnails stacked right. Mobile: stacked (full-width slider, 4-col thumbnail row). `max-w-4xl` container.
-
-**Single active concept:** Clicking a thumbnail selects AND stars it (single action, one at a time). Active concept: ring + filled star badge, others dimmed. `toggleFavourite` in `visualizer-form.tsx` enforces `new Set([index])`.
-
-**Version tracking:** `refinedVersions: Map<number, number>` in `result-display.tsx`. On refinement, thumbnails update in-place with version badge (V2/V3). Slider label: "Your Photo" → "Concept N — VN".
-
-**Chat layout (ChatGPT/Claude pattern):** Messages (scroll) → inline suggestion chips below last assistant message (scroll) → border → compact action toolbar (fixed) → input (fixed at bottom).
-
-**Quick action toolbar:** Compact row above input — staged by conversation depth. 0 exchanges = no buttons. 1+ = "Refine My Design". 2+ = tier-aware CTA. Refine silently disappears after 3 uses.
-
-**Suggestion chips:** 2 max, 8 words each. Inline below assistant message in scroll area. `parseSuggestions()` regex strips `[Suggestions: A | B]` from display.
-
-**Design Studio prompt:** `buildDesignStudioPrompt()` in `src/lib/ai/personas/emma.ts` — assembles room analysis, design preferences, active concept, concept pricing, tier-specific pricing rules. Passed as `systemPromptOverride` through chat API.
-
-**Signal detection:** `src/lib/ai/rendering-gate.ts` — keyword-based scoring (material, structural, finish, budget, dimensions, scope). Signals accumulated from conversation, used when user clicks "Refine My Design".
-
-## Tier-Aware CTAs
-- **Elevate:** "Email My Designs" — opens email capture modal (no estimate handoff)
-- **Accelerate+:** "Get My Estimate" — scrolls to inline lead capture form
-- Gated by `canAccess('ai_quote_engine')` — Elevate doesn't have this entitlement
-- Sticky CTA bar adapts per tier, hidden after lead submission
-- "Try a Different Style" button (prominent outline, primary colour accent) keeps photo + room type, resets style/preferences
-
-## Photo Pre-Analysis (New — Session 3)
-- **Endpoint:** `/api/ai/analyze-photo` — runs GPT Vision on upload before room type selection
-- Fires in `runPhotoAnalysis()` callback immediately after photo upload
-- Pre-fills room type selector from analysis result
-- `PhotoSummaryBar` shows "Analysing photo..." indicator during analysis
-- Analysis result cached and reused by the generation endpoint (avoids duplicate analysis)
-
-## Homepage Enhancements (New — Session 3)
-- **Project selector:** `src/components/home/project-selector.tsx` — "What are you planning?" intent widget between hero and AI Features
-- **Visualizer teaser:** `src/components/home/visualizer-teaser.tsx` — interactive before/after slider with sample transformations
-- **Hero CTA:** Changed "Get a Free Quote" to "Get Your Estimate in Minutes" — communicates AI speed advantage
-
-## SSE Streaming Visualization (New — Session 4)
-- **Streaming endpoint:** `/api/ai/visualize/stream` — SSE events (status, concept, complete, error)
-- **Non-streaming endpoint:** `/api/ai/visualize` — untouched for backward compatibility
-- **Hook:** `useVisualizationStream()` in `src/hooks/use-visualization-stream.ts`
-- **Progressive reveal:** `GenerationLoading` shows 4 skeleton slots → cross-fades to real images
-- **Parallel generation:** All 4 concepts via `Promise.allSettled()` (not batched)
-- **Protocol:** `event: <type>\ndata: <json>\n\n` — heartbeat `:\n\n` every 15s
-- **Timeouts:** 110s server-side (emit what's ready), 150s client-side abort
-
-## Mobile Camera Capture (New — Session 4)
-- **Detection:** `useEffect` + `useState(false)` — avoids hydration mismatch
-- **Mobile UI:** "Take a Photo" (`capture="environment"`) + "Choose from Gallery" buttons
-- **Desktop:** Existing drag-and-drop unchanged
-- **Quality check:** Min 640x640px after compression
-- **Mobile tip:** Single line replacing desktop tips list
-
-## Analytics Dashboard (New — Session 4)
-- **Dominate only** — gated by `analytics_dashboard` entitlement
-- **Charts:** Recharts + shadcn/ui wrapper (`src/components/ui/chart.tsx`, CSS vars `--chart-1` to `--chart-5`)
-- **API:** `/api/admin/visualizations/trends?days=30`
-- **Page:** `src/app/admin/analytics/` — server component (tier check) + client component (Recharts)
-- **Sidebar:** `BarChart3` icon, auto-hidden for non-Dominate
-
-## Admin Enhancements (New — Session 4)
-- **Concept pricing panel:** Collapsible "AI Cost Analysis" in lead visualization — finish level, materials table, cost summary
-- **Feasibility distribution:** Mini bar chart (scores 1-5) in metrics widget
-- **Feasibility badges:** Colour-coded dots on leads table (green 4-5, yellow 3, red 1-2, grey unscored)
-
-## Outreach Pipeline (Feb 27, 2026)
-
-Automated outreach after demo builds pass QA. Fills Ferdie's exact email template, creates Gmail drafts, monitors for sends, books calls.
-
-**Key scripts:**
-- `scripts/outreach/generate-email.mjs` — template filler (Ferdie's words, not AI copy)
-- `scripts/outreach/create-draft.mjs` — Gmail REST API (OAuth2) draft creation
-- `scripts/outreach/outreach-pipeline.mjs` — orchestrator (batch/single/dry-run)
-- `scripts/outreach/send-monitor.mjs` — cron: detect send -> book calendar -> call script
-- `scripts/outreach/calendar.mjs` — Apple Calendar AppleScript (query + book slots)
-- `scripts/outreach/rescore-all.mjs` — ICP re-scoring in batches
-
-**Turso columns added:** `demo_url`, `demo_built_at`, `email_draft_id`, `email_message_id`, `follow_up_slot`, `call_script`
-
-**LaunchAgent:** `com.norbot.send-monitor` — every 15 min, 6am-9pm weekdays
-
-**Testing:** `node scripts/outreach/tests/test-email-template.mjs` — 35 tests (template filling, quality gates, HTML, MIME, calendar slots)
-
-**Rules:** `.claude/rules/outreach.md` — CASL compliance, template integrity, sentinel names, call slot constraints
-
-**Integration:** `tenant-builder/orchestrate.mjs` Step 6 auto-runs outreach after QA. Use `--skip-outreach` to skip.
-
-## Implementation Tracking
-- **Status doc:** `docs/IMPLEMENTATION_STATUS.md` — tracks all 6 phases
-- **Multi-session:** Each session reads this file first to pick up where the last left off
-- **Current:** ALL 6 PHASES COMPLETE (Sessions 1-4)
+## Outreach Pipeline
+- **Scripts:** `scripts/outreach/` — 6 scripts + tests
+- **Rules:** `.claude/rules/outreach.md` — CASL, template integrity, call slots, banned terms
+- **Tests:** `node scripts/outreach/tests/test-email-template.mjs` (56 tests)
+- **Status flow:** `demo_built` → `draft_ready` → `email_1_sent`
+- **Integration:** `orchestrate.mjs` Step 18 auto-runs outreach after QA
 
 ## Gotchas
 - Write tool creates CRLF on macOS — fix shell scripts: `perl -pi -e 's/\r\n/\n/g'`
 - Vercel env vars: use API (curl), NOT `echo | vercel env add` (adds newline)
-- Primary color uses OKLCH: `--primary: oklch(...)` in `globals.css`
-- Admin header: uses User icon, not initials
-- `getSiteId()` is synchronous (env var only) — only for non-API contexts (scripts, build-time)
-- `getSiteIdAsync()` is the standard for all API routes — reads proxy `x-site-id` header, falls back to env var
-- `withSiteId(data, siteId)` — always pass explicit `siteId` in API routes (don't rely on env var default)
+- Primary colour uses OKLCH: `--primary: oklch(...)` in `globals.css`
+- `getSiteId()` is synchronous (env var only) — only for non-API contexts
+- `getSiteIdAsync()` is the standard for all API routes
+- `withSiteId(data, siteId)` — always pass explicit `siteId` in API routes
 - Proxy env var fallback is dev-only — production unknown hosts return 404
+- `(supabase as any).from('new_table')` for tables not in generated types
+- Next.js 16 dynamic route params: bracket notation `params?.['token']`
+- Vercel AI SDK v6: `maxOutputTokens` not `maxTokens` in `generateObject()`
+- CAD rendering colours (#1565C0) are intentional — do NOT change to primary
+- Image generation model source of truth: `src/lib/ai/gemini.ts` line 19
+- Vision/analysis model: `gpt-5.4` — source of truth: `src/lib/ai/config.ts`

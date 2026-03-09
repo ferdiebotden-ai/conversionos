@@ -49,7 +49,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Mobile: Menu button */}
-        <div className="flex md:hidden">
+        <div className="flex shrink-0 md:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button
@@ -107,10 +107,10 @@ export function Header() {
           </Sheet>
         </div>
 
-        {/* Logo - centered on mobile, left on desktop */}
+        {/* Logo - centered on mobile via flex, left on desktop */}
         <Link
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
+          className="min-w-0 flex-1 flex justify-center md:flex-initial"
         >
           <Logo name={branding.name} tagline={branding.tagline} logoUrl={branding.logoUrl} logoOnDark={branding.logoOnDark} />
         </Link>
@@ -138,7 +138,7 @@ export function Header() {
         </nav>
 
         {/* CTA buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {/* Mobile: Only primary CTA */}
           <Button asChild size="sm" className="h-10 px-4 md:hidden">
             <Link href={cta.href}>{cta.label}</Link>
@@ -164,7 +164,7 @@ function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: s
         alt={name}
         width={220}
         height={56}
-        className="h-10 md:h-11 w-auto"
+        className="h-10 md:h-11 w-auto max-w-[160px] md:max-w-none"
         priority
       />
     )
@@ -181,11 +181,11 @@ function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: s
   const rest = words.slice(1).join(" ")
 
   return (
-    <div className="flex flex-col leading-tight">
-      <span className="text-2xl font-bold tracking-tight text-foreground">
+    <div className="flex flex-col leading-tight min-w-0">
+      <span className="text-xl md:text-2xl font-bold tracking-tight text-foreground truncate">
         {first}{rest && <> <span className="text-primary">{rest}</span></>}
       </span>
-      <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+      <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase truncate">
         {tagline}
       </span>
     </div>

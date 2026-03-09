@@ -30,9 +30,10 @@ ConversionOS is a white-label AI renovation platform that turns contractor websi
 | **Geography** | Ontario (expanding to other Canadian provinces) |
 
 **Three tiers map to contractor sophistication:**
-- **Elevate ($249/mo):** Smaller contractors who want a modern branded website with AI — entry point
+- **Elevate ($299/mo):** Smaller contractors who want a modern branded website with AI — entry point
 - **Accelerate ($699/mo):** Mid-size contractors ready for AI-powered quoting and lead management
-- **Dominate ($2,500/mo):** Premium contractors who want exclusive territory ownership and full platform access
+- **Dominate ($1,799/mo):** Premium contractors who want exclusive territory ownership and full platform access
+- **Black Label ($4,999/mo):** White-glove, fully custom, dedicated support
 
 ---
 
@@ -56,11 +57,11 @@ The homeowner is the end-user of the platform — the person uploading photos an
 
 ## Pricing Tiers
 
-| | Elevate | Accelerate | Dominate |
-|---|---|---|---|
-| **Setup** | $1,500 | $4,500 | $20,000 |
-| **Monthly** | $249/mo | $699/mo | $2,500/mo |
-| **Positioning** | Modern branded website + AI visualizer | Full AI quoting platform | Exclusive territory + founder-led growth |
+| | Elevate | Accelerate | Dominate | Black Label |
+|---|---|---|---|---|
+| **Setup** | $4,500 | $12,000 | $20,000 | $40,000 |
+| **Monthly** | $299/mo | $699/mo | $1,799/mo | $4,999/mo |
+| **Positioning** | Modern branded website + AI visualizer | Full AI quoting platform | Exclusive territory + founder-led growth | White-glove, fully custom, dedicated support |
 
 ### What Each Tier Gets
 

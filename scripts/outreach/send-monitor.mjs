@@ -175,7 +175,7 @@ Keep each bullet under 25 words. No fluff.`;
     return typeof result === 'string' ? result : JSON.stringify(result);
   } catch (e) {
     logger.warn(`Call script generation failed: ${e.message}`);
-    return `1. Open: "Hey ${target.owner_name || 'there'}, it's Ferdie from NorBot — did you get a chance to check out the site we built?"\n2. Why them: Great reputation in ${target.city}, perfect fit for our platform\n3. Value: AI-powered quoting, renovation visualiser, automated lead capture\n4. Pricing: Starts at $249/mo, we handle everything\n5. Close: "Want me to walk you through it properly? 15 minutes, I'll show you everything"`;
+    return `1. Open: "Hey ${target.owner_name || 'there'}, it's Ferdie from NorBot — did you get a chance to check out the site we built?"\n2. Why them: Great reputation in ${target.city}, perfect fit for your new website\n3. Value: AI-powered quoting, renovation visualiser, automated lead capture\n4. Pricing: Starts at $299/mo, we handle everything\n5. Close: "Want me to walk you through it properly? 15 minutes, I'll show you everything"`;
   }
 }
 
