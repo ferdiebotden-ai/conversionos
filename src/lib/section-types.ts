@@ -1,0 +1,34 @@
+import type { Branding } from './branding';
+
+/** Design tokens derived from the tenant's brand */
+export interface DesignTokens {
+  colors: {
+    primary: string;      // OKLCH
+    secondary: string;
+    accent: string;
+    background: string;
+    foreground: string;
+    muted: string;
+  };
+  typography: {
+    headingFont: string;
+    bodyFont: string;
+  };
+  borderRadius: string;
+}
+
+/** Base props every section receives */
+export interface SectionBaseProps {
+  branding: Branding;
+  tokens?: DesignTokens;
+  animationPreset?: 'fade-in-up' | 'stagger-reveal' | 'slide-in-left' | 'none';
+  className?: string;
+}
+
+/** Section identifier: "category:variant" e.g. "hero:full-bleed-overlay" */
+export type SectionId = `${string}:${string}`;
+
+/** Page layout config stored in admin_settings */
+export interface PageLayout {
+  [pageSlug: string]: SectionId[];
+}
