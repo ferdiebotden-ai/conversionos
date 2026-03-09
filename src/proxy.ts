@@ -1,8 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { get } from '@vercel/edge-config';
 
 /**
  * Proxy (Next.js 16 replacement for middleware)
  * Handles domain-based tenant routing (sets x-site-id header).
+ *
+ * Tenant resolution order:
+ * 1. Dev override (?__site_id= query param, dev mode only)
+ * 2. Vercel Edge Config lookup (fast, <1ms at edge)
+ * 3. Hardcoded fallback map (retained for safety)
+ * 4. NEXT_PUBLIC_SITE_ID env var (dev mode only)
+ *
+ * Edge Config store: create via Vercel dashboard, populate with domain:siteId entries.
+ * Required env vars: EDGE_CONFIG (connection string)
  *
  * TODO(phase-1): Re-enable auth gating when moving to subdomain admin pattern.
  * Auth bypass is active — all admin routes are open for prospect demo previews.
@@ -14,10 +24,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 // ─── Tenant Resolution ──────────────────────────────────────────────────────
 
 /**
- * Domain → site_id mapping.
- * Add new tenants here. When >20 tenants, migrate to Vercel Edge Config.
+ * Fallback map — retained for safety until Edge Config is proven in production.
+ * Once stable, this can be removed. New tenants should be added via Edge Config API.
  */
-const DOMAIN_TO_SITE: Record<string, string> = {
+const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'conversionos.norbotsystems.com': 'conversionos',
   'conversionos-demo.norbotsystems.com': 'demo',
   'red-white-reno.norbotsystems.com': 'red-white-reno',
@@ -62,12 +72,26 @@ export async function proxy(request: NextRequest) {
     ? request.nextUrl.searchParams.get('__site_id')
     : null;
 
-  // Resolve site_id: dev override → domain map → env var (dev only)
-  const siteId =
-    devOverride ||
-    DOMAIN_TO_SITE[hostname] ||
-    DOMAIN_TO_SITE[domain] ||
-    (process.env.NODE_ENV === 'development' ? process.env['NEXT_PUBLIC_SITE_ID'] : null);
+  let siteId: string | null = devOverride;
+
+  // Edge Config lookup (fast, <1ms at edge)
+  if (!siteId) {
+    try {
+      siteId = await get<string>(`domain:${domain}`) ?? await get<string>(`domain:${hostname}`) ?? null;
+    } catch {
+      // Edge Config unavailable — fall through to hardcoded map
+    }
+  }
+
+  // Fallback to hardcoded map
+  if (!siteId) {
+    siteId = DOMAIN_TO_SITE_FALLBACK[hostname] || DOMAIN_TO_SITE_FALLBACK[domain] || null;
+  }
+
+  // Env var fallback (dev only)
+  if (!siteId && process.env.NODE_ENV === 'development') {
+    siteId = process.env['NEXT_PUBLIC_SITE_ID'] ?? null;
+  }
 
   if (!siteId) {
     return new NextResponse('Tenant not found', { status: 404 });

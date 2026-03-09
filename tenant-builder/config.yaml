@@ -1,45 +1,56 @@
 # Tenant Builder Configuration
 # All settings for the automated tenant onboarding pipeline.
 
-# ICP Scoring — weights for demo-fitness assessment (total 100)
+# ICP Scoring — weights for demo-fitness assessment (total 130)
 icp_scoring:
   weights:
-    template_fit: 20        # How well their content maps to our template
-    sophistication_gap: 20  # Basic site = high score (inverted)
-    contact_completeness: 15 # Has email + phone + owner_name (outreach readiness)
-    google_reviews: 15      # Social proof indicates active business
-    geography: 15           # Ontario proximity to Stratford, small towns preferred
-    company_size: 15        # Smaller = higher (inverted)
+    template_fit: 15
+    website_quality: 20
+    contact_completeness: 10
+    google_reviews: 20
+    geography: 15
+    company_establishment: 15
+    marketing_sophistication: 20
+    years_in_business: 15
   thresholds:
-    auto_proceed: 70        # Score >= 70: auto-build
-    manual_review: 50       # 50-69: flag for review
-    reject: 50              # Score < 50: skip
-  # Small towns near Stratford — ideal ICP targets (max geography points)
-  small_town_cities:
-    - Woodstock
-    - Ingersoll
-    - Tillsonburg
-    - St. Thomas
-    - Stratford
-    - Listowel
-    - Mitchell
-    - Tavistock
-    - New Hamburg
-    - Exeter
-    - Elmira
-    - Fergus
-    - Elora
-    - Paris
-    - Simcoe
-    - Norfolk
-  # Mid-size cities — good targets (slightly less geography points)
-  mid_size_cities:
-    - London
-    - Kitchener
-    - Waterloo
-    - Cambridge
-    - Guelph
-    - Brantford
+    auto_proceed: 85
+    manual_review: 65
+    reject: 65
+  geographic_rings:
+    ring_1:
+      - Stratford
+      - Woodstock
+      - Kitchener
+      - Waterloo
+      - Cambridge
+      - Guelph
+      - New Hamburg
+      - Listowel
+      - Mitchell
+      - Tavistock
+    ring_2:
+      - London
+      - Brantford
+      - Hamilton
+      - Fergus
+      - Orangeville
+      - Ingersoll
+      - Tillsonburg
+      - St. Thomas
+      - Elmira
+      - Elora
+      - Paris
+      - Simcoe
+      - Norfolk
+      - Exeter
+    ring_3:
+      - Toronto
+      - Oakville
+      - Burlington
+      - Barrie
+      - Kingston
+      - Mississauga
+      - Brampton
 
 # Scraping configuration
 scraping:
@@ -112,22 +123,33 @@ concurrency:
 
 # Discovery — Firecrawl search settings
 discovery:
-  search_template: "renovation contractor {city} Ontario"
+  search_templates:
+    - "premium renovation contractor {city} Ontario"
+    - "design build firm {city} Ontario portfolio"
+    - "kitchen bathroom renovation company {city} reviews"
+    - "luxury home renovation {city} Ontario"
+    - "award winning contractor {city} Ontario"
+  quality_floor:
+    min_google_reviews: 10
+    min_google_rating: 3.5
+    reject_directory_listings: true
   max_results_per_city: 10
   active_cities:
-    - London
     - Kitchener
     - Waterloo
     - Cambridge
     - Guelph
-    - Ingersoll
+    - London
     - Woodstock
     - Brantford
     - Hamilton
-    - St. Thomas
-    - Tillsonburg
     - Oakville
     - Burlington
+    - Stratford
+    - Ingersoll
+    - Tillsonburg
+    - St. Thomas
+    - Toronto
 
 # Nightly schedule
 nightly:

@@ -19,6 +19,49 @@ import * as logger from '../lib/logger.mjs';
 
 loadEnv();
 
+// ─── Edge Config API ────────────────────────────────────────────────────────
+
+/**
+ * Upsert a domain → siteId mapping into Vercel Edge Config.
+ * Runs alongside file-edit (Edge Config is primary, file is backup).
+ * Requires VERCEL_EDGE_CONFIG_ID and VERCEL_TOKEN env vars.
+ */
+async function updateEdgeConfig(domain, siteId) {
+  const edgeConfigId = process.env.VERCEL_EDGE_CONFIG_ID;
+  const token = process.env.VERCEL_TOKEN;
+
+  if (!edgeConfigId || !token) {
+    logger.info('VERCEL_EDGE_CONFIG_ID or VERCEL_TOKEN not set — skipping Edge Config update');
+    return;
+  }
+
+  try {
+    const teamId = process.env.VERCEL_TEAM_ID;
+    const url = `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items${teamId ? `?teamId=${teamId}` : ''}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        items: [
+          { operation: 'upsert', key: `domain:${domain}`, value: siteId },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      logger.warn(`Edge Config update failed (${response.status}): ${err}`);
+    } else {
+      logger.info(`Edge Config updated: domain:${domain} → ${siteId}`);
+    }
+  } catch (e) {
+    logger.warn(`Edge Config update error: ${e.message}`);
+  }
+}
+
 const PROXY_TS_PATH = resolve(import.meta.dirname, '../../src/proxy.ts');
 
 const { values: args } = parseArgs({
@@ -61,10 +104,10 @@ logger.info(`Found ${fragments.length} proxy fragment(s) to merge`);
 const proxyContent = readFileSync(PROXY_TS_PATH, 'utf-8');
 const lines = proxyContent.split('\n');
 
-// Find DOMAIN_TO_SITE closing brace
+// Find DOMAIN_TO_SITE_FALLBACK closing brace
 let insertIndex = -1;
 for (let i = 0; i < lines.length; i++) {
-  if (lines[i].includes('DOMAIN_TO_SITE')) {
+  if (lines[i].includes('DOMAIN_TO_SITE_FALLBACK')) {
     for (let j = i + 1; j < lines.length; j++) {
       if (lines[j].includes('};')) {
         insertIndex = j;
@@ -76,7 +119,7 @@ for (let i = 0; i < lines.length; i++) {
 }
 
 if (insertIndex < 0) {
-  logger.error('Could not find DOMAIN_TO_SITE closing brace in proxy.ts');
+  logger.error('Could not find DOMAIN_TO_SITE_FALLBACK closing brace in proxy.ts');
   process.exit(1);
 }
 
@@ -104,4 +147,11 @@ if (!args['dry-run'] && added > 0) {
   logger.info(`proxy.ts updated with ${added} new domain(s)`);
 } else if (added === 0) {
   logger.info('No new domains to add');
+}
+
+// Also update Edge Config for each fragment (primary path — file edit is backup)
+if (!args['dry-run']) {
+  for (const { domain, siteId } of fragments) {
+    await updateEdgeConfig(domain, siteId);
+  }
 }

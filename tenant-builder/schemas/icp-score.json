@@ -11,11 +11,27 @@
       "enum": ["solo", "small", "medium", "large"],
       "description": "Estimated team size. solo = 1 person. small = 2-5. medium = 6-15. large = 16+."
     },
+    "years_in_business": {
+      "type": ["integer", "null"],
+      "description": "Estimated years in business based on website content (founded year, about page, etc). null if unknown."
+    },
+    "marketing_signals": {
+      "type": "object",
+      "properties": {
+        "google_ads": { "type": "boolean", "description": "Evidence of Google Ads usage (ad links, UTM params, or mentions)" },
+        "active_social": { "type": "boolean", "description": "Active social media presence with 3+ posts/week on Instagram or Facebook" },
+        "professional_photos": { "type": "boolean", "description": "Non-stock professional photography of actual completed projects" },
+        "video_content": { "type": "boolean", "description": "YouTube channel, video testimonials, or embedded project videos" }
+      },
+      "required": ["google_ads", "active_social", "professional_photos", "video_content"],
+      "additionalProperties": false,
+      "description": "Marketing sophistication signals detected from website content"
+    },
     "reasoning": {
       "type": "string",
       "description": "Brief explanation of the assessment (1-2 sentences)."
     }
   },
-  "required": ["sophistication_level", "team_size_estimate", "reasoning"],
+  "required": ["sophistication_level", "team_size_estimate", "years_in_business", "marketing_signals", "reasoning"],
   "additionalProperties": false
 }

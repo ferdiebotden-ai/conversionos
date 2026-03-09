@@ -154,6 +154,47 @@ async function issueCertViaCli() {
   }
 }
 
+// ─── Step 2.5: Update Edge Config ────────────────────────────────────────────
+async function updateEdgeConfig() {
+  const edgeConfigId = process.env.VERCEL_EDGE_CONFIG_ID;
+  const token = VERCEL_TOKEN;
+
+  if (!edgeConfigId || !token) {
+    console.log('\n  Step 2.5: Skipping Edge Config (VERCEL_EDGE_CONFIG_ID not set)');
+    return false;
+  }
+
+  console.log('\n  Step 2.5: Updating Edge Config...');
+  try {
+    const teamId = VERCEL_TEAM_ID;
+    const url = `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items${teamId ? `?teamId=${teamId}` : ''}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        items: [
+          { operation: 'upsert', key: `domain:${domain}`, value: siteId },
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      console.log(`  ✓ Edge Config updated: domain:${domain} → ${siteId}`);
+      return true;
+    }
+
+    const err = await res.text();
+    console.log(`  ⚠ Edge Config update failed (${res.status}): ${err}`);
+    return false;
+  } catch (e) {
+    console.log(`  ⚠ Edge Config error: ${e.message}`);
+    return false;
+  }
+}
+
 // ─── Step 3: Verify domain is serving ───────────────────────────────────────
 async function verifyServing() {
   console.log('\n  Step 3: Verifying domain is serving...');
@@ -188,6 +229,7 @@ const vercelOk = await addVercelDomain();
 
 if (vercelOk) {
   await issueCert();
+  await updateEdgeConfig();
   await verifyServing();
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ICP (Ideal Customer Profile) scoring for demo tenant fitness.
- * 6-criterion model, 100 points total. Writes icp_score + icp_breakdown to Turso.
+ * 8-criterion model, 130 points total. Writes icp_score + icp_breakdown to Turso.
  *
  * Usage:
  *   node icp-score.mjs --target-id 42
@@ -73,10 +73,10 @@ function scoreTemplateFit(markdown) {
   return Math.min(score, WEIGHTS.template_fit);
 }
 
-/** Sophistication gap: basic site = high score (inverted) */
-function scoreSophisticationGap(level) {
-  const map = { basic: 20, template: 18, professional: 12, custom: 6, stunning: 3 };
-  return Math.min(map[level] || 10, WEIGHTS.sophistication_gap);
+/** Website quality: higher quality site = higher score (flipped from old sophistication gap) */
+function scoreWebsiteQuality(level) {
+  const map = { stunning: 20, custom: 16, professional: 12, template: 6, basic: 2 };
+  return Math.min(map[level] || 10, WEIGHTS.website_quality);
 }
 
 /** Contact completeness: email + phone + owner_name availability */
@@ -88,38 +88,60 @@ function scoreContactCompleteness(email, phone, ownerName) {
   return 0;
 }
 
-/** Google reviews: high rating + decent count */
-function scoreGoogleReviews(rating, count) {
+/** Google reviews: high rating + decent count + review velocity */
+function scoreGoogleReviews(rating, count, velocity) {
   let score = 0;
-  if (rating >= 4.5) score += 8;
-  else if (rating >= 4.0) score += 5;
+  if (rating >= 4.5) score += 6;
+  else if (rating >= 4.0) score += 4;
   else if (rating >= 3.5) score += 2;
 
-  if (count >= 50) score += 7;
-  else if (count >= 20) score += 5;
-  else if (count >= 5) score += 3;
+  if (count >= 100) score += 10;
+  else if (count >= 50) score += 7;
+  else if (count >= 20) score += 4;
+  else if (count >= 5) score += 2;
+
+  if (velocity >= 5) score += 4;
+  else if (velocity >= 2) score += 2;
 
   return Math.min(score, WEIGHTS.google_reviews);
 }
 
-/** Geography: prioritise small towns near Stratford over larger cities */
-const SMALL_TOWN_CITIES = (CONFIG.icp_scoring.small_town_cities || []).map(c => c.toLowerCase());
-const MID_SIZE_CITIES = (CONFIG.icp_scoring.mid_size_cities || []).map(c => c.toLowerCase());
+/** Geography: ring-based scoring from Stratford outward */
+const RING_1 = (CONFIG.icp_scoring.geographic_rings?.ring_1 || []).map(c => c.toLowerCase());
+const RING_2 = (CONFIG.icp_scoring.geographic_rings?.ring_2 || []).map(c => c.toLowerCase());
+const RING_3 = (CONFIG.icp_scoring.geographic_rings?.ring_3 || []).map(c => c.toLowerCase());
 
 function scoreGeography(city) {
   if (!city) return 3;
   const norm = city.toLowerCase();
-  if (SMALL_TOWN_CITIES.includes(norm)) return Math.min(15, WEIGHTS.geography); // Ideal ICP
-  if (MID_SIZE_CITIES.includes(norm)) return Math.min(12, WEIGHTS.geography);   // Good targets
-  const idx = ACTIVE_CITIES.findIndex(c => c.toLowerCase() === norm);
-  if (idx !== -1) return Math.min(9, WEIGHTS.geography);                        // Farther/larger
-  return 3; // Unknown city
+  if (RING_1.includes(norm)) return Math.min(15, WEIGHTS.geography);
+  if (RING_2.includes(norm)) return Math.min(12, WEIGHTS.geography);
+  if (RING_3.includes(norm)) return Math.min(9, WEIGHTS.geography);
+  return 5;
 }
 
-/** Company size (inverted): smaller = higher */
-function scoreCompanySize(sizeEstimate) {
-  const map = { solo: 15, small: 12, medium: 8, large: 4 };
-  return Math.min(map[sizeEstimate] || 10, WEIGHTS.company_size);
+/** Company establishment: larger/more established = higher score */
+function scoreCompanyEstablishment(sizeEstimate) {
+  const map = { large: 15, medium: 12, small: 8, solo: 3 };
+  return Math.min(map[sizeEstimate] || 8, WEIGHTS.company_establishment);
+}
+
+/** Marketing sophistication: signals of active marketing investment */
+function scoreMarketingSophistication(signals) {
+  let score = 0;
+  if (signals.google_ads) score += 8;
+  if (signals.active_social) score += 6;
+  if (signals.professional_photos) score += 3;
+  if (signals.video_content) score += 3;
+  return Math.min(score, WEIGHTS.marketing_sophistication);
+}
+
+/** Years in business: longer track record = higher score */
+function scoreYearsInBusiness(years) {
+  if (years >= 10) return Math.min(15, WEIGHTS.years_in_business);
+  if (years >= 5) return Math.min(10, WEIGHTS.years_in_business);
+  if (years >= 2) return Math.min(5, WEIGHTS.years_in_business);
+  return 2;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -143,15 +165,19 @@ async function scoreTarget(target, options = {}) {
     }
   }
 
-  // Use Claude CLI for sophistication + team size assessment when we have markdown
+  // Use Claude CLI for sophistication + team size + years + marketing assessment when we have markdown
   let sophisticationLevel = 'template';
   let teamSizeEstimate = 'small';
+  let yearsInBusiness = null;
+  let marketingSignals = { google_ads: false, active_social: false, professional_photos: false, video_content: false };
 
   if (markdown && markdown.length > 200) {
     try {
       const prompt = `Analyse this contractor website content and assess:
 1. Website sophistication level (basic, template, professional, custom, stunning)
 2. Estimated team size (solo, small, medium, large)
+3. Estimated years in business (number, or null if unknown)
+4. Marketing signals: {google_ads: bool, active_social: bool, professional_photos: bool, video_content: bool}
 
 Website: ${target.website || 'unknown'}
 Company: ${name}
@@ -165,7 +191,9 @@ ${markdown.slice(0, 3000)}`;
       });
       sophisticationLevel = result.sophistication_level || sophisticationLevel;
       teamSizeEstimate = result.team_size_estimate || teamSizeEstimate;
-      logger.debug(`AI assessment for ${name}: sophistication=${sophisticationLevel}, size=${teamSizeEstimate}`);
+      yearsInBusiness = result.years_in_business ?? null;
+      marketingSignals = result.marketing_signals ?? marketingSignals;
+      logger.debug(`AI assessment for ${name}: sophistication=${sophisticationLevel}, size=${teamSizeEstimate}, years=${yearsInBusiness}`);
     } catch (e) {
       logger.warn(`Claude assessment failed for ${name}: ${e.message} — using defaults`);
     }
@@ -174,19 +202,22 @@ ${markdown.slice(0, 3000)}`;
   // Calculate scores
   const breakdown = {
     template_fit: scoreTemplateFit(markdown),
-    sophistication_gap: scoreSophisticationGap(sophisticationLevel),
+    website_quality: scoreWebsiteQuality(sophisticationLevel),
     contact_completeness: scoreContactCompleteness(target.email, target.phone, target.owner_name),
-    google_reviews: scoreGoogleReviews(target.google_rating, target.google_review_count),
+    google_reviews: scoreGoogleReviews(target.google_rating, target.google_review_count, target.review_velocity),
     geography: scoreGeography(target.city),
-    company_size: scoreCompanySize(teamSizeEstimate),
+    company_establishment: scoreCompanyEstablishment(teamSizeEstimate),
+    marketing_sophistication: scoreMarketingSophistication(marketingSignals),
+    years_in_business: scoreYearsInBusiness(yearsInBusiness),
     total: 0,
-    notes: `sophistication=${sophisticationLevel}, size=${teamSizeEstimate}`,
+    notes: `sophistication=${sophisticationLevel}, size=${teamSizeEstimate}, years=${yearsInBusiness}`,
   };
-  breakdown.total = breakdown.template_fit + breakdown.sophistication_gap +
+  breakdown.total = breakdown.template_fit + breakdown.website_quality +
     breakdown.contact_completeness + breakdown.google_reviews +
-    breakdown.geography + breakdown.company_size;
+    breakdown.geography + breakdown.company_establishment +
+    breakdown.marketing_sophistication + breakdown.years_in_business;
 
-  logger.info(`${name}: ICP score ${breakdown.total}/100 (fit=${breakdown.template_fit}, gap=${breakdown.sophistication_gap}, contact=${breakdown.contact_completeness}, reviews=${breakdown.google_reviews}, geo=${breakdown.geography}, size=${breakdown.company_size})`);
+  logger.info(`${name}: ICP score ${breakdown.total}/130 (fit=${breakdown.template_fit}, quality=${breakdown.website_quality}, contact=${breakdown.contact_completeness}, reviews=${breakdown.google_reviews}, geo=${breakdown.geography}, est=${breakdown.company_establishment}, mktg=${breakdown.marketing_sophistication}, yrs=${breakdown.years_in_business})`);
 
   if (!dryRun) {
     await execute(
