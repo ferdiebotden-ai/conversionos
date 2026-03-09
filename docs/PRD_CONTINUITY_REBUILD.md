@@ -925,54 +925,54 @@ Select top 10 targets by new ICP score. Run full pipeline. Measure:
 ## 10. Progress Tracker
 
 ### Sprint 0: ICP Scoring Flip + Pricing Update
-- [ ] Flip `scoreSophisticationGap()` → `scoreWebsiteQuality()`
-- [ ] Flip `scoreCompanySize()` → `scoreCompanyEstablishment()`
-- [ ] Add `scoreMarketingSophistication()` function
-- [ ] Add `scoreYearsInBusiness()` function
-- [ ] Enhance `scoreGoogleReviews()` with velocity
-- [ ] Update `scoreGeography()` to ring-based
-- [ ] Update `config.yaml` weights, thresholds, search templates
-- [ ] Update `schemas/icp-score.json` for new fields
-- [ ] Add Turso columns (6 new columns)
-- [ ] Re-score all 733 targets with `--force`
-- [ ] Add `black_label` to `PlanTier` in entitlements.ts
-- [ ] Add Black Label features to `TIER_FEATURES`
+- [x] Flip `scoreSophisticationGap()` → `scoreWebsiteQuality()`
+- [x] Flip `scoreCompanySize()` → `scoreCompanyEstablishment()`
+- [x] Add `scoreMarketingSophistication()` function
+- [x] Add `scoreYearsInBusiness()` function
+- [x] Enhance `scoreGoogleReviews()` with velocity
+- [x] Update `scoreGeography()` to ring-based
+- [x] Update `config.yaml` weights, thresholds, search templates
+- [x] Update `schemas/icp-score.json` for new fields
+- [ ] Add Turso columns (6 new columns) — operational step, requires live DB
+- [ ] Re-score all 733 targets with `--force` — operational step, requires API calls
+- [x] Add `black_label` to `PlanTier` in entitlements.ts
+- [x] Add Black Label features to `TIER_FEATURES`
 - [ ] Update `shared/BUSINESS_CONTEXT.md` with new pricing
 - [ ] Update MEMORY.md with new pricing
-- [ ] Verify top 20 re-scored targets are premium operators
+- [ ] Verify top 20 re-scored targets are premium operators — after re-scoring
 
 ### Sprint 1: Edge Config Migration
-- [ ] Install `@vercel/edge-config`
-- [ ] Create Edge Config store on Vercel
-- [ ] Populate with current 30 domain mappings
-- [ ] Update `src/proxy.ts` with Edge Config lookup + fallback
-- [ ] Update `tenant-builder/provision/merge-proxy.mjs` → Edge Config API
-- [ ] Update `scripts/onboarding/add-domain.mjs` → Edge Config step
-- [ ] Add EDGE_CONFIG + VERCEL_EDGE_CONFIG_ID env vars
-- [ ] Test all 14+ existing tenants resolve correctly
-- [ ] Test new tenant added via API resolves instantly
-- [ ] Deploy to production and verify
+- [x] Install `@vercel/edge-config`
+- [ ] Create Edge Config store on Vercel — manual dashboard step
+- [ ] Populate with current 30 domain mappings — after store creation
+- [x] Update `src/proxy.ts` with Edge Config lookup + fallback
+- [x] Update `tenant-builder/provision/merge-proxy.mjs` → Edge Config API
+- [x] Update `scripts/onboarding/add-domain.mjs` → Edge Config step
+- [ ] Add EDGE_CONFIG + VERCEL_EDGE_CONFIG_ID env vars — after store creation
+- [ ] Test all 14+ existing tenants resolve correctly — after Edge Config populated
+- [ ] Test new tenant added via API resolves instantly — after Edge Config populated
+- [ ] Deploy to production and verify — after all above
 
 ### Sprint 2: Section Component Library
-- [ ] Create shared interfaces (`section-types.ts`, `section-registry.ts`)
-- [ ] Create `SectionRenderer` component
-- [ ] Build 5 Hero variants
-- [ ] Build 4 Navigation variants
-- [ ] Build 5 Services variants
-- [ ] Build 4 Trust/Proof variants
-- [ ] Build 4 Testimonials variants
-- [ ] Build 4 Gallery variants
-- [ ] Build 4 About/Team variants
-- [ ] Build 4 Contact variants
-- [ ] Build 4 CTA variants
-- [ ] Build 4 Footer variants
-- [ ] Build 4 Misc variants (process, FAQ, map, logos)
-- [ ] Create `src/sections/register.ts`
-- [ ] Add `getPageLayout()` function
-- [ ] Refactor `page.tsx` to use SectionRenderer
-- [ ] Define DEFAULT_LAYOUT matching current structure
-- [ ] Screenshot regression test: all existing tenants identical
-- [ ] `npm run build` passes
+- [x] Create shared interfaces (`section-types.ts`, `section-registry.ts`)
+- [x] Create `SectionRenderer` component
+- [x] Build 5 Hero variants
+- [x] Build 4 Navigation variants
+- [x] Build 5 Services variants
+- [x] Build 4 Trust/Proof variants
+- [x] Build 4 Testimonials variants
+- [x] Build 4 Gallery variants
+- [x] Build 4 About/Team variants
+- [x] Build 4 Contact variants
+- [x] Build 4 CTA variants
+- [x] Build 4 Footer variants
+- [x] Build 4 Misc variants (process, FAQ, map, logos)
+- [x] Create `src/sections/register.ts`
+- [ ] Add `getPageLayout()` function — next session
+- [ ] Refactor `page.tsx` to use SectionRenderer — next session
+- [ ] Define DEFAULT_LAYOUT matching current structure — next session
+- [ ] Screenshot regression test: all existing tenants identical — after page.tsx refactor
+- [x] `npm run build` passes
 
 ### Sprint 3: Enhanced Extraction + Blueprint Generator
 - [ ] Define `DesignSystemBundle` type (extends BrandResearchBundle)
