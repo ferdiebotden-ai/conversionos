@@ -1,6 +1,6 @@
 # ConversionOS — Product Reference
 
-**Last updated:** March 3, 2026
+**Last updated:** March 9, 2026
 
 ---
 
@@ -98,7 +98,7 @@ The homeowner is the end-user of the platform — the person uploading photos an
 The entire homeowner experience happens on a single page — no clicking between forms, no separate estimate page. The homeowner never feels like they're "filling out a form." They're designing their space.
 
 ### Step 1: Upload a Photo (or Skip It)
-The homeowner takes a photo of their kitchen, bathroom, or basement (camera on mobile, drag-and-drop on desktop). AI immediately analyses the photo — detecting room type, dimensions, layout, fixtures, and condition.
+The homeowner takes a photo of their kitchen, bathroom, or basement (camera on mobile, drag-and-drop on desktop). AI immediately analyses the photo — detecting room type, dimensions, layout, fixtures, condition, and a complete furniture inventory (every piece catalogued with condition, location, and a keep/replace/remove recommendation for the visualization).
 
 **No-photo fallback:** A skip link below the upload area ("Don't have a photo? Tell us about your project...") opens an alternative path with an embedded Emma chat panel and a standalone lead capture form. This is also accessible via `/visualizer?mode=chat` (linked from the homepage final CTA). The lead form captures name, email, phone, project type (7 options), timeline, and notes — and submits with `source: 'chat_no_photo'` for separate tracking in analytics.
 
@@ -106,7 +106,7 @@ The homeowner takes a photo of their kitchen, bathroom, or basement (camera on m
 Eight room types and six design styles (Modern, Traditional, Contemporary, Transitional, Minimalist, Industrial). The room type is pre-filled from the AI analysis. Optional: type design preferences ("marble countertops, brass fixtures, warm tones").
 
 ### Step 3: AI Generates 4 Concepts (~30 seconds)
-Four photorealistic concepts stream in progressively via SSE with a smooth, dopamine-inducing loading experience. A RAF-based progress bar interpolates smoothly (no 20% jumps), staged status messages explain what's happening ("Analysing your space...", "Designing concepts..."), and each concept cross-fades from blur to sharp as it arrives. A concept counter ("2 of 4 concepts ready!") keeps the homeowner engaged. Each concept preserves the actual room geometry while applying the chosen style.
+Four photorealistic concepts stream in progressively via SSE with a smooth, dopamine-inducing loading experience. A RAF-based progress bar interpolates smoothly (no 20% jumps), staged status messages explain what's happening ("Analysing your space...", "Designing concepts..."), and each concept cross-fades from blur to sharp as it arrives. A concept counter ("2 of 4 concepts ready!") keeps the homeowner engaged. Each concept preserves the actual room geometry while replacing existing furniture with style-appropriate staging — the homeowner sees their space as a professionally designed interior, not just "their room with new paint." A 42-combination staging knowledge module (7 room types x 6 design styles) provides specific furniture, accent pieces, layout guidance, and items to avoid for each combination. Kitchen, bathroom, and exterior rooms receive lighter surface-focused staging (countertop styling, accessories) rather than full furniture replacement.
 
 ### Step 4: Explore and Refine
 
@@ -182,11 +182,11 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 | Component | Model | Purpose | Cost per Use |
 |-----------|-------|---------|------|
-| Chat + Vision | GPT-5.2 | Emma's conversations, photo analysis, quote generation | ~$0.01-0.05 |
-| Image generation | Gemini 3.1 Flash Image (Nano Banana 2) | 4 photorealistic concepts | ~$0.27 |
+| Chat + Vision | GPT-5.4 | Emma's conversations, photo analysis (incl. furniture inventory), quote generation | ~$0.01-0.05 |
+| Image generation | Gemini 3.1 Flash Image (Nano Banana 2) | 4 photorealistic concepts with furniture staging | ~$0.27 |
 | Refinement | Gemini 3.1 Flash Image | Re-render starred concept | ~$0.07 |
 | Voice | ElevenLabs Conversational AI | Emma's voice (infra retained, UI removed) | ElevenLabs pricing |
-| Receptionist chat | GPT-5.2 | Emma homepage widget + no-photo chat | ~$0.01-0.03 |
+| Receptionist chat | GPT-5.4 | Emma homepage widget + no-photo chat | ~$0.01-0.03 |
 
 **Total cost per session:** ~$0.36 (no refinements) to ~$0.56 (3 refinements). Well within the $150/mo API cap at 50 sessions/month.
 
@@ -194,7 +194,7 @@ Emma is a single AI persona that adapts to context. On the homepage, she's a rec
 
 ## Tech Stack
 
-Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (889 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
+Next.js 16 (App Router) | React 19 | TypeScript 5 (strict) | Tailwind v4 | shadcn/ui | Zustand | Framer Motion | Supabase (PostgreSQL, ca-central-1, RLS) | Vercel AI SDK v6 | Sentry | Vitest (912 tests) | Playwright (9 E2E suites, 12 Design Studio tests) | Husky + lint-staged CI
 
 ---
 
@@ -234,6 +234,8 @@ Gallery images are scraped from original contractor websites and uploaded to Sup
 ## Ontario Pricing Database
 
 Typed database of 14 trade rates, 50+ material costs, 9 regional multipliers, and 8 room type estimates. Powers cost ranges in the visualizer and the AI quote engine. Pure functions — no database calls, client-safe. Source: `src/lib/ai/knowledge/pricing-data.ts`.
+
+A companion staging knowledge module (`src/lib/ai/knowledge/staging-data.ts`) provides style-specific furniture recommendations for each room type — primary furniture pieces, accent items, layout guidance, and items to avoid. 42 combinations cover all 7 room types across all 6 design styles.
 
 ---
 
@@ -279,7 +281,7 @@ Demo instances let potential clients explore the full platform — including the
 2. **Dave Miller** — Kitchen renovation, `sent` status. Contractor phone intake → AI quote → quote sent.
 3. **Jim & Karen Crawford** — Basement renovation, `won` status. Full lifecycle from visualizer through quote acceptance, invoice, and partial payment.
 
-All demo data was created through real platform workflows (Gemini image generation, GPT-5.2 chat, AI quoting) — authentic AI-generated content indistinguishable from real usage.
+All demo data was created through real platform workflows (Gemini image generation, GPT-5.4 chat, AI quoting) — authentic AI-generated content indistinguishable from real usage.
 
 ---
 
