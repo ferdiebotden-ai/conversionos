@@ -10,7 +10,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function GalleryEditorialFeatured({ branding, config, className }: Props) {
+export function GalleryEditorialFeatured({ config, className }: Props) {
   const portfolio = config.portfolio ?? [];
   const [selectedIndex, setSelectedIndex] = useState(0);
 

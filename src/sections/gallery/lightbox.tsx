@@ -11,13 +11,9 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function GalleryLightbox({ branding, config, className }: Props) {
+export function GalleryLightbox({ config, className }: Props) {
   const portfolio = config.portfolio ?? [];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  if (portfolio.length === 0) return null;
-
-  const current = selectedIndex !== null ? portfolio[selectedIndex] : null;
 
   const close = useCallback(() => setSelectedIndex(null), []);
   const prev = useCallback(() => {
@@ -28,7 +24,6 @@ export function GalleryLightbox({ branding, config, className }: Props) {
   }, [portfolio.length]);
 
   // Keyboard navigation
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedIndex === null) return;
     const handler = (e: KeyboardEvent) => {
@@ -39,6 +34,10 @@ export function GalleryLightbox({ branding, config, className }: Props) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [selectedIndex, close, prev, next]);
+
+  if (portfolio.length === 0) return null;
+
+  const current = selectedIndex !== null ? portfolio[selectedIndex] : null;
 
   return (
     <section className={`py-16 sm:py-20 ${className ?? ''}`}>

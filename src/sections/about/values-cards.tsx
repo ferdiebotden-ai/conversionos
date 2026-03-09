@@ -38,7 +38,7 @@ function resolveIcon(hint: string): LucideIcon {
   return Star;
 }
 
-export function AboutValuesCards({ branding, config, className }: Props) {
+export function AboutValuesCards({ config, className }: Props) {
   const values = config.values;
   if (!values || values.length === 0) return null;
 

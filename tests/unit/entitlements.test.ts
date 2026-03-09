@@ -12,6 +12,9 @@ describe('Entitlements', () => {
   it('Dominate has exactly 18 features', () => {
     expect(getFeaturesForTier('dominate')).toHaveLength(18);
   });
+  it('Black Label has exactly 20 features', () => {
+    expect(getFeaturesForTier('black_label')).toHaveLength(20);
+  });
 
   // Exhaustive matrix: all 18 features x 3 tiers
   const allFeatures: Feature[] = [
@@ -20,9 +23,10 @@ describe('Entitlements', () => {
     'voice_web', 'voice_phone', 'custom_integrations', 'location_exclusivity',
     'pricing_display', 'analytics_dashboard', 'contractor_lead_intake',
     'csv_price_upload', 'assembly_templates',
+    'custom_workflows', 'bespoke_automation',
   ];
 
-  const tiers: PlanTier[] = ['elevate', 'accelerate', 'dominate'];
+  const tiers: PlanTier[] = ['elevate', 'accelerate', 'dominate', 'black_label'];
 
   // Elevate features
   const elevateFeatures = new Set<string>([
@@ -42,10 +46,17 @@ describe('Entitlements', () => {
     'voice_phone', 'custom_integrations', 'location_exclusivity', 'analytics_dashboard',
   ]);
 
+  // Black Label adds these
+  const blackLabelFeatures = new Set<string>([
+    ...dominateFeatures,
+    'custom_workflows', 'bespoke_automation',
+  ]);
+
   const tierFeatureSets: Record<PlanTier, Set<string>> = {
     elevate: elevateFeatures,
     accelerate: accelerateFeatures,
     dominate: dominateFeatures,
+    black_label: blackLabelFeatures,
   };
 
   describe('exhaustive feature x tier matrix', () => {

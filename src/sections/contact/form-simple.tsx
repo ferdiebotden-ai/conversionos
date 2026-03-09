@@ -14,7 +14,7 @@ interface Props extends SectionBaseProps {
 const inputClass =
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
-export function ContactFormSimple({ branding, config, className }: Props) {
+export function ContactFormSimple({ branding, className }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

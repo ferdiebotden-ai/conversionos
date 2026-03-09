@@ -11,7 +11,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function CTAFullWidthPrimary({ branding, config, className }: Props) {
+export function CTAFullWidthPrimary({ branding, className }: Props) {
   return (
     <section className={`bg-primary py-10 md:py-20 ${className ?? ''}`}>
       <div className="mx-auto max-w-4xl px-4 text-center">

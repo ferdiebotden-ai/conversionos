@@ -8,7 +8,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function TestimonialsMinimalQuotes({ branding, config, className }: Props) {
+export function TestimonialsMinimalQuotes({ config, className }: Props) {
   const testimonials = config.testimonials ?? [];
   if (testimonials.length === 0) return null;
 

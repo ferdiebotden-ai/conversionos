@@ -10,7 +10,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function TestimonialsCardsCarousel({ branding, config, className }: Props) {
+export function TestimonialsCardsCarousel({ config, className }: Props) {
   const testimonials = config.testimonials ?? [];
   if (testimonials.length < 2) return null;
 

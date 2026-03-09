@@ -9,7 +9,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function AboutTeamGrid({ branding, config, className }: Props) {
+export function AboutTeamGrid({ config, className }: Props) {
   const members = config.teamMembers;
   if (!members || members.length === 0) return null;
 

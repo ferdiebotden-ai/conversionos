@@ -1,4 +1,5 @@
 import type { Branding } from './branding';
+import type { CompanyConfig } from './ai/knowledge/company';
 
 /** Design tokens derived from the tenant's brand */
 export interface DesignTokens {
@@ -20,9 +21,10 @@ export interface DesignTokens {
 /** Base props every section receives */
 export interface SectionBaseProps {
   branding: Branding;
-  tokens?: DesignTokens;
-  animationPreset?: 'fade-in-up' | 'stagger-reveal' | 'slide-in-left' | 'none';
-  className?: string;
+  config: CompanyConfig;
+  tokens?: DesignTokens | undefined;
+  animationPreset?: 'fade-in-up' | 'stagger-reveal' | 'slide-in-left' | 'none' | undefined;
+  className?: string | undefined;
 }
 
 /** Section identifier: "category:variant" e.g. "hero:full-bleed-overlay" */

@@ -10,7 +10,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function TestimonialsSingleFeatured({ branding, config, className }: Props) {
+export function TestimonialsSingleFeatured({ config, className }: Props) {
   const testimonials = config.testimonials ?? [];
   const [index, setIndex] = useState(0);
 

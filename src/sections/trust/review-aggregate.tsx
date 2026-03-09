@@ -13,7 +13,6 @@ function StarDisplay({ rating }: { rating: number }) {
   const stars = [];
   const fullStars = Math.floor(rating);
   const hasHalf = rating - fullStars >= 0.25 && rating - fullStars < 0.75;
-  const totalFilled = hasHalf ? fullStars + 1 : fullStars;
 
   for (let i = 0; i < 5; i++) {
     if (i < fullStars) {

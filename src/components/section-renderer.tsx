@@ -12,7 +12,7 @@ interface Props {
   sections: SectionId[];
   branding: Branding;
   config: CompanyConfig;
-  tokens?: SectionBaseProps['tokens'];
+  tokens?: SectionBaseProps['tokens'] | undefined;
 }
 
 export function SectionRenderer({ sections, branding, config, tokens }: Props) {
@@ -29,7 +29,7 @@ export function SectionRenderer({ sections, branding, config, tokens }: Props) {
             key={`${sectionId}-${index}`}
             branding={branding}
             config={config}
-            tokens={tokens}
+            tokens={tokens ?? undefined}
           />
         );
       })}

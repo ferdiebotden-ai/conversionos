@@ -42,7 +42,7 @@ function buildTimeline(config: CompanyConfig): TimelineEntry[] {
   return entries;
 }
 
-export function AboutTimeline({ branding, config, className }: Props) {
+export function AboutTimeline({ config, className }: Props) {
   const entries = buildTimeline(config);
   if (entries.length === 0) return null;
 

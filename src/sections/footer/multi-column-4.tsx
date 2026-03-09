@@ -10,7 +10,7 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function FooterMultiColumn4({ branding, config, className }: Props) {
+export function FooterMultiColumn4({ branding, className }: Props) {
   const year = new Date().getFullYear();
 
   return (

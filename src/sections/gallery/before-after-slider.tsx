@@ -10,16 +10,12 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function GalleryBeforeAfterSlider({ branding, config, className }: Props) {
+export function GalleryBeforeAfterSlider({ config, className }: Props) {
   const portfolio = config.portfolio ?? [];
-  if (portfolio.length === 0) return null;
 
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
-
-  const before = portfolio[0]!;
-  const after = portfolio.length > 1 ? portfolio[1]! : null;
 
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -38,6 +34,11 @@ export function GalleryBeforeAfterSlider({ branding, config, className }: Props)
     (e: React.TouchEvent) => { if (e.touches[0]) updatePosition(e.touches[0].clientX); },
     [updatePosition]
   );
+
+  if (portfolio.length === 0) return null;
+
+  const before = portfolio[0]!;
+  const after = portfolio.length > 1 ? portfolio[1]! : null;
 
   // Single image fallback
   if (!after) {
