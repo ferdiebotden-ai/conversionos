@@ -58,6 +58,7 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'rose-building-group.norbotsystems.com': 'rose-building-group',
   'a-p-hurley-construction.norbotsystems.com': 'a-p-hurley-construction',
   'eagleview-construction.norbotsystems.com': 'eagleview-construction',
+  'md-construction.norbotsystems.com': 'md-construction',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
