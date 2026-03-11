@@ -1,41 +1,35 @@
 # ConversionOS Tenant Builder
 
-Autonomous pipeline that discovers Ontario renovation contractors, scores them for demo fitness, scrapes their websites, provisions branded ConversionOS demo tenants, runs 9-module visual QA, and creates outreach email drafts.
+Autonomous pipeline that discovers Ontario renovation contractors, scrapes their websites, provisions branded ConversionOS demo tenants, runs 9-module QA, and creates outreach email drafts. Two build modes: **template** (pick from 50 standard sections) and **bespoke** (Opus architect + Codex-generated custom React sections matching the original site's visual DNA).
 
-**Model preference:** Use Sonnet 4.6 for routine builds. Opus 4.6 only for deep code modifications or debugging.
+**At session start:** Read `docs/learned-patterns.md` — 30+ accumulated patterns covering scraping, provisioning, QA, and bespoke builds.
 
-**At session start:** Read `docs/learned-patterns.md` to apply accumulated build learnings.
+## Critical: Deploy Repo Location
 
-## Multi-Model Agent Organisation (March 2026)
+The NorBot-Systems monorepo gitignores `products/*/`. The **actual Vercel-connected git repo** is:
 
-The tenant builder uses a tiered agent architecture for cost efficiency (~$1.12/build vs ~$5 with all-Opus):
+```
+~/norbot-ops/products/demo/     # GitHub: ferdiebotden-ai/conversionos.git
+```
 
-| Agent | Model | Role | Cost/Build |
-|-------|-------|------|------------|
-| **Opus** (you) | Opus 4.6 | Orchestrator — delegates, handles escalations, 2-3 turns max | ~$0.15 |
-| **build-worker** | Sonnet 4.6 | Autonomous builder — runs pipeline, QA, fixes, returns verdict | ~$0.80 |
-| **qa-validator** | Haiku 4.5 | Data validation — 15 anti-pattern checks via Supabase curl | ~$0.01 |
-| **pipeline-scout** | Haiku 4.5 | Pre-screening, ICP scoring, discovery, pipeline maintenance | ~$0.05 |
-| **qa-monitor** | Haiku 4.5 | Heartbeat for batch Agent Teams — progress monitoring | ~$0.02 |
-| **image-polisher** | Sonnet 4.6 | Hero image quality audit + Gemini generation | ~$0.04 |
-
-**Skills:** `tenant-qa-knowledge` (fix playbook), `build-tenant` (orchestrator), `maintain-pipeline` (pipeline depth), `daily-ai-brief` (ecosystem alerts)
-
-**Usage:** `/build-tenant {site-id} {url}` for single builds, `/build-tenant --batch --limit N` for batch. Wrap in Ralph Loop for iterative quality: `/ralph-loop "build-tenant ..." --completion-promise "TENANT READY" --max-iterations 3`
+NOT `~/Norbot-Systems/products/conversionos/`. Push to `main` in the deploy repo triggers Vercel auto-build. When running `orchestrate.mjs` with `--skip-git`, you must manually sync files to the deploy repo and push.
 
 ## Quick Start
 
 ```bash
 cd ~/norbot-ops/products/demo
 
-# Single target by ID (from Turso pipeline DB)
-node tenant-builder/orchestrate.mjs --target-id 42
-
-# Single target by URL (bypass pipeline DB)
+# Template build (standard sections)
 node tenant-builder/orchestrate.mjs --url https://example.com --site-id example --tier accelerate
 
+# Bespoke build (custom sections matching original site)
+node tenant-builder/orchestrate.mjs --url https://example.com --site-id example --tier accelerate --bespoke
+
+# Single target from Turso CRM
+node tenant-builder/orchestrate.mjs --target-id 42
+
 # Batch from pipeline DB
-node tenant-builder/orchestrate.mjs --batch --limit 10
+node tenant-builder/orchestrate.mjs --batch --limit 10 --concurrency 4
 
 # Discover + build new targets
 node tenant-builder/orchestrate.mjs --discover --cities "London,Kitchener" --limit 5
@@ -43,32 +37,19 @@ node tenant-builder/orchestrate.mjs --discover --cities "London,Kitchener" --lim
 # Audit-only (QA on existing tenant, no scrape/provision)
 node tenant-builder/orchestrate.mjs --audit-only --site-id example --url https://example.norbotsystems.com --skip-git
 
-# Nightly (batch with config defaults: 10 targets, concurrency 4)
+# Nightly (batch with config defaults)
 node tenant-builder/orchestrate.mjs --nightly
 ```
 
-**Flags:** `--concurrency N` (default 4), `--dry-run`, `--skip-qa`, `--skip-git`, `--skip-outreach`, `--skip-sample-data`, `--timeout-multiplier N`
-
-## Getting Next Targets
-
-```bash
-# Top 10 pipeline targets — sorted by ICP score, built targets auto-drop
-node tenant-builder/discover.mjs --pipeline --limit 10
-
-# Re-score all unscored targets
-node tenant-builder/icp-score.mjs --all --limit 50
-
-# Score a specific target
-node tenant-builder/icp-score.mjs --target-id 42
-```
-
-ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-operators (15 pts company size), basic websites (20 pts sophistication gap), complete contact data (15 pts email/phone/name). See `docs/icp-scoring.md` for full breakdown. Targets auto-drop from the pipeline after a demo is built (`status = 'bespoke_ready'`).
+**Flags:** `--concurrency N` (default 4), `--dry-run`, `--skip-qa`, `--skip-git`, `--skip-outreach`, `--skip-sample-data`, `--skip-polish`, `--timeout-multiplier N`, `--bespoke`
 
 ## Pipeline Flow (18 Steps)
 
 1. Select targets — Turso DB, direct URL, or Firecrawl discovery
 2. ICP score — 6-criterion model (100 pts), threshold 50/70
 3. Scrape — branding v2 + 7-stage scrape + 4-level logo extraction + social links
+   - 3b. **Bespoke only:** `bespoke-architect.mjs` — Opus 4.6 analyses scraped data + CSS tokens + HTML → SiteBlueprint v2 JSON
+   - 3c. **Bespoke only:** `build-custom-sections.mjs` — Codex GPT 5.4 generates per-tenant React sections → `src/sections/custom/{siteId}/`
 4. Quality gates — testimonials (min 2), portfolio (images), services (name+desc), hero (reject generic)
 5. Provision — upload images, seed Supabase (5 keys), write proxy fragment, seed sample leads
 6. Merge proxy — combine fragments into proxy.ts
@@ -76,57 +57,105 @@ ICP scoring prioritises: small towns near Stratford (15 pts geography), owner-op
 8. QA: Page completeness — 6 pages + footer data verification
 9. QA: Data-gap resolution — auto-fix gaps (socials, N/A hours, favicon). Up to 2 attempts
 10. QA: Content integrity — 12 checks + auto-fix (demo leakage, broken images, fabrication, placeholders)
-11. QA: Visual QA — Claude Vision 6-dimension rubric + refinement loop (plateau/regression detection)
+11. QA: Visual QA — Claude Vision 6-dimension rubric + refinement loop (7th dimension "visual similarity" for bespoke)
 12. QA: Live site audit — 8 Playwright checks (branding, nav, responsive, WCAG, SEO, images, footer, admin)
 13. QA: Original vs demo — 7-field comparison (name, phone, email, services, testimonials, colour, logo)
 14. QA: PDF branding — Supabase completeness for PDF generation
 15. QA: Email branding — admin_settings + template source scan
 16. Go-live readiness report — 7-section markdown + JSON verdict (READY / REVIEW / NOT READY)
-17. Polish queue handoff — write `codex-polish/queue/pending/{site-id}.json` for post-QA Codex polish or manual review
-18. Outreach — Gmail drafts only after the active polish queue item is cleared (skip with `--skip-outreach`, bypass queue with `--skip-polish`)
+17. Polish queue handoff — write `codex-polish/queue/pending/{site-id}.json`
+18. Outreach — Gmail drafts only after polish queue item is cleared
 
-## Gallery Upgrade (Existing Tenants)
+## Bespoke Pipeline (Phase 1-3)
 
-```bash
-# Upgrade a tenant's portfolio with new images
-node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images gallery-data/example.json
+The bespoke pipeline generates custom React sections that visually match the original contractor's website, instead of picking from generic templates.
 
-# Dry run (no uploads, no DB changes)
-node tenant-builder/upgrade-tenant-gallery.mjs --site-id example --images data.json --dry-run
+### Architecture
+```
+Target URL
+  → scrape-enhanced.mjs --bespoke (HTML capture + CSS tokens + screenshots)
+  → bespoke-architect.mjs (Opus 4.6 → SiteBlueprint v2 JSON)
+  → build-custom-sections.mjs (Codex GPT 5.4 → per-tenant React components)
+  → provision-tenant.mjs --bespoke (enriched theme from CSS tokens)
+  → QA with visual_similarity dimension
 ```
 
-Image data files (JSON arrays of `{url, roomType, title}`) stored in `tenant-builder/gallery-data/`. Script downloads images, uploads to Supabase Storage, appends to `company_profile.portfolio[]`.
+### Key Files
+| File | Purpose |
+|------|---------|
+| `bespoke-architect.mjs` | Opus 4.6 analyses site → blueprint with custom section specs |
+| `build-custom-sections.mjs` | Codex generates React sections, TypeScript check, registry manifest |
+| `scrape/css-extract.mjs` | Playwright extracts computed CSS tokens from live site |
+| `templates/integration-spec.md` | Rules injected into every Codex prompt (SectionBaseProps, OKLCH, etc.) |
+| `schemas/site-blueprint-v2.zod.mjs` | Zod schema for SiteBlueprint v2 |
+
+### Custom Section System
+- Generated sections live in `src/sections/custom/{siteId}/` (e.g., `custom/md-construction/`)
+- Each tenant gets an `index.ts` with `registerSection()` calls
+- `src/sections/custom/registry.ts` auto-generated by `build-custom-sections.mjs` — imports all tenant index files
+- `src/sections/register.ts` has `import './custom/registry'` at the bottom
+- Section IDs follow `custom:{siteId}-{name}` pattern (e.g., `custom:md-construction-hero`)
+
+### Known Bespoke Issue: camelCase Config Mismatch
+The provisioner stores company_profile fields in **camelCase** (`heroHeadline`, `heroImageUrl`, `aboutCopy`). Codex-generated sections read **snake_case** (`hero_headline`, `hero_image_url`, `about_copy`). Custom sections must read both formats:
+```tsx
+const headline = str(c['hero_headline']) ?? str(c['heroHeadline']);
+```
+This is a systemic Codex prompt issue — the integration-spec.md should document the camelCase field names.
+
+## Multi-Model Agent Organisation
+
+| Agent | Model | Role | Cost/Build |
+|-------|-------|------|------------|
+| **Opus** (you) | Opus 4.6 | Orchestrator — delegates, handles escalations | ~$0.15 |
+| **build-worker** | Sonnet 4.6 | Autonomous builder — runs pipeline, QA, fixes | ~$0.80 |
+| **qa-validator** | Haiku 4.5 | Data validation — 15 anti-pattern checks via Supabase curl | ~$0.01 |
+| **pipeline-scout** | Haiku 4.5 | Pre-screening, ICP scoring, discovery | ~$0.05 |
+| **qa-monitor** | Haiku 4.5 | Heartbeat for batch Agent Teams | ~$0.02 |
+| **image-polisher** | Sonnet 4.6 | Hero image quality audit + Gemini generation | ~$0.04 |
+
+**Skills:** `tenant-qa-knowledge` (fix playbook), `build-tenant` (orchestrator), `maintain-pipeline` (pipeline depth)
+
+## Getting Next Targets
+
+```bash
+node tenant-builder/discover.mjs --pipeline --limit 10
+node tenant-builder/icp-score.mjs --all --limit 50
+node tenant-builder/icp-score.mjs --target-id 42
+```
+
+ICP scoring: geography (15 pts), company size (15 pts), web sophistication gap (20 pts), contact completeness (15 pts). See `docs/icp-scoring.md`.
 
 ## Post-Build Review
 
-After `orchestrate.mjs` completes, always review the results:
-
-1. **Read batch summary** — `results/{date}/batch-summary.json` → success/fail counts
-2. **Classify each tenant** — Read `go-live-readiness.json` → READY / REVIEW / NOT READY
-3. **Queue follow-up** — Check `codex-polish/queue/pending/{site-id}.json` for the post-QA polish/manual-review handoff
-4. **Review failures** — For REVIEW/NOT READY: read `audit-report.md` + `visual-qa.json`, identify specific failures
-5. **Visual check** — Read screenshots (`results/{date}/{site-id}/screenshots/`) to verify logos, colours, layout
-6. **Review email drafts** — Only after the queue item is cleared. Verify: no banned terms, CASL footer, correct city/company/URL, call day/time filled
-7. **Present summary** — Structured report with action items for Ferdie
-8. **Update learned patterns** — If you made manual corrections, ask Ferdie if the pattern should be recorded in `docs/learned-patterns.md`
+1. Read `results/{date}/batch-summary.json` → success/fail counts
+2. Read `go-live-readiness.json` → READY / REVIEW / NOT READY
+3. Check `codex-polish/queue/pending/{site-id}.json` for post-QA handoff
+4. Review `audit-report.md` + `visual-qa.json` for failures
+5. Read screenshots to verify logos, colours, layout
+6. Review email drafts after polish queue clears
+7. Present structured summary to Ferdie
+8. Update `docs/learned-patterns.md` if new patterns found
 
 ## Deep Reference
 
 | Topic | File |
 |-------|------|
-| Module structure, scrape/provision details | `docs/pipeline-architecture.md` |
-| Post-QA polish queue + outreach hold | `../codex-polish/README.md` |
-| All 9 QA modules with checks and thresholds | `docs/qa-modules.md` |
-| ICP scoring dimensions and logic | `docs/icp-scoring.md` |
-| Sample lead fixtures and regeneration | `docs/sample-data.md` |
-| Outreach integration (Step 6) | `docs/outreach-integration.md` |
+| Pipeline module structure | `docs/pipeline-architecture.md` |
+| All 9 QA modules | `docs/qa-modules.md` |
+| ICP scoring dimensions | `docs/icp-scoring.md` |
+| Sample lead fixtures | `docs/sample-data.md` |
+| Outreach integration | `docs/outreach-integration.md` |
 | Data shape interfaces | `SHARED_INTERFACES.md` |
 | Accumulated build learnings | `docs/learned-patterns.md` |
-| Outreach rules (CASL, template, slots) | `../scripts/outreach/README.md` |
+| Bespoke pipeline handoff | `docs/bespoke-handoff.md` |
+| Session handoff (Mar 11) | `docs/session-handoff-2026-03-11.md` |
+| Outreach rules (CASL, template) | `../scripts/outreach/README.md` |
+| Post-QA polish queue | `../codex-polish/README.md` |
 
 ## Environment Variables
 
-Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env`:
+Loaded from `~/norbot-ops/products/demo/.env.local` and `~/norbot-ops/products/demo/pipeline/scripts/.env`:
 
 | Variable | Source | Required For |
 |----------|--------|-------------|
@@ -135,7 +164,7 @@ Loaded from `~/norbot-ops/products/demo/.env.local` and `~/pipeline/scripts/.env
 | FIRECRAWL_API_KEY | pipeline .env | Discovery, scraping |
 | NEXT_PUBLIC_SUPABASE_URL | demo .env.local | Provisioning, QA |
 | SUPABASE_SERVICE_ROLE_KEY | demo .env.local | Provisioning, QA |
-| VERCEL_TOKEN + VERCEL_PROJECT_ID + VERCEL_TEAM_ID | pipeline .env | Domain registration + SSL (optional) |
+| VERCEL_TOKEN + VERCEL_PROJECT_ID + VERCEL_TEAM_ID | pipeline .env | Domain registration + SSL |
 
 ## Testing
 
@@ -147,8 +176,6 @@ npm test                   # All tests
 npm run cleanup            # Remove test artifacts
 ```
 
-Test constants: site_id `redwhitereno-test`, target_id 22, URL `https://www.redwhitereno.com`
-
 ## Key Patterns
 
 - All files are ES modules (.mjs)
@@ -157,8 +184,16 @@ Test constants: site_id `redwhitereno-test`, target_id 22, URL `https://www.redw
 - `[PROGRESS]` and `[SUMMARY]` JSON lines for Mission Control parsing
 - Claude CLI calls strip `CLAUDECODE` env var to avoid nested sessions
 - CRLF fix for new .mjs files: `perl -pi -e 's/\r\n/\n/g'`
-- `(supabase as any).from('table')` for tables not in generated types
 - Provenance tracking: `_provenance` field on scraped data marks AI-generated content
+- Guard `parseArgs()` inside `if (import.meta.url === ...)` CLI entry block — crashes when dynamically imported otherwise
+
+## Operational Learnings
+
+- **DO NOT use Agent Teams for batch builds.** Builds are long-running single processes — workers go idle. Use `orchestrate.mjs --concurrency 4` instead.
+- **Delegate to Haiku subagents** for: pipeline status checks, reading QA result files, Supabase data validation, pre-screening targets.
+- **Opus for code changes only.** Modifying pipeline .mjs files, novel issues, architecture decisions.
+- **Codex --image flag causes 10min+ timeouts.** Use text-only prompts — CSS tokens + HTML provide sufficient context.
+- **Codex explores CLAUDE.md before writing.** Prepend `"IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files."` to the prompt.
 
 ## Self-Improving Documentation
 
@@ -166,56 +201,13 @@ After any tenant-builder change:
 1. Update this CLAUDE.md
 2. Update topic files in `docs/` if affected
 3. Update `SHARED_INTERFACES.md` if data shapes changed
-4. Update `~/.claude/projects/-Users-norbot-norbot-ops-products-demo/memory/MEMORY.md`
+4. Update `~/.claude/projects/-Users-norbot-Norbot-Systems/memory/MEMORY.md`
 
-## Session Lead Cost Discipline (March 2026)
+## Current Deployed Bespoke Tenants (Mar 10-11, 2026)
 
-**You are the session lead — delegate aggressively.** Your model (Sonnet or Opus) is expensive. Haiku is 3-5x cheaper.
+| Site ID | Sections | Status | Known Issues |
+|---------|----------|--------|-------------|
+| md-construction | 11 custom | REVIEW | Double nav, trust metrics showing 0, content integrity false positives |
+| westmount-craftsmen | 13 custom | REVIEW | Double nav, about-split section not rendering, gallery/testimonial empty data |
 
-### What to delegate to Haiku subagents
-- Pipeline status checks (Turso queries)
-- Reading and summarising QA result files
-- Supabase data validation (15 anti-pattern checks)
-- Monitoring batch build progress
-- Pre-screening targets before builds
-
-### What you (Sonnet/Opus) do yourself
-- Run `orchestrate.mjs` builds (these are bash commands, not LLM work)
-- Apply Supabase data fixes (curl PATCH commands from `tenant-qa-knowledge` skill)
-- Decide what to fix vs escalate vs flag for Ferdie
-- Present structured summaries
-
-### What requires Opus (start a new session)
-- Modifying pipeline `.mjs` files
-- Novel issues not in `docs/learned-patterns.md`
-- Architecture decisions
-
-## Agent Teams Learning (March 2026)
-
-**DO NOT use Agent Teams for batch builds.** The builds are long-running single processes — Agent Teams workers go idle before completing their assigned tasks. Instead:
-
-1. Run `orchestrate.mjs --target-ids "X,Y,Z" --concurrency 4` directly (pipeline handles parallelism natively)
-2. After the batch completes, spawn Haiku to read results and summarise
-3. Apply fixes yourself (Supabase curl from the `tenant-qa-knowledge` skill)
-4. Agent Teams IS useful for: research tasks, parallel QA checks, anything where each task is short and independent
-
-## Pending Work (From Mar 5 Batch)
-
-### 3 incomplete builds (workers went idle)
-```bash
-node tenant-builder/orchestrate.mjs --target-ids "468,598,480" --concurrency 3 --skip-outreach
-```
-
-### 5 tenants needing fixes (already deployed, QA failed)
-| Site ID | Issue | Fix |
-|---------|-------|-----|
-| donmoyer-construction | Demo phone leakage | Re-run QA (branding.ts fix deployed) |
-| house-renovations | 3 broken images | Clear broken image_url fields via Supabase |
-| sonce-homes | 10 broken images | Clear broken image_url fields via Supabase |
-| rose-building-group | Placeholder "tbd" | Find and clear placeholder text |
-| sunny-side-kitchens | Missing OG image | Now REVIEW not NOT READY (threshold fixed) |
-
-### Pipeline bugs fixed (already committed)
-1. ✅ `upload-images.mjs` — content-type validation + clear failed portfolio URLs
-2. ✅ `branding.ts` — phone fallback to `''` instead of NorBot demo number
-3. ✅ `audit-report.mjs` — `seo_meta` downgraded to REVIEW (was critical → NOT READY)
+See `docs/session-handoff-2026-03-11.md` for full issue list and fix instructions.
