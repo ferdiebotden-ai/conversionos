@@ -7,27 +7,15 @@ import { registerSection } from '@/lib/section-registry';
 import type { SectionId } from '@/lib/section-types';
 import type { SectionComponent } from '@/lib/section-registry';
 
-import { StickyNavigationBar } from './sticky-navigation-bar';
-import { FullWidthHeroWithDarkOverlay } from './full-width-hero-with-dark-overlay';
-import { CompanyIntroductionBand } from './company-introduction-band';
-import { ServicesCardGrid } from './services-card-grid';
-import { PortfolioShowcaseStrip } from './portfolio-showcase-strip';
-import { AboutPageCompanyStory } from './about-page-company-story';
-import { AboutPageValuesWhyChooseUs } from './about-page-values-why-choose-us';
-import { ServicesPageDetailedServiceBlocks } from './services-page-detailed-service-blocks';
-import { ContactPageSplitLayout } from './contact-page-split-layout';
-import { ProjectsPageFilterableGallery } from './projects-page-filterable-gallery';
-import { SiteFooter } from './site-footer';
+import { HeroSection } from './hero-section';
+import { ServicesSection } from './services-section';
+import { AboutSection } from './about-section';
+import { Footer } from './footer';
+import { ProjectGallery } from './project-gallery';
 
 // Register sections at module load time (side-effect import)
-registerSection('custom:md-construction-navbar' as SectionId, StickyNavigationBar as SectionComponent);
-registerSection('custom:md-construction-hero' as SectionId, FullWidthHeroWithDarkOverlay as SectionComponent);
-registerSection('custom:md-construction-intro-strip' as SectionId, CompanyIntroductionBand as SectionComponent);
-registerSection('custom:md-construction-services-grid' as SectionId, ServicesCardGrid as SectionComponent);
-registerSection('custom:md-construction-portfolio-showcase' as SectionId, PortfolioShowcaseStrip as SectionComponent);
-registerSection('custom:md-construction-about-story' as SectionId, AboutPageCompanyStory as SectionComponent);
-registerSection('custom:md-construction-values-grid' as SectionId, AboutPageValuesWhyChooseUs as SectionComponent);
-registerSection('custom:md-construction-services-detail' as SectionId, ServicesPageDetailedServiceBlocks as SectionComponent);
-registerSection('custom:md-construction-contact-split' as SectionId, ContactPageSplitLayout as SectionComponent);
-registerSection('custom:md-construction-portfolio-gallery' as SectionId, ProjectsPageFilterableGallery as SectionComponent);
-registerSection('custom:md-construction-footer' as SectionId, SiteFooter as SectionComponent);
+registerSection('custom:md-construction-hero' as SectionId, HeroSection as SectionComponent);
+registerSection('custom:md-construction-services' as SectionId, ServicesSection as SectionComponent);
+registerSection('custom:md-construction-about' as SectionId, AboutSection as SectionComponent);
+registerSection('custom:md-construction-footer' as SectionId, Footer as SectionComponent);
+registerSection('custom:md-construction-gallery' as SectionId, ProjectGallery as SectionComponent);

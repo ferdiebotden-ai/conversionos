@@ -8,7 +8,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const DEMO_ROOT = resolve(import.meta.dirname, '../../');
-const PIPELINE_ENV = resolve(process.env.HOME, 'pipeline/scripts/.env');
+// Try multiple known locations for the pipeline .env
+const PIPELINE_ENV_CANDIDATES = [
+  resolve(process.env.HOME, 'norbot-ops/products/pipeline/scripts/.env'),
+  resolve(process.env.HOME, 'Norbot-Systems/products/conversionos/pipeline/scripts/.env'),
+  resolve(process.env.HOME, 'pipeline/scripts/.env'),
+];
 
 /**
  * Parse a .env file and set variables that are not already defined.
@@ -40,7 +45,9 @@ function parseEnvFile(filePath) {
  */
 export function loadEnv() {
   parseEnvFile(resolve(DEMO_ROOT, '.env.local'));
-  parseEnvFile(PIPELINE_ENV);
+  for (const candidate of PIPELINE_ENV_CANDIDATES) {
+    parseEnvFile(candidate);
+  }
 }
 
 /**

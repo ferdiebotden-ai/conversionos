@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SiteBlueprint v2",
+  "description": "Blueprint for rebuilding a contractor website with custom sections",
+  "type": "object",
+  "required": ["pages", "theme"],
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "title", "sections"],
+        "properties": {
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["sectionId"],
+              "properties": {
+                "sectionId": { "type": "string", "pattern": "^[a-z]+:[a-z0-9-]+$" },
+                "customRequired": { "type": "boolean" },
+                "customSpec": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": ["string", "null"] },
+            "secondary": { "type": ["string", "null"] },
+            "accent": { "type": ["string", "null"] }
+          }
+        },
+        "typography": {
+          "type": "object",
+          "properties": {
+            "headingFont": { "type": "string" },
+            "bodyFont": { "type": "string" }
+          }
+        },
+        "borderRadius": { "type": "string" },
+        "spacing": { "type": "string", "enum": ["compact", "default", "spacious"] },
+        "animationPreset": { "type": "string", "enum": ["fade-in-up", "stagger-reveal", "slide-in-left", "none"] }
+      }
+    },
+    "customSections": {
+      "type": "array",
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["name", "sectionId", "spec"],
+        "properties": {
+          "name": { "type": "string" },
+          "sectionId": { "type": "string" },
+          "spec": { "type": "string" },
+          "layout": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["full-width", "contained", "split", "grid", "flex"] },
+              "height": { "type": "string" },
+              "columns": { "type": ["number", "null"] },
+              "alignment": { "type": "string" },
+              "flexDirection": { "type": "string" }
+            }
+          },
+          "background": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["image-overlay", "gradient", "solid", "none", "video"] },
+              "overlayOpacity": { "type": "number" },
+              "overlayGradient": { "type": "string" }
+            }
+          },
+          "typography": {
+            "type": "object",
+            "properties": {
+              "headingSize": { "type": "string" },
+              "headingWeight": { "type": "number" },
+              "bodySize": { "type": "string" }
+            }
+          },
+          "spacing": {
+            "type": "object",
+            "properties": {
+              "paddingY": { "type": "string" },
+              "gap": { "type": "string" },
+              "innerPadding": { "type": "string" }
+            }
+          },
+          "animations": { "type": "array", "items": { "type": "string" } },
+          "contentMapping": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object", "additionalProperties": { "type": "string" } }
+            ]
+          },
+          "dataSource": { "type": "string" },
+          "referenceSection": { "type": "string" },
+          "cssHints": { "type": "string" },
+          "integrationNotes": { "type": "string" }
+        }
+      }
+    },
+    "contentElevation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": { "type": "string" },
+          "current": { "type": "string" },
+          "suggested": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

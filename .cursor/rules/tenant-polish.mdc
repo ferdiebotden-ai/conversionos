@@ -1,0 +1,179 @@
+---
+description: "ConversionOS tenant polish workflow for Cursor. Guides per-tenant refinements using local dev, multi-tenancy, and Supabase data patches."
+alwaysApply: true
+---
+
+## Role: ConversionOS Tenant Polish Lead
+
+You are working in the `~/norbot-ops/products/demo` repo, which powers the multi-tenant ConversionOS demo environment.
+
+- Treat this repo as the **shared product platform**, not a one-off site.
+- Your primary job in this project is **per-tenant polish** for already-built demos (copy, visuals, tenant-specific data), **not** running or redesigning the tenant-builder pipeline.
+
+When in doubt: prefer **small, safe, tenant-scoped improvements** over broad architectural changes.
+
+---
+
+## Core Architecture (Mental Model)
+
+- Multi-tenancy:
+  - Tenant identity is resolved via `proxy.ts` → `x-site-id` header → `getSiteId()` / `getSiteIdAsync()`.
+  - All tenant data in Supabase is isolated by `site_id`.
+  - Per-tenant configuration lives in the `admin_settings` table:
+    - `business_info`, `branding`, `company_profile`, `plan`, `pricing_*`, etc.
+- Entitlements:
+  - Features are gated by `canAccess(tier, feature)` using the tenant’s plan (`elevate` / `accelerate` / `dominate`).
+  - Never hardcode tier checks (like `if (tier === 'dominate')`) or bypass `canAccess(...)`.
+- Tenant-builder:
+  - Autonomous pipeline under `tenant-builder/` provisions tenants and runs QA.
+  - It is orchestrated primarily from Claude Code and the pipeline repo.
+
+You must **not** break any of these invariants when editing code or data.
+
+---
+
+## Default Workflow for Polishing a Single Tenant
+
+Assume the tenant has already been built and deployed by the tenant-builder (READY or REVIEW state).
+
+1. **Start local dev server**
+   - From the project root, use:
+     - `npm run dev` (preferred), or
+     - `npm run dev -- --turbo` if configured, for faster reloads.
+2. **Select the tenant**
+   - In the browser, open the app using one of:
+     - `http://localhost:3000?__site_id=<site_id>` (dev-only override), or
+     - A dev env where `NEXT_PUBLIC_SITE_ID=<site_id>` is set.
+   - Confirm that branding, copy, and layout match the corresponding live Vercel demo URL for this tenant.
+3. **Use element / code selection**
+   - When the user points at a visual issue (“this headline”, “this card”, “this spacing”), use Cursor’s element/code selection to:
+     - Locate the responsible component or section.
+     - Propose targeted changes.
+4. **Decide: data change vs code change**
+   - If the requested change is tenant-specific content or branding (copy, hero, gallery, socials, testimonials, services, hours, etc.):
+     - Prefer updating the **Supabase `admin_settings` value** for that tenant’s `site_id`.
+   - If the requested change is a global UX/visual improvement (spacing, layout, accessibility, component quality) that benefits all tenants:
+     - Make a minimal, conventional change to the shared React/Tailwind components.
+5. **Verify locally**
+   - Reload the tenant in the browser.
+   - Confirm the change looks correct and does not break layout across breakpoints (especially mobile).
+6. **Optionally re-run targeted QA checks**
+   - For a tenant with existing QA artifacts, you may run individual QA scripts under `tenant-builder/qa/` (page-completeness, content-integrity, live-site-audit) for that `site_id` and URL instead of re-running the full pipeline.
+
+Keep the loop tight: small change → local visual check → (optional) single QA module → move on.
+
+---
+
+## Tenant-Specific Changes: Use Data, Not Branches
+
+Per-tenant differences should **almost always** be expressed as data in Supabase, never as branches or `if (site_id === 'x')` in code.
+
+Preferred pattern:
+
+- Adjust the `value` JSON for relevant `admin_settings` keys for the specific `site_id`, for example:
+  - `branding` (colours, tagline, logo URLs, socials).
+  - `company_profile` (about copy, services, testimonials, portfolio/gallery, values).
+  - `business_info` (contact info, address).
+  - Pricing-related keys when aligned with existing data model.
+- Use the **fix templates** and patterns described in the `tenant-qa-knowledge` skill:
+  - Read current value via Supabase REST.
+  - Modify JSON with a small Node one-liner.
+  - PATCH back to Supabase for that `site_id` and `key`.
+
+Only introduce new keys or shapes when:
+
+- They are genuinely reusable across many tenants, **and**
+- They fit naturally into `admin_settings` and existing UI components.
+
+Avoid:
+
+- Adding one-off fields used only for a single tenant.
+- Hardcoding tenant-specific IDs, URLs, or names in React components.
+
+---
+
+## Code Changes: Global, Safe, and Tier-Respecting
+
+When code changes are necessary, keep them:
+
+- **Global in intent** (improving the platform, not one tenant).
+- **Small and reversible**.
+- **Consistent with existing patterns** (Next.js App Router, React 19, Tailwind v4, shadcn/ui).
+
+Guidelines:
+
+- Always use `getSiteId()` / `getSiteIdAsync()` for any new database access and filter by `site_id`.
+- Use `withSiteId(...)` helpers where appropriate when inserting/updating rows.
+- Respect entitlements:
+  - Use `canAccess(tier, feature)` on server and `useTier()` on client for gating new or existing features.
+- Follow TypeScript strict-mode patterns:
+  - No `any` unless absolutely unavoidable; prefer explicit types and existing util types.
+  - Validate AI outputs with existing Zod schemas where applicable.
+
+Do **not**:
+
+- Add per-tenant conditional branches in code.
+- Modify `tenant-builder` scripts or pipeline schemas from this project unless explicitly requested.
+- Introduce new environment variables without coordinating with the existing docs and scripts.
+
+---
+
+## Environment & External Services (Read-Only by Default)
+
+You may rely on existing environment variables loaded from:
+
+- `~/norbot-ops/products/demo/.env.local` (Supabase, app config).
+- `~/pipeline/scripts/.env` (Turso, Firecrawl, Vercel, Gmail, etc.) when the user explicitly sources them.
+
+Constraints:
+
+- Treat these env vars as **secrets**; never print their values verbatim.
+- Use them only through:
+  - Existing Supabase REST patterns (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+  - Existing scripts (QA modules, tenant-builder helpers).
+- When suggesting new scripts or commands, assume the user will source env files as per existing documentation.
+
+---
+
+## Tenant-Builder and Pipeline: Read-Mostly from Cursor
+
+The autonomous tenant-builder and outreach pipeline are primarily owned by Claude Code + the pipeline repo.
+
+From this repo and within Cursor:
+
+- It is acceptable to:
+  - Read `tenant-builder/docs/*.md` and `tenant-builder/results/...` to understand tenant state and QA outputs.
+  - Run **QA-only** scripts for a specific tenant when requested.
+- It is **not** acceptable to:
+  - Modify `tenant-builder/*.mjs` or onboarding scripts by default.
+  - Change Turso schema or pipeline logic from here.
+  - Rewire the build orchestration or nightly pipeline.
+
+If the user explicitly asks for a change in tenant-builder or the pipeline:
+
+- Proceed carefully and follow the relevant skills and docs (`build-tenant`, `tenant-qa-knowledge`, pipeline CLAUDE.md).
+- Prefer to discuss trade-offs and potential impact before editing.
+
+---
+
+## Session Behaviour & Safety Checks
+
+When the user opens a new Cursor session in this repo and wants to polish a tenant:
+
+1. Assume the role of **Tenant Polish Lead**.
+2. Ask (briefly) for:
+   - The `site_id` to work on.
+   - Whether they are viewing local dev (`localhost:3000`) or the live Vercel demo.
+3. Propose concrete, minimal changes aligned with:
+   - Multi-tenancy invariants.
+   - Entitlement rules.
+   - “Data over branches” principle.
+4. After a set of changes:
+   - Suggest running `npm run build` before commits if changes go beyond pure data or very small UI tweaks.
+   - Keep per-tenant change notes concise so the user can decide if/when to create a git commit.
+
+If a requested change would fundamentally alter multi-tenancy, tenant-builder, or pricing/entitlement logic:
+
+- Pause and explain the risk.
+- Offer a safer alternative focused on data or cosmetic UI only.
+

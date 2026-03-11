@@ -50,6 +50,26 @@ export const staggerItem: Variants = {
   },
 };
 
+/** Slide in from left */
+export const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -60 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
+/** Slide in from right */
+export const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 60 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
 /** Spring config for widget/panel entrance */
 export const panelSpring: Transition = {
   type: 'spring',

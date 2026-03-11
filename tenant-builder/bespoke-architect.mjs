@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 /**
- * Bespoke Architect — Opus 4.6 analyses a target website's visual structure
- * and produces a blueprint where every visual section becomes a custom section
- * that matches the original site's design.
+ * Bespoke Architect — vision-first analysis of a target website to
+ * produce a blueprint where every visual section becomes a custom section.
  *
- * Unlike architect.mjs (which picks from 50 standard sections), this module
- * analyses HTML + CSS tokens + screenshots to identify the original page structure
- * and creates detailed Codex build specs for each section.
+ * Primary: GPT 5.4 via Codex 0.114.0 with --image (vision-first)
+ * Fallback: Opus 4.6 via claude -p (text-only, same as pre-overhaul)
  *
  * Usage:
  *   import { bespokeArchitect } from './bespoke-architect.mjs';
  *   const blueprint = await bespokeArchitect('./results/2026-03-10/example/', 'example');
  */
 
+import { architectWithVision } from './lib/gpt54-architect.mjs';
 import { callOpus } from './lib/opus-cli.mjs';
 import { validateBlueprint } from './schemas/site-blueprint-v2.zod.mjs';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -34,50 +33,71 @@ const STANDARD_SECTIONS = [
 /**
  * Analyse a target website and produce a bespoke SiteBlueprint v2.
  *
+ * Strategy:
+ * 1. Try GPT 5.4 vision architect (Codex 0.114.0 with screenshots)
+ * 2. Fall back to Opus 4.6 text-only if vision fails
+ * 3. Fall back to static fallback blueprint if both fail
+ *
  * @param {string} resultsDir - Path to results directory containing scraped.json, html/, css-tokens.json, screenshots/original/
  * @param {string} siteId - The tenant site ID (used for custom section IDs)
  * @param {object} [options]
  * @param {number} [options.maxRetries=1]
- * @param {number} [options.timeoutMs=180000]
+ * @param {number} [options.timeoutMs=300000]
  * @returns {Promise<object>} SiteBlueprint v2 with bespoke custom sections
  */
-export async function bespokeArchitect(resultsDir, siteId, { maxRetries = 1, timeoutMs = 180000 } = {}) {
+export async function bespokeArchitect(resultsDir, siteId, { maxRetries = 1, timeoutMs = 300000 } = {}) {
   const scrapedPath = join(resultsDir, 'scraped.json');
   if (!existsSync(scrapedPath)) throw new Error(`No scraped.json at ${scrapedPath}`);
 
   const scraped = JSON.parse(readFileSync(scrapedPath, 'utf-8'));
+  const screenshotDir = join(resultsDir, 'screenshots/original');
+  const hasScreenshots = existsSync(screenshotDir) && readdirSync(screenshotDir).some(f => f.endsWith('.png'));
 
-  // Load bespoke-specific data
+  // ── Strategy 1: GPT 5.4 Vision Architect (primary) ──
+  if (hasScreenshots) {
+    logger.info('Bespoke Architect: trying GPT 5.4 vision (primary)');
+    try {
+      const blueprint = await architectWithVision(resultsDir, siteId, { timeoutMs, maxRetries });
+      logger.info(`Vision Architect succeeded: ${blueprint.pages.length} pages, ${blueprint.customSections?.length ?? 0} custom sections`);
+      return blueprint;
+    } catch (err) {
+      logger.warn(`Vision Architect failed: ${err.message?.slice(0, 200)} — falling back to Opus text-only`);
+    }
+  } else {
+    logger.info('Bespoke Architect: no screenshots available — using Opus text-only');
+  }
+
+  // ── Strategy 2: Opus 4.6 text-only (fallback) ──
+  logger.info('Bespoke Architect: trying Opus 4.6 text-only (fallback)');
   const cssTokens = loadJsonIfExists(join(resultsDir, 'css-tokens.json'));
   const htmlFiles = loadHtmlFiles(join(resultsDir, 'html'));
-  const screenshotPaths = discoverOriginalScreenshots(join(resultsDir, 'screenshots/original'));
 
-  const prompt = buildBespokePrompt(scraped, cssTokens, htmlFiles, screenshotPaths, siteId);
+  const prompt = buildOpusFallbackPrompt(scraped, cssTokens, htmlFiles, siteId);
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const raw = await callOpus(prompt, { timeoutMs });
+      const raw = await callOpus(prompt, { timeoutMs: Math.min(timeoutMs, 180000) });
       const result = validateBlueprint(raw);
       if (result.success) {
         const bp = result.data;
-        logger.info(`Bespoke Architect: ${bp.pages.length} pages, ${bp.customSections?.length ?? 0} custom sections`);
+        logger.info(`Opus Architect: ${bp.pages.length} pages, ${bp.customSections?.length ?? 0} custom sections`);
         return bp;
       }
-      logger.warn(`Bespoke Architect: Zod validation failed (attempt ${attempt + 1}): ${result.error.message}`);
+      logger.warn(`Opus Architect: Zod validation failed (attempt ${attempt + 1}): ${result.error.message}`);
     } catch (err) {
-      logger.warn(`Bespoke Architect: Call failed (attempt ${attempt + 1}): ${err.message}`);
+      logger.warn(`Opus Architect: Call failed (attempt ${attempt + 1}): ${err.message}`);
     }
   }
 
-  // Fallback: all-custom blueprint with basic specs
-  logger.warn('Bespoke Architect: All attempts failed — using fallback bespoke blueprint');
+  // ── Strategy 3: Static fallback blueprint ──
+  logger.warn('Bespoke Architect: All strategies failed — using fallback blueprint');
   return getFallbackBespokeBlueprint(scraped, siteId);
 }
 
 /**
- * Build the Opus prompt for bespoke visual analysis.
+ * Build the Opus text-only prompt (same structure as original, kept as fallback).
  */
-function buildBespokePrompt(scraped, cssTokens, htmlFiles, screenshotPaths, siteId) {
+function buildOpusFallbackPrompt(scraped, cssTokens, htmlFiles, siteId) {
   const standardCatalogue = STANDARD_SECTIONS
     .map(s => `  ${s.id} — ${s.desc}`)
     .join('\n');
@@ -96,7 +116,6 @@ function buildBespokePrompt(scraped, cssTokens, htmlFiles, screenshotPaths, site
     has_team: Boolean(scraped.team_members?.length),
   }, null, 2);
 
-  // CSS tokens summary (trimmed for prompt size)
   let cssTokensSummary = 'Not available';
   if (cssTokens) {
     const trimmed = {
@@ -113,13 +132,11 @@ function buildBespokePrompt(scraped, cssTokens, htmlFiles, screenshotPaths, site
     cssTokensSummary = JSON.stringify(trimmed, null, 2);
   }
 
-  // HTML structure summary (first 4000 chars of homepage HTML)
   let htmlSummary = 'Not available';
   if (htmlFiles.homepage) {
     htmlSummary = htmlFiles.homepage.slice(0, 4000) + (htmlFiles.homepage.length > 4000 ? '\n... [truncated]' : '');
   }
 
-  // Available pages from HTML
   const availablePages = Object.keys(htmlFiles);
 
   return `You are a website architecture analyst. Your task is to analyse a contractor's existing website and produce a bespoke rebuild blueprint.
@@ -145,29 +162,12 @@ ${availablePages.length > 0 ? availablePages.join(', ') : 'None captured'}
 
 ## INSTRUCTIONS
 
-1. **Analyse the HTML structure** to identify each distinct visual section of each page (hero, navigation bar, content blocks, service cards, testimonial area, footer, etc.)
-
-2. **For each visual section**, decide:
-   - **CUSTOM** (most sections): Create a custom section spec that Codex will rebuild to match the original design
-   - **STANDARD** (only when genuinely appropriate): Use one of our standard data-driven sections (see catalogue below)
-
-3. **Custom section specs must include:**
-   - sectionId: \`custom:${siteId}-{section-name}\` (e.g., \`custom:${siteId}-hero\`)
-   - name: Human-readable name
-   - spec: DETAILED visual description — layout (grid/flex, columns, alignment), background treatment (colour, gradient, image, clip-path), spacing, shadows, borders, any decorative elements
-   - layout: Structured object with type (full-width/contained/split/grid/flex), height, columns (number or null), alignment, flexDirection
-   - background: Structured object with type (image-overlay/gradient/solid/none/video), overlayOpacity (0-1), overlayGradient (CSS string)
-   - typography: Structured object with headingSize (CSS clamp or rem), headingWeight (number), bodySize (CSS rem)
-   - spacing: Structured object with paddingY, gap, innerPadding (all CSS values)
-   - animations: Array of animation presets used (e.g., ["parallax-bg", "stagger-text", "fade-in-up", "count-up", "slide-in-left"])
-   - contentMapping: Structured object mapping UI slots to data field names from company_profile (use camelCase: heroHeadline, heroImageUrl, aboutCopy, etc.)
-   - cssHints: Specific CSS properties from the css-tokens that apply (exact font families, colours, border-radius values, spacing rhythm)
-   - integrationNotes: How ConversionOS features integrate (e.g., "Replace contact form with /visualizer CTA link")
-
-4. **Theme**: Extract exact values from CSS tokens — don't guess. Use rendered fonts, computed colours (convert to OKLCH), exact border-radius values.
-
-5. **Homepage should have 6-12 custom sections** (hero + nav + content blocks + CTA + footer)
-6. **Inner pages** should start with misc:breadcrumb-hero (standard) then custom sections matching the original page layout
+1. **Analyse the HTML structure** to identify each distinct visual section of each page
+2. **For each visual section**, decide CUSTOM or STANDARD
+3. **Custom section specs must include:** sectionId, name, spec (detailed visual description), layout, background, typography, spacing, animations, contentMapping (camelCase field names), cssHints, integrationNotes
+4. **Theme**: Extract exact values from CSS tokens
+5. **Homepage should have 6-12 custom sections**
+6. **Inner pages** should start with misc:breadcrumb-hero then custom sections
 
 ## Standard Sections (use ONLY where data-driven sections are adequate)
 ${standardCatalogue}
@@ -179,7 +179,7 @@ Return ONLY valid JSON (no markdown, no explanation):
     {
       "slug": "homepage",
       "title": "...",
-      "sections": [{ "sectionId": "custom:${siteId}-hero" }, { "sectionId": "trust:badge-strip" }, ...]
+      "sections": [{ "sectionId": "custom:${siteId}-hero" }, ...]
     },
     { "slug": "about", "title": "...", "sections": [...] },
     { "slug": "services", "title": "...", "sections": [...] },
@@ -187,16 +187,9 @@ Return ONLY valid JSON (no markdown, no explanation):
     { "slug": "projects", "title": "...", "sections": [...] }
   ],
   "theme": {
-    "colors": {
-      "primary": "oklch(...)",
-      "secondary": "oklch(...)",
-      "accent": "oklch(...)"
-    },
-    "typography": {
-      "headingFont": "exact font from renderedFonts",
-      "bodyFont": "exact font from renderedFonts"
-    },
-    "borderRadius": "exact value from css-tokens",
+    "colors": { "primary": "oklch(...)", "secondary": "oklch(...)", "accent": "oklch(...)" },
+    "typography": { "headingFont": "...", "bodyFont": "..." },
+    "borderRadius": "...",
     "spacing": "compact|default|spacious",
     "animationPreset": "fade-in-up|stagger-reveal|slide-in-left|none"
   },
@@ -204,39 +197,15 @@ Return ONLY valid JSON (no markdown, no explanation):
     {
       "sectionId": "custom:${siteId}-hero",
       "name": "Hero Section",
-      "spec": "Full-width hero with dark image overlay, centred text, two CTA buttons",
-      "layout": {
-        "type": "full-width",
-        "height": "100vh",
-        "columns": null,
-        "alignment": "center",
-        "flexDirection": "column"
-      },
-      "background": {
-        "type": "image-overlay",
-        "overlayOpacity": 0.55,
-        "overlayGradient": "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.7))"
-      },
-      "typography": {
-        "headingSize": "clamp(2.5rem, 5vw, 4rem)",
-        "headingWeight": 700,
-        "bodySize": "1.125rem"
-      },
-      "spacing": {
-        "paddingY": "0",
-        "gap": "1.5rem",
-        "innerPadding": "2rem"
-      },
+      "spec": "Full-width hero with dark image overlay...",
+      "layout": { "type": "full-width", "height": "100vh", "columns": null, "alignment": "center", "flexDirection": "column" },
+      "background": { "type": "image-overlay", "overlayOpacity": 0.55, "overlayGradient": "..." },
+      "typography": { "headingSize": "clamp(2.5rem, 5vw, 4rem)", "headingWeight": 700, "bodySize": "1.125rem" },
+      "spacing": { "paddingY": "0", "gap": "1.5rem", "innerPadding": "2rem" },
       "animations": ["parallax-bg", "stagger-text"],
-      "contentMapping": {
-        "heading": "heroHeadline",
-        "subheading": "heroSubheadline",
-        "backgroundImage": "heroImageUrl",
-        "ctaText": "Get Your Free Design Estimate",
-        "ctaLink": "/visualizer"
-      },
-      "cssHints": "font-family: Montserrat; h1 font-size: 48px;",
-      "integrationNotes": "Primary CTA links to /visualizer, secondary to /services"
+      "contentMapping": { "heading": "heroHeadline", "subheading": "heroSubheadline", "backgroundImage": "heroImageUrl" },
+      "cssHints": "...",
+      "integrationNotes": "Primary CTA links to /visualizer"
     }
   ],
   "contentElevation": []
@@ -244,7 +213,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 }
 
 /**
- * Fallback blueprint when Opus fails — creates basic custom section stubs.
+ * Fallback blueprint when all strategies fail.
  */
 function getFallbackBespokeBlueprint(scraped, siteId) {
   const hasTestimonials = scraped.testimonials?.length > 0;
@@ -255,7 +224,7 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
       sectionId: `custom:${siteId}-hero`,
       name: 'Hero Section',
       spec: 'Full-width hero with background image, overlay, headline, and CTA buttons. Match the original site colours and typography.',
-      contentMapping: 'hero_headline, hero_image_url, tagline',
+      contentMapping: { heading: 'heroHeadline', subheading: 'heroSubheadline', backgroundImage: 'heroImageUrl' },
       integrationNotes: 'Primary CTA links to /visualizer',
     },
     {
@@ -269,7 +238,7 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
       sectionId: `custom:${siteId}-about`,
       name: 'About Section',
       spec: 'Company about section matching original layout. Text and image side by side or stacked.',
-      contentMapping: 'about_text, about_image_url',
+      contentMapping: { aboutText: 'aboutCopy', aboutImage: 'aboutImageUrl' },
       integrationNotes: 'None',
     },
     {
@@ -397,17 +366,4 @@ function loadHtmlFiles(htmlDir) {
     }
   } catch { /* directory read error */ }
   return files;
-}
-
-function discoverOriginalScreenshots(screenshotDir) {
-  const paths = [];
-  if (!existsSync(screenshotDir)) return paths;
-  try {
-    for (const f of readdirSync(screenshotDir)) {
-      if (f.endsWith('.png') || f.endsWith('.jpg')) {
-        paths.push(join(screenshotDir, f));
-      }
-    }
-  } catch { /* directory read error */ }
-  return paths;
 }

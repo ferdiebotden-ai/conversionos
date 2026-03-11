@@ -22,6 +22,7 @@ import { loadEnv, requireEnv } from '../lib/env-loader.mjs';
 import * as logger from '../lib/logger.mjs';
 import { extractBranding } from './branding-v2.mjs';
 import { extractLogo } from './logo-extract.mjs';
+import { captureScreenshots } from './screenshot-capture.mjs';
 import { hexToOklch } from '../../scripts/onboarding/convert-color.mjs';
 import { createClient } from '@libsql/client';
 
@@ -35,6 +36,7 @@ const { values: args } = parseArgs({
     output: { type: 'string' },
     'skip-branding': { type: 'boolean', default: false },
     'skip-logo': { type: 'boolean', default: false },
+    bespoke: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -106,6 +108,103 @@ try {
 
 // Load the raw scraped data
 const scraped = JSON.parse(readFileSync(scrapeOutputPath, 'utf-8'));
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.5: Bespoke — HTML capture via Firecrawl
+// ──────────────────────────────────────────────────────────
+
+if (args.bespoke) {
+  logger.info('Phase 2.5: Capturing HTML for bespoke rebuild');
+  const htmlDir = resolve(outputDir, 'html');
+  mkdirSync(htmlDir, { recursive: true });
+
+  // Try Firecrawl first, fall back to Playwright for HTML capture
+  let htmlCaptured = 0;
+  const fallbackPages = ['/', '/about', '/about-us', '/services', '/contact', '/gallery', '/portfolio', '/testimonials', '/reviews'];
+
+  try {
+    const FirecrawlApp = (await import('@mendable/firecrawl-js')).default;
+    const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+
+    for (const pagePath of fallbackPages) {
+      const pageUrl = new URL(pagePath, url).href;
+      try {
+        const result = await firecrawl.scrapeUrl(pageUrl, { formats: ['html'], timeout: 30000 });
+        if (result.success && result.html) {
+          const slug = pagePath === '/' ? 'homepage' : pagePath.replace(/^\//, '').replace(/\//g, '-');
+          writeFileSync(resolve(htmlDir, `${slug}.html`), result.html);
+          logger.info(`HTML captured (Firecrawl): ${slug} (${result.html.length} chars)`);
+          htmlCaptured++;
+        }
+      } catch (e) {
+        if (!e.message?.includes('404')) {
+          logger.debug(`Firecrawl HTML failed for ${pagePath}: ${e.message?.slice(0, 60)}`);
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn(`Firecrawl HTML phase failed: ${e.message}`);
+  }
+
+  // Playwright fallback: if Firecrawl captured 0 pages, use page.content()
+  if (htmlCaptured === 0) {
+    logger.info('Phase 2.5b: Playwright HTML fallback (Firecrawl returned no HTML)');
+    try {
+      const { chromium } = await import('playwright');
+      const browser = await chromium.launch({ headless: true });
+      for (const pagePath of fallbackPages) {
+        const pageUrl = new URL(pagePath, url).href;
+        try {
+          const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+          const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 20000 });
+          if (response && response.status() < 400) {
+            const html = await page.content();
+            if (html && html.length > 500) {
+              const slug = pagePath === '/' ? 'homepage' : pagePath.replace(/^\//, '').replace(/\//g, '-');
+              writeFileSync(resolve(htmlDir, `${slug}.html`), html);
+              logger.info(`HTML captured (Playwright): ${slug} (${html.length} chars)`);
+              htmlCaptured++;
+            }
+          }
+          await page.close();
+        } catch { /* page doesn't exist or timed out — skip */ }
+      }
+      await browser.close();
+    } catch (e) {
+      logger.warn(`Playwright HTML fallback failed: ${e.message}`);
+    }
+  }
+  logger.info(`HTML capture complete: ${htmlCaptured} page(s)`);
+}
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.7: Bespoke — CSS token extraction + original screenshots
+// ──────────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.7: Screenshots for ALL builds + CSS tokens for bespoke
+// ──────────────────────────────────────────────────────────
+
+// Screenshots are now captured for ALL builds (not just bespoke)
+// They are the primary visual data source for the pipeline
+logger.info('Phase 2.7: Full-page screenshots of original site');
+try {
+  await captureScreenshots(url, outputDir, { timeout: 20000, mobile: true });
+} catch (e) {
+  logger.warn(`Screenshot capture failed: ${e.message} — continuing without`);
+}
+
+if (args.bespoke) {
+  // CSS tokens (bespoke only — not needed for template builds)
+  logger.info('Phase 2.7a: CSS token extraction via Playwright');
+  try {
+    const { extractCssTokens } = await import('./css-extract.mjs');
+    const cssOutputPath = resolve(outputDir, 'css-tokens.json');
+    await extractCssTokens(url, { outputFile: cssOutputPath, timeout: 60000 });
+  } catch (e) {
+    logger.warn(`CSS token extraction failed: ${e.message} — continuing without`);
+  }
+}
 
 // ──────────────────────────────────────────────────────────
 // Phase 3: Logo extraction

@@ -2,12 +2,13 @@
 /**
  * Custom Section Builder — generates per-tenant React sections from blueprint specs.
  *
- * For each customSection in the SiteBlueprint v2, this module:
- * 1. Builds a Codex prompt with the section spec + reference template
- * 2. Runs `codex exec --full-auto` to generate the component
- * 3. Detects new files in the output directory (not exact filename match)
- * 4. Batch TypeScript check after all sections are built
- * 5. Generates an index.ts manifest for build-time registration
+ * Vision-First Pipeline (Codex 0.114.0):
+ * 1. Select relevant screenshots for each section
+ * 2. Build vision-first Codex prompt with screenshot + spec
+ * 3. Run Codex with --image for visual reference
+ * 4. Optionally build in parallel via multi-agent CSV
+ * 5. Run Codex review quality gate (static + AI)
+ * 6. Generate index.ts manifest for build-time registration
  *
  * Usage:
  *   import { buildCustomSections } from './build-custom-sections.mjs';
@@ -15,6 +16,8 @@
  */
 
 import { codexExec } from './lib/codex-cli.mjs';
+import { buildSectionsParallel } from './lib/codex-multi-agent.mjs';
+import { reviewGeneratedSections } from './lib/codex-review.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -23,6 +26,25 @@ import * as logger from './lib/logger.mjs';
 const TEMPLATE_PATH = resolve(import.meta.dirname, 'templates/custom-section-template.tsx');
 const INTEGRATION_SPEC_PATH = resolve(import.meta.dirname, 'templates/integration-spec.md');
 
+// Animation pattern mapping — injected per section type
+const ANIMATION_MAP = {
+  hero: "import { StaggerContainer, FadeInUp, ParallaxSection } from '@/components/motion';",
+  nav: '',
+  services: "import { StaggerContainer, StaggerItem } from '@/components/motion';",
+  gallery: "import { ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';",
+  portfolio: "import { ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';",
+  testimonials: "import { StaggerContainer, StaggerItem } from '@/components/motion';",
+  about: "import { FadeIn, SlideInFromSide } from '@/components/motion';",
+  team: "import { FadeIn, SlideInFromSide } from '@/components/motion';",
+  story: "import { FadeIn, SlideInFromSide } from '@/components/motion';",
+  trust: "import { CountUp, FadeInUp } from '@/components/motion';",
+  stats: "import { CountUp, FadeInUp } from '@/components/motion';",
+  cta: "import { FadeInUp } from '@/components/motion';",
+  contact: "import { FadeInUp } from '@/components/motion';",
+  footer: '',
+  default: "import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion';",
+};
+
 /**
  * Build custom React sections from a blueprint's customSections array.
  *
@@ -30,13 +52,23 @@ const INTEGRATION_SPEC_PATH = resolve(import.meta.dirname, 'templates/integratio
  * @param {object} blueprint - SiteBlueprint v2 object
  * @param {object} options
  * @param {string} options.cwd - The ConversionOS project root
- * @param {number} [options.timeoutMs=180000] - Timeout per section
+ * @param {number} [options.timeoutMs=300000] - Timeout per section
  * @param {boolean} [options.bespokeMode=false] - Bespoke mode with screenshots + HTML
  * @param {string} [options.resultsDir] - Results directory (for bespoke mode assets)
  * @param {number} [options.maxSections=5] - Maximum sections to build
+ * @param {boolean} [options.parallel=false] - Use multi-agent parallel build
+ * @param {boolean} [options.review=true] - Run Codex review quality gate
  * @returns {Promise<{ built: number, failed: number }>}
  */
-export async function buildCustomSections(siteId, blueprint, { cwd, timeoutMs = 180000, bespokeMode = false, resultsDir, maxSections = 5 }) {
+export async function buildCustomSections(siteId, blueprint, {
+  cwd,
+  timeoutMs = 300000,
+  bespokeMode = false,
+  resultsDir,
+  maxSections = 5,
+  parallel = false,
+  review = true,
+}) {
   let customSections = blueprint.customSections ?? [];
   if (customSections.length === 0) return { built: 0, failed: 0 };
 
@@ -66,78 +98,138 @@ export async function buildCustomSections(siteId, blueprint, { cwd, timeoutMs = 
   let failed = 0;
   const builtSpecs = [];
 
-  for (const spec of customSections) {
-    const componentName = toPascalCase(spec.name);
-    const expectedFileName = toKebabCase(spec.name) + '.tsx';
-    const expectedFilePath = join(customDir, expectedFileName);
-
-    logger.info(`Building custom section: ${spec.sectionId} (${componentName})${bespokeMode ? ' [bespoke]' : ''}`);
-
-    const prompt = bespokeMode
-      ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles)
-      : buildCodexPrompt(spec, siteId, template, cwd);
-
-    // Snapshot directory before Codex runs
-    const filesBefore = new Set(readdirSync(customDir).filter(f => f.endsWith('.tsx')));
-
-    // Skip images — text prompts with CSS tokens + HTML are sufficient and 5x faster
+  // ── Try parallel build first (if enabled and enough sections) ──
+  if (parallel && customSections.length >= 3) {
+    logger.info(`Multi-agent parallel build: ${customSections.length} sections`);
     try {
-      // Generate the component (text-only — images cause 10min+ timeouts)
-      await codexExec(prompt, { cwd, timeoutMs, images: [] });
+      const result = await buildSectionsParallel(customSections, siteId, {
+        cwd,
+        integrationSpec,
+        template,
+        screenshotPaths,
+        cssTokens,
+        timeoutMs: timeoutMs * customSections.length, // Total timeout
+      });
 
-      // Detect new files by diffing directory (handles Codex writing to different filename)
-      let createdFile = null;
-      if (existsSync(expectedFilePath)) {
-        createdFile = expectedFileName;
-      } else {
-        // Scan for any new .tsx file in the directory
-        const filesAfter = readdirSync(customDir).filter(f => f.endsWith('.tsx'));
-        const newFiles = filesAfter.filter(f => !filesBefore.has(f));
-        if (newFiles.length > 0) {
-          createdFile = newFiles[0];
-          logger.info(`Codex wrote to ${createdFile} (expected ${expectedFileName})`);
+      // Check what was built
+      for (const spec of customSections) {
+        const fileName = toKebabCase(spec.name) + '.tsx';
+        if (result.built.includes(fileName)) {
+          const componentName = toPascalCase(fileName.replace('.tsx', ''));
+          builtSpecs.push({ spec, fileName, componentName });
+          built++;
+        } else {
+          failed++;
         }
       }
 
-      if (!createdFile) {
-        logger.warn(`Custom section ${spec.sectionId} — no file created after Codex`);
-        failed++;
-        continue;
+      if (built > 0) {
+        logger.info(`Multi-agent: ${built} built, ${failed} failed`);
       }
 
-      // Determine actual component name from the file that was created
-      const actualFileName = createdFile;
-      const actualComponentName = toPascalCase(actualFileName.replace('.tsx', ''));
-
-      // Post-generation validation: warn on snake_case field access patterns
-      try {
-        const generatedContent = readFileSync(join(customDir, actualFileName), 'utf-8');
-        const snakeCasePatterns = ['hero_headline', 'hero_image_url', 'about_text', 'about_copy', 'about_image_url', 'logo_url', 'trust_metrics', 'hero_subheadline', 'service_area', 'why_choose_us'];
-        for (const pattern of snakeCasePatterns) {
-          if (generatedContent.includes(`['${pattern}']`) || generatedContent.includes(`.${pattern}`)) {
-            logger.warn(`Custom section ${spec.sectionId} uses snake_case field '${pattern}' — should use camelCase`);
-          }
-        }
-      } catch { /* skip validation if file read fails */ }
-
-      built++;
-      builtSpecs.push({ spec, fileName: actualFileName, componentName: actualComponentName });
-      logger.info(`Custom section built: ${spec.sectionId} → ${actualFileName}`);
+      if (failed > 0 && built === 0) {
+        logger.warn('Multi-agent failed entirely — falling back to sequential');
+        built = 0;
+        failed = 0;
+        builtSpecs.length = 0;
+      }
     } catch (err) {
-      logger.warn(`Custom section ${spec.sectionId} failed: ${err.message}`);
-      failed++;
+      logger.warn(`Multi-agent failed: ${err.message?.slice(0, 100)} — falling back to sequential`);
     }
   }
 
-  // Batch TypeScript check after all sections are built (not per-section)
-  if (builtSpecs.length > 0) {
-    logger.info(`Running batch TypeScript check for ${builtSpecs.length} custom section(s)...`);
+  // ── Sequential build (primary path or fallback) ──
+  if (built === 0) {
+    for (const spec of customSections) {
+      const componentName = toPascalCase(spec.name);
+      const expectedFileName = toKebabCase(spec.name) + '.tsx';
+      const expectedFilePath = join(customDir, expectedFileName);
+
+      logger.info(`Building custom section: ${spec.sectionId} (${componentName})${bespokeMode ? ' [bespoke]' : ''}`);
+
+      const prompt = bespokeMode
+        ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths)
+        : buildCodexPrompt(spec, siteId, template, cwd);
+
+      // Select relevant screenshots for this section
+      // NOTE: Images disabled for sequential builds (2026-03-11).
+      // Codex --image causes 10min+ timeouts per section even with 0.114.0.
+      // CSS tokens + HTML snippets provide sufficient visual context.
+      // Screenshots are captured but used only by the visual diff QA step.
+      const sectionImages = [];
+
+      // Snapshot directory before Codex runs
+      const filesBefore = new Set(readdirSync(customDir).filter(f => f.endsWith('.tsx')));
+
+      try {
+        // Generate the component — vision-first with screenshots when available
+        await codexExec(prompt, {
+          cwd,
+          timeoutMs,
+          images: sectionImages,
+          ephemeral: true,
+        });
+
+        // Detect new files by diffing directory
+        let createdFile = null;
+        if (existsSync(expectedFilePath)) {
+          createdFile = expectedFileName;
+        } else {
+          const filesAfter = readdirSync(customDir).filter(f => f.endsWith('.tsx'));
+          const newFiles = filesAfter.filter(f => !filesBefore.has(f));
+          if (newFiles.length > 0) {
+            createdFile = newFiles[0];
+            logger.info(`Codex wrote to ${createdFile} (expected ${expectedFileName})`);
+          }
+        }
+
+        if (!createdFile) {
+          logger.warn(`Custom section ${spec.sectionId} — no file created after Codex`);
+          failed++;
+          continue;
+        }
+
+        const actualFileName = createdFile;
+        const actualComponentName = toPascalCase(actualFileName.replace('.tsx', ''));
+
+        built++;
+        builtSpecs.push({ spec, fileName: actualFileName, componentName: actualComponentName });
+        logger.info(`Custom section built: ${spec.sectionId} → ${actualFileName}`);
+      } catch (err) {
+        logger.warn(`Custom section ${spec.sectionId} failed: ${err.message}`);
+        failed++;
+      }
+    }
+  }
+
+  // ── Codex Review Quality Gate ──
+  if (review && builtSpecs.length > 0) {
+    logger.info(`Running Codex review quality gate for ${builtSpecs.length} section(s)...`);
+    try {
+      const reviewResult = await reviewGeneratedSections(cwd, siteId, {
+        autoFix: true,
+        maxCycles: 2,
+        timeoutMs: Math.min(timeoutMs, 120000),
+      });
+      if (reviewResult.pass) {
+        logger.info(`Review passed (${reviewResult.cycles} cycle(s), ${reviewResult.issuesFixed} fixed)`);
+      } else {
+        logger.warn(`Review found ${reviewResult.issuesFound} issue(s), fixed ${reviewResult.issuesFixed}`);
+      }
+    } catch (err) {
+      logger.warn(`Codex review failed (non-blocking): ${err.message?.slice(0, 100)}`);
+    }
+  }
+
+  // ── TypeScript check (fallback if review skipped) ──
+  if (!review && builtSpecs.length > 0) {
+    logger.info(`Running TypeScript check for ${builtSpecs.length} custom section(s)...`);
     const tscResult = tscCheck(cwd);
     if (tscResult.exitCode !== 0) {
       logger.warn(`TypeScript errors in custom sections — attempting batch fix`);
       const fixPrompt = `Fix all TypeScript errors in the files under src/sections/custom/${siteId}/. Errors:\n${tscResult.errors}\n\nFix the files so they compile cleanly. Do not delete files.`;
       try {
-        await codexExec(fixPrompt, { cwd, timeoutMs });
+        await codexExec(fixPrompt, { cwd, timeoutMs, ephemeral: true });
         const retryResult = tscCheck(cwd);
         if (retryResult.exitCode !== 0) {
           logger.warn(`TypeScript errors persist after fix attempt — continuing anyway`);
@@ -155,7 +247,6 @@ export async function buildCustomSections(siteId, blueprint, { cwd, timeoutMs = 
   // Generate index.ts manifest for build-time registration
   if (builtSpecs.length > 0) {
     generateCustomIndex(customDir, builtSpecs);
-    // Update the top-level custom registry to import this tenant
     updateTopLevelRegistry(cwd);
   }
 
@@ -163,7 +254,7 @@ export async function buildCustomSections(siteId, blueprint, { cwd, timeoutMs = 
 }
 
 /**
- * Build the Codex prompt for generating a custom section.
+ * Build the Codex prompt for generating a custom section (template mode).
  */
 function buildCodexPrompt(spec, siteId, template, cwd) {
   let referenceCode = '';
@@ -174,6 +265,8 @@ function buildCodexPrompt(spec, siteId, template, cwd) {
       referenceCode = `\n## Reference Section (${spec.referenceSection})\nUse this existing section as a pattern reference:\n\`\`\`tsx\n${readFileSync(refPath, 'utf-8')}\n\`\`\`\n`;
     }
   }
+
+  const animationImport = getAnimationImport(spec.name);
 
   return `Create a custom React section component for a renovation contractor website.
 
@@ -199,10 +292,172 @@ ${template}
 - Accept { branding, config, tokens, className } props
 - Use Tailwind CSS (v4) for styling
 - Use bg-primary, text-primary-foreground for brand colours
+- ${animationImport ? `Animation: ${animationImport}` : 'Add appropriate Framer Motion animations'}
 - Return null if required data is missing
 - Do NOT import external packages — only use existing project imports
 - Use responsive design (mobile-first with md: breakpoints)
 ${referenceCode}`;
+}
+
+/**
+ * Build a bespoke Codex prompt — vision-first and directive.
+ * Screenshots are passed via --image flag, not embedded in the prompt.
+ */
+function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths) {
+  // Find relevant HTML for context
+  const sectionNameLower = spec.name.toLowerCase();
+  let relevantHtml = '';
+  if (sectionNameLower.includes('hero') || sectionNameLower.includes('header') || sectionNameLower.includes('nav') || sectionNameLower.includes('footer')) {
+    relevantHtml = htmlFiles.homepage?.slice(0, 2000) || '';
+  } else if (sectionNameLower.includes('service')) {
+    relevantHtml = htmlFiles.services?.slice(0, 2000) || htmlFiles.homepage?.slice(0, 2000) || '';
+  } else if (sectionNameLower.includes('about') || sectionNameLower.includes('team') || sectionNameLower.includes('story') || sectionNameLower.includes('value')) {
+    relevantHtml = (htmlFiles.about || htmlFiles['about-us'])?.slice(0, 2000) || '';
+  } else if (sectionNameLower.includes('contact') || sectionNameLower.includes('map')) {
+    relevantHtml = htmlFiles.contact?.slice(0, 2000) || '';
+  } else if (sectionNameLower.includes('gallery') || sectionNameLower.includes('portfolio') || sectionNameLower.includes('project')) {
+    relevantHtml = (htmlFiles.gallery || htmlFiles.portfolio)?.slice(0, 2000) || '';
+  } else {
+    relevantHtml = htmlFiles.homepage?.slice(0, 1500) || '';
+  }
+
+  // Compact CSS hints
+  let cssHints = '';
+  if (cssTokens) {
+    cssHints = JSON.stringify({
+      fonts: cssTokens.renderedFonts,
+      h1: cssTokens.elements?.h1,
+      button: cssTokens.elements?.button,
+      radii: cssTokens.borderRadii,
+    });
+  }
+  if (spec.cssHints) cssHints += `\n${spec.cssHints}`;
+
+  const filePath = `src/sections/custom/${siteId}/${toKebabCase(spec.name)}.tsx`;
+  const animationImport = getAnimationImport(spec.name);
+
+  // Pre-compute data access lines for this section's content mapping
+  const dataAccessLines = buildDataAccessLines(spec);
+
+  const hasScreenshots = screenshotPaths.length > 0;
+
+  return `IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files. Do NOT explore the codebase. Just write the single file specified below.
+
+${hasScreenshots ? 'LOOK at the attached screenshot(s) of the original contractor website. You are rebuilding this EXACT section as a React component. The generated code must VISUALLY MATCH what you see in the screenshot.' : ''}
+
+Create file: ${filePath}
+
+VISUAL SPEC: ${spec.spec}
+${spec.layout ? `LAYOUT: ${JSON.stringify(spec.layout)}` : ''}
+${spec.background ? `BACKGROUND: ${JSON.stringify(spec.background)}` : ''}
+${spec.typography ? `TYPOGRAPHY: ${JSON.stringify(spec.typography)}` : ''}
+${spec.spacing ? `SPACING: ${JSON.stringify(spec.spacing)}` : ''}
+${spec.contentMapping ? `DATA MAPPING: ${typeof spec.contentMapping === 'string' ? spec.contentMapping : JSON.stringify(spec.contentMapping)}` : ''}
+${spec.integrationNotes ? `INTEGRATION: ${spec.integrationNotes}` : ''}
+
+CSS from original site: ${cssHints}
+
+${dataAccessLines ? `PRE-COMPUTED DATA ACCESS (copy these into your component):\n\`\`\`tsx\n${dataAccessLines}\n\`\`\`` : ''}
+
+${relevantHtml ? `Original HTML reference (first 2000 chars):\n${relevantHtml}\n` : ''}
+
+${integrationSpec}
+
+COMPONENT PATTERN — follow this exactly:
+\`\`\`tsx
+${template}
+\`\`\`
+
+RULES:
+1. 'use client' directive at top
+2. import type { SectionBaseProps } from '@/lib/section-types'
+3. Named export: ${toPascalCase(spec.name)}
+4. Props: { branding, config, tokens, className }
+5. ${animationImport || "import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion'"}
+6. Tailwind CSS v4. Mobile-first responsive (md: lg: xl:)
+7. Brand colours: bg-primary, text-primary-foreground, text-muted-foreground
+8. Images: import Image from 'next/image'. Gradient fallbacks for missing images.
+9. Replace contact forms with <Link href="/visualizer">Get Your Free Design Estimate</Link>
+10. 80-150 lines of clean, production-quality code`;
+}
+
+/**
+ * Build pre-computed data access lines from contentMapping.
+ */
+function buildDataAccessLines(spec) {
+  if (!spec.contentMapping || typeof spec.contentMapping === 'string') return '';
+
+  const lines = ['function str(v: unknown): string { return typeof v === \'string\' && v.trim() ? v.trim() : \'\'; }'];
+
+  const fieldMap = {
+    heading: ['heroHeadline', 'hero_headline'],
+    subheading: ['heroSubheadline', 'hero_subheadline'],
+    backgroundImage: ['heroImageUrl', 'hero_image_url'],
+    aboutText: ['aboutCopy', 'about_copy', 'about_text'],
+    aboutImage: ['aboutImageUrl', 'about_image_url'],
+    logo: ['logoUrl', 'logo_url'],
+    serviceArea: ['serviceArea', 'service_area'],
+  };
+
+  for (const [slot, configField] of Object.entries(spec.contentMapping)) {
+    const mapped = fieldMap[slot];
+    if (mapped) {
+      lines.push(`const ${slot} = ${mapped.map(f => `str(config['${f}'])`).join(' || ')};`);
+    } else {
+      // Direct field access with camelCase primary
+      const camel = configField;
+      const snake = configField.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+      if (camel !== snake) {
+        lines.push(`const ${slot} = str(config['${camel}']) || str(config['${snake}']);`);
+      } else {
+        lines.push(`const ${slot} = str(config['${configField}']);`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Get the appropriate animation import for a section type.
+ */
+function getAnimationImport(sectionName) {
+  const nameL = sectionName.toLowerCase();
+  for (const [key, imp] of Object.entries(ANIMATION_MAP)) {
+    if (nameL.includes(key)) return imp;
+  }
+  return ANIMATION_MAP.default;
+}
+
+/**
+ * Select relevant screenshots for a section based on its name/page.
+ */
+function selectRelevantScreenshots(spec, allScreenshots) {
+  if (allScreenshots.length === 0) return [];
+
+  const nameL = spec.name.toLowerCase();
+  const selected = [];
+
+  // Always include homepage desktop screenshot
+  const homepageDesktop = allScreenshots.find(p => p.includes('homepage-desktop'));
+  if (homepageDesktop) selected.push(homepageDesktop);
+
+  // Add page-specific screenshot
+  if (nameL.includes('service')) {
+    const match = allScreenshots.find(p => p.includes('services-desktop'));
+    if (match) selected.push(match);
+  } else if (nameL.includes('about') || nameL.includes('team') || nameL.includes('story') || nameL.includes('value')) {
+    const match = allScreenshots.find(p => (p.includes('about-desktop') || p.includes('about-us-desktop')));
+    if (match) selected.push(match);
+  } else if (nameL.includes('contact') || nameL.includes('map')) {
+    const match = allScreenshots.find(p => p.includes('contact-desktop'));
+    if (match) selected.push(match);
+  } else if (nameL.includes('gallery') || nameL.includes('portfolio') || nameL.includes('project')) {
+    const match = allScreenshots.find(p => (p.includes('gallery-desktop') || p.includes('portfolio-desktop')));
+    if (match) selected.push(match);
+  }
+
+  return [...new Set(selected)]; // Deduplicate, max 2 images
 }
 
 /**
@@ -238,7 +493,6 @@ ${registrations}
 
 /**
  * Update the top-level custom section registry (src/sections/custom/registry.ts).
- * Scans for all tenant custom section directories and generates a unified import file.
  */
 function updateTopLevelRegistry(cwd) {
   const customBaseDir = join(cwd, 'src', 'sections', 'custom');
@@ -263,110 +517,6 @@ ${imports}
 
   writeFileSync(join(customBaseDir, 'registry.ts'), content);
   logger.info(`Updated top-level custom registry: ${tenantDirs.length} tenant(s)`);
-}
-
-/**
- * Build a bespoke Codex prompt — directive and focused.
- * CRITICAL: Tells Codex to write the file IMMEDIATELY without exploring the codebase.
- */
-function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles) {
-  // Find the page this section likely belongs to
-  const sectionNameLower = spec.name.toLowerCase();
-  let relevantHtml = '';
-  if (sectionNameLower.includes('hero') || sectionNameLower.includes('header') || sectionNameLower.includes('nav') || sectionNameLower.includes('footer')) {
-    relevantHtml = htmlFiles.homepage?.slice(0, 2000) || '';
-  } else if (sectionNameLower.includes('service')) {
-    relevantHtml = htmlFiles.services?.slice(0, 2000) || htmlFiles.homepage?.slice(0, 2000) || '';
-  } else if (sectionNameLower.includes('about') || sectionNameLower.includes('team') || sectionNameLower.includes('story') || sectionNameLower.includes('value')) {
-    relevantHtml = (htmlFiles.about || htmlFiles['about-us'])?.slice(0, 2000) || '';
-  } else if (sectionNameLower.includes('contact') || sectionNameLower.includes('map')) {
-    relevantHtml = htmlFiles.contact?.slice(0, 2000) || '';
-  } else if (sectionNameLower.includes('gallery') || sectionNameLower.includes('portfolio') || sectionNameLower.includes('project')) {
-    relevantHtml = (htmlFiles.gallery || htmlFiles.portfolio)?.slice(0, 2000) || '';
-  } else {
-    relevantHtml = htmlFiles.homepage?.slice(0, 1500) || '';
-  }
-
-  // Compact CSS hints
-  let cssHints = '';
-  if (cssTokens) {
-    cssHints = JSON.stringify({
-      fonts: cssTokens.renderedFonts,
-      h1: cssTokens.elements?.h1,
-      button: cssTokens.elements?.button,
-      radii: cssTokens.borderRadii,
-    });
-  }
-  if (spec.cssHints) cssHints += `\n${spec.cssHints}`;
-
-  const filePath = `src/sections/custom/${siteId}/${toKebabCase(spec.name)}.tsx`;
-
-  return `IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files. Do NOT explore the codebase. Just write the single file specified below.
-
-Create file: ${filePath}
-
-This is a React section component for a renovation contractor website rebuild.
-
-VISUAL SPEC: ${spec.spec}
-${spec.contentMapping ? `DATA: ${spec.contentMapping}` : ''}
-${spec.integrationNotes ? `INTEGRATION: ${spec.integrationNotes}` : ''}
-
-CSS from original site: ${cssHints}
-
-## Integration Specification
-${integrationSpec}
-
-${relevantHtml ? `Original HTML reference (first 2000 chars):\n${relevantHtml}\n` : ''}
-COMPONENT PATTERN — follow this exactly:
-\`\`\`tsx
-${template}
-\`\`\`
-
-RULES:
-- 'use client' directive at top
-- import type { SectionBaseProps } from '@/lib/section-types'
-- Named export: ${toPascalCase(spec.name)}
-- Props: { branding, config, tokens, className }
-- Tailwind CSS v4 only. Mobile-first responsive (md: lg: xl: breakpoints)
-- Brand colours: bg-primary, text-primary-foreground, text-muted-foreground
-- Images: import Image from 'next/image', Links: import Link from 'next/link'
-- Replace contact forms with <Link href="/visualizer">Get Your Free Design Estimate</Link>
-- Return null if required data missing
-- NO external packages. Only next/image, next/link, @/lib/section-types
-- Semantic HTML: <section>, <nav>, <footer>, <article>
-- Focus styles: focus:ring-2 focus:ring-primary
-- 80-150 lines of clean, production-quality code`;
-}
-
-/**
- * Select relevant screenshots for a section based on its name/page.
- */
-function selectRelevantScreenshots(spec, allScreenshots) {
-  if (allScreenshots.length === 0) return [];
-
-  const nameL = spec.name.toLowerCase();
-  const selected = [];
-
-  // Always include homepage desktop screenshot
-  const homepageDesktop = allScreenshots.find(p => p.includes('homepage-desktop'));
-  if (homepageDesktop) selected.push(homepageDesktop);
-
-  // Add page-specific screenshot
-  if (nameL.includes('service')) {
-    const match = allScreenshots.find(p => p.includes('services-desktop'));
-    if (match) selected.push(match);
-  } else if (nameL.includes('about') || nameL.includes('team') || nameL.includes('story') || nameL.includes('value')) {
-    const match = allScreenshots.find(p => (p.includes('about-desktop') || p.includes('about-us-desktop')));
-    if (match) selected.push(match);
-  } else if (nameL.includes('contact') || nameL.includes('map')) {
-    const match = allScreenshots.find(p => p.includes('contact-desktop'));
-    if (match) selected.push(match);
-  } else if (nameL.includes('gallery') || nameL.includes('portfolio') || nameL.includes('project')) {
-    const match = allScreenshots.find(p => (p.includes('gallery-desktop') || p.includes('portfolio-desktop')));
-    if (match) selected.push(match);
-  }
-
-  return [...new Set(selected)]; // Deduplicate, max 2 images
 }
 
 // ─── Bespoke helpers ──────────────────────────────────────────
@@ -420,9 +570,6 @@ function tscCheck(cwd) {
   }
 }
 
-/**
- * Convert a string to PascalCase.
- */
 function toPascalCase(str) {
   return str
     .replace(/[^a-zA-Z0-9]+/g, ' ')
@@ -432,9 +579,6 @@ function toPascalCase(str) {
     .join('');
 }
 
-/**
- * Convert a string to kebab-case.
- */
 function toKebabCase(str) {
   return str
     .replace(/([a-z])([A-Z])/g, '$1-$2')

@@ -25,6 +25,7 @@ import { architectSite } from './architect.mjs';
 import { bespokeArchitect } from './bespoke-architect.mjs';
 import { buildCustomSections } from './build-custom-sections.mjs';
 import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '../scripts/polish/queue-utils.mjs';
+import { visualDiffWithCodex } from './qa/visual-diff-codex.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
@@ -256,7 +257,7 @@ const tasks = targets.map(target => async () => {
     logger.progress({ stage: 'architect', target_id: target.id, site_id: siteId, status: 'start',
       detail: bespokeMode ? 'bespoke' : 'template' });
     try {
-      const architectTimeout = (CONFIG.architect?.timeout_seconds ?? 120) * 1000 * timeoutMultiplier;
+      const architectTimeout = (CONFIG.architect?.timeout_seconds ?? 300) * 1000 * timeoutMultiplier;
       let blueprint;
       if (bespokeMode) {
         blueprint = await bespokeArchitect(outputDir, siteId, { timeoutMs: architectTimeout });
@@ -289,6 +290,8 @@ const tasks = targets.map(target => async () => {
           const { built, failed: csFailed } = await buildCustomSections(siteId, blueprint, {
             cwd: DEMO_ROOT, timeoutMs: csTimeout, bespokeMode,
             resultsDir: outputDir, maxSections,
+            parallel: bespokeMode && blueprint.customSections.length >= 3,
+            review: true,
           });
           logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'complete',
             detail: `${built} built, ${csFailed} failed` });
@@ -615,6 +618,27 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         cwd: DEMO_ROOT, env: process.env, timeout: qaTimeoutMs,
         maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
       });
+
+      // 5f.5 Visual diff with Codex (bespoke only, non-blocking)
+      if (bespokeMode && targetWebsite) {
+        try {
+          logger.info(`[${siteId}] Running Codex visual diff...`);
+          const { differences, fixed } = await visualDiffWithCodex({
+            originalUrl: targetWebsite,
+            generatedUrl: siteUrl,
+            siteId,
+            resultsDir: outputDir,
+            cwd: DEMO_ROOT,
+            autoFix: true,
+            timeoutMs: 300000 * timeoutMultiplier,
+          });
+          if (differences.length > 0) {
+            logger.info(`[${siteId}] Visual diff: ${differences.length} difference(s), ${fixed} auto-fixed`);
+          }
+        } catch (e) {
+          logger.warn(`[${siteId}] Codex visual diff failed (non-blocking): ${e.message?.slice(0, 100)}`);
+        }
+      }
 
       // 5g. PDF branding check (non-blocking)
       try {
