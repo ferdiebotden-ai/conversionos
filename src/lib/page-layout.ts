@@ -81,3 +81,19 @@ export async function getPageLayout(pageSlug: string = 'homepage'): Promise<Sect
 
   return DEFAULT_LAYOUTS[pageSlug] ?? DEFAULT_HOMEPAGE_LAYOUT;
 }
+
+export async function getLayoutFlags(): Promise<{ custom_nav?: boolean; custom_footer?: boolean }> {
+  try {
+    const siteId = await getSiteIdAsync();
+    const supabase = createServiceClient();
+    const { data } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('site_id', siteId)
+      .eq('key', 'layout_flags')
+      .single();
+    return (data?.value as Record<string, boolean>) ?? {};
+  } catch {
+    return {};
+  }
+}

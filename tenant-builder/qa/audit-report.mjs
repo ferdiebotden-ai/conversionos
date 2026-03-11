@@ -73,7 +73,7 @@ function determineVerdict(results) {
   // Visual QA — < 3.5 is a blocker, 3.5–4.0 is REVIEW (marginal)
   if (visualQa) {
     if (visualQa.average < 3.5) criticalFailures.push(`Visual QA failed (${visualQa.average}/5)`);
-    else if (!visualQa.pass) warnings.push(`Visual QA marginal (${visualQa.average}/5)`);
+    else if (visualQa.average < 4.0) warnings.push(`Visual QA marginal (${visualQa.average}/5)`);
   }
 
   // Live site audit

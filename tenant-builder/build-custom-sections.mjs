@@ -109,6 +109,17 @@ export async function buildCustomSections(siteId, blueprint, { cwd, timeoutMs = 
       const actualFileName = createdFile;
       const actualComponentName = toPascalCase(actualFileName.replace('.tsx', ''));
 
+      // Post-generation validation: warn on snake_case field access patterns
+      try {
+        const generatedContent = readFileSync(join(customDir, actualFileName), 'utf-8');
+        const snakeCasePatterns = ['hero_headline', 'hero_image_url', 'about_text', 'about_copy', 'about_image_url', 'logo_url', 'trust_metrics', 'hero_subheadline', 'service_area', 'why_choose_us'];
+        for (const pattern of snakeCasePatterns) {
+          if (generatedContent.includes(`['${pattern}']`) || generatedContent.includes(`.${pattern}`)) {
+            logger.warn(`Custom section ${spec.sectionId} uses snake_case field '${pattern}' — should use camelCase`);
+          }
+        }
+      } catch { /* skip validation if file read fails */ }
+
       built++;
       builtSpecs.push({ spec, fileName: actualFileName, componentName: actualComponentName });
       logger.info(`Custom section built: ${spec.sectionId} → ${actualFileName}`);
@@ -301,6 +312,9 @@ ${spec.contentMapping ? `DATA: ${spec.contentMapping}` : ''}
 ${spec.integrationNotes ? `INTEGRATION: ${spec.integrationNotes}` : ''}
 
 CSS from original site: ${cssHints}
+
+## Integration Specification
+${integrationSpec}
 
 ${relevantHtml ? `Original HTML reference (first 2000 chars):\n${relevantHtml}\n` : ''}
 COMPONENT PATTERN — follow this exactly:

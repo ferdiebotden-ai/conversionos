@@ -10,6 +10,7 @@ import { getBranding } from "@/lib/branding";
 import { getTier } from "@/lib/entitlements.server";
 import { getQuoteAssistanceConfig } from "@/lib/quote-assistance";
 import { getDesignTokens } from "@/lib/theme";
+import { getLayoutFlags } from "@/lib/page-layout";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -77,8 +78,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [branding, tier, qaConfig, tokens] = await Promise.all([
-    getBranding(), getTier(), getQuoteAssistanceConfig(), getDesignTokens(),
+  const [branding, tier, qaConfig, tokens, layoutFlags] = await Promise.all([
+    getBranding(), getTier(), getQuoteAssistanceConfig(), getDesignTokens(), getLayoutFlags(),
   ]);
   const quoteMode = tier === 'elevate' ? 'none' : qaConfig.mode;
 
@@ -141,9 +142,9 @@ export default async function RootLayout({
       >
         <BrandingProvider initial={branding}>
           <TierProvider tier={tier} quoteMode={quoteMode}>
-            <Header />
+            {!layoutFlags.custom_nav && <Header />}
             <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-            <Footer />
+            {!layoutFlags.custom_footer && <Footer />}
             <ReceptionistWidgetLoader />
             <MobileCTABar />
           </TierProvider>

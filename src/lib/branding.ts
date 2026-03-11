@@ -70,9 +70,17 @@ export async function getBranding(): Promise<Branding> {
 
     const map = Object.fromEntries(data.map((r) => [r.key, r.value]));
 
-    const info = (map['business_info'] ?? {}) as Record<string, unknown>;
-    const brand = (map['branding'] ?? {}) as Record<string, unknown>;
-    const profile = (map['company_profile'] ?? {}) as Record<string, unknown>;
+    // Defensive parse — guard against double-serialized JSON strings in Supabase
+    function ensureObj(val: unknown): Record<string, unknown> {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val) as Record<string, unknown>; } catch { return {}; }
+      }
+      return (val as Record<string, unknown>) ?? {};
+    }
+
+    const info = ensureObj(map['business_info']);
+    const brand = ensureObj(map['branding']);
+    const profile = ensureObj(map['company_profile']);
 
     const colors = (brand['colors'] as Record<string, string>) || {};
     const rawServices = (profile['services'] as { name: string; slug?: string }[]) || [];

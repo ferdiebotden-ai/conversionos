@@ -38,15 +38,48 @@ const ThemeSchema = z.object({
   animationPreset: z.enum(['fade-in-up', 'stagger-reveal', 'slide-in-left', 'none']).optional(),
 });
 
+const LayoutSpecSchema = z.object({
+  type: z.enum(['full-width', 'contained', 'split', 'grid', 'flex']).optional(),
+  height: z.string().optional(),
+  columns: z.number().nullable().optional(),
+  alignment: z.string().optional(),
+  flexDirection: z.string().optional(),
+}).optional();
+
+const BackgroundSpecSchema = z.object({
+  type: z.enum(['image-overlay', 'gradient', 'solid', 'none', 'video']).optional(),
+  overlayOpacity: z.number().optional(),
+  overlayGradient: z.string().optional(),
+}).optional();
+
+const TypographySpecSchema = z.object({
+  headingSize: z.string().optional(),
+  headingWeight: z.number().optional(),
+  bodySize: z.string().optional(),
+}).optional();
+
+const SpacingSpecSchema = z.object({
+  paddingY: z.string().optional(),
+  gap: z.string().optional(),
+  innerPadding: z.string().optional(),
+}).optional();
+
+const ContentMappingSchema = z.record(z.string()).optional();
+
 const CustomSectionSchema = z.object({
   name: z.string(),
   sectionId: z.string(),
   spec: z.string(),
+  layout: LayoutSpecSchema,
+  background: BackgroundSpecSchema,
+  typography: TypographySpecSchema,
+  spacing: SpacingSpecSchema,
+  animations: z.array(z.string()).optional(),
+  contentMapping: z.union([z.string(), ContentMappingSchema]).optional(),
   dataSource: z.string().optional(),
   referenceSection: z.string().optional(),
   // Bespoke fields — produced by bespoke-architect, consumed by build-custom-sections
   cssHints: z.string().optional(),
-  contentMapping: z.string().optional(),
   integrationNotes: z.string().optional(),
 });
 

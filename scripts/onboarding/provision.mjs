@@ -189,11 +189,20 @@ const companyProfile = {
   trustMetrics: data._trust_metrics || {},
 };
 
+// Guard against double-serialization — value must be an object, not a JSON string
+function ensureObject(val) {
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return val; }
+  }
+  return val;
+}
+
 // Upsert admin_settings rows
 const rows = [
-  { key: 'business_info', value: businessInfo, description: `${siteId} business info` },
-  { key: 'branding', value: branding, description: `${siteId} branding` },
-  { key: 'company_profile', value: companyProfile, description: `${siteId} company profile` },
+  { key: 'business_info', value: ensureObject(businessInfo), description: `${siteId} business info` },
+  { key: 'branding', value: ensureObject(branding), description: `${siteId} branding` },
+  { key: 'company_profile', value: ensureObject(companyProfile), description: `${siteId} company profile` },
+  // plan and quote_assistance are always fresh objects, no guard needed
   { key: 'plan', value: { tier }, description: `${siteId} plan tier` },
   { key: 'quote_assistance', value: tier === 'elevate' ? { mode: 'none' } : { mode: 'range', rangeBand: 10000 }, description: `${siteId} quote assistance config` },
 ];

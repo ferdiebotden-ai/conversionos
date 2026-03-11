@@ -398,6 +398,34 @@ async function checkBusinessNamePresence(page, pageUrl, businessName) {
   return violations;
 }
 
+/** Known renovation industry terms — NOT company names. Prevents false positives. */
+const RENOVATION_INDUSTRY_TERMS = new Set([
+  'bathroom renovation', 'bathroom renovations', 'kitchen renovation', 'kitchen renovations',
+  'basement renovation', 'basement renovations', 'home renovation', 'home renovations',
+  'custom renovation', 'custom renovations', 'full renovation', 'full renovations',
+  'complete renovation', 'complete renovations', 'major renovation', 'major renovations',
+  'minor renovation', 'minor renovations', 'interior renovation', 'interior renovations',
+  'exterior renovation', 'exterior renovations', 'residential renovation', 'residential renovations',
+  'commercial renovation', 'commercial renovations',
+  'general construction', 'new construction', 'residential construction', 'commercial construction',
+  'custom construction', 'quality construction',
+  'custom homes', 'dream homes', 'luxury homes', 'new homes', 'modern homes',
+  'fine carpentry', 'custom carpentry', 'finish carpentry',
+  'home builders', 'custom builders', 'local builders',
+  'interior renovations', 'exterior renovations',
+  'bathroom construction', 'kitchen construction', 'basement construction',
+  'home interiors', 'custom interiors', 'modern interiors',
+  'quality craftsmen', 'master craftsmen', 'skilled craftsmen',
+  'your renovation', 'our renovation', 'this renovation', 'every renovation',
+  'your construction', 'our construction', 'any construction',
+  'your homes', 'their homes', 'our homes',
+  'expert renovation', 'professional renovation', 'premium renovation',
+  'expert construction', 'professional construction', 'premium construction',
+]);
+
+/** Adjective prefixes that form generic phrases, not company names. */
+const ADJECTIVE_PREFIXES = /^(quality|professional|expert|premium|affordable|reliable|trusted|best|top|local|certified|licensed|insured|experienced|full|complete|residential|commercial|general|custom|modern|luxury|fine|skilled|master|total|major|minor|new|old|dream)\b/i;
+
 /**
  * Check 13: Foreign brand name detection on rendered page.
  * Finds contractor-name patterns (e.g., "X Contracting", "Y Renovations") that don't match
@@ -434,6 +462,10 @@ async function checkForeignBrandNamesOnPage(page, pageUrl, expectedBusinessName)
     const candidateWords = candidateLower.split(/\s+/).filter(w => w.length > 2);
     const overlap = candidateWords.filter(w => expectedWords.includes(w));
     if (overlap.length >= candidateWords.length * 0.5) continue;
+    // Skip known renovation industry terms
+    if (RENOVATION_INDUSTRY_TERMS.has(candidateLower)) continue;
+    // Skip adjective + suffix patterns (not company names)
+    if (ADJECTIVE_PREFIXES.test(prefix)) continue;
 
     const contextStart = Math.max(0, match.index - 30);
     const contextEnd = Math.min(bodyText.length, match.index + match[0].length + 30);
@@ -783,13 +815,14 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
         }
 
         // 13. Foreign brand name detection (all pages, needs business name)
+        // Warning-only — excluded from violation count / QA score to avoid false positives
         if (businessName) {
           const foreignViolations = await checkForeignBrandNamesOnPage(page, pageUrl, businessName);
           for (const v of foreignViolations) {
-            allViolations.push({ check: 'foreign_brand_name', ...v });
+            allViolations.push({ check: 'foreign_brand_name_warning', ...v });
           }
-          if (!summary.foreign_brand_name) summary.foreign_brand_name = 0;
-          summary.foreign_brand_name += foreignViolations.length;
+          if (!summary.foreign_brand_name_warnings) summary.foreign_brand_name_warnings = 0;
+          summary.foreign_brand_name_warnings += foreignViolations.length;
         }
 
         // 5. Colour consistency (homepage only, if expected colour provided)
@@ -815,8 +848,10 @@ export async function checkContentIntegrity(url, siteId, options = {}) {
     await browser.close();
   }
 
-  const passed = allViolations.length === 0;
-  summary.total_violations = allViolations.length;
+  // Exclude warning-only checks (foreign_brand_name_warning) from the violation count / QA score
+  const scoredViolations = allViolations.filter(v => v.check !== 'foreign_brand_name_warning');
+  const passed = scoredViolations.length === 0;
+  summary.total_violations = scoredViolations.length;
   summary.passed = passed;
 
   // Write results to file if output path provided

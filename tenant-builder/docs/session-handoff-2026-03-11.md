@@ -159,3 +159,34 @@ curl -s "https://ktpfyangnmpwufghgasx.supabase.co/rest/v1/admin_settings?site_id
 ---
 
 **TLDR:** Two bespoke tenants deployed (REVIEW verdict). 6 known bugs to fix (double nav, camelCase config, double-serialization, about-split rendering, trust metrics, empty data). 4 pipeline improvements to codify (content integrity false positives, principals array, config field docs in Codex prompt, deploy repo sync). Start with Priority 1 bugs — they're the most visible quality issues.
+
+---
+
+## Session 6 (2026-03-11) — All Priority 1 Bugs Fixed + Pipeline Overhaul
+
+### Bugs Fixed (Priority 1)
+1. **Double nav** — Added `layout_flags` system: `provision-tenant.mjs` detects custom nav/footer sections, `layout.tsx` conditionally renders Header/Footer. Files: `src/app/layout.tsx`, `src/lib/page-layout.ts`, `provision-tenant.mjs`
+2. **camelCase mismatch** — Rewrote `integration-spec.md` with correct camelCase fields, added `str()` dual-lookup helper, injected spec into bespoke Codex prompts (was loaded but unused), added snake_case validation warnings. Files: `integration-spec.md`, `custom-section-template.tsx`, `build-custom-sections.mjs`
+3. **Double serialization** — Added `ensureObject()` guard in `provision.mjs` + `ensureObj()` in `branding.ts`. Both write and read sides protected.
+4. **About-split** — Covered by fix #2 (camelCase mismatch was root cause)
+
+### Pipeline Robustness (Priority 2-3)
+5. **Content integrity false positives** — Added 50+ entry `RENOVATION_INDUSTRY_TERMS` whitelist + 30+ `ADJECTIVE_PREFIXES` regex. Changed to warning-only (doesn't affect QA score). Files: `content-integrity.mjs`
+6. **Audit report verdict** — Fixed marginal VQA check from `!pass` to `average < 4.0`. Files: `audit-report.mjs`
+
+### New Architecture (Phases 3-6)
+7. **Image validator** — `lib/image-validator.mjs` — pre-flight URL validation (HEAD requests, content-type, base64 detection, hero-is-logo)
+8. **Anthropic SDK client** — `lib/anthropic-client.mjs` — direct Claude API calls with image support (replaces broken `claude -p` subprocess)
+9. **Visual refinement** — `qa/visual-refine.mjs` — screenshot comparison + fix prompt generation
+10. **Architect enrichment** — `bespoke-architect.mjs` now requests structured layout/background/typography/spacing/animations/contentMapping. `site-blueprint-v2.zod.mjs` updated with new optional schemas.
+11. **Premium patterns** — `integration-spec.md` documents motion components, hover interactions, gradient fallbacks
+
+### Tests
+- 258/258 unit tests passing (previously 257/258 — fixed the audit-report marginal VQA test)
+
+### What Still Needs Manual Action
+- Supabase PATCH: add `layout_flags: { custom_nav: true, custom_footer: true }` for md-construction and westmount-craftsmen
+- Sync all changed files to deploy repo `~/norbot-ops/products/demo/`
+- Push to main to trigger Vercel build
+- Validate double nav is gone on live sites
+- Run a test bespoke build to validate the full pipeline end-to-end

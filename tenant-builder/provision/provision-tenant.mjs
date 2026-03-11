@@ -40,6 +40,7 @@ const { values: args } = parseArgs({
     'target-id': { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
     'skip-sample-data': { type: 'boolean', default: false },
+    bespoke: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -293,6 +294,175 @@ if (!dryRun && !skipSampleData) {
   }
 } else if (skipSampleData) {
   logger.info('Step 2c: Sample leads skipped (--skip-sample-data)');
+}
+
+// ──────────────────────────────────────────────────────────
+// Step 2d: Write theme + page_layouts to admin_settings
+// ──────────────────────────────────────────────────────────
+
+if (!dryRun) {
+  logger.info('Step 2d: Writing theme + page_layouts');
+  try {
+    const sb = getSupabase();
+    const provisionData = JSON.parse(readFileSync(existsSync(provisionedPath) ? provisionedPath : dataPath, 'utf-8'));
+
+    // Check for architect blueprint — overrides defaults when available
+    const blueprintPath = resolve(outputDir, 'site-blueprint-v2.json');
+    const hasBlueprint = existsSync(blueprintPath);
+    let blueprint = null;
+    if (hasBlueprint) {
+      try {
+        blueprint = JSON.parse(readFileSync(blueprintPath, 'utf-8'));
+        logger.info('Using architect blueprint for theme + page_layouts');
+      } catch {
+        logger.warn('Blueprint file exists but could not be parsed — using defaults');
+      }
+    }
+
+    // In bespoke mode, enrich theme with CSS tokens extracted from original site
+    let cssTokens = null;
+    if (args.bespoke) {
+      const cssTokensPath = resolve(outputDir, 'css-tokens.json');
+      if (existsSync(cssTokensPath)) {
+        try {
+          cssTokens = JSON.parse(readFileSync(cssTokensPath, 'utf-8'));
+          logger.info('Using CSS tokens for enriched bespoke theme');
+        } catch { /* ignore parse errors */ }
+      }
+    }
+
+    // Theme config — from blueprint if available, enriched with CSS tokens in bespoke mode
+    let themeConfig = blueprint?.theme ?? {
+      colors: {
+        primary: provisionData._meta?.primary_oklch || null,
+        secondary: null,
+        accent: null,
+      },
+      typography: {
+        headingFont: null,
+        bodyFont: null,
+      },
+      borderRadius: null,
+      spacing: 'default',
+      animationPreset: 'fade-in-up',
+    };
+
+    // Enrich with CSS tokens (bespoke mode)
+    if (cssTokens && args.bespoke) {
+      // Use rendered fonts from original site
+      if (cssTokens.renderedFonts?.length > 0) {
+        const fonts = cssTokens.renderedFonts.filter(f => !['FontAwesome', 'Material Icons', 'dashicons'].some(x => f.includes(x)));
+        if (fonts.length >= 2 && !themeConfig.typography.headingFont) {
+          themeConfig.typography.headingFont = fonts[0];
+          themeConfig.typography.bodyFont = fonts[1];
+        } else if (fonts.length >= 1 && !themeConfig.typography.headingFont) {
+          themeConfig.typography.headingFont = fonts[0];
+          themeConfig.typography.bodyFont = fonts[0];
+        }
+      }
+
+      // Use exact border-radius from original buttons/cards
+      if (!themeConfig.borderRadius && cssTokens.borderRadii) {
+        const radii = Object.values(cssTokens.borderRadii);
+        if (radii.length > 0) {
+          themeConfig.borderRadius = radii[0];
+        }
+      }
+
+      // Detect spacing rhythm
+      if (cssTokens.spacingRhythm?.length > 0) {
+        const avgPadding = cssTokens.spacingRhythm.reduce((sum, s) => {
+          return sum + parseInt(s.paddingTop || '0', 10);
+        }, 0) / cssTokens.spacingRhythm.length;
+        if (avgPadding > 80) themeConfig.spacing = 'spacious';
+        else if (avgPadding < 30) themeConfig.spacing = 'compact';
+      }
+    }
+
+    // Page layouts — from blueprint if available, otherwise defaults
+    let pageLayouts;
+    if (blueprint?.pages) {
+      pageLayouts = Object.fromEntries(
+        blueprint.pages.map(p => [p.slug, p.sections.map(s => s.sectionId)])
+      );
+    } else {
+      pageLayouts = {
+        homepage: [
+          'hero:full-bleed-overlay',
+          'trust:badge-strip',
+          'misc:visualizer-teaser',
+          'services:grid-3-cards',
+          'about:split-image-copy',
+          'gallery:masonry-grid',
+          'testimonials:cards-carousel',
+          'cta:full-width-primary',
+        ],
+        about: [
+          'misc:breadcrumb-hero',
+          'about:split-image-copy',
+          'misc:mission-statement',
+          'trust:badge-strip',
+          'testimonials:cards-carousel',
+          'misc:service-area',
+          'cta:full-width-primary',
+        ],
+        services: [
+          'misc:breadcrumb-hero',
+          'services:grid-3-cards',
+          'gallery:masonry-grid',
+          'testimonials:cards-carousel',
+          'cta:full-width-primary',
+        ],
+        contact: [
+          'misc:breadcrumb-hero',
+          'contact:form-with-map',
+          'trust:badge-strip',
+        ],
+        projects: [
+          'misc:breadcrumb-hero',
+          'gallery:masonry-grid',
+          'testimonials:cards-carousel',
+          'cta:full-width-primary',
+        ],
+      };
+    }
+
+    // Upsert theme
+    const { error: themeErr } = await (sb).from('admin_settings').upsert(
+      { site_id: siteId, key: 'theme', value: themeConfig },
+      { onConflict: 'site_id,key' }
+    );
+    if (themeErr) logger.warn(`Theme upsert failed: ${themeErr.message}`);
+
+    // Upsert page_layouts
+    const { error: layoutErr } = await (sb).from('admin_settings').upsert(
+      { site_id: siteId, key: 'page_layouts', value: pageLayouts },
+      { onConflict: 'site_id,key' }
+    );
+    if (layoutErr) logger.warn(`Page layouts upsert failed: ${layoutErr.message}`);
+
+    // Detect custom nav/footer sections and set layout_flags
+    const allSectionIds = Object.values(pageLayouts).flat();
+    const hasCustomNav = allSectionIds.some(id => /custom:.*-(nav|navbar|header|navigation)/i.test(id));
+    const hasCustomFooter = allSectionIds.some(id => /custom:.*-footer/i.test(id));
+
+    if (hasCustomNav || hasCustomFooter) {
+      const layoutFlags = {};
+      if (hasCustomNav) layoutFlags.custom_nav = true;
+      if (hasCustomFooter) layoutFlags.custom_footer = true;
+
+      const { error: flagsErr } = await (sb).from('admin_settings').upsert(
+        { site_id: siteId, key: 'layout_flags', value: layoutFlags },
+        { onConflict: 'site_id,key' }
+      );
+      if (flagsErr) logger.warn(`Layout flags upsert failed: ${flagsErr.message}`);
+      else logger.info(`Layout flags set: ${JSON.stringify(layoutFlags)}`);
+    }
+
+    logger.info('Theme + page_layouts written to admin_settings');
+  } catch (e) {
+    logger.warn(`Theme/page_layouts write failed (non-blocking): ${e.message}`);
+  }
 }
 
 // ──────────────────────────────────────────────────────────
