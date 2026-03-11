@@ -93,7 +93,9 @@ export async function architectWithVision(resultsDir, siteId, { timeoutMs = 3000
 }
 
 /**
- * Discover screenshots and sort by priority (homepage desktop first).
+ * Discover screenshots and return at most 2: homepage desktop (always)
+ * + homepage mobile (if available). Inner page screenshots are excluded
+ * because they inflate token count and cause Codex timeouts.
  */
 function discoverAndPrioritizeScreenshots(screenshotDir) {
   if (!existsSync(screenshotDir)) return [];
@@ -102,21 +104,26 @@ function discoverAndPrioritizeScreenshots(screenshotDir) {
     .filter(f => f.endsWith('.png') || f.endsWith('.jpg'))
     .map(f => join(screenshotDir, f));
 
-  // Sort: homepage desktop > homepage mobile > inner page desktop > rest
-  files.sort((a, b) => {
-    const priority = (path) => {
-      const name = path.toLowerCase();
-      if (name.includes('homepage') && name.includes('desktop')) return 0;
-      if (name.includes('homepage') && name.includes('mobile')) return 1;
-      if (name.includes('desktop')) return 2;
-      if (name.includes('mobile')) return 3;
-      return 4;
-    };
-    return priority(a) - priority(b);
+  // Pick only homepage screenshots — inner pages cause timeouts
+  const homepageDesktop = files.find(f => {
+    const name = f.toLowerCase();
+    return name.includes('homepage') && name.includes('desktop');
+  });
+  const homepageMobile = files.find(f => {
+    const name = f.toLowerCase();
+    return name.includes('homepage') && name.includes('mobile');
   });
 
-  // Limit to 6 images to avoid token overload
-  return files.slice(0, 6);
+  const result = [];
+  if (homepageDesktop) result.push(homepageDesktop);
+  if (homepageMobile) result.push(homepageMobile);
+
+  // If no homepage screenshots found, take the first available as fallback
+  if (result.length === 0 && files.length > 0) {
+    result.push(files[0]);
+  }
+
+  return result;
 }
 
 /**

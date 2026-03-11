@@ -76,6 +76,9 @@ className="font-heading text-3xl font-bold"      // Headings
 className="font-body text-base"                  // Body
 ```
 
+**NEVER use inline `style` with `oklch(var(--primary) / ...)`.** CSS variables store full `oklch()` values so this double-nests and breaks. Use Tailwind opacity modifiers: `bg-primary/90`, `from-primary/80`, `to-muted/70`.
+**NEVER add `data-*` debug attributes** like `data-token-count`. Keep the DOM clean.
+
 ## CTAs — Link to Design Studio
 ```tsx
 import Link from 'next/link';

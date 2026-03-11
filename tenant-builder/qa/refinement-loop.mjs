@@ -34,6 +34,7 @@ const { values: args } = parseArgs({
     'target-id': { type: 'string' },
     'max-iterations': { type: 'string', default: '3' },
     'original-screenshot': { type: 'string' },
+    bespoke: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });

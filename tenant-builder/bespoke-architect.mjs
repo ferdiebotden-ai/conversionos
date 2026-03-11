@@ -76,7 +76,7 @@ export async function bespokeArchitect(resultsDir, siteId, { maxRetries = 1, tim
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const raw = await callOpus(prompt, { timeoutMs: Math.min(timeoutMs, 180000) });
+      const raw = await callOpus(prompt, { timeoutMs: Math.min(timeoutMs, 360000) });
       const result = validateBlueprint(raw);
       if (result.success) {
         const bp = result.data;
@@ -216,8 +216,10 @@ Return ONLY valid JSON (no markdown, no explanation):
  * Fallback blueprint when all strategies fail.
  */
 function getFallbackBespokeBlueprint(scraped, siteId) {
-  const hasTestimonials = scraped.testimonials?.length > 0;
+  const hasTestimonials = (scraped.testimonials?.length ?? 0) >= 2;
   const hasPortfolio = scraped.portfolio?.length > 0;
+  const hasProcessSteps = scraped.process_steps?.length > 0;
+  const hasWhyChooseUs = scraped.why_choose_us?.length > 0;
 
   const customSections = [
     {
@@ -254,7 +256,7 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
     customSections.push({
       sectionId: `custom:${siteId}-testimonials`,
       name: 'Testimonials',
-      spec: 'Testimonial display matching original site style. Cards, carousel, or masonry.',
+      spec: 'Testimonial display matching original site style. Cards, carousel, or masonry layout with client names and review text.',
       contentMapping: 'testimonials array',
       integrationNotes: 'None',
     });
@@ -270,6 +272,26 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
     });
   }
 
+  if (hasProcessSteps) {
+    customSections.push({
+      sectionId: `custom:${siteId}-process`,
+      name: 'Our Process',
+      spec: 'Step-by-step process timeline or numbered cards showing how the company works. Vertical or horizontal layout with icons or numbers for each step.',
+      contentMapping: 'process_steps array',
+      integrationNotes: 'None',
+    });
+  }
+
+  if (hasWhyChooseUs) {
+    customSections.push({
+      sectionId: `custom:${siteId}-why-us`,
+      name: 'Why Choose Us',
+      spec: 'Trust-building section with icon cards or feature blocks highlighting competitive advantages and unique selling points.',
+      contentMapping: 'why_choose_us array',
+      integrationNotes: 'None',
+    });
+  }
+
   return {
     pages: [
       {
@@ -280,7 +302,9 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
           { sectionId: 'trust:badge-strip' },
           { sectionId: 'misc:visualizer-teaser' },
           { sectionId: `custom:${siteId}-services` },
+          ...(hasWhyChooseUs ? [{ sectionId: `custom:${siteId}-why-us` }] : []),
           { sectionId: `custom:${siteId}-about` },
+          ...(hasProcessSteps ? [{ sectionId: `custom:${siteId}-process` }] : []),
           ...(hasPortfolio ? [{ sectionId: `custom:${siteId}-gallery` }] : []),
           ...(hasTestimonials ? [{ sectionId: `custom:${siteId}-testimonials` }] : []),
           { sectionId: 'cta:full-width-primary' },

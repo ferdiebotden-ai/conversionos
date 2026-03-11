@@ -441,15 +441,17 @@ if (!dryRun) {
     );
     if (layoutErr) logger.warn(`Page layouts upsert failed: ${layoutErr.message}`);
 
-    // Detect custom nav/footer sections and set layout_flags
+    // Detect custom nav sections and set layout_flags
+    // NOTE: We intentionally do NOT set custom_footer here. Custom footer sections
+    // in the homepage layout are content sections rendered by SectionRenderer — they
+    // only appear on the homepage. Setting custom_footer=true suppresses the global
+    // Footer in layout.tsx on ALL pages, leaving inner pages (about, services,
+    // contact, projects) with no footer at all.
     const allSectionIds = Object.values(pageLayouts).flat();
     const hasCustomNav = allSectionIds.some(id => /custom:.*-(nav|navbar|header|navigation)/i.test(id));
-    const hasCustomFooter = allSectionIds.some(id => /custom:.*-footer/i.test(id));
 
-    if (hasCustomNav || hasCustomFooter) {
-      const layoutFlags = {};
-      if (hasCustomNav) layoutFlags.custom_nav = true;
-      if (hasCustomFooter) layoutFlags.custom_footer = true;
+    if (hasCustomNav) {
+      const layoutFlags = { custom_nav: true };
 
       const { error: flagsErr } = await (sb).from('admin_settings').upsert(
         { site_id: siteId, key: 'layout_flags', value: layoutFlags },
