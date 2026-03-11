@@ -136,10 +136,11 @@ function extractNavItems(config: SectionBaseProps['config']) {
   return FALLBACK_NAV;
 }
 
-export function NavigationBar({ branding, config, tokens, className }: SectionBaseProps) {
-  const businessName = extractBusinessName(branding, config);
-  const phone = extractPhone(config);
-  const navItems = extractNavItems(config);
+export function NavigationBar({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+  const config = rawConfig as unknown as Record<string, unknown>;
+  const businessName = extractBusinessName(branding, rawConfig);
+  const phone = extractPhone(rawConfig);
+  const navItems = extractNavItems(rawConfig);
 
   if (!businessName) return null;
 

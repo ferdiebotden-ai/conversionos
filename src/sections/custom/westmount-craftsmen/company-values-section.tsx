@@ -141,7 +141,8 @@ function deriveValues(config: SectionBaseProps['config']): ValueItem[] {
   ];
 }
 
-export function CompanyValuesSection({ branding, config, tokens, className }: SectionBaseProps) {
+export function CompanyValuesSection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+  const config = rawConfig as unknown as Record<string, unknown>;
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
 
@@ -150,7 +151,7 @@ export function CompanyValuesSection({ branding, config, tokens, className }: Se
   const hasAboutCopy = Boolean(configRecord?.['about_copy']);
   if (!hasProfile && !hasAboutCopy) return null;
 
-  const values = useMemo(() => deriveValues(config), [config]);
+  const values = useMemo(() => deriveValues(rawConfig), [rawConfig]);
   const companyName = branding?.name ?? 'Westmount Craftsmen';
   const sectionClassName = ['py-20', tokens ? '' : '', className ?? ''].filter(Boolean).join(' ');
 

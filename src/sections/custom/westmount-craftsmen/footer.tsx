@@ -36,7 +36,8 @@ function InstagramIcon() {
   );
 }
 
-export function Footer({ branding, config, tokens, className }: SectionBaseProps) {
+export function Footer({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+  const config = rawConfig as unknown as Record<string, unknown>;
   const businessInfo = (config as { business_info?: BusinessInfo })?.business_info;
   const companyProfile = (config as { company_profile?: { social_links?: SocialLinks } })?.company_profile;
   const socialLinks = companyProfile?.social_links;

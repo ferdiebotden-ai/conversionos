@@ -27,9 +27,10 @@ function pickString(...values: unknown[]): string | null {
   return null;
 }
 
-export function PortfolioGalleryMosaic({ branding, config, tokens, className }: SectionBaseProps) {
+export function PortfolioGalleryMosaic({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
   void branding;
   void tokens;
+  const config = rawConfig as unknown as Record<string, unknown>;
 
   const configRecord = asRecord(config);
   const portfolioSource =

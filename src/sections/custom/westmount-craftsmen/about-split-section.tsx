@@ -18,9 +18,10 @@ function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
-export function AboutSplitSection({ branding, config, tokens, className }: SectionBaseProps) {
+export function AboutSplitSection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
   void branding;
   void tokens;
+  const config = rawConfig as unknown as Record<string, unknown>;
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);

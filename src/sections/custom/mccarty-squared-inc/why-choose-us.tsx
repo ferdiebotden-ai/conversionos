@@ -5,8 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion';
 
-export function WhyChooseUs({ branding, config, tokens, className }: SectionBaseProps) {
+export function WhyChooseUs({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
   void tokens;
+  const config = rawConfig as unknown as Record<string, unknown>;
 
   function str(v: unknown): string {
     return typeof v === 'string' && v.trim() ? v.trim() : '';

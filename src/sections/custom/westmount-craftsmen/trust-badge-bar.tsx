@@ -81,8 +81,9 @@ function pickRecordValues(record: DataRecord | null, keys: string[]): unknown[] 
   return keys.map((key) => record?.[key]);
 }
 
-export function TrustBadgeBar({ branding, config, tokens, className }: SectionBaseProps) {
+export function TrustBadgeBar({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
   void tokens;
+  const config = rawConfig as unknown as Record<string, unknown>;
 
   const configRecord = asRecord(config);
   const companyProfile = asRecord(configRecord?.['company_profile']) ?? asRecord(configRecord?.['companyProfile']);
