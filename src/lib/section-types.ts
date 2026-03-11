@@ -16,6 +16,8 @@ export interface DesignTokens {
     bodyFont: string;
   };
   borderRadius: string;
+  spacing: 'compact' | 'default' | 'spacious';
+  animationPreset: 'fade-in-up' | 'stagger-reveal' | 'slide-in-left' | 'none';
 }
 
 /** Base props every section receives */

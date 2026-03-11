@@ -21,6 +21,9 @@ import { loadEnv, requireEnv } from './lib/env-loader.mjs';
 import { query, execute } from './lib/turso-client.mjs';
 import { pool } from './lib/concurrency.mjs';
 import * as logger from './lib/logger.mjs';
+import { architectSite } from './architect.mjs';
+import { bespokeArchitect } from './bespoke-architect.mjs';
+import { buildCustomSections } from './build-custom-sections.mjs';
 import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '../scripts/polish/queue-utils.mjs';
 
 loadEnv();
@@ -49,6 +52,9 @@ const { values: args } = parseArgs({
     'skip-git': { type: 'boolean', default: false },
     'skip-outreach': { type: 'boolean', default: false },
     'skip-polish': { type: 'boolean', default: false },
+    'skip-architect': { type: 'boolean', default: false },
+    'skip-custom-sections': { type: 'boolean', default: false },
+    bespoke: { type: 'boolean', default: false },
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
@@ -74,7 +80,10 @@ Options:
   --skip-qa          Skip QA checks
   --skip-git         Skip git commit + push
   --skip-outreach    Skip outreach email drafts
-  --skip-polish      Bypass the Codex polish queue and allow immediate outreach`);
+  --skip-polish      Bypass the Codex polish queue and allow immediate outreach
+  --skip-architect   Skip AI architect (use default section layouts)
+  --skip-custom-sections  Skip custom section generation
+  --bespoke          Bespoke rebuild: scrape HTML+CSS+screenshots, rebuild visual identity`);
   process.exit(0);
 }
 
@@ -82,6 +91,7 @@ const limit = parseInt(args.limit, 10);
 const concurrency = parseInt(args.concurrency, 10);
 const dryRun = args['dry-run'];
 const skipPolish = args['skip-polish'];
+const bespokeMode = args.bespoke;
 const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
 const auditOnly = args['audit-only'];
 
@@ -213,12 +223,14 @@ const tasks = targets.map(target => async () => {
   // 3a. Scrape
   logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'start', detail: target.website });
   try {
-    execFileSync('node', [
+    const scrapeArgs = [
       resolve(TB_ROOT, 'scrape/scrape-enhanced.mjs'),
       '--url', target.website,
       '--site-id', siteId,
       '--output', outputDir,
-    ], {
+    ];
+    if (bespokeMode) scrapeArgs.push('--bespoke');
+    execFileSync('node', scrapeArgs, {
       cwd: DEMO_ROOT,
       env: process.env,
       timeout: 300000,
@@ -227,10 +239,11 @@ const tasks = targets.map(target => async () => {
     });
     logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'complete' });
   } catch (e) {
-    const stderrTail = extractStderr(e);
-    if (stderrTail) logger.warn(`[${siteId}] scrape stderr: ${stderrTail}`);
-    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
-    throw new Error(`Scrape failed: ${e.message?.slice(0, 200)}`);
+    const diagOutput = extractStderr(e);
+    if (diagOutput) logger.warn(`[${siteId}] scrape output:\n${diagOutput}`);
+    const detail = diagOutput?.split('\n').slice(-3).join(' | ')?.slice(0, 200) || e.message?.slice(0, 100);
+    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'error', detail });
+    throw new Error(`Scrape failed for ${siteId}: ${detail}`);
   }
 
   const scrapedPath = resolve(outputDir, 'scraped.json');
@@ -238,7 +251,58 @@ const tasks = targets.map(target => async () => {
     throw new Error(`No scraped data produced for ${siteId}`);
   }
 
-  // 3b. Provision (skip in dry run)
+  // 3b. Architect — Opus 4.6 analyses site and produces blueprint
+  if (!args['skip-architect'] && CONFIG.architect?.enabled !== false) {
+    logger.progress({ stage: 'architect', target_id: target.id, site_id: siteId, status: 'start',
+      detail: bespokeMode ? 'bespoke' : 'template' });
+    try {
+      const architectTimeout = (CONFIG.architect?.timeout_seconds ?? 120) * 1000 * timeoutMultiplier;
+      let blueprint;
+      if (bespokeMode) {
+        blueprint = await bespokeArchitect(outputDir, siteId, { timeoutMs: architectTimeout });
+        writeFileSync(resolve(outputDir, 'bespoke-blueprint.json'), JSON.stringify(blueprint, null, 2));
+      } else {
+        blueprint = await architectSite(outputDir, { timeoutMs: architectTimeout });
+      }
+      writeFileSync(resolve(outputDir, 'site-blueprint-v2.json'), JSON.stringify(blueprint, null, 2));
+      logger.progress({ stage: 'architect', target_id: target.id, site_id: siteId, status: 'complete',
+        detail: `${blueprint.pages.length} pages, ${blueprint.customSections?.length ?? 0} custom` });
+    } catch (err) {
+      logger.warn(`[${siteId}] Architect failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      logger.progress({ stage: 'architect', target_id: target.id, site_id: siteId, status: 'error', detail: err.message?.slice(0, 100) });
+    }
+  }
+
+  // 3c. Build custom sections (if blueprint has customSections)
+  if (!args['skip-custom-sections'] && CONFIG.custom_sections?.enabled !== false) {
+    const blueprintPath = resolve(outputDir, 'site-blueprint-v2.json');
+    if (existsSync(blueprintPath)) {
+      try {
+        const blueprint = JSON.parse(readFileSync(blueprintPath, 'utf-8'));
+        if (blueprint.customSections?.length > 0) {
+          logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'start',
+            detail: `${blueprint.customSections.length} section(s)${bespokeMode ? ' (bespoke)' : ''}` });
+          const csTimeout = (CONFIG.custom_sections?.codex_timeout_seconds ?? 180) * 1000 * timeoutMultiplier;
+          const maxSections = bespokeMode
+            ? (CONFIG.bespoke?.max_custom_sections ?? 15)
+            : (CONFIG.custom_sections?.max_per_tenant ?? 5);
+          const { built, failed: csFailed } = await buildCustomSections(siteId, blueprint, {
+            cwd: DEMO_ROOT, timeoutMs: csTimeout, bespokeMode,
+            resultsDir: outputDir, maxSections,
+          });
+          logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'complete',
+            detail: `${built} built, ${csFailed} failed` });
+          if (csFailed > 0 && built === 0) {
+            logger.warn(`[${siteId}] All custom sections failed — proceeding with standard sections`);
+          }
+        }
+      } catch (err) {
+        logger.warn(`[${siteId}] Custom section build failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      }
+    }
+  }
+
+  // 3d. Provision (skip in dry run)
   if (!dryRun) {
     const domain = `${siteId}.norbotsystems.com`;
     const tier = args.tier || CONFIG.provisioning.default_tier;
@@ -253,6 +317,7 @@ const tasks = targets.map(target => async () => {
         '--tier', tier,
       ];
       if (target.id) provArgs.push('--target-id', String(target.id));
+      if (bespokeMode) provArgs.push('--bespoke');
 
       execFileSync('node', provArgs, {
         cwd: DEMO_ROOT,
@@ -263,10 +328,11 @@ const tasks = targets.map(target => async () => {
       });
       logger.progress({ stage: 'provision', target_id: target.id, site_id: siteId, status: 'complete' });
     } catch (e) {
-      const stderrTail = extractStderr(e);
-      if (stderrTail) logger.warn(`[${siteId}] provision stderr: ${stderrTail}`);
-      logger.progress({ stage: 'provision', target_id: target.id, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
-      throw new Error(`Provision failed: ${e.message?.slice(0, 200)}`);
+      const diagOutput = extractStderr(e);
+      if (diagOutput) logger.warn(`[${siteId}] provision output:\n${diagOutput}`);
+      const detail = diagOutput?.split('\n').slice(-3).join(' | ')?.slice(0, 200) || e.message?.slice(0, 100);
+      logger.progress({ stage: 'provision', target_id: target.id, site_id: siteId, status: 'error', detail });
+      throw new Error(`Provision failed for ${siteId}: ${detail}`);
     }
   }
 
@@ -543,6 +609,7 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
       if (existsSync(originalScreenshotPath)) {
         qaArgs.push('--original-screenshot', originalScreenshotPath);
       }
+      if (bespokeMode) qaArgs.push('--bespoke');
 
       execFileSync('node', qaArgs, {
         cwd: DEMO_ROOT, env: process.env, timeout: qaTimeoutMs,
@@ -777,15 +844,24 @@ process.exit(0);
 // ──────────────────────────────────────────────────────────
 
 /**
- * Extract last 20 lines of stderr from an execFileSync error.
+ * Extract last 20 lines of stderr (or stdout as fallback) from an execFileSync error.
+ * Falls back to stdout because subprocess loggers may write errors to stdout.
  * @param {Error} e - error from execFileSync
- * @returns {string|null} - last 20 lines of stderr, or null if none
+ * @returns {string|null} - last 20 lines of diagnostic output, or null if none
  */
 function extractStderr(e) {
   const stderr = e.stderr?.toString?.() || '';
-  if (!stderr.trim()) return null;
-  const lines = stderr.trim().split('\n');
-  return lines.slice(-20).join('\n');
+  if (stderr.trim()) {
+    const lines = stderr.trim().split('\n');
+    return lines.slice(-20).join('\n');
+  }
+  // Fallback: check stdout — subprocess loggers may write errors there
+  const stdout = e.stdout?.toString?.() || '';
+  if (stdout.trim()) {
+    const lines = stdout.trim().split('\n');
+    return lines.slice(-20).join('\n');
+  }
+  return null;
 }
 
 function readJsonIfExists(path) {

@@ -13,11 +13,52 @@ const DEFAULT_HOMEPAGE_LAYOUT: SectionId[] = [
   'cta:full-width-primary',
 ];
 
+const DEFAULT_ABOUT_LAYOUT: SectionId[] = [
+  'misc:breadcrumb-hero',
+  'about:split-image-copy',
+  'misc:mission-statement',
+  'trust:badge-strip',
+  'testimonials:cards-carousel',
+  'misc:service-area',
+  'cta:full-width-primary',
+];
+
+const DEFAULT_SERVICES_LAYOUT: SectionId[] = [
+  'misc:breadcrumb-hero',
+  'services:grid-3-cards',
+  'gallery:masonry-grid',
+  'testimonials:cards-carousel',
+  'cta:full-width-primary',
+];
+
+const DEFAULT_CONTACT_LAYOUT: SectionId[] = [
+  'misc:breadcrumb-hero',
+  'contact:form-with-map',
+  'trust:badge-strip',
+];
+
+const DEFAULT_PROJECTS_LAYOUT: SectionId[] = [
+  'misc:breadcrumb-hero',
+  'gallery:masonry-grid',
+  'testimonials:cards-carousel',
+  'cta:full-width-primary',
+];
+
 const DEFAULT_LAYOUTS: Record<string, SectionId[]> = {
   homepage: DEFAULT_HOMEPAGE_LAYOUT,
+  about: DEFAULT_ABOUT_LAYOUT,
+  services: DEFAULT_SERVICES_LAYOUT,
+  contact: DEFAULT_CONTACT_LAYOUT,
+  projects: DEFAULT_PROJECTS_LAYOUT,
 };
 
-export { DEFAULT_HOMEPAGE_LAYOUT };
+export {
+  DEFAULT_HOMEPAGE_LAYOUT,
+  DEFAULT_ABOUT_LAYOUT,
+  DEFAULT_SERVICES_LAYOUT,
+  DEFAULT_CONTACT_LAYOUT,
+  DEFAULT_PROJECTS_LAYOUT,
+};
 
 export async function getPageLayout(pageSlug: string = 'homepage'): Promise<SectionId[]> {
   try {

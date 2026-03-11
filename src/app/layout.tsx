@@ -9,6 +9,7 @@ import { TierProvider } from "@/components/tier-provider";
 import { getBranding } from "@/lib/branding";
 import { getTier } from "@/lib/entitlements.server";
 import { getQuoteAssistanceConfig } from "@/lib/quote-assistance";
+import { getDesignTokens } from "@/lib/theme";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -76,8 +77,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [branding, tier, qaConfig] = await Promise.all([
-    getBranding(), getTier(), getQuoteAssistanceConfig(),
+  const [branding, tier, qaConfig, tokens] = await Promise.all([
+    getBranding(), getTier(), getQuoteAssistanceConfig(), getDesignTokens(),
   ]);
   const quoteMode = tier === 'elevate' ? 'none' : qaConfig.mode;
 
@@ -89,16 +90,48 @@ export default async function RootLayout({
           const safeOklch = branding.primaryOklch && oklchRegex.test(branding.primaryOklch)
             ? branding.primaryOklch
             : null;
-          if (!safeOklch) return null;
-          // Parse OKLCH L channel to determine text contrast
-          const oklchParts = safeOklch.split(/\s+/);
+
+          // Use theme tokens primary colour, falling back to branding
+          const primaryOklch = safeOklch ?? tokens.colors.primary;
+          const oklchParts = primaryOklch.split(/\s+/);
           const L = parseFloat(oklchParts[0]!);
           // L > 0.6 = light colour -> dark text; L <= 0.6 = dark colour -> white text
           const primaryForeground = L > 0.6 ? 'oklch(0.145 0 0)' : 'oklch(0.985 0 0)';
+
+          const spacingScale = tokens.spacing === 'compact' ? '0.75' : tokens.spacing === 'spacious' ? '1.25' : '1';
+
+          const isCustomHeadingFont = tokens.typography.headingFont !== 'Plus Jakarta Sans';
+          const isCustomBodyFont = tokens.typography.bodyFont !== 'DM Sans';
+
+          const css = [
+            `:root{`,
+            `--primary:oklch(${primaryOklch});`,
+            `--primary-foreground:${primaryForeground};`,
+            `--heading-font:'${tokens.typography.headingFont}',var(--font-plus-jakarta-sans);`,
+            `--body-font:'${tokens.typography.bodyFont}',var(--font-dm-sans);`,
+            `--border-radius:${tokens.borderRadius};`,
+            `--spacing-scale:${spacingScale};`,
+            `--color-secondary:oklch(${tokens.colors.secondary});`,
+            `--color-accent:oklch(${tokens.colors.accent});`,
+            `}`,
+          ].join('');
+
           return (
-            <style dangerouslySetInnerHTML={{
-              __html: `:root{--primary:oklch(${safeOklch});--primary-foreground:${primaryForeground}}`
-            }} />
+            <>
+              <style dangerouslySetInnerHTML={{ __html: css }} />
+              {isCustomHeadingFont && (
+                <link
+                  rel="stylesheet"
+                  href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(tokens.typography.headingFont)}:wght@400;500;600;700&display=swap`}
+                />
+              )}
+              {isCustomBodyFont && (
+                <link
+                  rel="stylesheet"
+                  href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(tokens.typography.bodyFont)}:wght@400;500&display=swap`}
+                />
+              )}
+            </>
           );
         })()}
       </head>
