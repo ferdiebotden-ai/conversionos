@@ -5,17 +5,17 @@ import Link from 'next/link';
 
 import type { SectionBaseProps } from '@/lib/section-types';
 
-type HeroConfig = {
-  hero_headline?: string;
-  tagline?: string;
-  hero_image_url?: string;
-};
+type HeroConfig = Record<string, unknown>;
+
+function str(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() ? v.trim() : undefined;
+}
 
 export function HeroSection({ branding, config, tokens, className }: SectionBaseProps) {
-  const heroConfig = (config ?? {}) as HeroConfig;
-  const headline = heroConfig.hero_headline?.trim();
-  const tagline = heroConfig.tagline?.trim();
-  const heroImageUrl = heroConfig.hero_image_url?.trim();
+  const c = (config ?? {}) as unknown as HeroConfig;
+  const headline = str(c['hero_headline']) ?? str(c['heroHeadline']);
+  const tagline = str(c['tagline']) ?? str(c['heroSubheadline']) ?? str(c['hero_subheadline']);
+  const heroImageUrl = str(c['hero_image_url']) ?? str(c['heroImageUrl']);
   void tokens;
 
   if (!headline || !tagline || !heroImageUrl) return null;

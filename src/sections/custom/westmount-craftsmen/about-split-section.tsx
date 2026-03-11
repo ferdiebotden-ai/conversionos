@@ -47,10 +47,11 @@ export function AboutSplitSection({ branding, config, tokens, className }: Secti
   const configRecord = asLooseRecord(config) ?? {};
   const companyProfile = asLooseRecord(configRecord['company_profile']) ?? {};
 
-  const aboutCopy = getString(companyProfile['about_copy']) ?? getString(configRecord['about_copy']);
+  const aboutCopy = getString(companyProfile['about_copy']) ?? getString(configRecord['about_copy']) ?? getString(configRecord['aboutCopy']);
   const aboutImageUrl =
     getString(companyProfile['about_image_url']) ??
     getString(configRecord['about_image_url']) ??
+    getString(configRecord['aboutImageUrl']) ??
     getString(configRecord['image']);
   const heading = getString(configRecord['heading']) ?? 'Craftsmanship Built Around Your Home';
 

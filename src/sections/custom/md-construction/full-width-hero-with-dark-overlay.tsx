@@ -6,26 +6,25 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SectionBaseProps } from '@/lib/section-types';
 
-type HeroConfig = {
-  hero_headline?: string;
-  hero_image_url?: string;
-  hero_overline?: string;
-  tagline?: string;
-};
+type HeroConfig = Record<string, unknown>;
+
+function str(v: unknown): string {
+  return typeof v === 'string' && v.trim() ? v.trim() : '';
+}
 
 const passthroughLoader = ({ src }: { src: string }) => src;
 
 export function FullWidthHeroWithDarkOverlay({ branding, config, tokens, className }: SectionBaseProps) {
-  const heroConfig = (config ?? {}) as HeroConfig;
+  const heroConfig = (config ?? {}) as unknown as HeroConfig;
   const tokenMap = (tokens ?? {}) as Record<string, string | number | undefined>;
   const sectionRef = useRef<HTMLElement | null>(null);
   const [parallaxOffset, setParallaxOffset] = useState(0);
 
-  const heroHeadline = heroConfig.hero_headline?.trim() ?? '';
-  const heroImageUrl = heroConfig.hero_image_url?.trim() ?? '';
-  const tagline = heroConfig.tagline?.trim() ?? '';
+  const heroHeadline = str(heroConfig['hero_headline']) || str(heroConfig['heroHeadline']);
+  const heroImageUrl = str(heroConfig['hero_image_url']) || str(heroConfig['heroImageUrl']);
+  const tagline = str(heroConfig['tagline']) || str(heroConfig['heroSubheadline']) || str(heroConfig['hero_subheadline']);
   const overline =
-    heroConfig.hero_overline?.trim() ||
+    str(heroConfig['hero_overline']) || str(heroConfig['heroOverline']) ||
     branding.name.trim() ||
     'Renovation Contractor';
 
