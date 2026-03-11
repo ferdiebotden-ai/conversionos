@@ -88,10 +88,12 @@ export async function buildCustomSections(siteId, blueprint, {
   let cssTokens = null;
   let htmlFiles = {};
   let screenshotPaths = [];
+  let scrapedData = null;
   if (bespokeMode && resultsDir) {
     cssTokens = loadJsonIfExists(join(resultsDir, 'css-tokens.json'));
     htmlFiles = loadHtmlDir(join(resultsDir, 'html'));
     screenshotPaths = discoverScreenshots(join(resultsDir, 'screenshots/original'));
+    scrapedData = loadJsonIfExists(join(resultsDir, 'scraped.json'));
   }
 
   let built = 0;
@@ -141,6 +143,12 @@ export async function buildCustomSections(siteId, blueprint, {
   // ── Sequential build (primary path or fallback) ──
   if (built === 0) {
     for (const spec of customSections) {
+      // Skip footer sections — global Footer component handles all pages
+      if (spec.name.toLowerCase().includes('footer') || spec.sectionId.includes('-footer')) {
+        logger.info(`Skipping custom footer: ${spec.sectionId} (global Footer handles this)`);
+        continue;
+      }
+
       const componentName = toPascalCase(spec.name);
       const expectedFileName = toKebabCase(spec.name) + '.tsx';
       const expectedFilePath = join(customDir, expectedFileName);
@@ -148,7 +156,7 @@ export async function buildCustomSections(siteId, blueprint, {
       logger.info(`Building custom section: ${spec.sectionId} (${componentName})${bespokeMode ? ' [bespoke]' : ''}`);
 
       const prompt = bespokeMode
-        ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths)
+        ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths, scrapedData)
         : buildCodexPrompt(spec, siteId, template, cwd);
 
       // Select relevant screenshots for this section
@@ -303,7 +311,7 @@ ${referenceCode}`;
  * Build a bespoke Codex prompt — vision-first and directive.
  * Screenshots are passed via --image flag, not embedded in the prompt.
  */
-function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths) {
+function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths, scrapedData) {
   // Find relevant HTML for context
   const sectionNameLower = spec.name.toLowerCase();
   let relevantHtml = '';
@@ -354,7 +362,7 @@ ${spec.typography ? `TYPOGRAPHY: ${JSON.stringify(spec.typography)}` : ''}
 ${spec.spacing ? `SPACING: ${JSON.stringify(spec.spacing)}` : ''}
 ${spec.contentMapping ? `DATA MAPPING: ${typeof spec.contentMapping === 'string' ? spec.contentMapping : JSON.stringify(spec.contentMapping)}` : ''}
 ${spec.integrationNotes ? `INTEGRATION: ${spec.integrationNotes}` : ''}
-
+${buildScrapedSummary(scrapedData)}
 CSS from original site: ${cssHints}
 
 ${dataAccessLines ? `PRE-COMPUTED DATA ACCESS (copy these into your component):\n\`\`\`tsx\n${dataAccessLines}\n\`\`\`` : ''}
@@ -517,6 +525,41 @@ ${imports}
 
   writeFileSync(join(customBaseDir, 'registry.ts'), content);
   logger.info(`Updated top-level custom registry: ${tenantDirs.length} tenant(s)`);
+}
+
+/**
+ * Build a compact summary of real company data from scraped.json.
+ * Injected into Codex prompts so sections use real content, not generic filler.
+ */
+function buildScrapedSummary(scraped) {
+  if (!scraped) return '';
+  const facts = [];
+  if (scraped.business_name) facts.push(`Company: ${scraped.business_name}`);
+  if (scraped.founded_year) facts.push(`Founded: ${scraped.founded_year}`);
+  if (scraped.principals) facts.push(`Owners: ${scraped.principals}`);
+  if (scraped.city) facts.push(`Location: ${scraped.city}, ${scraped.province || 'ON'}`);
+  if (scraped.service_area) facts.push(`Service Area: ${scraped.service_area}`);
+  if (scraped.phone) facts.push(`Phone: ${scraped.phone}`);
+  if (scraped.email) facts.push(`Email: ${scraped.email}`);
+  if (scraped.certifications?.length) facts.push(`Certifications: ${scraped.certifications.join(', ')}`);
+  if (scraped.services?.length) {
+    const svcNames = scraped.services.map(s => s.name).filter(Boolean).join(', ');
+    if (svcNames) facts.push(`Services: ${svcNames}`);
+  }
+  if (scraped.about_copy || scraped.about_text) {
+    const about = scraped.about_copy || scraped.about_text;
+    const text = Array.isArray(about) ? about[0] : about;
+    if (text) facts.push(`About: ${String(text).slice(0, 300)}`);
+  }
+  if (scraped.tagline) facts.push(`Tagline: ${scraped.tagline}`);
+  if (scraped._trust_metrics) {
+    const tm = scraped._trust_metrics;
+    if (tm.google_rating) facts.push(`Google Rating: ${tm.google_rating}`);
+    if (tm.years_in_business) facts.push(`Years in Business: ${tm.years_in_business}`);
+  }
+  return facts.length > 0
+    ? `\nREAL COMPANY DATA (use these exact facts in your copy — do NOT invent generic text):\n${facts.join('\n')}\n`
+    : '';
 }
 
 // ─── Bespoke helpers ──────────────────────────────────────────

@@ -161,7 +161,9 @@ function buildVisionPrompt(scraped, cssTokens, siteId, imagePaths) {
   return `LOOK at the attached screenshots of a renovation contractor's website. You are analysing it to create a rebuild blueprint.
 
 ## YOUR TASK
-Identify every distinct visual section on EACH page (hero, nav, services, gallery, testimonials, CTA, footer, etc.). For EACH section, describe the EXACT layout you see — not what you think a contractor site should look like.
+Identify every distinct visual section on EACH page (hero, nav, services, gallery, testimonials, CTA, etc.). For EACH section, describe the EXACT layout you see — not what you think a contractor site should look like.
+
+IMPORTANT: Do NOT include a footer section. The platform has a global Footer component that renders on all pages automatically.
 
 Note specifically:
 - Skewed sections, clip-paths, overlapping images, custom gradients
@@ -185,7 +187,7 @@ ${STANDARD_SECTIONS.join('\n')}
 
 ## OUTPUT RULES
 - Section IDs: custom sections use \`custom:${siteId}-{name}\` pattern
-- Homepage: 6-12 custom sections (hero + nav + content blocks + CTA + footer)
+- Homepage: 6-12 custom sections (hero + nav + content blocks + CTA). Do NOT include a footer — the platform has a global Footer.
 - Inner pages: start with misc:breadcrumb-hero, then custom sections matching the original
 - Theme: extract exact values from CSS tokens (fonts, colours as OKLCH, border-radius)
 - contentMapping: use camelCase field names (heroHeadline, heroImageUrl, aboutCopy, etc.)

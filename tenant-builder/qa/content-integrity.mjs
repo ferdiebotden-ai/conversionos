@@ -453,6 +453,9 @@ async function checkForeignBrandNamesOnPage(page, pageUrl, expectedBusinessName)
     if (normalizedExpected.includes(candidateLower) || candidateLower.includes(normalizedExpected)) continue;
     // Skip very short prefix matches
     if (prefix.length < 3) continue;
+    // Skip if prefix is or ends with a Canadian province abbreviation
+    // (e.g., "St. Thomas, ON" + "Home Renovations" → "ONHome Renovations")
+    if (/\b(ON|BC|AB|QC|MB|SK|NB|NS|PE|NL|YT|NT|NU)$/i.test(prefix)) continue;
     // Skip common false positives (articles, pronouns before suffix)
     if (/^(the|our|my|a|an|in|or|we|is|of|no|do|to)\b/i.test(prefix)) continue;
     // Skip if prefix ends with a preposition/article (e.g., "trusted partner for renovations")

@@ -33,7 +33,6 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'red-white-reno.norbotsystems.com': 'red-white-reno',
   'redwhitereno-test-prov-test.norbotsystems.com': 'redwhitereno-test-prov-test',
   'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
-  'md-construction.norbotsystems.com': 'md-construction',
   'bl-renovations.norbotsystems.com': 'bl-renovations',
   'ccr-renovations.norbotsystems.com': 'ccr-renovations',
   'brouwer-home-renovations.norbotsystems.com': 'brouwer-home-renovations',
