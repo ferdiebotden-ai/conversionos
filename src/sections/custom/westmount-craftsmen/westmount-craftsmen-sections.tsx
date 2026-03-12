@@ -1376,7 +1376,7 @@ export function ProjectGallery({
                       </div>
 
                       <div className="max-w-sm">
-                        <h3 className="font-heading text-2xl font-bold leading-tight tracking-[-0.04em] text-white sm:text-3xl">
+                        <h3 className="font-heading text-lg font-bold leading-snug tracking-[-0.03em] text-white line-clamp-3 sm:text-xl">
                           {project.title}
                         </h3>
                         <p className="mt-3 text-sm leading-7 text-white/76">

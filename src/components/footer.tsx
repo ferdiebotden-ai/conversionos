@@ -84,7 +84,7 @@ export function Footer() {
                 ))}
               </div>
             )}
-            {tier !== 'dominate' && (
+            {tier === 'elevate' && (
               <p className={tier === 'elevate' ? 'text-xs text-muted-foreground/60' : 'text-xs text-muted-foreground/40'}>
                 Powered by{' '}
                 <a href="https://www.norbotsystems.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-primary transition-colors">
