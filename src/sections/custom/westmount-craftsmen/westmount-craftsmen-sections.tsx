@@ -147,42 +147,43 @@ const FALLBACK_SERVICES: NormalizedService[] = [
   },
 ];
 
+const BASE = 'https://ktpfyangnmpwufghgasx.supabase.co/storage/v1/object/public/tenant-assets/westmount-craftsmen';
 const FALLBACK_PROJECTS: NormalizedProject[] = [
   {
     title: 'Open-Concept Family Kitchen',
     category: 'Kitchen Renovation',
     location: 'Waterloo',
-    image: '',
+    image: `${BASE}/services/kitchen-renovation.webp`,
   },
   {
     title: 'Spa-Inspired Ensuite Retreat',
     category: 'Bathroom Renovation',
     location: 'Kitchener',
-    image: '',
+    image: `${BASE}/services/bathroom-renovation.webp`,
   },
   {
     title: 'Bright Lower-Level Living',
     category: 'Basement Renovation',
     location: 'Cambridge',
-    image: '',
+    image: `${BASE}/services/basement-renovation.webp`,
   },
   {
     title: 'Main Floor Reimagined',
     category: 'Home Renovation',
     location: 'New Hamburg',
-    image: '',
+    image: `${BASE}/services/home-renovation.webp`,
   },
   {
     title: 'Custom Joinery Kitchen Detail',
     category: 'Kitchen Renovation',
     location: 'St Jacobs',
-    image: '',
+    image: `${BASE}/services/kitchen-renovation.webp`,
   },
   {
     title: 'Family Home Layout Refresh',
     category: 'Home Renovation',
     location: 'Guelph',
-    image: '',
+    image: `${BASE}/services/home-renovation.webp`,
   },
 ];
 
