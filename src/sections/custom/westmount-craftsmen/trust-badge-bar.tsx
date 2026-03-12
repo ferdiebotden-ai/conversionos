@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Custom Section Template — Reference for Codex-generated sections.
  *

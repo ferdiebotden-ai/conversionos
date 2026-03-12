@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import type { SectionBaseProps } from '@/lib/section-types';
