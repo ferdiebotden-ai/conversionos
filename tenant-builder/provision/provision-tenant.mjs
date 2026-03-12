@@ -25,7 +25,7 @@ import * as logger from '../lib/logger.mjs';
 import { withRetry } from '../lib/retry.mjs';
 import { writeProxyFragment } from './proxy-fragment.mjs';
 import { createVoiceAgent } from './voice-agent.mjs';
-import { generateHeroImage, generateAboutImage, generateOgImage } from '../lib/generate-images.mjs';
+import { generateHeroImage, generateAboutImage, generateOgImage, generateServiceImages } from '../lib/generate-images.mjs';
 import { seedSampleLeads } from './seed-sample-leads.mjs';
 
 loadEnv();
@@ -193,6 +193,20 @@ if (!dryRun) {
     }
   } catch (e) {
     logger.warn(`OG image generation failed (non-blocking): ${e.message}`);
+  }
+
+  // Generate images for services missing scraped images
+  if (provisionData.services?.length > 0) {
+    const missingCount = provisionData.services.filter(s => !s.image_urls?.length || !s.image_urls[0]).length;
+    if (missingCount > 0) {
+      logger.info(`Step 1b: ${missingCount} service(s) missing images — generating via Gemini`);
+      try {
+        const generated = await generateServiceImages(imageOpts);
+        if (generated > 0) imageDataUpdated = true;
+      } catch (e) {
+        logger.warn(`Service image generation failed (non-blocking): ${e.message}`);
+      }
+    }
   }
 
   if (imageDataUpdated) {

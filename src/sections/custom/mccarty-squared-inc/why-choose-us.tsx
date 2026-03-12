@@ -10,6 +10,7 @@ export function WhyChooseUs({ branding, config: rawConfig, tokens, className }: 
   const config = rawConfig as unknown as Record<string, unknown>;
 
   function str(v: unknown): string {
+    if (Array.isArray(v)) return v.filter(s => typeof s === 'string').join(' ').trim();
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
 

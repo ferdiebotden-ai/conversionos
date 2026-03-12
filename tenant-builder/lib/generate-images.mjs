@@ -88,8 +88,8 @@ export async function generateHeroImage({ siteId, primaryHex, companyName, servi
   for (const part of parts) {
     if (part.inlineData) {
       const imageData = Buffer.from(part.inlineData.data, 'base64');
-      const path = `tenant-assets/${siteId}/hero-generated.jpg`;
-      const publicUrl = await uploadToStorage('images', path, imageData, 'image/jpeg');
+      const path = `${siteId}/hero-generated.jpg`;
+      const publicUrl = await uploadToStorage('tenant-assets', path, imageData, 'image/jpeg');
       logger.info(`Hero image uploaded: ${publicUrl} (${(imageData.length / 1024).toFixed(0)} KB)`);
       return publicUrl;
     }
@@ -128,8 +128,8 @@ export async function generateAboutImage({ siteId, primaryHex, companyName, serv
   for (const part of parts) {
     if (part.inlineData) {
       const imageData = Buffer.from(part.inlineData.data, 'base64');
-      const path = `tenant-assets/${siteId}/about-generated.jpg`;
-      const publicUrl = await uploadToStorage('images', path, imageData, 'image/jpeg');
+      const path = `${siteId}/about-generated.jpg`;
+      const publicUrl = await uploadToStorage('tenant-assets', path, imageData, 'image/jpeg');
       logger.info(`About image uploaded: ${publicUrl} (${(imageData.length / 1024).toFixed(0)} KB)`);
       return publicUrl;
     }
@@ -172,8 +172,8 @@ export async function generateOgImage({ siteId, primaryHex, companyName, tagline
   for (const part of parts) {
     if (part.inlineData) {
       const imageData = Buffer.from(part.inlineData.data, 'base64');
-      const path = `tenant-assets/${siteId}/og-image.jpg`;
-      const publicUrl = await uploadToStorage('images', path, imageData, 'image/jpeg');
+      const path = `${siteId}/og-image.jpg`;
+      const publicUrl = await uploadToStorage('tenant-assets', path, imageData, 'image/jpeg');
       logger.info(`OG image uploaded: ${publicUrl} (${(imageData.length / 1024).toFixed(0)} KB)`);
       return publicUrl;
     }
@@ -181,4 +181,64 @@ export async function generateOgImage({ siteId, primaryHex, companyName, tagline
 
   logger.warn('Gemini returned no image data for OG generation');
   return null;
+}
+
+/**
+ * Generate images for services that have no scraped images.
+ * Modifies the services array in place, adding image_urls.
+ * @param {object} options
+ * @param {string} options.siteId
+ * @param {string} [options.primaryHex]
+ * @param {string} [options.companyName]
+ * @param {Array} options.services - services array (mutated in place)
+ * @returns {Promise<number>} count of images generated
+ */
+export async function generateServiceImages({ siteId, primaryHex, companyName, services }) {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    logger.warn('GOOGLE_GENERATIVE_AI_API_KEY not set — skipping service image generation');
+    return 0;
+  }
+  if (!services || services.length === 0) return 0;
+
+  const colourDesc = describeColour(primaryHex);
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-image-preview',
+    generationConfig: { responseModalities: ['image', 'text'] },
+  });
+
+  let generated = 0;
+
+  for (const service of services) {
+    const imgs = service.image_urls || [];
+    if (imgs.length > 0 && imgs[0]) continue; // already has an image
+
+    const name = service.name || 'renovation';
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const prompt = `Professional architectural photography of a completed ${name.toLowerCase()} project. Beautiful finished result, bright natural lighting, clean modern design with ${colourDesc} accent elements. Editorial quality, warm and inviting. No text, no logos, no watermarks, no people. 4:3 aspect ratio.`;
+
+    logger.info(`Generating service image for "${name}" (${siteId})`);
+
+    try {
+      const result = await model.generateContent(prompt);
+      const parts = result.response.candidates?.[0]?.content?.parts || [];
+
+      for (const part of parts) {
+        if (part.inlineData) {
+          const imageData = Buffer.from(part.inlineData.data, 'base64');
+          const path = `${siteId}/service-${slug}.jpg`;
+          const publicUrl = await uploadToStorage('tenant-assets', path, imageData, 'image/jpeg');
+          service.image_urls = [publicUrl];
+          generated++;
+          logger.info(`Service image uploaded: ${publicUrl} (${(imageData.length / 1024).toFixed(0)} KB)`);
+          break;
+        }
+      }
+    } catch (e) {
+      logger.warn(`Service image generation failed for "${name}" (non-blocking): ${e.message}`);
+    }
+  }
+
+  return generated;
 }

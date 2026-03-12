@@ -10,6 +10,7 @@ export function HeroSection({ branding, config: rawConfig, tokens, className }: 
   const config = rawConfig as unknown as Record<string, unknown>;
 
   function str(v: unknown): string {
+    if (Array.isArray(v)) return v.filter(s => typeof s === 'string').join(' ').trim();
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
 
@@ -41,7 +42,7 @@ export function HeroSection({ branding, config: rawConfig, tokens, className }: 
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary/70" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/65 to-black/35" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/20" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-neutral-950 to-transparent" />
       </div>
 

@@ -20,12 +20,15 @@ export function SectionName({ branding, config, tokens, className }: SectionBase
 ```
 
 ## Field Reference (camelCase primary)
+
+**IMPORTANT:** The `str()` helper handles both `string` and `string[]` values. `aboutCopy` is stored as `string[]` in Supabase — `str()` joins array elements with space.
+
 | Field | Type | Access Pattern |
 |-------|------|---------------|
 | heroHeadline | string | `str(config['heroHeadline']) \|\| str(config['hero_headline'])` |
 | heroSubheadline | string | `str(config['heroSubheadline']) \|\| str(config['hero_subheadline'])` |
 | heroImageUrl | string | `str(config['heroImageUrl']) \|\| str(config['hero_image_url'])` |
-| aboutCopy | string | `str(config['aboutCopy']) \|\| str(config['about_copy'])` |
+| aboutCopy | **string[]** | `str(config['aboutCopy']) \|\| str(config['about_copy'])` — str() joins arrays |
 | aboutImageUrl | string | `str(config['aboutImageUrl']) \|\| str(config['about_image_url'])` |
 | logoUrl | string | `str(config['logoUrl']) \|\| str(config['logo_url'])` |
 | serviceArea | string | `str(config['serviceArea']) \|\| str(config['service_area'])` |
