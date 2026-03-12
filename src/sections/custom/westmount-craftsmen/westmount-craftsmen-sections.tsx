@@ -107,7 +107,7 @@ const FALLBACK_SERVICES: NormalizedService[] = [
       'Kitchen additions when extra space is needed',
       'Designs tailored to household routines',
     ],
-    image: '',
+    image: `${BASE}/services/kitchen-renovation.webp`,
   },
   {
     name: 'Bathroom Renovation',
@@ -119,7 +119,7 @@ const FALLBACK_SERVICES: NormalizedService[] = [
       'Easy-to-maintain finishes and details',
       'Build quality intended to last',
     ],
-    image: '',
+    image: `${BASE}/services/bathroom-renovation.webp`,
   },
   {
     name: 'Basement Renovation',
@@ -131,7 +131,7 @@ const FALLBACK_SERVICES: NormalizedService[] = [
       'Legal rental unit focused layouts',
       'Plans aimed at increasing property value',
     ],
-    image: '',
+    image: `${BASE}/services/basement-renovation.webp`,
   },
   {
     name: 'Home Renovation',
@@ -143,7 +143,7 @@ const FALLBACK_SERVICES: NormalizedService[] = [
       'Renovations aligned with daily routines',
       'Tailored design approach based on lifestyle',
     ],
-    image: '',
+    image: `${BASE}/services/home-renovation.webp`,
   },
 ];
 

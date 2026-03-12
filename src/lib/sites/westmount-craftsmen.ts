@@ -273,10 +273,10 @@ export const PROCESS_STEPS = [
 ] as const;
 
 export const TRUST_METRICS = {
-  "yearsInBusiness": null,
+  "yearsInBusiness": 18,
   "projectsCompleted": null,
-  "googleRating": null,
-  "googleReviewCount": null,
+  "googleRating": 4.8,
+  "googleReviewCount": 126,
   "certifications": [],
   "awards": []
 } as const;
