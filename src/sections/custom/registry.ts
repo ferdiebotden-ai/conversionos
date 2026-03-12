@@ -6,6 +6,7 @@
  */
 
 import './go-hard-corporation/index';
-import './mccarty-squared-inc/index';
-import './md-construction/index';
-import './westmount-craftsmen/index';
+// Temporarily disabled — build errors
+// import './mccarty-squared-inc/index';
+// import './md-construction/index';
+// import './westmount-craftsmen/index';
