@@ -338,7 +338,7 @@ function normalizeServices(): NormalizedService[] {
   }
 
   return services.slice(0, 4).map((service, index) => {
-    const fallback = FALLBACK_SERVICES[index] ?? FALLBACK_SERVICES[0];
+    const fallback = FALLBACK_SERVICES[index] ?? FALLBACK_SERVICES[0]!;
     const features = pickList(service, ['features', 'bullets', 'highlights'])
       .map((entry) => {
         if (typeof entry === 'string') {
@@ -385,7 +385,7 @@ function normalizeProjects(): NormalizedProject[] {
   }
 
   return projects.slice(0, 6).map((project, index) => {
-    const fallback = FALLBACK_PROJECTS[index] ?? FALLBACK_PROJECTS[0];
+    const fallback = FALLBACK_PROJECTS[index] ?? FALLBACK_PROJECTS[0]!;
     return {
       title:
         pickText(project, ['title', 'name', 'projectName', 'project_name']) ||
@@ -419,14 +419,14 @@ function normalizeProjects(): NormalizedProject[] {
 
 function normalizeProcessSteps(contentRecord: DataRecord): NormalizedStep[] {
   const steps = asRecordArray(
-    contentRecord.processSteps ?? contentRecord.process_steps,
+    contentRecord['processSteps'] ?? contentRecord['process_steps'],
   );
   if (!steps.length) {
     return FALLBACK_PROCESS;
   }
 
   return steps.slice(0, 3).map((step, index) => {
-    const fallback = FALLBACK_PROCESS[index] ?? FALLBACK_PROCESS[0];
+    const fallback = FALLBACK_PROCESS[index] ?? FALLBACK_PROCESS[0]!;
     return {
       title: pickText(step, ['title', 'name', 'heading']) || fallback.title,
       description:
@@ -438,7 +438,7 @@ function normalizeProcessSteps(contentRecord: DataRecord): NormalizedStep[] {
 
 function normalizeServiceAreas(contentRecord: DataRecord): string[] {
   const directAreas = asStringArray(
-    contentRecord.serviceAreas ?? contentRecord.service_areas,
+    contentRecord['serviceAreas'] ?? contentRecord['service_areas'],
   );
   return directAreas.length ? directAreas : FALLBACK_SERVICE_AREAS;
 }
@@ -452,7 +452,7 @@ function normalizeTestimonial(): NormalizedTestimonial {
     'Westmount recently renovated our entire main floor including kitchen, bathroom, bedrooms, etc. From start to finish, the entire team were professional, pleasant and easy to communicate with. Our reno far exceeded our expectations and we could not be more thrilled with the results.';
   const ratingValue = Number(
     pickText(testimonial, ['rating', 'stars']) ||
-      asText(asRecord(testimonial).rating),
+      asText(asRecord(testimonial)['rating']),
   );
 
   return {
@@ -555,7 +555,7 @@ function MediaFill({
       src={src}
       alt={alt}
       fill
-      priority={priority}
+      priority={priority ?? false}
       sizes={sizes}
       className={cx('object-cover', className)}
     />
@@ -673,11 +673,11 @@ export function HeroSection({
   void tokens;
 
   const brand = asRecord(branding);
-  const businessName = asText(brand.name) || 'Westmount Craftsmen';
-  const phone = asText(brand.phone);
-  const address = asText(brand.address);
+  const businessName = asText(brand["name"]) || 'Westmount Craftsmen';
+  const phone = asText(brand["phone"]);
+  const address = asText(brand["address"]);
   const logo =
-    asText(brand.logo_url) || asText(brand.logoUrl) || asText(brand.logo);
+    asText(brand["logo_url"]) || asText(brand["logoUrl"]) || asText(brand["logo"]);
   const monogram = firstWords(businessName, 2)
     .split(' ')
     .map((word) => word.charAt(0))
@@ -869,7 +869,7 @@ export function ServicesSection({
   void config;
   void tokens;
 
-  const businessName = asText(asRecord(branding).name) || 'Westmount Craftsmen';
+  const businessName = asText(asRecord(branding)["name"]) || 'Westmount Craftsmen';
 
   return (
     <section
@@ -988,8 +988,8 @@ export function AboutSection({
   void tokens;
 
   const brand = asRecord(branding);
-  const businessName = asText(brand.name) || 'Westmount Craftsmen';
-  const phone = asText(brand.phone);
+  const businessName = asText(brand["name"]) || 'Westmount Craftsmen';
+  const phone = asText(brand["phone"]);
 
   return (
     <section
@@ -1150,12 +1150,12 @@ export function Footer({
   void tokens;
 
   const brand = asRecord(branding);
-  const businessName = asText(brand.name) || 'Westmount Craftsmen';
-  const phone = asText(brand.phone);
-  const email = asText(brand.email);
-  const address = asText(brand.address);
+  const businessName = asText(brand["name"]) || 'Westmount Craftsmen';
+  const phone = asText(brand["phone"]);
+  const email = asText(brand["email"]);
+  const address = asText(brand["address"]);
   const logo =
-    asText(brand.logo_url) || asText(brand.logoUrl) || asText(brand.logo);
+    asText(brand["logo_url"]) || asText(brand["logoUrl"]) || asText(brand["logo"]);
   const monogram = firstWords(businessName, 2)
     .split(' ')
     .map((word) => word.charAt(0))
@@ -1318,7 +1318,7 @@ export function ProjectGallery({
   void config;
   void tokens;
 
-  const businessName = asText(asRecord(branding).name) || 'Westmount Craftsmen';
+  const businessName = asText(asRecord(branding)["name"]) || 'Westmount Craftsmen';
 
   return (
     <section
@@ -1440,7 +1440,7 @@ export function WhyChooseUs({
   void config;
   void tokens;
 
-  const businessName = asText(asRecord(branding).name) || 'Westmount Craftsmen';
+  const businessName = asText(asRecord(branding)["name"]) || 'Westmount Craftsmen';
 
   const advantageCards = [
     {
