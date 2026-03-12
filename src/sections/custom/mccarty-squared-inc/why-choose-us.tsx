@@ -29,7 +29,13 @@ export function WhyChooseUs({ branding, config: rawConfig, tokens, className }: 
           { title: 'Finish-focused results', description: 'Small details receive the same attention as large structural decisions.' },
         ];
 
-  const metricList = trustMetrics ? Object.entries(trustMetrics).slice(0, 2) : [];
+  function formatLabel(key: string): string {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  const metricList = trustMetrics
+    ? Object.entries(trustMetrics).filter(([, v]) => typeof v === 'string' || typeof v === 'number').slice(0, 2).map(([k, v]) => [formatLabel(k), String(v)])
+    : [];
 
   return (
     <section className={`bg-muted py-14 md:py-20 ${className ?? ''}`}>

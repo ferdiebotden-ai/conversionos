@@ -26,8 +26,12 @@ export function AboutSection({ branding, config: rawConfig, tokens, className }:
       ? (config['trustMetrics'] as Record<string, unknown>)
       : null;
 
+  function formatLabel(key: string): string {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
   const metrics = trustMetrics
-    ? Object.entries(trustMetrics).slice(0, 3)
+    ? Object.entries(trustMetrics).filter(([, v]) => typeof v === 'string' || typeof v === 'number').slice(0, 3).map(([k, v]) => [formatLabel(k), String(v)])
     : [
         ['Focus', 'Detail-led execution'],
         ['Approach', 'Clear communication'],

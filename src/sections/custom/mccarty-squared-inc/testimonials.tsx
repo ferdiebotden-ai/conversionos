@@ -73,10 +73,10 @@ export function Testimonials({ branding, config: rawConfig, tokens, className }:
                     </p>
                     <div className="mt-8 border-t border-border pt-4">
                       <p className="font-heading text-lg font-semibold text-foreground">
-                        {str(testimonial['name']) || `Client ${index + 1}`}
+                        {str(testimonial['author']) || str(testimonial['name']) || `Client ${index + 1}`}
                       </p>
                       <p className="mt-1 font-body text-sm text-muted-foreground">
-                        {str(testimonial['title']) || 'Verified project experience'}
+                        {str(testimonial['project_type']) || str(testimonial['projectType']) || str(testimonial['title']) || 'Verified project experience'}
                       </p>
                     </div>
                   </article>

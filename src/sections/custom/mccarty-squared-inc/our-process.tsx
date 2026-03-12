@@ -15,13 +15,14 @@ export function OurProcess({ branding, config: rawConfig, tokens, className }: S
 
   const aboutImageUrl = str(config['aboutImageUrl']) || str(config['about_image_url']);
   const heroSubheadline = str(config['heroSubheadline']) || str(config['hero_subheadline']);
-  const services = Array.isArray(config['services']) ? config['services'] : [];
+  const rawSteps = Array.isArray(config['processSteps']) ? config['processSteps']
+    : Array.isArray(config['process_steps']) ? config['process_steps'] : [];
   const processSteps =
-    services.length > 0
-      ? (services as Record<string, unknown>[]).slice(0, 4).map((service, index) => ({
-          title: str(service['name']) || `Step ${index + 1}`,
+    rawSteps.length > 0
+      ? (rawSteps as Record<string, unknown>[]).slice(0, 4).map((step, index) => ({
+          title: str(step['title']) || str(step['name']) || `Step ${index + 1}`,
           description:
-            str(service['description']) ||
+            str(step['description']) ||
             'Each phase is scoped carefully so expectations, sequencing, and finish standards stay aligned.',
         }))
       : [
