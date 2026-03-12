@@ -91,15 +91,40 @@ if (foreignNames.length > 0) {
   }
 }
 
+// Fix 2: Derive email from domain when scrape returns empty — never fall back to ferdie@
+function deriveEmail(scrapedEmail, website) {
+  if (scrapedEmail && sanitizeNA(scrapedEmail)) return sanitizeNA(scrapedEmail);
+  // Extract domain from website URL and create info@ address
+  try {
+    const url = new URL(website.startsWith('http') ? website : `https://${website}`);
+    const host = url.hostname.replace(/^www\./, '');
+    return `info@${host}`;
+  } catch {
+    return '';  // Genuinely empty — better than ferdie@
+  }
+}
+
+// Fix 3: Clean address — strip "Not provided" fragments, keep only real parts
+function cleanAddress(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const JUNK = ['not provided', 'not specified', 'not applicable', 'not available', 'n/a', 'na', 'unknown', 'none'];
+  const parts = raw.split(',').map(p => p.trim()).filter(p => {
+    const lower = p.toLowerCase();
+    return p && !JUNK.includes(lower);
+  });
+  return parts.join(', ');
+}
+
 // Build admin_settings rows
+const derivedEmail = deriveEmail(data.email, data.website || domain);
 const businessInfo = {
   name: data.business_name || siteId,
   phone: data.phone || '',
-  email: data.email || '',
-  payment_email: data.email || '',
-  quotes_email: data.email || '',
+  email: derivedEmail,
+  payment_email: derivedEmail,
+  quotes_email: derivedEmail,
   website: data.website || domain,
-  address: sanitizeNA(data.address),
+  address: cleanAddress(data.address),
   city: data.city || '',
   province: data.province || 'ON',
   postal: sanitizeNA(data.postal),

@@ -441,6 +441,25 @@ if (!dryRun) {
       };
     }
 
+    // Fix 4: Remove gallery sections when portfolio is empty (prevents broken <img> tags)
+    const provDataForLayouts = JSON.parse(readFileSync(existsSync(provisionedPath) ? provisionedPath : dataPath, 'utf-8'));
+    const portfolioCount = Array.isArray(provDataForLayouts.portfolio) ? provDataForLayouts.portfolio.filter(p => p.imageUrl || p.image_url).length : 0;
+    if (portfolioCount === 0) {
+      logger.info('No portfolio images — removing gallery sections from page_layouts');
+      for (const [page, sections] of Object.entries(pageLayouts)) {
+        pageLayouts[page] = sections.filter(id => !/gallery/i.test(id));
+      }
+    }
+
+    // Fix 6: Set per-page hero headlines so inner pages don't reuse homepage headline
+    const companyName = provDataForLayouts.business_name || provDataForLayouts.company_name || siteId;
+    const pageHeroHeadlines = {
+      about: `About ${companyName}`,
+      services: 'Our Services',
+      projects: 'Our Projects',
+      contact: 'Get in Touch',
+    };
+
     // Upsert theme
     const { error: themeErr } = await (sb).from('admin_settings').upsert(
       { site_id: siteId, key: 'theme', value: themeConfig },
@@ -455,24 +474,28 @@ if (!dryRun) {
     );
     if (layoutErr) logger.warn(`Page layouts upsert failed: ${layoutErr.message}`);
 
-    // Detect custom nav sections and set layout_flags
-    // NOTE: We intentionally do NOT set custom_footer here. Custom footer sections
-    // in the homepage layout are content sections rendered by SectionRenderer — they
-    // only appear on the homepage. Setting custom_footer=true suppresses the global
-    // Footer in layout.tsx on ALL pages, leaving inner pages (about, services,
-    // contact, projects) with no footer at all.
+    // Upsert per-page hero headlines (Fix 6: inner pages get their own headline)
+    const { error: headlineErr } = await (sb).from('admin_settings').upsert(
+      { site_id: siteId, key: 'page_hero_headlines', value: pageHeroHeadlines },
+      { onConflict: 'site_id,key' }
+    );
+    if (headlineErr) logger.warn(`Page hero headlines upsert failed: ${headlineErr.message}`);
+
+    // NEVER set custom_nav or custom_footer flags.
+    // Custom nav/footer sections render via SectionRenderer on the homepage only.
+    // Setting custom_nav=true hides the standard Header on ALL inner pages (about,
+    // services, contact, projects), leaving them with no navigation.
+    // Setting custom_footer=true hides the standard Footer on all inner pages.
+    // The standard Header and Footer must always render globally.
+    //
+    // If custom nav sections exist in page_layouts, strip them out instead:
     const allSectionIds = Object.values(pageLayouts).flat();
     const hasCustomNav = allSectionIds.some(id => /custom:.*-(nav|navbar|header|navigation)/i.test(id));
-
     if (hasCustomNav) {
-      const layoutFlags = { custom_nav: true };
-
-      const { error: flagsErr } = await (sb).from('admin_settings').upsert(
-        { site_id: siteId, key: 'layout_flags', value: layoutFlags },
-        { onConflict: 'site_id,key' }
-      );
-      if (flagsErr) logger.warn(`Layout flags upsert failed: ${flagsErr.message}`);
-      else logger.info(`Layout flags set: ${JSON.stringify(layoutFlags)}`);
+      logger.info('Detected custom nav sections — stripping from page_layouts (standard Header renders globally)');
+      for (const [page, sections] of Object.entries(pageLayouts)) {
+        pageLayouts[page] = sections.filter(id => !/custom:.*-(nav|navbar|header|navigation)/i.test(id));
+      }
     }
 
     logger.info('Theme + page_layouts written to admin_settings');

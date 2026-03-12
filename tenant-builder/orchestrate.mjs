@@ -350,6 +350,29 @@ const tasks = targets.map(target => async () => {
   // 3c. Build custom sections (if blueprint has customSections)
   if (!args['skip-custom-sections'] && CONFIG.custom_sections?.enabled !== false) {
     const blueprintPath = resolve(outputDir, 'site-blueprint-v2.json');
+
+    // Fix 5: If --skip-architect was set but Design Director produced a manifest,
+    // synthesize a minimal blueprint so custom sections can still be built
+    if (!existsSync(blueprintPath) && ddManifest && bespokeMode) {
+      logger.info(`[${siteId}] No blueprint (--skip-architect) but DD manifest exists — synthesizing minimal blueprint`);
+      const syntheticBlueprint = {
+        customSections: ddManifest.map(entry => ({
+          name: entry.sectionType || 'section',
+          spec: entry.htmlSnippet ? `Rebuild this section: ${entry.sectionType}` : entry.sectionType,
+          layout: entry.layout || {},
+          background: entry.background || {},
+          typography: entry.typography || {},
+          spacing: entry.spacing || {},
+          animations: entry.animations || {},
+          contentMapping: entry.configFields || {},
+        })),
+        pages: [],
+        theme: {},
+      };
+      writeFileSync(blueprintPath, JSON.stringify(syntheticBlueprint, null, 2));
+      logger.info(`[${siteId}] Wrote synthetic blueprint with ${syntheticBlueprint.customSections.length} sections from DD manifest`);
+    }
+
     if (existsSync(blueprintPath)) {
       try {
         const blueprint = JSON.parse(readFileSync(blueprintPath, 'utf-8'));

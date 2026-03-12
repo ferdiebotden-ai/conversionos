@@ -221,3 +221,23 @@ These 6 patterns were discovered during manual polish of 13 demo tenants on Mar 
 **[2026-03-12] data — Scraped testimonials may reference other company names:** Google reviews sometimes mention a different company name (e.g., "Pinnacle improvements co." in a Go Hard Corporation review). This creates brand confusion in the demo. Fix: content-architect post-processing should flag any testimonial whose text contains a company name that doesn't match the target. Either clean the reference or drop the testimonial. In the interim, RALPH G3 check should scan testimonial text for company names that don't match the target.
 
 **[2026-03-12] build — @ts-nocheck required for all Codex-generated custom section files:** Codex generates `Record<string, unknown>` accesses with dot notation (e.g., `str(config.hero_headline)`) which TypeScript strict mode rejects. The `cfg()` helper or bracket notation fixes individual cases, but `@ts-nocheck` at the file top is the reliable solution. Add it automatically in `build-custom-sections.mjs` after Codex outputs each file.
+
+## Pre-Flight Hardening (Session 15 — Mar 12, 2026)
+
+Eight systemic fixes applied before the first 10-build nightly batch. Each addresses a `permanent_fix_needed: true` issue from the Mar 12 issue log.
+
+**[2026-03-12] Fix 1 — Section IDs as visible eyebrow text:** Added explicit rule to `integration-spec.md`: "NEVER use the section ID as visible text" with lookup table of human-readable labels per section type (Our Services, Why Choose Us, About Us, etc.).
+
+**[2026-03-12] Fix 2 — ferdie@ email demo leakage:** Added `deriveEmail()` to `provision.mjs` — extracts `info@{contractor-domain}` when scrape email is empty. Changed `company.ts` email fallback from `||` to `??` (empty string is intentional).
+
+**[2026-03-12] Fix 3 — "Not provided" in address fields:** Added `cleanAddress()` to `provision.mjs` — strips junk fragments (Not provided, N/A, Unknown) from comma-separated address parts.
+
+**[2026-03-12] Fix 4 — Broken gallery images when portfolio=0:** Added guard in `provision-tenant.mjs` Step 2d: removes `gallery:masonry-grid` from page_layouts when portfolio has 0 images with URLs.
+
+**[2026-03-12] Fix 5 — --skip-architect breaks custom sections:** Added fallback in `orchestrate.mjs`: if `--skip-architect` AND Design Director manifest exists, synthesizes minimal `site-blueprint-v2.json` from the manifest.
+
+**[2026-03-12] Fix 6 — Inner pages reuse homepage headline:** Added `page_hero_headlines` key to admin_settings: About → "About {company}", Services → "Our Services", Projects → "Our Projects", Contact → "Get in Touch".
+
+**[2026-03-12] Fix 7 — TypeScript strict mode in Codex sections:** Added mandatory rules to `integration-spec.md`: bracket notation for all Record access, `priority={priority ?? false}`, non-null assertions after length checks.
+
+**[2026-03-12] Fix 8 — custom_nav flag hides standard nav on inner pages:** Changed `provision-tenant.mjs` to NEVER set `custom_nav` flag. Instead strips custom nav sections from page_layouts. Standard Header always renders globally.

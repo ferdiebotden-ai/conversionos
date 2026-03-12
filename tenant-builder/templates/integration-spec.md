@@ -114,6 +114,26 @@ Include a dedicated "How It Works" or "AI-Powered" teaser in the homepage sectio
 // Use the contractor's brand voice, not generic tech language
 ```
 
+## TypeScript Strict Mode (MANDATORY)
+- **ALL `config` access MUST use bracket notation:** `config['fieldName']` — NEVER `config.fieldName` (config is `Record<string, unknown>`)
+- **ALL `branding` access via `asRecord()` MUST use bracket notation:** `asRecord(branding)['name']` — NEVER `asRecord(branding).name`
+- **Image `priority` prop:** Always use `priority={priority ?? false}` — NEVER `priority={priority}` (undefined violates exactOptionalPropertyTypes)
+- **Array index access:** Add `!` non-null assertion when you've length-checked: `items[0]!` after `if (items.length > 0)`
+
+## Section Labels (CRITICAL — NEVER Use Section IDs as Visible Text)
+- Section IDs like `custom:my-tenant-services` are internal identifiers only
+- For visible "eyebrow" labels above section titles, use human-readable text:
+  - Hero → no eyebrow needed
+  - Services → "Our Services"
+  - About → "About Us" or "Our Story"
+  - Testimonials → "What Our Clients Say"
+  - Gallery/Portfolio → "Our Work" or "Recent Projects"
+  - Why Choose Us → "Why Choose Us"
+  - Process → "How We Work" or "Our Process"
+  - CTA → no eyebrow needed
+  - Trust/Stats → "By the Numbers" or omit
+  - Contact → "Get in Touch"
+
 ## Allowed Imports
 - `@/lib/section-types` (SectionBaseProps)
 - `@/components/motion` (animations)
