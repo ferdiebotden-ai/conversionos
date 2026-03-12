@@ -25,6 +25,7 @@
     "@ai-sdk/google": "^3.0.20",
     "@ai-sdk/openai": "^3.0.25",
     "@ai-sdk/react": "^3.0.69",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@elevenlabs/react": "^0.14.1",
     "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
