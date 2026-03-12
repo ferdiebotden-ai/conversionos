@@ -308,7 +308,7 @@ export function ServicesSection({ branding, config, tokens, className }: Section
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-10 xl:px-14">
         <FadeInUp>
           <div className="mx-auto max-w-3xl text-center">
-            <SectionEyebrow>Custom:go-hard-corporation-services</SectionEyebrow>
+            <SectionEyebrow>Our Services</SectionEyebrow>
             <h2 className="mt-5 font-heading text-3xl font-bold leading-tight text-stone-900 sm:text-4xl md:text-5xl">
               Designed for real life. Built to hold up beautifully.
             </h2>
@@ -468,7 +468,7 @@ export function AboutSection({ branding, config, tokens, className }: SectionBas
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
           <SlideInFromSide direction="left" className="order-2 lg:order-1">
             <div className="max-w-2xl">
-              <SectionEyebrow>Custom:go-hard-corporation-about</SectionEyebrow>
+              <SectionEyebrow>About Us</SectionEyebrow>
               <h2 className="mt-5 font-heading text-3xl font-bold leading-tight text-stone-900 sm:text-4xl md:text-5xl">
                 Renovation work that starts with listening and finishes with discipline.
               </h2>
@@ -576,7 +576,7 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
         <FadeInUp>
           <div className="grid gap-8 rounded-[32px] border border-white/10 bg-white/5 px-6 py-8 backdrop-blur-sm lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.6fr))] lg:px-8">
             <div>
-              <SectionEyebrow>Custom:go-hard-corporation-footer</SectionEyebrow>
+              <SectionEyebrow>Get in Touch</SectionEyebrow>
               <h2 className="mt-4 font-heading text-3xl font-bold leading-tight text-white sm:text-4xl">
                 {branding.name || 'Go Hard Corporation'}
               </h2>
@@ -662,7 +662,7 @@ export function Testimonials({ branding, config, tokens, className }: SectionBas
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-10 xl:px-14">
         <FadeInUp>
           <div className="mx-auto max-w-3xl text-center">
-            <SectionEyebrow>Custom:go-hard-corporation-testimonials</SectionEyebrow>
+            <SectionEyebrow>Client Testimonials</SectionEyebrow>
             <h2 className="mt-5 font-heading text-3xl font-bold leading-tight text-stone-900 sm:text-4xl md:text-5xl">
               Clients remember the finish, but they notice the process first.
             </h2>
@@ -747,7 +747,7 @@ export function OurProcess({ branding, config, tokens, className }: SectionBaseP
         <FadeInUp>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <SectionEyebrow>Custom:go-hard-corporation-process</SectionEyebrow>
+              <SectionEyebrow>Our Process</SectionEyebrow>
               <h2 className="mt-5 font-heading text-3xl font-bold leading-tight text-stone-900 sm:text-4xl md:text-5xl">
                 A process built to keep scope, design intent, and execution aligned.
               </h2>
@@ -882,7 +882,7 @@ export function WhyChooseUs({ branding, config, tokens, className }: SectionBase
         <FadeInUp>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
             <div className="max-w-3xl">
-              <SectionEyebrow>Custom:go-hard-corporation-why-us</SectionEyebrow>
+              <SectionEyebrow>Why Choose Us</SectionEyebrow>
               <h2 className="mt-5 font-heading text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
                 Why homeowners choose a team that can think like designers and build like pros.
               </h2>

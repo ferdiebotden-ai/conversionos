@@ -213,7 +213,7 @@ export const TESTIMONIALS = [
   },
   {
     "author": "Pradeep Kr",
-    "text": "It was wonderful experience taking service from Pinnacle improvements co. Needed to fix drywall and paint issues...",
+    "text": "It was a wonderful experience. Needed to fix drywall and paint issues and the team handled everything professionally.",
     "rating": 5,
     "source": "Google"
   },
