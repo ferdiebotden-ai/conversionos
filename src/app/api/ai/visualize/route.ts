@@ -49,7 +49,7 @@ const enhancedVisualizationRequestSchema = visualizationRequestSchema
     customRoomType: z.string().max(100).optional(),
     /** Design style — accepts standard styles or 'other' for custom */
     style: z.union([
-      z.enum(['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary']),
+      z.enum(['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary', 'transitional', 'scandinavian', 'coastal', 'mid_century_modern']),
       z.literal('other'),
     ]),
     /** Custom style description (when style === 'other') */

@@ -204,6 +204,16 @@ function VisualizerChatInner({
       industrial: 'industrial',
       minimalist: 'minimalist',
       contemporary: 'contemporary',
+      transitional: 'transitional',
+      scandinavian: 'scandinavian',
+      nordic: 'scandinavian',
+      hygge: 'scandinavian',
+      coastal: 'coastal',
+      beach: 'coastal',
+      nautical: 'coastal',
+      'mid-century': 'mid_century_modern',
+      'mid century': 'mid_century_modern',
+      midcentury: 'mid_century_modern',
     };
     for (const [keyword, style] of Object.entries(styles)) {
       if (content.includes(keyword)) {
@@ -304,6 +314,10 @@ function VisualizerChatInner({
     { value: 'industrial', label: 'Industrial' },
     { value: 'minimalist', label: 'Minimalist' },
     { value: 'contemporary', label: 'Contemporary' },
+    { value: 'transitional', label: 'Transitional' },
+    { value: 'scandinavian', label: 'Scandinavian' },
+    { value: 'coastal', label: 'Coastal' },
+    { value: 'mid_century_modern', label: 'Mid-Century Modern' },
   ];
 
   return (

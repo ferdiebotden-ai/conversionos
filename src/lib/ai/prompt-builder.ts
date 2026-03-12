@@ -108,6 +108,42 @@ const DETAILED_STYLE_DESCRIPTIONS: Record<DesignStyle, {
     furniture: ['curved modular sofa in jewel-tone velvet', 'sculptural accent chair', 'mixed-material coffee table', 'lacquered console with brass hardware', 'asymmetric metallic side table'],
     lighting: 'statement pendant clusters, sculptural chandeliers, and dramatic accent lighting',
   },
+  transitional: {
+    narrative: 'A refined transitional aesthetic that balances traditional warmth with contemporary restraint. The space pairs classic architectural details — crown moulding, panelled wainscoting — with streamlined furniture silhouettes and a soothing neutral palette, creating rooms that feel both established and effortlessly current.',
+    materials: ['natural stone', 'warm white oak', 'honed marble', 'tempered glass', 'brushed nickel and matte gold metals'],
+    colors: ['warm white', 'soft taupe', 'greige', 'warm grey', 'muted gold accents'],
+    finishes: ['satin lacquer', 'honed stone', 'wire-brushed wood', 'brushed metal'],
+    fixtures: ['shaker-profile cabinets with slimline hardware', 'understated bridge faucets', 'simple panelled doors', 'fluted glass inserts'],
+    furniture: ['shelter-arm sofa in performance linen', 'parsons-style accent chair', 'oval marble-top coffee table on tapered legs', 'clean-profile sideboard in warm oak', 'upholstered bench with turned wood legs'],
+    lighting: 'linen drum pendants, brushed-nickel sconces, and recessed ambient downlights',
+  },
+  scandinavian: {
+    narrative: 'A bright Scandinavian aesthetic rooted in Nordic design philosophy — functional beauty, democratic comfort, and connection to nature. The space celebrates light, open air, and honest materials, achieving warmth through texture rather than colour saturation. Every piece earns its place through both beauty and utility.',
+    materials: ['light ash', 'birch plywood', 'white-washed pine', 'natural linen', 'boucle wool', 'pale ceramic'],
+    colors: ['bright white', 'light warm grey', 'soft beige', 'pale blue', 'muted sage green'],
+    finishes: ['matte white paint', 'oiled light wood', 'unglazed ceramic', 'natural fibre weave'],
+    fixtures: ['flat-panel cabinets in matte white', 'slim wood-and-metal handles', 'undermount ceramic sinks', 'simple single-lever taps'],
+    furniture: ['low-profile sofa in light boucle fabric', 'moulded plywood lounge chair', 'round white-oak coffee table', 'slim open bookshelf in birch', 'woven paper-cord dining chairs'],
+    lighting: 'sculptural paper or fabric pendant lamps, slim brass floor lamps, and generous natural daylight',
+  },
+  coastal: {
+    narrative: 'A relaxed coastal aesthetic that channels the serenity of seaside living without veering into theme-park nautical. The space is defined by an abundance of natural light, breezy textures, and an ocean-inspired palette that moves from crisp white to soft blue-green, evoking barefoot luxury and quiet calm.',
+    materials: ['whitewashed wood', 'rattan and wicker', 'natural jute', 'linen fabric', 'sea glass tile', 'coral stone'],
+    colors: ['crisp white', 'ocean blue', 'sandy beige', 'seafoam green', 'driftwood grey'],
+    finishes: ['whitewashed timber', 'matte paint', 'woven natural fibre', 'brushed nickel', 'weathered brass'],
+    fixtures: ['louvred cabinet doors', 'rope-wrapped pulls', 'pedestal sinks with classic lines', 'wide-plank shiplap wainscoting'],
+    furniture: ['slipcovered sofa in white or natural linen', 'rattan accent chair with cushion', 'driftwood coffee table', 'woven seagrass console', 'cane-back dining chairs'],
+    lighting: 'woven rattan pendants, brushed-nickel lantern sconces, and sheer curtains maximising natural light',
+  },
+  mid_century_modern: {
+    narrative: 'A vibrant mid-century modern aesthetic drawn from 1950s and 1960s Bauhaus-influenced design. The space celebrates organic curves, sculptural furniture forms, and confident colour pops against warm wood tones. Clean geometric lines meet expressive shapes, creating rooms that feel both retro-inspired and timelessly sophisticated.',
+    materials: ['walnut', 'teak', 'moulded plywood', 'terrazzo', 'brass', 'bouclé wool'],
+    colors: ['mustard yellow', 'olive green', 'burnt orange', 'warm walnut brown', 'cream'],
+    finishes: ['oiled walnut', 'satin brass', 'matte lacquer in accent colours', 'terrazzo composite'],
+    fixtures: ['flat-front walnut cabinets with brass pulls', 'sculpted single-hole faucets', 'tapered peg legs on vanities', 'geometric tile backsplash'],
+    furniture: ['low-slung sofa with tapered walnut legs', 'moulded fibreglass shell chair', 'oval walnut coffee table', 'teak credenza with sliding doors', 'sunburst wall clock as focal point'],
+    lighting: 'Sputnik chandeliers, arc floor lamps with marble bases, and globe pendant lights',
+  },
 };
 
 /**

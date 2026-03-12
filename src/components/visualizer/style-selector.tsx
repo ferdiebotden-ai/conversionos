@@ -16,7 +16,11 @@ export type DesignStyle =
   | 'farmhouse'
   | 'industrial'
   | 'minimalist'
-  | 'contemporary';
+  | 'contemporary'
+  | 'transitional'
+  | 'scandinavian'
+  | 'coastal'
+  | 'mid_century_modern';
 
 export type DesignStyleSelection = DesignStyle | 'other';
 
@@ -64,6 +68,30 @@ const STYLE_OPTIONS: StyleOption[] = [
     description: 'Current trends, bold accents, artistic elements',
     keywords: ['trendy', 'bold', 'artistic'],
   },
+  {
+    id: 'transitional',
+    label: 'Transitional',
+    description: 'Traditional warmth meets contemporary restraint',
+    keywords: ['classic', 'updated', 'timeless'],
+  },
+  {
+    id: 'scandinavian',
+    label: 'Scandinavian',
+    description: 'Nordic minimalism, bright and cosy, natural textures',
+    keywords: ['nordic', 'hygge', 'light'],
+  },
+  {
+    id: 'coastal',
+    label: 'Coastal',
+    description: 'Seaside calm, light and airy, ocean-inspired',
+    keywords: ['beach', 'breezy', 'nautical'],
+  },
+  {
+    id: 'mid_century_modern',
+    label: 'Mid-Century Modern',
+    description: 'Retro curves, warm wood, bold colour pops',
+    keywords: ['retro', '1960s', 'atomic'],
+  },
 ];
 
 // AI-generated style preview images
@@ -74,6 +102,10 @@ const STYLE_IMAGES: Record<DesignStyle, string> = {
   industrial: '/images/styles/industrial.png',
   minimalist: '/images/styles/minimalist.png',
   contemporary: '/images/styles/contemporary.png',
+  transitional: '/images/styles/transitional.png',
+  scandinavian: '/images/styles/scandinavian.png',
+  coastal: '/images/styles/coastal.png',
+  mid_century_modern: '/images/styles/mid_century_modern.png',
 };
 
 interface StyleSelectorProps {

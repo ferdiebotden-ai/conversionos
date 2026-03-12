@@ -248,6 +248,18 @@ function suggestStyle(context: VisualizerConversationContext): DesignStyle {
   if (materials.includes('metal') || materials.includes('brick') || materials.includes('concrete')) {
     return 'industrial';
   }
+  if (materials.includes('walnut') || materials.includes('teak') || materials.includes('terrazzo')) {
+    return 'mid_century_modern';
+  }
+  if (materials.includes('rattan') || materials.includes('jute') || materials.includes('driftwood')) {
+    return 'coastal';
+  }
+  if (materials.includes('birch') || materials.includes('linen') || materials.includes('ash')) {
+    return 'scandinavian';
+  }
+  if (materials.includes('marble') || materials.includes('taupe') || materials.includes('greige')) {
+    return 'transitional';
+  }
 
   // Default suggestion
   return 'modern';
@@ -275,13 +287,13 @@ export function getNextQuestion(context: VisualizerConversationContext): string 
         return "What changes would you like to see in this space? For example: new countertops, updated lighting, different flooring...";
       }
       if (!extractedData.stylePreference) {
-        return "What design style appeals to you? Options include modern, traditional, farmhouse, industrial, minimalist, or contemporary.";
+        return "What design style appeals to you? Options include modern, traditional, farmhouse, industrial, minimalist, contemporary, transitional, Scandinavian, coastal, or mid-century modern.";
       }
       break;
 
     case 'style_selection':
       if (!extractedData.stylePreference) {
-        return "Let's nail down the style. Would you prefer something clean and modern, warm and traditional, rustic farmhouse, edgy industrial, minimal and serene, or bold contemporary?";
+        return "Let's nail down the style. Would you prefer something clean and modern, warm and traditional, rustic farmhouse, edgy industrial, minimal and serene, bold contemporary, refined transitional, bright Scandinavian, breezy coastal, or retro mid-century modern?";
       }
       break;
 
@@ -393,6 +405,10 @@ DESIGN STYLES TO REFERENCE:
 - Industrial: Exposed elements, metal accents, raw materials
 - Minimalist: Ultra-clean, hidden storage, serene simplicity
 - Contemporary: Current trends, bold accents, mixed textures
+- Transitional: Traditional warmth + contemporary restraint, neutral palette
+- Scandinavian: Nordic minimalism, bright whites, light wood, cosy textures
+- Coastal: Seaside calm, whitewashed wood, ocean blues, natural fibres
+- Mid-Century Modern: 1950s–60s curves, walnut/teak, bold colour pops
 
 Remember: Your job is to GATHER information, not generate images. Once you have enough (style + changes), suggest moving to visualization.
 

@@ -139,7 +139,7 @@ describe('Prompt Builder', () => {
     });
 
     it('generates prompts for all design styles', () => {
-      const styles: DesignStyle[] = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary'];
+      const styles: DesignStyle[] = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary', 'transitional', 'scandinavian', 'coastal', 'mid_century_modern'];
 
       styles.forEach(style => {
         const prompt = buildRenovationPrompt({
@@ -155,7 +155,7 @@ describe('Prompt Builder', () => {
 
   describe('getDetailedStyleDescription', () => {
     it('returns description for all valid styles', () => {
-      const styles: DesignStyle[] = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary'];
+      const styles: DesignStyle[] = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary', 'transitional', 'scandinavian', 'coastal', 'mid_century_modern'];
 
       styles.forEach(style => {
         const description = getDetailedStyleDescription(style);

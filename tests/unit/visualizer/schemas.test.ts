@@ -30,7 +30,7 @@ describe('Visualization Schemas', () => {
 
   describe('designStyleSchema', () => {
     it('accepts all valid design styles', () => {
-      const validStyles = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary'];
+      const validStyles = ['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary', 'transitional', 'scandinavian', 'coastal', 'mid_century_modern'];
       validStyles.forEach(style => {
         expect(() => designStyleSchema.parse(style)).not.toThrow();
       });

@@ -24,7 +24,7 @@ export interface StagingRecommendation {
 }
 
 // ---------------------------------------------------------------------------
-// Staging Recommendations — 42 combinations (7 rooms x 6 styles)
+// Staging Recommendations — 70 combinations (7 rooms x 10 styles)
 // ---------------------------------------------------------------------------
 
 const STAGING_RECOMMENDATIONS: Record<string, StagingRecommendation> = {
@@ -412,6 +412,262 @@ const STAGING_RECOMMENDATIONS: Record<string, StagingRecommendation> = {
     accentPieces: ['LED landscape uplighting', 'water feature', 'outdoor art piece', 'statement front door colour'],
     layoutGuidance: 'Create an outdoor room with intentional zones. Mix textures — wood deck, stone, plantings. Evening lighting should be dramatic.',
     avoidList: ['dated patio furniture', 'plastic chairs', 'generic garden centre decor', 'uniform plantings', 'bright overhead flood lights'],
+  },
+
+  // ===== TRANSITIONAL =====
+  living_room_transitional: {
+    primaryFurniture: [
+      'shelter-arm sofa in neutral performance linen',
+      'parsons-style accent chair with tapered wood legs',
+      'oval marble-top coffee table',
+      'clean-profile sideboard in warm oak',
+      'upholstered bench with turned legs',
+    ],
+    accentPieces: ['linen drum pendant shade', 'layered neutral area rug', 'framed abstract art in muted tones', 'ceramic table lamp with linen shade'],
+    layoutGuidance: 'Symmetrical but not rigid. Pair classic shapes with clean lines. Neutral palette with warmth through texture — linen, wool, wood grain. One curated focal wall.',
+    avoidList: ['ornate carvings', 'ultra-modern chrome', 'heavy drapes with valances', 'cluttered shelving', 'stark minimalism'],
+  },
+  bedroom_transitional: {
+    primaryFurniture: [
+      'upholstered bed with clean wingback headboard',
+      'warm oak nightstands with simple pulls',
+      'dresser in painted soft grey with brass knobs',
+      'upholstered end-of-bed bench',
+    ],
+    accentPieces: ['linen bedding in warm white layers', 'brushed-nickel sconces', 'soft abstract art above bed', 'textured area rug in greige'],
+    layoutGuidance: 'Centred bed with symmetrical nightstands. Keep palette warm and neutral. Mix painted and natural wood finishes. Subtle pattern in textiles only.',
+    avoidList: ['heavy carved wood', 'ultra-modern floating furniture', 'bright accent colours', 'excessive pillows', 'matching furniture suites'],
+  },
+  dining_room_transitional: {
+    primaryFurniture: [
+      'oval or rectangular oak dining table',
+      'upholstered dining chairs with slim wood frames',
+      'sideboard in warm finish with simple hardware',
+    ],
+    accentPieces: ['linen drum chandelier', 'simple centrepiece with greenery', 'framed artwork flanking sideboard', 'neutral table runner'],
+    layoutGuidance: 'Classic table-and-chairs arrangement with updated profiles. Warm wood tones, neutral upholstery, one statement light fixture overhead.',
+    avoidList: ['heavy formal china cabinets', 'industrial metals', 'matching furniture sets', 'ultra-modern glass tables', 'ornate chandeliers'],
+  },
+  basement_transitional: {
+    primaryFurniture: [
+      'comfortable sectional in neutral performance fabric',
+      'clean-profile media console in warm wood',
+      'round coffee table with turned legs',
+      'built-in shelving with simple moulding',
+    ],
+    accentPieces: ['recessed lighting with warm bulbs', 'textured area rug', 'framed prints in coordinated frames', 'linen throw blankets'],
+    layoutGuidance: 'Warm and inviting without being dated. Light walls to brighten below-grade space. Classic shapes with streamlined details.',
+    avoidList: ['heavy dark panelling', 'industrial pipe shelving', 'ultra-modern furniture', 'dated bar setups', 'excessive built-in entertainment centres'],
+  },
+  kitchen_transitional: {
+    primaryFurniture: ['upholstered counter stools with low backs', 'open shelving with simple bracket supports'],
+    accentPieces: ['ceramic vase with greenery', 'marble cutting board on display', 'linen tea towel on oven handle', 'classic canisters in muted tones'],
+    layoutGuidance: 'Shaker-style cabinets with simple hardware. Warm wood and stone surfaces. 2-3 curated countertop items maximum. Bridge between traditional and modern.',
+    avoidList: ['ornate cabinet details', 'ultra-modern handleless cabinets', 'rustic farmhouse accessories', 'cluttered countertops', 'mismatched metals'],
+  },
+  bathroom_transitional: {
+    primaryFurniture: [],
+    accentPieces: ['framed mirror with simple moulding', 'brushed-nickel fixtures', 'white marble tray with soap dispenser', 'folded neutral towels on open shelf'],
+    layoutGuidance: 'Classic subway tile or marble with updated fixtures. Warm neutral palette. One elegant accent — framed mirror or pendant light.',
+    avoidList: ['ornate gilded mirrors', 'ultra-modern vessel sinks', 'industrial pipe fittings', 'heavy stone everywhere', 'dated brass'],
+  },
+  exterior_transitional: {
+    primaryFurniture: ['classic wicker or rattan seating with clean cushions', 'simple wood dining table on porch', 'clean-profile planter boxes'],
+    accentPieces: ['lantern-style outdoor sconces', 'boxwood or hydrangea plantings', 'simple doormat', 'classic house numbers'],
+    layoutGuidance: 'Traditional architectural elements (columns, mouldings) paired with updated landscaping and furnishings. Symmetrical but relaxed.',
+    avoidList: ['ultra-modern furniture', 'rustic/distressed finishes', 'ornate iron railings', 'avant-garde lighting', 'overly formal symmetry'],
+  },
+
+  // ===== SCANDINAVIAN =====
+  living_room_scandinavian: {
+    primaryFurniture: [
+      'low-profile sofa in light bouclé or linen',
+      'moulded plywood lounge chair',
+      'round white-oak coffee table',
+      'slim open bookshelf in birch',
+      'woven paper-cord side chair',
+    ],
+    accentPieces: ['sheepskin throw over chair arm', 'single large ceramic vase', 'woven wool area rug in cream', 'one framed botanical print'],
+    layoutGuidance: 'Light, airy, and uncluttered. Furniture floated away from walls. Warm textures — wool, linen, sheepskin — against white backdrop. One or two statement plants.',
+    avoidList: ['heavy dark furniture', 'ornate details', 'bold patterns', 'chrome or brass metals', 'cluttered surfaces'],
+  },
+  bedroom_scandinavian: {
+    primaryFurniture: [
+      'simple platform bed in light ash or birch',
+      'slim nightstands with open shelf',
+      'low dresser in white or light wood',
+      'single accent chair in bouclé fabric',
+    ],
+    accentPieces: ['layered linen bedding in white and oatmeal', 'paper pendant lamp', 'single potted plant', 'knitted throw at foot of bed'],
+    layoutGuidance: 'Restful and light. All-white or warm-white walls. Light wood furniture. Texture through textiles — linen, wool, knit. Minimal accessories.',
+    avoidList: ['dark wood', 'heavy curtains', 'ornate bed frames', 'bright accent colours', 'excessive decorative pillows'],
+  },
+  dining_room_scandinavian: {
+    primaryFurniture: [
+      'light oak or ash dining table with slim legs',
+      'moulded wood or paper-cord dining chairs',
+      'simple open shelf or low credenza in birch',
+    ],
+    accentPieces: ['sculptural paper pendant above table', 'single ceramic pitcher as centrepiece', 'linen napkins in neutral tones', 'one piece of minimal wall art'],
+    layoutGuidance: 'Simple, functional arrangement. Light wood palette. Let natural light dominate. One sculptural light fixture as the statement.',
+    avoidList: ['heavy carved furniture', 'dark finishes', 'elaborate centrepieces', 'formal table settings', 'matching furniture suites'],
+  },
+  basement_scandinavian: {
+    primaryFurniture: [
+      'light-coloured sofa in washable linen',
+      'birch plywood media console',
+      'round coffee table in white laminate',
+      'wall-mounted shelving in light wood',
+    ],
+    accentPieces: ['warm-white LED lighting throughout', 'sheepskin throw on sofa', 'potted plants to bring life', 'woven basket storage'],
+    layoutGuidance: 'Bright and warm despite being below grade. White walls and light wood to maximise perceived light. Cosy textiles offset the coolness.',
+    avoidList: ['dark heavy furniture', 'exposed industrial elements', 'bold colours', 'cluttered media setups', 'synthetic materials'],
+  },
+  kitchen_scandinavian: {
+    primaryFurniture: ['light wood bar stools with simple backs', 'open shelving in birch or white'],
+    accentPieces: ['ceramic crock with wooden utensils', 'small herb pot on windowsill', 'linen tea towel', 'single ceramic bowl on counter'],
+    layoutGuidance: 'White or pale cabinets with light wood accents. Minimal countertop items. Open shelving with curated dishware. Let the wood grain and white space breathe.',
+    avoidList: ['dark cabinets', 'ornate hardware', 'cluttered countertops', 'heavy stone surfaces', 'bold patterned tiles'],
+  },
+  bathroom_scandinavian: {
+    primaryFurniture: [],
+    accentPieces: ['light wood vanity shelf or stool', 'white ceramic soap dispenser', 'single eucalyptus sprig in glass vase', 'woven basket with rolled towels'],
+    layoutGuidance: 'White tile, light wood, minimal accessories. Spa-like calm with Nordic warmth. One natural accent — wood tray, plant, or woven basket.',
+    avoidList: ['dark tile', 'ornate mirrors', 'multiple accessories', 'heavy stone surfaces', 'chrome fixtures'],
+  },
+  exterior_scandinavian: {
+    primaryFurniture: ['simple wood bench or Adirondack chairs in light finish', 'birch or painted white planter boxes'],
+    accentPieces: ['simple pathway lighting', 'native grasses and perennials', 'clean-line house numbers', 'simple woven doormat'],
+    layoutGuidance: 'Clean and natural. Pale wood or painted white elements. Native plantings over formal gardens. Warm, welcoming entry with minimal decor.',
+    avoidList: ['ornate iron railings', 'bold coloured furniture', 'heavy stone features', 'cluttered porch', 'formal landscaping'],
+  },
+
+  // ===== COASTAL =====
+  living_room_coastal: {
+    primaryFurniture: [
+      'slipcovered sofa in white or natural linen',
+      'rattan accent chair with linen cushion',
+      'driftwood or whitewashed wood coffee table',
+      'woven seagrass console table',
+      'cane-back occasional chair',
+    ],
+    accentPieces: ['jute area rug', 'blue-and-white throw pillows', 'coral or shell decorative object', 'large potted palm or fiddle leaf fig'],
+    layoutGuidance: 'Relaxed and breezy. Light, airy arrangement with space to breathe. Layer natural textures — jute, rattan, linen. Blues and whites against sandy neutrals.',
+    avoidList: ['heavy dark furniture', 'industrial metals', 'formal upholstery', 'themed nautical kitsch (anchors, ship wheels)', 'synthetic materials'],
+  },
+  bedroom_coastal: {
+    primaryFurniture: [
+      'whitewashed wood bed frame with simple headboard',
+      'rattan nightstands',
+      'white or light blue painted dresser',
+      'woven bench at foot of bed',
+    ],
+    accentPieces: ['layered white linen bedding with blue accents', 'woven pendant light', 'framed coastal landscape', 'blue-and-white ceramic lamp'],
+    layoutGuidance: 'Light and airy. White and blue palette with sandy neutral accents. Natural textures throughout — rattan, woven, linen. Ocean-inspired without being themed.',
+    avoidList: ['heavy dark wood', 'industrial metals', 'bold non-coastal colours', 'themed nautical decor', 'formal traditional pieces'],
+  },
+  dining_room_coastal: {
+    primaryFurniture: [
+      'whitewashed or driftwood dining table',
+      'woven rattan or cane dining chairs',
+      'white painted sideboard with rope or shell pulls',
+    ],
+    accentPieces: ['woven pendant or lantern chandelier', 'blue glass vase with greenery', 'natural linen table runner', 'coral or shell centrepiece'],
+    layoutGuidance: 'Casual and inviting. Light wood and white dominate. Natural textures on chairs and accessories. Blue accents through glass, ceramics, or textiles.',
+    avoidList: ['heavy formal furniture', 'dark wood', 'industrial elements', 'themed nautical kitsch', 'chrome or stainless finishes'],
+  },
+  basement_coastal: {
+    primaryFurniture: [
+      'slipcovered sofa in light fabric',
+      'whitewashed media console',
+      'woven trunk as coffee table',
+      'rattan storage baskets',
+    ],
+    accentPieces: ['shiplap feature wall in white', 'blue-and-white throw pillows', 'rope-frame mirror', 'potted palm or tropical plant'],
+    layoutGuidance: 'Light and beachy even below grade. White walls and shiplap to brighten. Coastal palette (blue, white, sandy) brings vacation feel to a typically dark space.',
+    avoidList: ['dark heavy furniture', 'industrial elements', 'formal pieces', 'themed nautical decor', 'heavy curtains'],
+  },
+  kitchen_coastal: {
+    primaryFurniture: ['woven counter stools with backs', 'open shelving with beadboard backing'],
+    accentPieces: ['blue glass jars on display', 'small potted herb garden', 'woven basket on counter', 'white ceramic canisters'],
+    layoutGuidance: 'White or pale blue cabinets. Light wood or butcher block surfaces. Sea glass tile backsplash. Airy and bright with natural fibre accents.',
+    avoidList: ['dark cabinets', 'heavy stone', 'industrial fixtures', 'bold non-coastal colours', 'cluttered surfaces'],
+  },
+  bathroom_coastal: {
+    primaryFurniture: [],
+    accentPieces: ['woven basket with rolled white towels', 'sea glass tile accent', 'driftwood-frame mirror', 'blue glass soap dispenser', 'shell or coral decorative piece'],
+    layoutGuidance: 'White and blue palette. Natural textures — woven, wood, glass. Sea-inspired accents without nautical theme. Light and spa-like.',
+    avoidList: ['dark tile', 'heavy stone', 'chrome fixtures', 'themed nautical items', 'ornate mirrors'],
+  },
+  exterior_coastal: {
+    primaryFurniture: ['Adirondack chairs in white or weathered grey', 'woven outdoor seating', 'whitewashed wood bench'],
+    accentPieces: ['planter boxes with ornamental grasses', 'lantern-style outdoor lighting', 'natural fibre doormat', 'blue shutters or door accent'],
+    layoutGuidance: 'Breezy porch or patio feel. Weathered wood and white dominate. Coastal plantings — grasses, hydrangeas. Blue accents on shutters or door.',
+    avoidList: ['heavy dark furniture', 'ultra-modern elements', 'formal landscaping', 'themed nautical decor', 'bright bold colours'],
+  },
+
+  // ===== MID-CENTURY MODERN =====
+  living_room_mid_century_modern: {
+    primaryFurniture: [
+      'low-slung sofa with tapered walnut legs in olive or mustard fabric',
+      'moulded fibreglass or plywood shell chair',
+      'oval walnut coffee table with tapered legs',
+      'teak credenza with sliding doors',
+      'hairpin-leg side table',
+    ],
+    accentPieces: ['sunburst wall clock', 'geometric area rug in warm tones', 'Sputnik-style floor lamp', 'abstract art in bold colour'],
+    layoutGuidance: 'Low-slung, open arrangement. Tapered legs on everything to keep visual weight light. Bold colour pops — mustard, olive, orange — against warm wood. One iconic statement piece.',
+    avoidList: ['heavy overstuffed furniture', 'ornate traditional details', 'matchy-matchy sets', 'ultra-minimalist white', 'industrial raw materials'],
+  },
+  bedroom_mid_century_modern: {
+    primaryFurniture: [
+      'platform bed with walnut headboard and tapered legs',
+      'teak nightstands with slim drawers',
+      'walnut dresser with brass pulls and splayed legs',
+      'moulded plywood lounge chair in corner',
+    ],
+    accentPieces: ['arc floor lamp with marble base', 'geometric print bedding in warm tones', 'abstract wall art', 'ceramic table lamp in olive or mustard'],
+    layoutGuidance: 'Low horizontal lines. Warm walnut and teak dominate. One or two bold colour accents in textiles or art. Tapered and splayed legs throughout.',
+    avoidList: ['heavy carved furniture', 'ultra-modern floating pieces', 'country or farmhouse elements', 'all-neutral palette', 'matching bedroom sets'],
+  },
+  dining_room_mid_century_modern: {
+    primaryFurniture: [
+      'oval or round walnut dining table with tapered legs',
+      'moulded shell dining chairs in mixed colours',
+      'teak sideboard with sliding doors and brass pulls',
+    ],
+    accentPieces: ['Sputnik chandelier or globe pendant', 'bold graphic print on wall', 'ceramic centrepiece in burnt orange or olive', 'geometric table runner'],
+    layoutGuidance: 'Round or oval table preferred. Mix chair colours (mustard, olive, orange, cream) for playful energy. Teak credenza against wall with curated display.',
+    avoidList: ['heavy formal furniture', 'country or rustic pieces', 'chrome and glass', 'uniform matching chairs', 'ornate chandeliers'],
+  },
+  basement_mid_century_modern: {
+    primaryFurniture: [
+      'low-profile sofa in bold fabric with walnut frame',
+      'teak media console with record player display',
+      'oval coffee table with hairpin legs',
+      'modular shelving unit in walnut',
+    ],
+    accentPieces: ['lava lamp or Sputnik accent light', 'vintage-style abstract art', 'shag area rug in warm tones', 'brass bar cart'],
+    layoutGuidance: 'Retro lounge vibe. Low furniture keeps the space open. Warm wood tones offset the below-grade feel. Bold colours in upholstery and accessories.',
+    avoidList: ['heavy modern sectionals', 'industrial elements', 'all-neutral palette', 'dated wood panelling', 'generic media setups'],
+  },
+  kitchen_mid_century_modern: {
+    primaryFurniture: ['moulded shell bar stools in bold colour', 'open shelving with teak brackets'],
+    accentPieces: ['geometric tile backsplash in warm tones', 'brass or copper kettle on display', 'ceramic fruit bowl in olive or mustard', 'single potted plant'],
+    layoutGuidance: 'Flat-front walnut or painted cabinets with brass hardware. Geometric tile as focal backsplash. 2-3 curated items in bold colours on countertop.',
+    avoidList: ['ornate cabinet profiles', 'stainless everything', 'farmhouse accessories', 'cluttered countertops', 'all-white palette'],
+  },
+  bathroom_mid_century_modern: {
+    primaryFurniture: [],
+    accentPieces: ['walnut-frame mirror', 'brass fixtures and hardware', 'geometric tile floor or accent wall', 'ceramic soap dish in bold colour', 'single potted plant'],
+    layoutGuidance: 'Clean lines with warm materials. Walnut vanity with brass pulls. Geometric tile as the statement. One bold colour accent in accessories.',
+    avoidList: ['ornate mirrors', 'chrome fixtures', 'all-white sterile look', 'heavy stone surfaces', 'traditional tile patterns'],
+  },
+  exterior_mid_century_modern: {
+    primaryFurniture: ['low-profile outdoor seating with clean lines', 'butterfly or sling chairs', 'simple planter boxes in geometric shapes'],
+    accentPieces: ['bold-coloured front door (orange, yellow, or teal)', 'architectural landscape lighting', 'desert or native plantings', 'clean-line house numbers in brass'],
+    layoutGuidance: 'Low horizontal lines echoing the architecture. Statement front door colour. Architectural plantings — desert succulents, ornamental grasses. Clean hardscaping.',
+    avoidList: ['ornate traditional elements', 'cottage-style plantings', 'heavy wrought iron', 'rustic wood accents', 'cluttered porch decor'],
   },
 };
 

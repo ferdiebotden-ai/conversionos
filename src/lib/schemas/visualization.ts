@@ -26,6 +26,10 @@ export const designStyleSchema = z.enum([
   'industrial',
   'minimalist',
   'contemporary',
+  'transitional',
+  'scandinavian',
+  'coastal',
+  'mid_century_modern',
 ]);
 
 export type DesignStyle = z.infer<typeof designStyleSchema>;
@@ -116,6 +120,10 @@ export const STYLE_DESCRIPTIONS: Record<DesignStyle, string> = {
   industrial: 'Exposed brick and ductwork, metal accents, concrete floors, Edison bulbs, raw materials',
   minimalist: 'Ultra-clean aesthetic, monochromatic palette, hidden storage, functional simplicity, no clutter',
   contemporary: 'Current design trends, bold accent colors, mixed materials, geometric patterns, statement pieces',
+  transitional: 'Traditional warmth meets contemporary restraint, neutral palette, refined profiles, timeless yet current',
+  scandinavian: 'Nordic minimalism, bright whites, light wood, functional beauty, cosy textures, hygge warmth',
+  coastal: 'Seaside calm, light and airy, whitewashed wood, natural fibres, ocean-inspired blues and sandy neutrals',
+  mid_century_modern: '1950s–60s elegance, organic curves, warm wood tones, bold colour pops, clean geometric forms',
 };
 
 // Room-specific context for prompts
