@@ -20,15 +20,12 @@ export function SectionName({ branding, config, tokens, className }: SectionBase
 ```
 
 ## Field Reference (camelCase primary)
-
-**IMPORTANT:** The `str()` helper handles both `string` and `string[]` values. `aboutCopy` is stored as `string[]` in Supabase — `str()` joins array elements with space.
-
 | Field | Type | Access Pattern |
 |-------|------|---------------|
 | heroHeadline | string | `str(config['heroHeadline']) \|\| str(config['hero_headline'])` |
 | heroSubheadline | string | `str(config['heroSubheadline']) \|\| str(config['hero_subheadline'])` |
 | heroImageUrl | string | `str(config['heroImageUrl']) \|\| str(config['hero_image_url'])` |
-| aboutCopy | **string[]** | `str(config['aboutCopy']) \|\| str(config['about_copy'])` — str() joins arrays |
+| aboutCopy | string | `str(config['aboutCopy']) \|\| str(config['about_copy'])` |
 | aboutImageUrl | string | `str(config['aboutImageUrl']) \|\| str(config['about_image_url'])` |
 | logoUrl | string | `str(config['logoUrl']) \|\| str(config['logo_url'])` |
 | serviceArea | string | `str(config['serviceArea']) \|\| str(config['service_area'])` |
@@ -82,10 +79,39 @@ className="font-body text-base"                  // Body
 **NEVER use inline `style` with `oklch(var(--primary) / ...)`.** CSS variables store full `oklch()` values so this double-nests and breaks. Use Tailwind opacity modifiers: `bg-primary/90`, `from-primary/80`, `to-muted/70`.
 **NEVER add `data-*` debug attributes** like `data-token-count`. Keep the DOM clean.
 
-## CTAs — Link to Design Studio
+## CTAs — AI Feature Integration
+
+All CTAs route to the AI-powered Design Studio. Never use generic "/contact" links.
+
 ```tsx
 import Link from 'next/link';
-<Link href="/visualizer">Get Your Free Design Estimate</Link>
+
+// Primary CTA — always the visualizer (upload photo → AI design concepts)
+<Link href="/visualizer">See Your Space Before You Build</Link>
+
+// Secondary CTA — text-based estimate via chat
+<Link href="/visualizer?mode=chat">Get a Quick Estimate</Link>
+
+// Tertiary CTA — phone with voice agent
+<a href="tel:{branding.phone}">Talk to Our AI Receptionist</a>
+```
+
+### CTA Routing Rules
+| Section Type | Primary CTA | Secondary CTA |
+|---|---|---|
+| Hero | `/visualizer` ("See Your Space Before You Build") | `/visualizer?mode=chat` |
+| Services | `/visualizer` per service | Service detail page |
+| About | `/visualizer` | Phone number |
+| CTA | `/visualizer` (large button) | `/visualizer?mode=chat` |
+| Contact | `/visualizer` + phone + email | Address / map |
+| Footer | `/visualizer` | Phone + email |
+
+### AI Feature Teaser Pattern
+Include a dedicated "How It Works" or "AI-Powered" teaser in the homepage sections:
+```tsx
+// 3-step visual: Upload Photo → AI Generates Concepts → Get Estimate
+// Links to /visualizer with descriptive copy about the AI design experience
+// Use the contractor's brand voice, not generic tech language
 ```
 
 ## Allowed Imports

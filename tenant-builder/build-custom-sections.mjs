@@ -25,6 +25,7 @@ import * as logger from './lib/logger.mjs';
 
 const TEMPLATE_PATH = resolve(import.meta.dirname, 'templates/custom-section-template.tsx');
 const INTEGRATION_SPEC_PATH = resolve(import.meta.dirname, 'templates/integration-spec.md');
+const AESTHETICS_PROMPT_PATH = resolve(import.meta.dirname, 'templates/aesthetics-prompt.md');
 
 // Animation pattern mapping — injected per section type
 const ANIMATION_MAP = {
@@ -58,6 +59,8 @@ const ANIMATION_MAP = {
  * @param {number} [options.maxSections=5] - Maximum sections to build
  * @param {boolean} [options.parallel=false] - Use multi-agent parallel build
  * @param {boolean} [options.review=true] - Run Codex review quality gate
+ * @param {Array<object>} [options.buildManifest] - Design Director build manifest entries (overrides blueprint specs)
+ * @param {object} [options.deepContent] - Content Architect output (rich structured content)
  * @returns {Promise<{ built: number, failed: number }>}
  */
 export async function buildCustomSections(siteId, blueprint, {
@@ -68,6 +71,8 @@ export async function buildCustomSections(siteId, blueprint, {
   maxSections = 5,
   parallel = false,
   review = true,
+  buildManifest,
+  deepContent,
 }) {
   let customSections = blueprint.customSections ?? [];
   if (customSections.length === 0) return { built: 0, failed: 0 };
@@ -83,25 +88,63 @@ export async function buildCustomSections(siteId, blueprint, {
 
   const template = readFileSync(TEMPLATE_PATH, 'utf-8');
   const integrationSpec = existsSync(INTEGRATION_SPEC_PATH) ? readFileSync(INTEGRATION_SPEC_PATH, 'utf-8') : '';
+  const aestheticsPrompt = existsSync(AESTHETICS_PROMPT_PATH) ? readFileSync(AESTHETICS_PROMPT_PATH, 'utf-8') : '';
 
   // Load bespoke assets if available
   let cssTokens = null;
   let htmlFiles = {};
   let screenshotPaths = [];
-  let scrapedData = null;
   if (bespokeMode && resultsDir) {
     cssTokens = loadJsonIfExists(join(resultsDir, 'css-tokens.json'));
     htmlFiles = loadHtmlDir(join(resultsDir, 'html'));
     screenshotPaths = discoverScreenshots(join(resultsDir, 'screenshots/original'));
-    scrapedData = loadJsonIfExists(join(resultsDir, 'scraped.json'));
   }
+
+  // Load design language if available
+  const designLanguagePath = resultsDir ? join(resultsDir, 'design-language.md') : null;
+  const designLanguage = designLanguagePath && existsSync(designLanguagePath)
+    ? readFileSync(designLanguagePath, 'utf-8') : '';
 
   let built = 0;
   let failed = 0;
   const builtSpecs = [];
 
-  // ── Try parallel build first (if enabled and enough sections) ──
-  if (parallel && customSections.length >= 3) {
+  // ── Phase C: Generate site content data file (if deepContent available) ──
+  let contentFileGenerated = false;
+  if (deepContent) {
+    try {
+      generateSiteContentFile(cwd, siteId, deepContent);
+      contentFileGenerated = true;
+    } catch (err) {
+      logger.warn(`Site content file generation failed (non-blocking): ${err.message?.slice(0, 100)}`);
+    }
+  }
+
+  // ── Phase B: Try cohesive page build first (one Codex call for all sections) ──
+  if (bespokeMode && customSections.length >= 3 && deepContent) {
+    logger.info(`Cohesive page build: ${customSections.length} sections in one call`);
+    try {
+      const cohesiveResult = await buildCohesivePage(siteId, customSections, {
+        cwd, timeoutMs: timeoutMs * 2, // Double timeout for larger generation
+        integrationSpec, aestheticsPrompt, designLanguage,
+        cssTokens, deepContent, buildManifest, contentFileGenerated,
+      });
+
+      if (cohesiveResult.success) {
+        built = cohesiveResult.built;
+        failed = customSections.length - built;
+        builtSpecs.push(...cohesiveResult.specs);
+        logger.info(`Cohesive page build: ${built} sections in one file`);
+      } else {
+        logger.warn(`Cohesive page build produced no output — falling back to per-section`);
+      }
+    } catch (err) {
+      logger.warn(`Cohesive page build failed: ${err.message?.slice(0, 100)} — falling back to per-section`);
+    }
+  }
+
+  // ── Try parallel build (if enabled, enough sections, and cohesive didn't succeed) ──
+  if (built === 0 && parallel && customSections.length >= 3) {
     logger.info(`Multi-agent parallel build: ${customSections.length} sections`);
     try {
       const result = await buildSectionsParallel(customSections, siteId, {
@@ -140,24 +183,31 @@ export async function buildCustomSections(siteId, blueprint, {
     }
   }
 
+  // If Design Director build manifest provided, map specs to manifest entries
+  const manifestByType = new Map();
+  if (buildManifest?.length > 0) {
+    for (const entry of buildManifest) {
+      manifestByType.set(entry.sectionType, entry);
+    }
+  }
+
   // ── Sequential build (primary path or fallback) ──
   if (built === 0) {
     for (const spec of customSections) {
-      // Skip footer sections — global Footer component handles all pages
-      if (spec.name.toLowerCase().includes('footer') || spec.sectionId.includes('-footer')) {
-        logger.info(`Skipping custom footer: ${spec.sectionId} (global Footer handles this)`);
-        continue;
-      }
-
       const componentName = toPascalCase(spec.name);
       const expectedFileName = toKebabCase(spec.name) + '.tsx';
       const expectedFilePath = join(customDir, expectedFileName);
 
       logger.info(`Building custom section: ${spec.sectionId} (${componentName})${bespokeMode ? ' [bespoke]' : ''}`);
 
-      const prompt = bespokeMode
-        ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths, scrapedData)
-        : buildCodexPrompt(spec, siteId, template, cwd);
+      // Check for matching Design Director manifest entry
+      const manifestEntry = findManifestEntry(spec, buildManifest);
+
+      const prompt = manifestEntry
+        ? buildDesignDirectorPrompt(manifestEntry, spec, siteId, cwd, integrationSpec)
+        : bespokeMode
+          ? buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths)
+          : buildCodexPrompt(spec, siteId, template, cwd);
 
       // Select relevant screenshots for this section
       // NOTE: Images disabled for sequential builds (2026-03-11).
@@ -311,7 +361,7 @@ ${referenceCode}`;
  * Build a bespoke Codex prompt — vision-first and directive.
  * Screenshots are passed via --image flag, not embedded in the prompt.
  */
-function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths, scrapedData) {
+function buildBespokeCodexPrompt(spec, siteId, template, cwd, integrationSpec, cssTokens, htmlFiles, screenshotPaths) {
   // Find relevant HTML for context
   const sectionNameLower = spec.name.toLowerCase();
   let relevantHtml = '';
@@ -362,7 +412,7 @@ ${spec.typography ? `TYPOGRAPHY: ${JSON.stringify(spec.typography)}` : ''}
 ${spec.spacing ? `SPACING: ${JSON.stringify(spec.spacing)}` : ''}
 ${spec.contentMapping ? `DATA MAPPING: ${typeof spec.contentMapping === 'string' ? spec.contentMapping : JSON.stringify(spec.contentMapping)}` : ''}
 ${spec.integrationNotes ? `INTEGRATION: ${spec.integrationNotes}` : ''}
-${buildScrapedSummary(scrapedData)}
+
 CSS from original site: ${cssHints}
 
 ${dataAccessLines ? `PRE-COMPUTED DATA ACCESS (copy these into your component):\n\`\`\`tsx\n${dataAccessLines}\n\`\`\`` : ''}
@@ -470,10 +520,19 @@ function selectRelevantScreenshots(spec, allScreenshots) {
 
 /**
  * Generate the index.ts manifest for custom section registration.
+ * Handles both per-section files and cohesive single-file pattern.
  */
 function generateCustomIndex(customDir, builtSpecs) {
-  const imports = builtSpecs.map(({ fileName, componentName }) =>
-    `import { ${componentName} } from './${fileName.replace('.tsx', '')}';`
+  // Deduplicate imports — cohesive file has multiple components from one file
+  const importsByFile = new Map();
+  for (const { fileName, componentName } of builtSpecs) {
+    const moduleId = fileName.replace('.tsx', '');
+    if (!importsByFile.has(moduleId)) importsByFile.set(moduleId, []);
+    importsByFile.get(moduleId).push(componentName);
+  }
+
+  const imports = [...importsByFile.entries()].map(([moduleId, components]) =>
+    `import { ${components.join(', ')} } from './${moduleId}';`
   ).join('\n');
 
   const registrations = builtSpecs.map(({ spec, componentName }) =>
@@ -528,38 +587,383 @@ ${imports}
 }
 
 /**
- * Build a compact summary of real company data from scraped.json.
- * Injected into Codex prompts so sections use real content, not generic filler.
+ * Build a Design Director Codex prompt — uses Build Manifest entries
+ * with HTML structure + Design Language + Aesthetics Prompt.
+ *
+ * This is the REPLICATE → ENHANCE prompt: HTML gives structural completeness,
+ * Design Language gives aesthetic fidelity, Aesthetics Prompt prevents AI slop,
+ * Premium Upgrades give the "better than original" polish.
  */
-function buildScrapedSummary(scraped) {
-  if (!scraped) return '';
-  const facts = [];
-  if (scraped.business_name) facts.push(`Company: ${scraped.business_name}`);
-  if (scraped.founded_year) facts.push(`Founded: ${scraped.founded_year}`);
-  if (scraped.principals) facts.push(`Owners: ${scraped.principals}`);
-  if (scraped.city) facts.push(`Location: ${scraped.city}, ${scraped.province || 'ON'}`);
-  if (scraped.service_area) facts.push(`Service Area: ${scraped.service_area}`);
-  if (scraped.phone) facts.push(`Phone: ${scraped.phone}`);
-  if (scraped.email) facts.push(`Email: ${scraped.email}`);
-  if (scraped.certifications?.length) facts.push(`Certifications: ${scraped.certifications.join(', ')}`);
-  if (scraped.services?.length) {
-    const svcNames = scraped.services.map(s => s.name).filter(Boolean).join(', ');
-    if (svcNames) facts.push(`Services: ${svcNames}`);
-  }
-  if (scraped.about_copy || scraped.about_text) {
-    const about = scraped.about_copy || scraped.about_text;
-    const text = Array.isArray(about) ? about[0] : about;
-    if (text) facts.push(`About: ${String(text).slice(0, 300)}`);
-  }
-  if (scraped.tagline) facts.push(`Tagline: ${scraped.tagline}`);
-  if (scraped._trust_metrics) {
-    const tm = scraped._trust_metrics;
-    if (tm.google_rating) facts.push(`Google Rating: ${tm.google_rating}`);
-    if (tm.years_in_business) facts.push(`Years in Business: ${tm.years_in_business}`);
-  }
-  return facts.length > 0
-    ? `\nREAL COMPANY DATA (use these exact facts in your copy — do NOT invent generic text):\n${facts.join('\n')}\n`
+function buildDesignDirectorPrompt(manifestEntry, spec, siteId, cwd, integrationSpec) {
+  const aestheticsPrompt = existsSync(AESTHETICS_PROMPT_PATH)
+    ? readFileSync(AESTHETICS_PROMPT_PATH, 'utf-8')
     : '';
+
+  const filePath = `src/sections/custom/${siteId}/${toKebabCase(spec.name)}.tsx`;
+  const animationImport = getAnimationImport(spec.name);
+  const dataAccessLines = buildDataAccessLines(spec);
+
+  return `IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files. Do NOT explore the codebase. Just write the single file specified below.
+
+${aestheticsPrompt}
+
+TASK: Build a premium React section for ConversionOS that REPLICATES the visual
+DNA of the original website section, then ENHANCES it to 2026 premium standards.
+
+Create file: ${filePath}
+
+== ORIGINAL HTML STRUCTURE ==
+${manifestEntry.htmlSnippet || '(no HTML available)'}
+
+== DESIGN LANGUAGE (this section) ==
+${manifestEntry.designLanguageExcerpt || '(no design language available)'}
+
+== PREMIUM UPGRADES TO APPLY ==
+${manifestEntry.premiumUpgrades || 'Add fade-in-up animations, hover effects on cards, gradient accents.'}
+
+== CSS TOKENS ==
+${manifestEntry.cssTokens ? JSON.stringify(manifestEntry.cssTokens) : '(no tokens)'}
+
+${dataAccessLines ? `== DATA ACCESS ==\n\`\`\`tsx\n${dataAccessLines}\n\`\`\`` : ''}
+
+${integrationSpec}
+
+COMPONENT: ${toPascalCase(spec.name)}
+SECTION TYPE: ${manifestEntry.sectionType || spec.name}
+
+BUILD INSTRUCTIONS:
+1. Match the original section's layout structure (grid columns, flex direction, stacking)
+2. Match the original's visual treatment using the Design Language specs (exact spacing,
+   typography scale, colour application, shadows, border-radius)
+3. APPLY the premium upgrades: entrance animations, hover effects, gradient accents,
+   glassmorphism where specified, atmospheric backgrounds
+4. Use Tailwind CSS v4 (not inline styles). Use bg-primary, text-primary-foreground etc.
+5. Read all content from config via str(config['fieldName']) with dual camelCase/snake_case lookup
+6. Mobile-first responsive (sm:, md:, lg:, xl: breakpoints)
+7. Typography: match original's font family from CSS tokens. If generic (Arial, sans-serif),
+   upgrade to a distinctive alternative from the Design Language
+8. ${animationImport || "import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion'"}
+9. Animations: fade-in-up on section enter (200ms), stagger children by 100ms in grids,
+   hover lift on cards (translate-y -4px + shadow expansion)
+10. Images: import Image from 'next/image'. Gradient fallbacks for missing images.
+11. Replace contact forms with <Link href="/visualizer">Get Your Free Design Estimate</Link>
+12. Output: one .tsx file, 80-200 lines, production quality. Every visual detail matters.`;
+}
+
+/**
+ * Find a matching build manifest entry for a section spec.
+ */
+function findManifestEntry(spec, buildManifest) {
+  if (!buildManifest?.length) return null;
+
+  const nameL = spec.name.toLowerCase();
+
+  // Try direct sectionType match
+  for (const entry of buildManifest) {
+    if (nameL.includes(entry.sectionType)) return entry;
+  }
+
+  // Try sectionId match
+  for (const entry of buildManifest) {
+    if (spec.sectionId === entry.sectionId) return entry;
+  }
+
+  return null;
+}
+
+// ─── Phase B: Cohesive Page Build ─────────────────────────────
+
+/**
+ * Build ALL homepage sections in a single Codex call, producing one cohesive file.
+ * This mirrors how the Codex Desktop App built md-construction: all sections in one
+ * file with shared design tokens (SectionEyebrow, consistent radius/shadows/palette).
+ *
+ * Falls back gracefully — if Codex doesn't produce the file, returns { success: false }.
+ */
+async function buildCohesivePage(siteId, sections, {
+  cwd,
+  timeoutMs = 600000,
+  integrationSpec,
+  aestheticsPrompt,
+  designLanguage,
+  cssTokens,
+  deepContent,
+  buildManifest,
+  contentFileGenerated = false,
+}) {
+  const customDir = join(cwd, 'src', 'sections', 'custom', siteId);
+  const outputFileName = `${siteId}-sections.tsx`;
+  const outputFilePath = `src/sections/custom/${siteId}/${outputFileName}`;
+  const absoluteOutputPath = join(cwd, outputFilePath);
+
+  // Build the section specs list
+  const sectionSpecs = sections.map((spec, idx) => {
+    const manifestEntry = buildManifest ? findManifestEntry(spec, buildManifest) : null;
+    return {
+      componentName: toPascalCase(spec.name),
+      sectionId: spec.sectionId,
+      type: spec.name,
+      spec: spec.spec || '',
+      htmlSnippet: manifestEntry?.htmlSnippet?.slice(0, 1000) || '',
+      designExcerpt: manifestEntry?.designLanguageExcerpt?.slice(0, 500) || '',
+      order: idx,
+    };
+  });
+
+  // Compact CSS hints
+  let cssHints = '';
+  if (cssTokens) {
+    cssHints = JSON.stringify({
+      fonts: cssTokens.renderedFonts,
+      h1: cssTokens.elements?.h1,
+      button: cssTokens.elements?.button,
+      radii: cssTokens.borderRadii,
+    });
+  }
+
+  // Build deep content summary for the prompt
+  const contentSummary = deepContent ? JSON.stringify({
+    businessName: deepContent.businessName,
+    businessHistory: deepContent.businessHistory,
+    services: (deepContent.services || []).map(s => ({
+      name: s.name, shortDescription: s.shortDescription, features: s.features?.slice(0, 4),
+    })),
+    testimonials: (deepContent.testimonials || []).slice(0, 4),
+    trustMetrics: deepContent.trustMetrics,
+    ctaCopy: deepContent.ctaCopy,
+    processSteps: (deepContent.processSteps || []).slice(0, 5),
+    serviceAreas: (deepContent.serviceAreas || []).slice(0, 6),
+    principals: deepContent.principals,
+  }, null, 2) : '';
+
+  // Only reference the content file if we successfully generated it
+  const hasContentFile = contentFileGenerated && existsSync(join(cwd, 'src', 'lib', 'sites', `${siteId}.ts`));
+
+  const prompt = `IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files. Do NOT explore the codebase. Just write the single file specified below.
+
+${aestheticsPrompt}
+
+TASK: Build ALL homepage sections for "${deepContent?.businessName || siteId}" in ONE cohesive file.
+This file should feel like it was designed by a senior designer — every section shares the
+same design tokens, the same SectionEyebrow component, the same card radius and shadows.
+
+Create file: ${outputFilePath}
+
+== SECTIONS TO BUILD (${sectionSpecs.length} total, in order) ==
+${sectionSpecs.map(s => `${s.order + 1}. ${s.componentName} (${s.sectionId}) — ${s.spec || s.type}`).join('\n')}
+
+== DESIGN LANGUAGE ==
+${designLanguage?.slice(0, 2000) || 'Use warm stone neutrals, rounded-[28px] cards, consistent shadows.'}
+
+== CSS FROM ORIGINAL SITE ==
+${cssHints}
+
+== CONTRACTOR CONTENT ==
+${contentSummary}
+
+${hasContentFile ? `== CONTENT DATA FILE ==\nImport content from '@/lib/sites/${siteId}' — it exports typed constants for all services, testimonials, projects, team members, etc. Use these constants instead of reading from config.\n` : ''}
+
+${integrationSpec}
+
+== FILE STRUCTURE ==
+The file must follow this pattern:
+
+\`\`\`tsx
+'use client';
+
+import type { SectionBaseProps } from '@/lib/section-types';
+import Image from 'next/image';
+import Link from 'next/link';
+import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn, SlideInFromSide } from '@/components/motion';
+${hasContentFile ? `import { SERVICES, TESTIMONIALS, PROJECTS, PUBLIC_CONTENT, TRUST_METRICS } from '@/lib/sites/${siteId}';\n` : ''}
+
+// ── Shared Design System ──────────────────────────────────────
+// These tokens MUST be used consistently across ALL sections:
+
+function SectionEyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
+      {children}
+    </p>
+  );
+}
+
+// Shared card class — same radius, shadow, hover on every card
+const CARD = 'rounded-[28px] bg-white shadow-[0_18px_44px_rgba(15,23,42,0.06)] hover:-translate-y-1 hover:shadow-[0_24px_56px_rgba(15,23,42,0.10)] transition-all duration-300';
+
+// ── Section Components ──────────────────────────────────────
+
+export function HeroSection({ branding, config, tokens, className }: SectionBaseProps) { ... }
+export function ServicesSection({ branding, config, tokens, className }: SectionBaseProps) { ... }
+// ... one export per section
+\`\`\`
+
+== RULES ==
+1. 'use client' directive at top
+2. Every exported component takes { branding, config, tokens, className }: SectionBaseProps
+3. Define SectionEyebrow ONCE at the top — use it in EVERY section
+4. Define a shared CARD constant with consistent radius + shadow
+5. Use ONE neutral palette throughout (stone-950, stone-200, stone-50 — NOT generic gray)
+6. Section backgrounds alternate: dark (stone-950) → light (white) → tinted (stone-50) → primary accent
+7. All CTAs link to /visualizer (primary) or /visualizer?mode=chat (secondary)
+8. ${hasContentFile ? 'Import content from the site content file — do NOT read from config' : 'Read content from config via str() helper with dual camelCase/snake_case lookup'}
+9. Animations: StaggerContainer + FadeInUp on each section, stagger children by 100ms
+10. Images: next/image with gradient fallbacks. group-hover:scale-105 on image cards.
+11. Target: 600-1000 lines total. Production quality. Every visual detail matters.
+12. Mobile-first responsive: sm:, md:, lg:, xl: breakpoints`;
+
+  try {
+    await codexExec(prompt, {
+      cwd,
+      timeoutMs,
+      ephemeral: true,
+    });
+  } catch (err) {
+    logger.warn(`Cohesive page Codex call failed: ${err.message?.slice(0, 100)}`);
+    return { success: false, built: 0, specs: [] };
+  }
+
+  // Check if the file was created
+  if (!existsSync(absoluteOutputPath)) {
+    // Check if Codex wrote to a slightly different name
+    const files = readdirSync(customDir).filter(f => f.endsWith('.tsx') && f.includes('section'));
+    if (files.length > 0) {
+      logger.info(`Codex wrote to ${files[0]} (expected ${outputFileName})`);
+    } else {
+      return { success: false, built: 0, specs: [] };
+    }
+  }
+
+  // Parse the file to find exported components
+  const actualFile = existsSync(absoluteOutputPath)
+    ? outputFileName
+    : readdirSync(customDir).find(f => f.endsWith('.tsx') && f.includes('section'));
+
+  if (!actualFile) return { success: false, built: 0, specs: [] };
+
+  const fileContent = readFileSync(join(customDir, actualFile), 'utf-8');
+  const exportedComponents = [...fileContent.matchAll(/export\s+function\s+(\w+)/g)].map(m => m[1]);
+
+  if (exportedComponents.length === 0) {
+    logger.warn('Cohesive file has no exported components');
+    return { success: false, built: 0, specs: [] };
+  }
+
+  // Map exported components to section specs
+  const specs = [];
+  for (const componentName of exportedComponents) {
+    const matchingSpec = sections.find(s => {
+      if (toPascalCase(s.name) === componentName) return true;
+      // Fuzzy match: only for names with 4+ alpha chars to avoid false positives (e.g., "CTA")
+      const stripped = s.name.toLowerCase().replace(/[^a-z]/g, '');
+      return stripped.length >= 4 && componentName.toLowerCase().includes(stripped);
+    });
+    if (matchingSpec) {
+      specs.push({
+        spec: matchingSpec,
+        fileName: actualFile,
+        componentName,
+      });
+    } else {
+      // Create a synthetic spec for components not in the original blueprint
+      specs.push({
+        spec: { sectionId: `custom:${siteId}-${toKebabCase(componentName)}`, name: componentName },
+        fileName: actualFile,
+        componentName,
+      });
+    }
+  }
+
+  logger.info(`Cohesive page: ${exportedComponents.length} components in ${actualFile}`);
+  return { success: true, built: exportedComponents.length, specs };
+}
+
+// ─── Phase C: Site Content Data File ──────────────────────────
+
+/**
+ * Generate a typed TypeScript content file at src/lib/sites/{siteId}.ts
+ * from the Content Architect output. Sections import from this file
+ * instead of reading runtime config — zero generic fallbacks.
+ */
+function generateSiteContentFile(cwd, siteId, deepContent) {
+  const sitesDir = join(cwd, 'src', 'lib', 'sites');
+  mkdirSync(sitesDir, { recursive: true });
+
+  const filePath = join(sitesDir, `${siteId}.ts`);
+
+  const content = `/**
+ * ${deepContent.businessName || siteId} — site content data.
+ * Auto-generated by Content Architect. Do not edit manually.
+ * Re-generated on each pipeline build.
+ */
+
+export const SITE_ID = ${JSON.stringify(siteId)};
+
+export const PUBLIC_CONTENT = ${JSON.stringify({
+    heroEyebrow: deepContent.ctaCopy?.heroEyebrow || null,
+    heroHeadline: deepContent.ctaCopy?.heroHeadline || deepContent.businessName || '',
+    heroSubheadline: deepContent.ctaCopy?.heroSubheadline || '',
+    heroPrimaryCta: { label: deepContent.ctaCopy?.primary || 'See Your Space Before You Build', href: '/visualizer' },
+    heroSecondaryCta: { label: deepContent.ctaCopy?.secondary || 'Get a Quick Estimate', href: '/visualizer?mode=chat' },
+    businessHistory: deepContent.businessHistory || null,
+  }, null, 2)} as const;
+
+export const SERVICES = ${JSON.stringify(
+    (deepContent.services || []).map(s => ({
+      name: s.name,
+      slug: s.slug,
+      description: s.description,
+      shortDescription: s.shortDescription,
+      features: s.features || [],
+      faqs: s.faqs || [],
+      pageEyebrow: s.pageEyebrow || null,
+      pageTitle: s.pageTitle || null,
+    })),
+    null, 2,
+  )} as const;
+
+export const TESTIMONIALS = ${JSON.stringify(
+    (deepContent.testimonials || []).map(t => ({
+      author: t.author,
+      text: t.text,
+      rating: t.rating || null,
+      source: t.source || null,
+    })),
+    null, 2,
+  )} as const;
+
+export const PROJECTS = ${JSON.stringify(
+    (deepContent.projects || []).map(p => ({
+      title: p.title,
+      description: p.description,
+      category: p.category || null,
+    })),
+    null, 2,
+  )} as const;
+
+export const TEAM_MEMBERS = ${JSON.stringify(deepContent.teamMembers || [], null, 2)} as const;
+
+export const PRINCIPALS = ${JSON.stringify(deepContent.principals || [], null, 2)} as const;
+
+export const SERVICE_AREAS = ${JSON.stringify(deepContent.serviceAreas || [], null, 2)} as const;
+
+export const PROCESS_STEPS = ${JSON.stringify(
+    (deepContent.processSteps || []).map(s => ({
+      title: s.title,
+      description: s.description,
+    })),
+    null, 2,
+  )} as const;
+
+export const TRUST_METRICS = ${JSON.stringify(deepContent.trustMetrics || {}, null, 2)} as const;
+
+export const FAQ_ITEMS = ${JSON.stringify(deepContent.faqItems || [], null, 2)} as const;
+
+export const CONTACT = ${JSON.stringify(deepContent.contact || {}, null, 2)} as const;
+`;
+
+  writeFileSync(filePath, content);
+  logger.info(`Generated site content file: src/lib/sites/${siteId}.ts (${content.length} chars)`);
 }
 
 // ─── Bespoke helpers ──────────────────────────────────────────

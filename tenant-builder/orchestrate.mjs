@@ -24,6 +24,10 @@ import * as logger from './lib/logger.mjs';
 import { architectSite } from './architect.mjs';
 import { bespokeArchitect } from './bespoke-architect.mjs';
 import { buildCustomSections } from './build-custom-sections.mjs';
+import { contentArchitect } from './content-architect.mjs';
+import { designDirector } from './design-director.mjs';
+import { buildManifest } from './lib/build-manifest.mjs';
+import { recordHomepageScroll } from './scrape/screenshot-capture.mjs';
 import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '../scripts/polish/queue-utils.mjs';
 import { visualDiffWithCodex } from './qa/visual-diff-codex.mjs';
 
@@ -252,6 +256,29 @@ const tasks = targets.map(target => async () => {
     throw new Error(`No scraped data produced for ${siteId}`);
   }
 
+  // 3a.5. Content Architect — GPT 5.4 extracts deep content from scraped data
+  let deepContent = null;
+  if (CONFIG.content_architect?.enabled !== false) {
+    logger.progress({ stage: 'content-architect', target_id: target.id, site_id: siteId, status: 'start' });
+    try {
+      const caTimeout = (CONFIG.content_architect?.timeout_seconds ?? 180) * 1000 * timeoutMultiplier;
+      deepContent = await contentArchitect(outputDir, siteId, {
+        timeoutMs: caTimeout,
+        cwd: DEMO_ROOT,
+      });
+      if (deepContent) {
+        logger.progress({ stage: 'content-architect', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: `${deepContent.services?.length ?? 0} services, ${deepContent.testimonials?.length ?? 0} testimonials` });
+      } else {
+        logger.progress({ stage: 'content-architect', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: 'no content extracted (using fallback)' });
+      }
+    } catch (err) {
+      logger.warn(`[${siteId}] Content Architect failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      logger.progress({ stage: 'content-architect', target_id: target.id, site_id: siteId, status: 'error', detail: err.message?.slice(0, 100) });
+    }
+  }
+
   // 3b. Architect — Opus 4.6 analyses site and produces blueprint
   if (!args['skip-architect'] && CONFIG.architect?.enabled !== false) {
     logger.progress({ stage: 'architect', target_id: target.id, site_id: siteId, status: 'start',
@@ -274,6 +301,46 @@ const tasks = targets.map(target => async () => {
     }
   }
 
+  // 3b.5. Design Director — vision analysis → Design Language → Build Manifest (bespoke only)
+  let ddManifest = null;
+  if (bespokeMode && CONFIG.design_director?.enabled !== false) {
+    logger.progress({ stage: 'design-director', target_id: target.id, site_id: siteId, status: 'start' });
+    try {
+      // Record homepage scroll (if enabled and not already captured)
+      if (CONFIG.design_director?.scroll_recording !== false) {
+        try {
+          await recordHomepageScroll(target.website, outputDir, { timeout: 20000 });
+        } catch (e) {
+          logger.warn(`[${siteId}] Scroll recording failed (non-blocking): ${e.message?.slice(0, 80)}`);
+        }
+      }
+
+      // Run Design Director: Gemini + Opus → Design Language
+      const ddTimeout = 60000 * timeoutMultiplier;
+      const skipCrossCheck = CONFIG.design_director?.opus_cross_check === false;
+      await designDirector(outputDir, siteId, { timeoutMs: ddTimeout, skipCrossCheck });
+
+      // Build manifest from HTML + Design Language
+      ddManifest = buildManifest(outputDir, siteId, {
+        maxSections: CONFIG.bespoke?.max_custom_sections ?? 15,
+      });
+
+      if (ddManifest.length > 0) {
+        writeFileSync(resolve(outputDir, 'build-manifest.json'), JSON.stringify(ddManifest, null, 2));
+        logger.progress({ stage: 'design-director', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: `${ddManifest.length} manifest entries` });
+      } else {
+        logger.warn(`[${siteId}] Design Director produced empty manifest — falling back to architect blueprint`);
+        ddManifest = null;
+        logger.progress({ stage: 'design-director', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: 'empty manifest, using architect fallback' });
+      }
+    } catch (err) {
+      logger.warn(`[${siteId}] Design Director failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      logger.progress({ stage: 'design-director', target_id: target.id, site_id: siteId, status: 'error', detail: err.message?.slice(0, 100) });
+    }
+  }
+
   // 3c. Build custom sections (if blueprint has customSections)
   if (!args['skip-custom-sections'] && CONFIG.custom_sections?.enabled !== false) {
     const blueprintPath = resolve(outputDir, 'site-blueprint-v2.json');
@@ -282,7 +349,7 @@ const tasks = targets.map(target => async () => {
         const blueprint = JSON.parse(readFileSync(blueprintPath, 'utf-8'));
         if (blueprint.customSections?.length > 0) {
           logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'start',
-            detail: `${blueprint.customSections.length} section(s)${bespokeMode ? ' (bespoke)' : ''}` });
+            detail: `${blueprint.customSections.length} section(s)${bespokeMode ? ' (bespoke)' : ''}${ddManifest ? ' + design-director' : ''}` });
           const csTimeout = (CONFIG.custom_sections?.codex_timeout_seconds ?? 180) * 1000 * timeoutMultiplier;
           const maxSections = bespokeMode
             ? (CONFIG.bespoke?.max_custom_sections ?? 15)
@@ -292,6 +359,8 @@ const tasks = targets.map(target => async () => {
             resultsDir: outputDir, maxSections,
             parallel: bespokeMode && blueprint.customSections.length >= 3,
             review: true,
+            buildManifest: ddManifest,
+            deepContent,
           });
           logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'complete',
             detail: `${built} built, ${csFailed} failed` });

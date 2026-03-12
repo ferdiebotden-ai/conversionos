@@ -17,9 +17,11 @@ import * as logger from '../lib/logger.mjs';
  * @param {string[]} options.generatedScreenshots - Paths to generated site screenshots
  * @param {string} options.siteId - Tenant site ID
  * @param {string[]} options.sectionIds - List of custom section IDs in the build
+ * @param {boolean} [options.bespokeMode=false] - Use Opus 4.6 for bespoke builds (higher visual reasoning)
+ * @param {string} [options.designLanguage=''] - Design Language Document for context
  * @returns {Promise<Array<{ sectionId: string, severity: 'high'|'medium'|'low', issues: string[], suggestedFixes: string[] }>>}
  */
-export async function visualCompare({ originalScreenshots, generatedScreenshots, siteId, sectionIds }) {
+export async function visualCompare({ originalScreenshots, generatedScreenshots, siteId, sectionIds, bespokeMode = false, designLanguage = '' }) {
   const images = [];
 
   // Add original screenshots
@@ -41,18 +43,32 @@ export async function visualCompare({ originalScreenshots, generatedScreenshots,
     return [];
   }
 
+  const designLanguageContext = designLanguage
+    ? `\n\nDESIGN LANGUAGE (reference for what the rebuild should match):\n${designLanguage.slice(0, 1500)}\n`
+    : '';
+
   const prompt = `You are comparing a contractor's ORIGINAL website (first ${originalScreenshots.length} image(s)) with a GENERATED rebuild (remaining image(s)).
 
 The generated site should match the original's visual DNA — same layout structure, similar spacing, matching colour scheme, comparable typography hierarchy.
 
 Tenant: ${siteId}
 Custom sections in this build: ${sectionIds.join(', ')}
+${designLanguageContext}
 
-For each section that has significant visual differences, provide:
-1. Which section it is (match to the sectionId list above)
-2. Severity: high (layout completely wrong), medium (noticeable differences), low (minor polish)
-3. Specific issues (e.g., "hero is 50vh instead of 100vh", "services grid uses 2 columns instead of 3")
-4. Suggested fixes as code-level instructions
+Score 1-5 on each dimension:
+1. Layout fidelity (section order, grid structure, visual hierarchy)
+2. Colour accuracy (primary/accent usage, background rhythm, overlay treatments)
+3. Typography match (font weights, sizes, spacing, hierarchy)
+4. Content completeness (all sections present, no missing text, no placeholder content)
+5. Spacing & rhythm (padding consistency, card gaps, visual breathing room)
+6. Premium polish (animations, hover effects, modern design touches)
+7. Overall visual similarity (would someone recognise this as the "same" website?)
+
+For any dimension scoring <3, provide:
+- Which section has the issue
+- Severity: high (layout completely wrong), medium (noticeable differences), low (minor polish)
+- Specific issues (e.g., "hero is 50vh instead of 100vh", "services grid uses 2 columns instead of 3")
+- Suggested fixes as code-level instructions (e.g., "change py-12 to py-24 in hero section")
 
 Return ONLY valid JSON:
 [
@@ -64,11 +80,14 @@ Return ONLY valid JSON:
   }
 ]
 
-If the sites match well, return an empty array [].`;
+If the sites match well (all dimensions >=3), return an empty array [].`;
+
+  // Use Opus for bespoke builds (highest visual reasoning), Sonnet for template builds
+  const model = bespokeMode ? 'claude-opus-4-6-20250514' : 'claude-sonnet-4-6-20250514';
 
   try {
     const response = await callClaude(prompt, {
-      model: 'claude-sonnet-4-6-20250514',
+      model,
       maxTokens: 4096,
       images,
     });

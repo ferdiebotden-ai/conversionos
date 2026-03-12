@@ -58,6 +58,7 @@ scraping:
     formats:
       - markdown
       - links
+      - html
     timeout_ms: 30000
     max_pages_per_site: 6   # Homepage + about + services + contact + gallery + testimonials
     rate_limit:
@@ -88,6 +89,24 @@ logo:
     - webp
     - jpg
   storage_path_template: "{site_id}/logo"
+
+# Content Architect — GPT 5.4 deep content extraction from scraped data
+content_architect:
+  enabled: true
+  timeout_seconds: 180       # Codex call ~2-3 min for full content extraction
+
+# Architect — Opus 4.6 site analysis → SiteBlueprint v2
+architect:
+  enabled: true
+  timeout_seconds: 300       # Bespoke prompts need 3-5 min for Opus to analyze HTML+CSS+screenshots
+  fallback_to_defaults: true
+
+# Custom Sections — Codex-generated per-tenant React components
+custom_sections:
+  enabled: true
+  max_per_tenant: 15          # Bespoke builds need 8-15 sections
+  compilation_required: true
+  codex_timeout_seconds: 600  # Large prompts + vision images need 5-10 min per section
 
 # Provisioning
 provisioning:
@@ -156,6 +175,26 @@ nightly:
   limit: 10
   concurrency: 4
   skip_provisioned: true    # Skip targets that already have a demo tenant
+
+# Design Director — vision-based Design Language production
+design_director:
+  enabled: true
+  gemini_model: 'gemini-3.1-pro-preview'
+  opus_cross_check: true
+  scroll_recording: true
+  recording_duration_seconds: 30
+  max_design_language_tokens: 4096
+
+# Bespoke Pipeline — rebuild target's visual identity with Codex
+bespoke:
+  enabled: true
+  css_extract_timeout_seconds: 60
+  screenshot_viewports:
+    - { width: 1440, height: 900, label: "desktop" }
+    - { width: 390, height: 844, label: "mobile" }
+    - { width: 768, height: 1024, label: "tablet" }
+  max_custom_sections: 15       # Higher limit than template pipeline (was 5)
+  visual_similarity_threshold: 3.5
 
 # Go-Live Audit
 audit:

@@ -164,7 +164,6 @@ ${availablePages.length > 0 ? availablePages.join(', ') : 'None captured'}
 
 1. **Analyse the HTML structure** to identify each distinct visual section of each page
 2. **For each visual section**, decide CUSTOM or STANDARD
-3. **Do NOT create a custom footer section.** The platform has a global Footer component that renders on all pages automatically. Never include a section with "footer" in the name or ID.
 3. **Custom section specs must include:** sectionId, name, spec (detailed visual description), layout, background, typography, spacing, animations, contentMapping (camelCase field names), cssHints, integrationNotes
 4. **Theme**: Extract exact values from CSS tokens
 5. **Homepage should have 6-12 custom sections**
@@ -244,8 +243,13 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
       contentMapping: { aboutText: 'aboutCopy', aboutImage: 'aboutImageUrl' },
       integrationNotes: 'None',
     },
-    // NOTE: No custom footer section — the platform's global Footer component
-    // renders on all pages automatically. Custom footers cause double/missing footer bugs.
+    {
+      sectionId: `custom:${siteId}-footer`,
+      name: 'Footer',
+      spec: 'Footer matching original site structure with contact info, nav links, social links.',
+      contentMapping: 'phone, email, address, social links',
+      integrationNotes: 'None',
+    },
   ];
 
   if (hasTestimonials) {
@@ -304,6 +308,7 @@ function getFallbackBespokeBlueprint(scraped, siteId) {
           ...(hasPortfolio ? [{ sectionId: `custom:${siteId}-gallery` }] : []),
           ...(hasTestimonials ? [{ sectionId: `custom:${siteId}-testimonials` }] : []),
           { sectionId: 'cta:full-width-primary' },
+          { sectionId: `custom:${siteId}-footer` },
         ],
       },
       {

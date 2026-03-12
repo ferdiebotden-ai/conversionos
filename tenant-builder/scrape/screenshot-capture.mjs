@@ -114,6 +114,85 @@ export async function captureScreenshots(url, outputDir, {
 }
 
 /**
+ * Record a 30-second scroll-through of the homepage.
+ * Captures scroll-triggered animations, parallax effects, sticky headers,
+ * hover states, and loading transitions as a .webm video.
+ *
+ * @param {string} url - The target website URL
+ * @param {string} outputDir - Directory to save recording
+ * @param {object} [options]
+ * @param {number} [options.timeout=20000] - Page load timeout
+ * @param {number} [options.scrollDurationMs=6000] - How long to scroll (natural reading speed)
+ * @returns {Promise<string|null>} Path to recording file, or null if failed
+ */
+export async function recordHomepageScroll(url, outputDir, {
+  timeout = 20000,
+  scrollDurationMs = 6000,
+} = {}) {
+  const recordingDir = join(outputDir, 'recordings');
+  mkdirSync(recordingDir, { recursive: true });
+  const recordingPath = join(recordingDir, 'homepage-scroll.webm');
+
+  let browser;
+  try {
+    const { chromium } = await import('playwright');
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      recordVideo: { dir: recordingDir, size: { width: 1440, height: 900 } },
+    });
+
+    const page = await context.newPage();
+    const response = await page.goto(url, { waitUntil: 'networkidle', timeout });
+
+    if (!response || response.status() >= 400) {
+      await context.close();
+      await browser.close();
+      return null;
+    }
+
+    // Scroll through at natural reading speed
+    await page.evaluate((duration) => new Promise(resolve => {
+      const totalHeight = document.body.scrollHeight;
+      const steps = Math.ceil(duration / 50); // 50ms per step
+      const stepSize = totalHeight / steps;
+      let pos = 0;
+      let step = 0;
+      const timer = setInterval(() => {
+        pos += stepSize;
+        window.scrollTo({ top: pos, behavior: 'smooth' });
+        step++;
+        if (step >= steps) {
+          clearInterval(timer);
+          // Scroll back to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(resolve, 1000);
+        }
+      }, 50);
+    }), scrollDurationMs);
+
+    // Close context to finalize video
+    await page.close();
+    const video = page.video();
+    if (video) {
+      await video.saveAs(recordingPath);
+    }
+    await context.close();
+    await browser.close();
+
+    if (existsSync(recordingPath)) {
+      logger.info(`Homepage scroll recording: ${recordingPath}`);
+      return recordingPath;
+    }
+    return null;
+  } catch (err) {
+    if (browser) try { await browser.close(); } catch { /* ok */ }
+    logger.warn(`Homepage scroll recording failed: ${err.message?.slice(0, 100)}`);
+    return null;
+  }
+}
+
+/**
  * Scroll through an entire page to trigger IntersectionObserver callbacks
  * and lazy-loaded content. Scrolls down then back to top.
  */
