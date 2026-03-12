@@ -225,30 +225,36 @@ const tasks = targets.map(target => async () => {
   const outputDir = resolve(TB_ROOT, `results/${TODAY}/${siteId}`);
   mkdirSync(outputDir, { recursive: true });
 
-  // 3a. Scrape
-  logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'start', detail: target.website });
-  try {
-    const scrapeArgs = [
-      resolve(TB_ROOT, 'scrape/scrape-enhanced.mjs'),
-      '--url', target.website,
-      '--site-id', siteId,
-      '--output', outputDir,
-    ];
-    if (bespokeMode) scrapeArgs.push('--bespoke');
-    execFileSync('node', scrapeArgs, {
-      cwd: DEMO_ROOT,
-      env: process.env,
-      timeout: 300000,
-      maxBuffer: 50 * 1024 * 1024,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'complete' });
-  } catch (e) {
-    const diagOutput = extractStderr(e);
-    if (diagOutput) logger.warn(`[${siteId}] scrape output:\n${diagOutput}`);
-    const detail = diagOutput?.split('\n').slice(-3).join(' | ')?.slice(0, 200) || e.message?.slice(0, 100);
-    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'error', detail });
-    throw new Error(`Scrape failed for ${siteId}: ${detail}`);
+  // 3a. Scrape (skip if scraped.json already exists — idempotent re-run support)
+  const scrapedPathEarly = resolve(outputDir, 'scraped.json');
+  if (existsSync(scrapedPathEarly)) {
+    logger.info(`[${siteId}] scraped.json already exists — skipping scrape stage`);
+    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'complete', detail: 'skipped (existing)' });
+  } else {
+    logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'start', detail: target.website });
+    try {
+      const scrapeArgs = [
+        resolve(TB_ROOT, 'scrape/scrape-enhanced.mjs'),
+        '--url', target.website,
+        '--site-id', siteId,
+        '--output', outputDir,
+      ];
+      if (bespokeMode) scrapeArgs.push('--bespoke');
+      execFileSync('node', scrapeArgs, {
+        cwd: DEMO_ROOT,
+        env: process.env,
+        timeout: 300000,
+        maxBuffer: 50 * 1024 * 1024,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'complete' });
+    } catch (e) {
+      const diagOutput = extractStderr(e);
+      if (diagOutput) logger.warn(`[${siteId}] scrape output:\n${diagOutput}`);
+      const detail = diagOutput?.split('\n').slice(-3).join(' | ')?.slice(0, 200) || e.message?.slice(0, 100);
+      logger.progress({ stage: 'scrape', target_id: target.id, site_id: siteId, status: 'error', detail });
+      throw new Error(`Scrape failed for ${siteId}: ${detail}`);
+    }
   }
 
   const scrapedPath = resolve(outputDir, 'scraped.json');
