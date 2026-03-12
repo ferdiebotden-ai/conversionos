@@ -61,6 +61,7 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'md-construction.norbotsystems.com': 'md-construction',
   'bacvar-building.norbotsystems.com': 'bacvar-building',
   'hache-construction.norbotsystems.com': 'hache-construction',
+  'tc-contracting.norbotsystems.com': 'tc-contracting',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
