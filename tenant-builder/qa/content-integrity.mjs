@@ -68,7 +68,9 @@ const MIN_SECTION_BODY_LENGTH = 20;
  */
 async function checkDemoLeakage(page, pageUrl, siteId, tenantCity) {
   const violations = [];
-  const bodyText = await page.textContent('body') || '';
+  // Use innerText (visible rendered text only) — textContent includes <script>/<style> content
+  // which would produce false positives from DEMO_BRANDING constants in JS bundles
+  const bodyText = await page.evaluate(() => document.body.innerText || '').catch(() => '') || '';
   // Strip __NEXT_DATA__ serialized JSON to avoid false positives — it contains
   // server-side data that isn't visible to users but may include demo strings
   let htmlSource = await page.content();
