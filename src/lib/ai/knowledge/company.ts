@@ -92,7 +92,7 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       name: (info['name'] as string) || FALLBACK_CONFIG.name,
       location: `${city}, ${province}, Canada`,
       phone: (info['phone'] as string) || FALLBACK_CONFIG.phone,
-      email: (info['email'] as string) || FALLBACK_CONFIG.email,
+      email: (info['email'] as string) ?? FALLBACK_CONFIG.email,
       website: (info['website'] as string) || FALLBACK_CONFIG.website,
       principals: (profile['principals'] as string) || FALLBACK_CONFIG.principals,
       tagline: (brand['tagline'] as string) || (info['tagline'] as string) || FALLBACK_CONFIG.tagline,

@@ -21,9 +21,14 @@ import Link from 'next/link';
 import { StaggerContainer, StaggerItem, FadeInUp } from '@/components/motion';
 
 // TEMPLATE: Replace CustomSectionName and implement your section
-export function CustomSectionName({ branding, config, tokens, className }: SectionBaseProps) {
+export function CustomSectionName({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+  const config = rawConfig as unknown as Record<string, unknown>;
   // Helper to safely read string fields from config (Record<string, unknown>)
-  function str(v: unknown): string { return typeof v === 'string' && v.trim() ? v.trim() : ''; }
+  // Handles string[] (e.g. aboutCopy) by joining with space
+  function str(v: unknown): string {
+    if (Array.isArray(v)) return v.filter(s => typeof s === 'string').join(' ').trim();
+    return typeof v === 'string' && v.trim() ? v.trim() : '';
+  }
 
   // Dual-lookup: provisioner stores camelCase, but guard against snake_case too
   const heroHeadline    = str(config['heroHeadline'])    || str(config['hero_headline']);
