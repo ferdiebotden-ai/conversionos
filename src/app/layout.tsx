@@ -111,8 +111,12 @@ export default async function RootLayout({
             '--card-foreground:oklch(0.985 0 0);',
             '--popover:oklch(0.205 0 0);',
             '--popover-foreground:oklch(0.985 0 0);',
+            '--secondary:oklch(0.205 0 0);',
+            '--secondary-foreground:oklch(0.985 0 0);',
             '--muted:oklch(0.269 0 0);',
             '--muted-foreground:oklch(0.708 0 0);',
+            '--accent:oklch(0.269 0 0);',
+            '--accent-foreground:oklch(0.985 0 0);',
             '--border:oklch(1 0 0 / 10%);',
             '--input:oklch(1 0 0 / 15%);',
           ] : [];
