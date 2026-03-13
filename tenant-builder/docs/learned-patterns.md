@@ -241,3 +241,13 @@ Eight systemic fixes applied before the first 10-build nightly batch. Each addre
 **[2026-03-12] Fix 7 — TypeScript strict mode in Codex sections:** Added mandatory rules to `integration-spec.md`: bracket notation for all Record access, `priority={priority ?? false}`, non-null assertions after length checks.
 
 **[2026-03-12] Fix 8 — custom_nav flag hides standard nav on inner pages:** Changed `provision-tenant.mjs` to NEVER set `custom_nav` flag. Instead strips custom nav sections from page_layouts. Standard Header always renders globally.
+
+## Discovery & ICP Scoring
+
+**[2026-03-12] discover.mjs — search_template vs search_templates:** Config key was `search_templates` (plural array) but code referenced `search_template` (singular). Fix: loop through all templates with `Math.ceil(limit / templates.length)` results each. Pattern: always check config.yaml key names match code references after config refactors.
+
+**[2026-03-12] icp-score.mjs — discovered targets not scored:** ICP scorer's WHERE clause only included `status IN ('qualified', 'draft_ready', ...)` — excluded `'discovered'` status. New targets from `discover.mjs` all start as `'discovered'`. Fix: added `'discovered'` to the status filter. Also added auto-qualification: targets scoring >= threshold become `'qualified'`, below become `'disqualified'`. Pattern: any new pipeline step that queries targets by status must include all relevant upstream statuses.
+
+**[2026-03-12] Junk target pre-filtering:** Discovery returns ~35% junk (directory listings like Houzz, Yelp, HomeStars, Angi, BBB, TrustedPros, Trustpilot + non-Ontario results). Pre-filter before ICP scoring to save Firecrawl credits. Check: domain contains directory site, title matches "Best 10/15...", "Top 10...", "Find a...", non-Ontario location indicators. Pattern: ~20-27 junk per 76 raw results. ICP scoring handles the rest but costs 1 Firecrawl scrape + 1 Claude call per target.
+
+**[2026-03-12] Duplicate company detection:** Discovery uses `website = ? OR company_name = ?` for dedup but misses: same company with different page URL (e.g., `/kitchener` vs `/paris-brant-county`), same company with slightly different name (e.g., "Hache Construction" vs "Hache Renovations"). Pattern: check slug similarity and domain overlap, not just exact URL/name match.

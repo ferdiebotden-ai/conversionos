@@ -220,10 +220,20 @@ ${markdown.slice(0, 3000)}`;
   logger.info(`${name}: ICP score ${breakdown.total}/130 (fit=${breakdown.template_fit}, quality=${breakdown.website_quality}, contact=${breakdown.contact_completeness}, reviews=${breakdown.google_reviews}, geo=${breakdown.geography}, est=${breakdown.company_establishment}, mktg=${breakdown.marketing_sophistication}, yrs=${breakdown.years_in_business})`);
 
   if (!dryRun) {
+    // Auto-qualify discovered targets based on score
+    const newStatus = (target.status === 'discovered')
+      ? (breakdown.total >= THRESHOLDS.reject ? 'qualified' : 'disqualified')
+      : target.status;
+    const statusChanged = newStatus !== target.status;
+
     await execute(
-      'UPDATE targets SET icp_score = ?, icp_breakdown = ? WHERE id = ?',
-      [breakdown.total, JSON.stringify(breakdown), id]
+      'UPDATE targets SET icp_score = ?, icp_breakdown = ?, status = ? WHERE id = ?',
+      [breakdown.total, JSON.stringify(breakdown), newStatus, id]
     );
+
+    if (statusChanged) {
+      logger.info(`${name}: status ${target.status} → ${newStatus} (threshold=${THRESHOLDS.reject})`);
+    }
   }
 
   logger.progress({
@@ -258,13 +268,13 @@ if (args['target-id']) {
   if (force) logger.info('--force: re-scoring already-scored targets (model update)');
   const sql = force
     ? `SELECT * FROM targets
-       WHERE status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
+       WHERE status IN ('discovered', 'qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
          AND website IS NOT NULL
        ORDER BY score DESC
        LIMIT ?`
     : `SELECT * FROM targets
        WHERE icp_score IS NULL
-         AND status IN ('qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
+         AND status IN ('discovered', 'qualified', 'draft_ready', 'reviewed', 'email_1_sent', 'sms_sent', 'phone_called', 'interested', 'demo_booked')
          AND website IS NOT NULL
        ORDER BY score DESC
        LIMIT ?`;

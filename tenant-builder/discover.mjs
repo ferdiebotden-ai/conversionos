@@ -126,14 +126,28 @@ async function discoveryMode() {
   const allTargets = [];
   const seenDomains = new Set();
 
+  // Use all search templates for richer discovery (fall back to single template for compat)
+  const templates = CONFIG.discovery.search_templates
+    || [CONFIG.discovery.search_template]
+    || ['renovation contractor {city} Ontario'];
+
   for (const city of cities) {
-    const searchQuery = CONFIG.discovery.search_template.replace('{city}', city);
-    logger.progress({ stage: 'discover', status: 'start', detail: `Searching: ${searchQuery}` });
+    let cityResults = [];
+
+    for (const template of templates) {
+      const searchQuery = template.replace('{city}', city);
+      logger.progress({ stage: 'discover', status: 'start', detail: `Searching: ${searchQuery}` });
+
+      try {
+        const results = await search(searchQuery, { limit: Math.ceil(limit / templates.length) });
+        cityResults.push(...results);
+      } catch (e) {
+        logger.warn(`Search failed for "${searchQuery}": ${e.message}`);
+      }
+    }
 
     try {
-      const results = await search(searchQuery, { limit });
-
-      for (const result of results) {
+      for (const result of cityResults) {
         // Deduplicate within batch by normalized domain
         const domain = normalizeDomain(result.url);
         if (seenDomains.has(domain)) {
@@ -190,7 +204,7 @@ async function discoveryMode() {
         allTargets.push(target);
       }
 
-      logger.progress({ stage: 'discover', status: 'complete', detail: `${city}: ${results.length} results` });
+      logger.progress({ stage: 'discover', status: 'complete', detail: `${city}: ${cityResults.length} results` });
     } catch (e) {
       logger.error(`Search failed for ${city}: ${e.message}`);
       logger.progress({ stage: 'discover', status: 'error', detail: `${city}: ${e.message}` });
