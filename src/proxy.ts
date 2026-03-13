@@ -68,6 +68,10 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'kwc-basements-renovations.norbotsystems.com': 'kwc-basements-renovations',
   'inex-general-contracting.norbotsystems.com': 'inex-general-contracting',
   'northpoint-renovations.norbotsystems.com': 'northpoint-renovations',
+  'hache-construction.norbotsystems.com': 'hache-construction',
+  'tc-contracting.norbotsystems.com': 'tc-contracting',
+  'bacvar-building.norbotsystems.com': 'bacvar-building',
+  'yorkland-homes.norbotsystems.com': 'yorkland-homes',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
