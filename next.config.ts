@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     '@norbot/conversionos-visualizer',
   ],
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -56,12 +57,12 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.elevenlabs.io",
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://ktpfyangnmpwufghgasx.supabase.co",
               "connect-src 'self' https://*.supabase.co wss://*.elevenlabs.io https://*.elevenlabs.io https://*.sentry.io",
               "media-src 'self' blob:",
               "worker-src 'self' blob: data:",
-              "font-src 'self' data:",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "frame-src 'self' https://elevenlabs.io",
             ].join("; "),
           },
