@@ -477,8 +477,9 @@ test('SUBJECT_ROTATION has 2 alternatives', () => {
   assert.equal(SUBJECT_ROTATION.length, 2);
 });
 
-test('SUBJECT_TEMPLATE uses em dash', () => {
-  assert.ok(SUBJECT_TEMPLATE.includes('\u2014'), 'Subject uses em dash');
+test('SUBJECT_TEMPLATE uses hyphen separator (no em dash)', () => {
+  assert.ok(SUBJECT_TEMPLATE.includes(' - '), 'Subject uses hyphen separator');
+  assert.ok(!SUBJECT_TEMPLATE.includes('\u2014'), 'Subject has no em dash (encoding bug)');
 });
 
 test('BODY_TEMPLATE starts with "Hi"', () => {

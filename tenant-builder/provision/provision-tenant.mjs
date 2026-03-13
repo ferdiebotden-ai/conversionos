@@ -25,7 +25,7 @@ import * as logger from '../lib/logger.mjs';
 import { withRetry } from '../lib/retry.mjs';
 import { writeProxyFragment } from './proxy-fragment.mjs';
 import { createVoiceAgent } from './voice-agent.mjs';
-import { generateHeroImage, generateAboutImage, generateOgImage, generateServiceImages } from '../lib/generate-images.mjs';
+import { generateHeroImage, selectAboutImage, generateOgImage } from '../lib/generate-images.mjs';
 import { seedSampleLeads } from './seed-sample-leads.mjs';
 
 loadEnv();
@@ -132,6 +132,7 @@ if (!dryRun) {
     primaryHex: provisionData.primary_color_hex,
     companyName: provisionData.business_name,
     services: provisionData.services,
+    portfolio: provisionData.portfolio,
     tagline: provisionData.tagline || provisionData.hero_headline,
   };
 
@@ -151,35 +152,14 @@ if (!dryRun) {
   }
 
   if (!provisionData.about_image_url) {
-    logger.info('Step 1b: No about image — generating via Gemini');
-    try {
-      const aboutUrl = await generateAboutImage(imageOpts);
-      if (aboutUrl) {
-        provisionData.about_image_url = aboutUrl;
-        imageDataUpdated = true;
-      }
-    } catch (e) {
-      logger.warn(`About image generation failed (non-blocking): ${e.message}`);
-    }
-
-    // Fallback: use the best scraped service image if Gemini failed
-    if (!provisionData.about_image_url && provisionData.services?.length > 0) {
-      for (const svc of provisionData.services) {
-        const imgs = svc.image_urls || [];
-        if (imgs.length > 0 && imgs[0]) {
-          provisionData.about_image_url = imgs[0];
-          imageDataUpdated = true;
-          logger.info(`Using service image as about fallback: ${imgs[0].slice(0, 60)}...`);
-          break;
-        }
-      }
-    }
-
-    // Final fallback: reuse the hero image
-    if (!provisionData.about_image_url && provisionData.hero_image_url) {
-      provisionData.about_image_url = provisionData.hero_image_url;
+    logger.info('Step 1b: No about image — selecting from scraped data (no Gemini generation)');
+    const aboutUrl = selectAboutImage(imageOpts);
+    if (aboutUrl) {
+      provisionData.about_image_url = aboutUrl;
       imageDataUpdated = true;
-      logger.info('Using hero image as about fallback');
+      logger.info(`Using real scraped photo as about image: ${aboutUrl.slice(0, 60)}...`);
+    } else {
+      logger.info('No real about image available — section will render without image');
     }
   }
 
@@ -195,19 +175,8 @@ if (!dryRun) {
     logger.warn(`OG image generation failed (non-blocking): ${e.message}`);
   }
 
-  // Generate images for services missing scraped images
-  if (provisionData.services?.length > 0) {
-    const missingCount = provisionData.services.filter(s => !s.image_urls?.length || !s.image_urls[0]).length;
-    if (missingCount > 0) {
-      logger.info(`Step 1b: ${missingCount} service(s) missing images — generating via Gemini`);
-      try {
-        const generated = await generateServiceImages(imageOpts);
-        if (generated > 0) imageDataUpdated = true;
-      } catch (e) {
-        logger.warn(`Service image generation failed (non-blocking): ${e.message}`);
-      }
-    }
-  }
+  // Service images are NOT generated via Gemini — fake renovation photos misrepresent contractor work.
+  // Sections render as text-only cards when imageUrl is empty (all 5 standard components handle this gracefully).
 
   if (imageDataUpdated) {
     const targetPath = existsSync(provisionedPath) ? provisionedPath : dataPath;
