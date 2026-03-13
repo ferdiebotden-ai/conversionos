@@ -26,6 +26,7 @@ export interface Branding {
   logoOnDark?: boolean | undefined;
   faviconUrl?: string | undefined;
   ogImageUrl?: string | undefined;
+  darkMode?: boolean | undefined;
   services: { name: string; slug: string }[];
 }
 
@@ -104,6 +105,7 @@ export async function getBranding(): Promise<Branding> {
       logoOnDark: (brand['logoOnDark'] as boolean) || undefined,
       faviconUrl: (brand['faviconUrl'] as string) || undefined,
       ogImageUrl: (brand['ogImageUrl'] as string) || undefined,
+      darkMode: (brand['darkMode'] as boolean) || undefined,
       services: rawServices.map(s => ({
         name: s.name,
         slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
