@@ -21,10 +21,11 @@ function timestamp() {
 function log(level, message, data) {
   if (LEVELS[level] < currentLevel) return;
   const prefix = `[${timestamp()}] [${level.toUpperCase()}]`;
+  const out = (level === 'warn' || level === 'error') ? console.error : console.log;
   if (data !== undefined) {
-    console.log(`${prefix} ${message}`, typeof data === 'object' ? JSON.stringify(data) : data);
+    out(`${prefix} ${message}`, typeof data === 'object' ? JSON.stringify(data) : data);
   } else {
-    console.log(`${prefix} ${message}`);
+    out(`${prefix} ${message}`);
   }
 }
 

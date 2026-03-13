@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -11,9 +10,8 @@ const FILTERS = ['All', 'Bathroom', 'Kitchen', 'Basement', 'Home'] as const;
 type Filter = (typeof FILTERS)[number];
 type PortfolioItem = { id: string; title: string; category: Exclude<Filter, 'All'>; image: string };
 
-export function PortfolioGridFull({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+export function PortfolioGridFull({ branding, config, tokens, className }: SectionBaseProps) {
   void tokens;
-  const config = rawConfig as unknown as Record<string, unknown>;
 
   const items = useMemo<PortfolioItem[]>(() => {
     const source = config as {

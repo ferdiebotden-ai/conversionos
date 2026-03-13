@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -21,8 +20,7 @@ const FALLBACK_ICONS: Record<string, string> = {
   windows: '◫',
 };
 
-export function ServicesDetailList({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
-  const config = rawConfig as unknown as Record<string, unknown>;
+export function ServicesDetailList({ branding, config, tokens, className }: SectionBaseProps) {
   const [visibleRows, setVisibleRows] = useState<number[]>([]);
 
   const services = useMemo(() => {

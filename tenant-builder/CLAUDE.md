@@ -47,9 +47,10 @@ node tenant-builder/orchestrate.mjs --nightly
 
 1. Select targets — Turso DB, direct URL, or Firecrawl discovery
 2. ICP score — 6-criterion model (100 pts), threshold 50/70
-3. Scrape — branding v2 + 7-stage scrape + 4-level logo extraction + social links
-   - 3b. **Bespoke only:** `bespoke-architect.mjs` — Opus 4.6 analyses scraped data + CSS tokens + HTML → SiteBlueprint v2 JSON
-   - 3c. **Bespoke only:** `build-custom-sections.mjs` — Codex GPT 5.4 generates per-tenant React sections → `src/sections/custom/{siteId}/`
+3. Scrape — branding v2 + 7-stage scrape + 4-level logo extraction + social links + Playwright screenshots (ALL builds)
+   - 3a. **All builds:** `scrape/screenshot-capture.mjs` — Playwright full-page screenshots (desktop+mobile, 12 page paths)
+   - 3b. **Bespoke only:** `bespoke-architect.mjs` — GPT 5.4 vision architect (primary) → Opus 4.6 text-only (fallback) → static blueprint (fallback) → SiteBlueprint v2 JSON
+   - 3c. **Bespoke only:** `build-custom-sections.mjs` — Codex GPT 5.4 generates per-tenant React sections (parallel or sequential) → `src/sections/custom/{siteId}/` → Codex review quality gate
 4. Quality gates — testimonials (min 2), portfolio (images), services (name+desc), hero (reject generic)
 5. Provision — upload images, seed Supabase (5 keys), write proxy fragment, seed sample leads
 6. Merge proxy — combine fragments into proxy.ts
@@ -70,24 +71,38 @@ node tenant-builder/orchestrate.mjs --nightly
 
 The bespoke pipeline generates custom React sections that visually match the original contractor's website, instead of picking from generic templates.
 
-### Architecture
+### Architecture (Vision-First, March 11 2026)
 ```
 Target URL
-  → scrape-enhanced.mjs --bespoke (HTML capture + CSS tokens + screenshots)
-  → bespoke-architect.mjs (Opus 4.6 → SiteBlueprint v2 JSON)
-  → build-custom-sections.mjs (Codex GPT 5.4 → per-tenant React components)
+  → scrape-enhanced.mjs (screenshots for ALL builds + HTML + CSS tokens for bespoke)
+  → bespoke-architect.mjs:
+      Strategy 1: GPT 5.4 vision (lib/gpt54-architect.mjs + --image + --output-schema)
+      Strategy 2: Opus 4.6 text-only (lib/opus-cli.mjs, same as pre-overhaul)
+      Strategy 3: Static fallback blueprint
+  → build-custom-sections.mjs:
+      Try: parallel multi-agent (lib/codex-multi-agent.mjs, 6 concurrent workers)
+      Fallback: sequential (one Codex call per section, with --image)
+      Gate: Codex review (lib/codex-review.mjs, 6 static checks + auto-fix)
   → provision-tenant.mjs --bespoke (enriched theme from CSS tokens)
   → QA with visual_similarity dimension
+  → Visual diff (qa/visual-diff-codex.mjs, compare→fix→re-compare, 2 iterations)
 ```
 
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `bespoke-architect.mjs` | Opus 4.6 analyses site → blueprint with custom section specs |
-| `build-custom-sections.mjs` | Codex generates React sections, TypeScript check, registry manifest |
+| `bespoke-architect.mjs` | Three-strategy architect: GPT 5.4 vision → Opus text-only → static fallback |
+| `build-custom-sections.mjs` | Parallel/sequential Codex build + review gate + animation mapping |
+| `lib/gpt54-architect.mjs` | GPT 5.4 vision architect with --image and --output-schema |
+| `lib/codex-cli.mjs` | Codex 0.114.0 wrapper (--ephemeral, --add-dir, --image, --output-schema, -o, --json) |
+| `lib/codex-multi-agent.mjs` | CSV-batched parallel section generation (6 concurrent workers) |
+| `lib/codex-review.mjs` | Static analysis quality gate (6 checks) + Codex auto-fix |
+| `scrape/screenshot-capture.mjs` | Playwright full-page screenshots (desktop+mobile, 12 page paths) |
+| `qa/visual-diff-codex.mjs` | Original vs generated screenshot comparison with auto-fix loop |
 | `scrape/css-extract.mjs` | Playwright extracts computed CSS tokens from live site |
-| `templates/integration-spec.md` | Rules injected into every Codex prompt (SectionBaseProps, OKLCH, etc.) |
+| `templates/integration-spec.md` | Cheat sheet (~85 lines) injected into Codex prompts |
 | `schemas/site-blueprint-v2.zod.mjs` | Zod schema for SiteBlueprint v2 |
+| `schemas/site-blueprint-v2-jsonschema.json` | JSON Schema for Codex --output-schema |
 
 ### Custom Section System
 - Generated sections live in `src/sections/custom/{siteId}/` (e.g., `custom/md-construction/`)
@@ -192,8 +207,14 @@ npm run cleanup            # Remove test artifacts
 - **DO NOT use Agent Teams for batch builds.** Builds are long-running single processes — workers go idle. Use `orchestrate.mjs --concurrency 4` instead.
 - **Delegate to Haiku subagents** for: pipeline status checks, reading QA result files, Supabase data validation, pre-screening targets.
 - **Opus for code changes only.** Modifying pipeline .mjs files, novel issues, architecture decisions.
-- **Codex --image flag causes 10min+ timeouts.** Use text-only prompts — CSS tokens + HTML provide sufficient context.
+- **Codex --image causes timeouts.** Even with 0.114.0, the --image flag with multi-section prompts takes 10+ min. All builds use text-only Codex prompts. CSS tokens + integration spec provide sufficient context.
+- **Vision architect: limit to 2 screenshots.** Homepage desktop + mobile only. Inner page screenshots cause 300s timeouts. Falls back to Opus text-only (360s timeout) then static blueprint.
+- **Static fallback blueprint is data-aware.** Checks scraped data for testimonials (2+), process_steps, why_choose_us and adds corresponding sections. Generates 5-8 sections vs the basic 5.
 - **Codex explores CLAUDE.md before writing.** Prepend `"IMPORTANT: Create the file IMMEDIATELY. Do NOT read other project files."` to the prompt.
+- **Multi-agent parallel build requires `~/.codex/config.toml` with `multi_agent = true`.** Falls back to sequential if multi-agent fails.
+- **Codex review quality gate catches 6 issue types:** hardcoded data, snake_case without dual-lookup, missing animations, missing image fallbacks, missing 'use client', bad imports. Auto-fixes via Codex, max 2 cycles.
+- **Never set `layout_flags.custom_footer`.** Custom footer sections only render on homepage via SectionRenderer. Setting the flag hides the standard footer on inner pages, leaving them footerless. Always let the standard footer render on all pages.
+- **OKLCH in inline styles is invalid.** CSS vars store full `oklch()` values. Never use `oklch(var(--primary) / 0.9)` in style attrs — it double-nests. Use Tailwind: `bg-primary/90`, `from-primary/80`.
 
 ## Self-Improving Documentation
 
@@ -203,11 +224,17 @@ After any tenant-builder change:
 3. Update `SHARED_INTERFACES.md` if data shapes changed
 4. Update `~/.claude/projects/-Users-norbot-Norbot-Systems/memory/MEMORY.md`
 
-## Current Deployed Bespoke Tenants (Mar 10-11, 2026)
+## Current Deployed Bespoke Tenants (Mar 11, 2026)
 
 | Site ID | Sections | Status | Known Issues |
 |---------|----------|--------|-------------|
-| md-construction | 11 custom | REVIEW | Double nav, trust metrics showing 0, content integrity false positives |
+| md-construction | 5 custom | NOT READY | Built with static fallback (architect timeout). Double footer on homepage. 0 testimonials scraped. |
 | westmount-craftsmen | 13 custom | REVIEW | Double nav, about-split section not rendering, gallery/testimonial empty data |
 
-See `docs/session-handoff-2026-03-11.md` for full issue list and fix instructions.
+### Live Build Test Results (Session 9 — Mar 11, 2026)
+MD Construction rebuilt from scratch with the vision-first pipeline. See `results/2026-03-11/md-construction-improvement-log.md` for comprehensive analysis including:
+- 14 prioritized issues (P0-P3)
+- Full build timeline (28 min total, 16 min wasted on architect timeouts)
+- Section quality review (7.5/10)
+- QA module results (7/8 live audit pass, 60% match score)
+- 6 fixes applied during monitoring (refinement loop crash, footer rendering, OKLCH CSS, integration spec, architect timeouts, fallback enrichment)

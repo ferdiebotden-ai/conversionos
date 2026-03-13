@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -137,11 +136,10 @@ function extractNavItems(config: SectionBaseProps['config']) {
   return FALLBACK_NAV;
 }
 
-export function NavigationBar({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
-  const config = rawConfig as unknown as Record<string, unknown>;
-  const businessName = extractBusinessName(branding, rawConfig);
-  const phone = extractPhone(rawConfig);
-  const navItems = extractNavItems(rawConfig);
+export function NavigationBar({ branding, config, tokens, className }: SectionBaseProps) {
+  const businessName = extractBusinessName(branding, config);
+  const phone = extractPhone(config);
+  const navItems = extractNavItems(config);
 
   if (!businessName) return null;
 

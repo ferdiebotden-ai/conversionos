@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -12,13 +11,12 @@ function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() ? v.trim() : undefined;
 }
 
-export function HeroSection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
-  void tokens;
-  const config = rawConfig as unknown as Record<string, unknown>;
+export function HeroSection({ branding, config, tokens, className }: SectionBaseProps) {
   const c = (config ?? {}) as unknown as HeroConfig;
   const headline = str(c['hero_headline']) ?? str(c['heroHeadline']);
   const tagline = str(c['tagline']) ?? str(c['heroSubheadline']) ?? str(c['hero_subheadline']);
   const heroImageUrl = str(c['hero_image_url']) ?? str(c['heroImageUrl']);
+  void tokens;
 
   if (!headline || !tagline || !heroImageUrl) return null;
 

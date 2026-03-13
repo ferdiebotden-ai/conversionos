@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,10 +10,9 @@ type TestimonialItem = {
   rating?: number;
 };
 
-export function TestimonialSection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+export function TestimonialSection({ branding, config, tokens, className }: SectionBaseProps) {
   void branding;
   void tokens;
-  const config = rawConfig as unknown as Record<string, unknown>;
 
   // Read testimonials from config (admin_settings company_profile)
   const rawTestimonials = (config as { testimonials?: { author?: string; quote?: string; rating?: number }[] })?.testimonials;

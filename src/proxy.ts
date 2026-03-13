@@ -33,6 +33,7 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'red-white-reno.norbotsystems.com': 'red-white-reno',
   'redwhitereno-test-prov-test.norbotsystems.com': 'redwhitereno-test-prov-test',
   'mccarty-squared-inc.norbotsystems.com': 'mccarty-squared-inc',
+  'md-construction.norbotsystems.com': 'md-construction',
   'bl-renovations.norbotsystems.com': 'bl-renovations',
   'ccr-renovations.norbotsystems.com': 'ccr-renovations',
   'brouwer-home-renovations.norbotsystems.com': 'brouwer-home-renovations',
@@ -58,10 +59,15 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'rose-building-group.norbotsystems.com': 'rose-building-group',
   'a-p-hurley-construction.norbotsystems.com': 'a-p-hurley-construction',
   'eagleview-construction.norbotsystems.com': 'eagleview-construction',
-  'md-construction.norbotsystems.com': 'md-construction',
-  'bacvar-building.norbotsystems.com': 'bacvar-building',
-  'hache-construction.norbotsystems.com': 'hache-construction',
-  'tc-contracting.norbotsystems.com': 'tc-contracting',
+  'easy-renovation.norbotsystems.com': 'easy-renovation',
+  'gracia-makeovers.norbotsystems.com': 'gracia-makeovers',
+  'red-stone-contracting.norbotsystems.com': 'red-stone-contracting',
+  'bradburn-group.norbotsystems.com': 'bradburn-group',
+  'eastview-homes.norbotsystems.com': 'eastview-homes',
+  'ostrander-construction.norbotsystems.com': 'ostrander-construction',
+  'kwc-basements-renovations.norbotsystems.com': 'kwc-basements-renovations',
+  'inex-general-contracting.norbotsystems.com': 'inex-general-contracting',
+  'northpoint-renovations.norbotsystems.com': 'northpoint-renovations',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -49,8 +48,7 @@ const serviceBlueprints = [
   },
 ] as const;
 
-export function ServicesGrid({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
-  const config = rawConfig as unknown as Record<string, unknown>;
+export function ServicesGrid({ branding, config, tokens, className }: SectionBaseProps) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const sectionConfig = (config ?? {}) as ServicesGridConfig;

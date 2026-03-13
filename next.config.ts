@@ -1,9 +1,23 @@
 import type { NextConfig } from "next";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { withSentryConfig } from "@sentry/nextjs";
 
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig: NextConfig = {
+  experimental: {
+    externalDir: true,
+  },
+  turbopack: {
+    root: path.join(configDir, "../.."),
+  },
+  transpilePackages: [
+    '@norbot/conversionos-admin-core',
+    '@norbot/conversionos-runtime',
+    '@norbot/conversionos-visualizer',
+  ],
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

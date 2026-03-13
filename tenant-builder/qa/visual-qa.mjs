@@ -30,6 +30,7 @@ const { values: args } = parseArgs({
     screenshots: { type: 'string' },
     original: { type: 'string' },
     'target-id': { type: 'string' },
+    bespoke: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -181,7 +182,16 @@ After viewing ALL screenshots, score the ENTIRE SITE across all pages:
 3. **Copy Accuracy** — Is business name, services, and about text correct on ALL pages? (5=all accurate, 1=placeholders)
 4. **Layout Integrity** — Are ALL page layouts clean with no broken sections? (5=polished, 1=broken)
 5. **Brand Cohesion** — Does the ENTIRE site feel like a real business site? (5=professional, 1=generic template)
-6. **Text Legibility** — Can all text be read against backgrounds on ALL pages? (5=excellent contrast, 1=unreadable)
+6. **Text Legibility** — Can all text be read against backgrounds on ALL pages? (5=excellent contrast, 1=unreadable)`;
+
+if (args.bespoke && args.original && existsSync(resolve(args.original))) {
+  prompt += `
+7. **Visual Similarity** — How closely does the rebuilt site match the original contractor's website? Compare layout flow, colour palette, visual weight distribution, and overall design personality. (5=nearly identical feel, 4=clearly the same brand, 3=recognizable similarity, 2=vague resemblance, 1=completely different)
+
+IMPORTANT: For dimension 7, focus on whether someone who knows the original site would recognize the rebuild as "their website." Don't require pixel-perfect matching — look for matching layout patterns, colour usage, typography feel, and visual hierarchy.`;
+}
+
+prompt += `
 
 Be critical — only score 5 if truly excellent across ALL pages. If one page has issues, that should lower the relevant dimension.
 
@@ -219,8 +229,11 @@ try {
     process.exit(1);
   }
 
-  // Calculate average
+  // Calculate average (include visual_similarity for bespoke builds)
   const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion', 'text_legibility'];
+  if (args.bespoke && scores.visual_similarity) {
+    dims.push('visual_similarity');
+  }
   const average = dims.reduce((sum, d) => sum + (scores[d] || 0), 0) / dims.length;
   const belowMin = dims.filter(d => (scores[d] || 0) < 3.0);
   const pass = average >= 4.0 && belowMin.length === 0;

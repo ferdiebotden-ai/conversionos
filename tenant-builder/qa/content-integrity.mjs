@@ -68,9 +68,7 @@ const MIN_SECTION_BODY_LENGTH = 20;
  */
 async function checkDemoLeakage(page, pageUrl, siteId, tenantCity) {
   const violations = [];
-  // Use innerText (visible rendered text only) — textContent includes <script>/<style> content
-  // which would produce false positives from DEMO_BRANDING constants in JS bundles
-  const bodyText = await page.evaluate(() => document.body.innerText || '').catch(() => '') || '';
+  const bodyText = await page.textContent('body') || '';
   // Strip __NEXT_DATA__ serialized JSON to avoid false positives — it contains
   // server-side data that isn't visible to users but may include demo strings
   let htmlSource = await page.content();
@@ -455,9 +453,6 @@ async function checkForeignBrandNamesOnPage(page, pageUrl, expectedBusinessName)
     if (normalizedExpected.includes(candidateLower) || candidateLower.includes(normalizedExpected)) continue;
     // Skip very short prefix matches
     if (prefix.length < 3) continue;
-    // Skip if prefix is or ends with a Canadian province abbreviation
-    // (e.g., "St. Thomas, ON" + "Home Renovations" → "ONHome Renovations")
-    if (/\b(ON|BC|AB|QC|MB|SK|NB|NS|PE|NL|YT|NT|NU)$/i.test(prefix)) continue;
     // Skip common false positives (articles, pronouns before suffix)
     if (/^(the|our|my|a|an|in|or|we|is|of|no|do|to)\b/i.test(prefix)) continue;
     // Skip if prefix ends with a preposition/article (e.g., "trusted partner for renovations")

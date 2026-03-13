@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock console.log to capture output
+// Mock console.log and console.error to capture output
 const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 // Fresh import each test
 let logger;
 beforeEach(async () => {
   logSpy.mockClear();
+  errorSpy.mockClear();
   // Dynamic import to get fresh module state
   logger = await import('../../lib/logger.mjs');
   logger.setLogLevel('debug');
@@ -14,6 +16,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   logSpy.mockClear();
+  errorSpy.mockClear();
 });
 
 describe('logger', () => {
@@ -31,16 +34,16 @@ describe('logger', () => {
       expect(logSpy.mock.calls[0][0]).toContain('[INFO]');
     });
 
-    it('should log warn messages', () => {
+    it('should log warn messages to stderr', () => {
       logger.warn('test warn');
-      expect(logSpy).toHaveBeenCalledTimes(1);
-      expect(logSpy.mock.calls[0][0]).toContain('[WARN]');
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0][0]).toContain('[WARN]');
     });
 
-    it('should log error messages', () => {
+    it('should log error messages to stderr', () => {
       logger.error('test error');
-      expect(logSpy).toHaveBeenCalledTimes(1);
-      expect(logSpy.mock.calls[0][0]).toContain('[ERROR]');
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0][0]).toContain('[ERROR]');
     });
 
     it('should suppress debug when level is info', () => {
@@ -54,8 +57,9 @@ describe('logger', () => {
       logger.debug('hidden');
       logger.info('hidden');
       expect(logSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
       logger.warn('visible');
-      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
     });
   });
 

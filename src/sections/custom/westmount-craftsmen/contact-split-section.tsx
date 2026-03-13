@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -44,16 +43,15 @@ function SocialIcon({ name }: { name: string }) {
   );
 }
 
-export function ContactSplitSection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
-  const config = rawConfig as unknown as Record<string, unknown>;
+export function ContactSplitSection({ branding, config, tokens, className }: SectionBaseProps) {
   const configRecord = asRecord(config);
   const businessInfo = asRecord(configRecord?.['business_info']);
   const companyProfile = asRecord(configRecord?.['company_profile']);
 
-  const phone = typeof businessInfo?.['phone'] === 'string' ? businessInfo['phone'] : String(config['phone'] ?? '');
-  const email = typeof businessInfo?.['email'] === 'string' ? businessInfo['email'] : String(config['email'] ?? '');
-  const address = typeof businessInfo?.['address'] === 'string' ? businessInfo['address'] : String(config['address'] ?? '');
-  const hours = typeof businessInfo?.['hours'] === 'string' ? businessInfo['hours'] : String(config['hours'] ?? '');
+  const phone = typeof businessInfo?.['phone'] === 'string' ? businessInfo['phone'] : config.phone;
+  const email = typeof businessInfo?.['email'] === 'string' ? businessInfo['email'] : config.email;
+  const address = typeof businessInfo?.['address'] === 'string' ? businessInfo['address'] : config.address;
+  const hours = typeof businessInfo?.['hours'] === 'string' ? businessInfo['hours'] : config.hours;
   const socialLinksRaw = companyProfile?.['social_links'];
 
   const socialLinks = Array.isArray(socialLinksRaw)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import Image from 'next/image';
@@ -42,9 +41,8 @@ function resolveImageSource(value: unknown): string | null {
   return null;
 }
 
-export function AboutStorySection({ branding, config: rawConfig, tokens, className }: SectionBaseProps) {
+export function AboutStorySection({ branding, config, tokens, className }: SectionBaseProps) {
   void tokens;
-  const config = rawConfig as unknown as Record<string, unknown>;
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
