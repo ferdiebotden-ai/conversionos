@@ -12,16 +12,14 @@ interface Props extends SectionBaseProps {
   config: CompanyConfig;
 }
 
-export function MiscVisualizerTeaser({ config, className }: Props) {
-  const portfolioImages: PortfolioImage[] = config.portfolio
-    .filter(p => p.imageUrl && p.title)
-    .map(p => ({ title: p.title, imageUrl: p.imageUrl }));
-
+export function MiscVisualizerTeaser({ className }: Props) {
+  // Always use the default static transformations (same kitchen, multiple AI styles).
+  // Portfolio images are different rooms — pairing them as before/after is misleading.
   return (
     <section className={`px-4 py-10 md:py-20 ${className ?? ''}`}>
       <div className="container mx-auto">
         <FadeInUp>
-          <VisualizerTeaserBase portfolioImages={portfolioImages} />
+          <VisualizerTeaserBase />
         </FadeInUp>
       </div>
     </section>
