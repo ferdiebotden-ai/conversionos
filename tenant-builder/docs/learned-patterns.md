@@ -251,3 +251,47 @@ Eight systemic fixes applied before the first 10-build nightly batch. Each addre
 **[2026-03-12] Junk target pre-filtering:** Discovery returns ~35% junk (directory listings like Houzz, Yelp, HomeStars, Angi, BBB, TrustedPros, Trustpilot + non-Ontario results). Pre-filter before ICP scoring to save Firecrawl credits. Check: domain contains directory site, title matches "Best 10/15...", "Top 10...", "Find a...", non-Ontario location indicators. Pattern: ~20-27 junk per 76 raw results. ICP scoring handles the rest but costs 1 Firecrawl scrape + 1 Claude call per target.
 
 **[2026-03-12] Duplicate company detection:** Discovery uses `website = ? OR company_name = ?` for dedup but misses: same company with different page URL (e.g., `/kitchener` vs `/paris-brant-county`), same company with slightly different name (e.g., "Hache Construction" vs "Hache Renovations"). Pattern: check slug similarity and domain overlap, not just exact URL/name match.
+
+## Batch Build Patterns (2026-03-13, 13 builds)
+
+**[2026-03-13] Branding v2 schema — additionalProperties required:** OpenAI structured output API requires `additionalProperties: false` on ALL object definitions in the JSON schema tree, including nested items in arrays. The branding v2 schema is missing this on the `logos` items array object. This blocks Rostica and any target where the scraper encounters a logos array. Error: `400 Invalid schema for response_format 'result': In context=('properties', 'logos', 'items'), 'additionalProperties' is required`. Fix: add `additionalProperties: false` to every object definition in the branding v2 JSON schema. **Blocked 2 builds (same target, 2 attempts).**
+
+**[2026-03-13] Social links "Not provided" pollution:** The branding v2 scraper stores `{href: "Not provided", label: "Facebook"}` for every social platform it can't find — up to 9 entries. These render as broken `href="Not provided"` links in the footer. Fix during provision: filter `socials` array to only keep entries where `href` starts with `http`. Affected: Bacvar Building (9 broken links). Related to the [2026-03-04] "Not available" pattern but uses different string.
+
+**[2026-03-13] Contact info: Turso CRM as authoritative fallback:** When scrape returns empty phone/email (common on JS-rendered sites — Wix, Squarespace, custom React), Turso CRM usually has the data from the discovery phase (Google Business Profile scrape). Cross-reference during provision step. Affected: Hache Construction (phone + email), Red Stone Contracting (phone + email), Bradburn Group (phone + email), Yorkland Homes (city only — no email anywhere). Pattern: 4 of 13 builds (31%) needed Turso contact fallback.
+
+**[2026-03-13] JS-rendered contact pages unscrapeable:** Some contractor websites (Yorkland Homes on Wix) render contact info via JavaScript only. Firecrawl branding v2, WebFetch, and basic HTML scraping all fail. When both scrape AND Turso have no email, the target must be flagged for manual email lookup (Google Business Profile, Yelp, etc.). This is an outreach hard stop — no email = no draft.
+
+**[2026-03-13] Google Reviews star graphic as hero image:** The branding v2 scraper selects the largest above-fold image as hero. For contractors with prominent Google Reviews widgets, this can be the star-rating graphic instead of a renovation photo. Affected: Red Stone Contracting, NorthPoint Renovations (2 of 13 = 15%). Fix: replace with `about-generated.jpg` or `og-image.jpg` from Supabase Storage (both are Gemini-generated renovation photos uploaded during build). Permanent fix: add image classification to reject non-renovation hero images.
+
+**[2026-03-13] refinement-loop.mjs crash (systemic):** `Command failed: node .../qa/refinement-loop.mjs --` on 100% of builds (13/13). Doesn't block builds — QA modules before and after still run. But all automated go-live verdicts default to NOT READY. Root cause: unknown (likely CLI argument parsing). Workaround: Mission Director Playwright MCP visual QA is the real quality gate. Priority: investigate and fix, as this eliminates the entire automated RALPH loop.
+
+**[2026-03-13] Batch workflow — data fixes are instant:** Supabase admin_settings changes take effect on next page load (no Vercel redeploy needed). This makes the actual batch fix workflow: build all targets → Playwright QA each → Supabase data patches → verify via page reload. Code-level fixes (Vercel 402, CSP) were one-time systemic; per-tenant fixes are all data patches.
+
+**[2026-03-13] TC Contracting = quality benchmark:** Zero fixes needed. 7 services, 4 real testimonials, complete contact (phone + email + full address), 3 social links (Facebook + Instagram + Houzz), BBB trust badge. This is what every pipeline build should produce. Key differentiator: the original website had clean, accessible HTML with all contact info visible (not JS-rendered, not behind forms).
+
+## Image Sourcing Rules (Established 2026-03-13)
+
+**Gemini image generation is permitted ONLY for:**
+- **Hero background** — quality fallback when scraper finds no hero image. Stored as `hero-generated.jpg`.
+- **OG image** — social meta tag only, never displayed on the page. Stored as `og-image.jpg`.
+
+**Gemini image generation is FORBIDDEN for:**
+- **Service card images** — AI-invented renovation photos misrepresent the contractor's actual portfolio. Removed from pipeline.
+- **About/team photos** — AI-generated team photos are visually unconvincing and dishonest. Removed from pipeline.
+
+**About image sourcing rule:** Use `selectAboutImage()` which picks the best real scraped photo: portfolio[0] → first scraped service image → null. Sections render as text-only when `aboutImageUrl` is empty.
+
+**Service card sourcing rule:** All 5 standard service section components (grid-3-cards, grid-2-cards, bento, accordion-list, alternating-rows) use conditional rendering — `{imageUrl && <img>}`. Empty `imageUrl` renders a text-only card cleanly. Never fill with AI images.
+
+**Portfolio images are about fallbacks:** When a tenant has portfolio images but no about section photo, `portfolio[0].imageUrl` is a high-quality substitute for the about section.
+
+**Cleanup pattern:** After batch builds from before this rule, run `cleanup-ai-service-images.mjs` to clear `/service-*.jpg` Supabase Storage URLs from `company_profile.services[].imageUrl` and `company_profile.aboutImageUrl` (about-generated.jpg). Changes are immediate — no redeploy needed.
+
+## Email Template Rules (Established 2026-03-13)
+
+**No special characters in subject line or body:** Em dashes (U+2014) get quoted-printable encoded as `=E2=80=94` in Gmail MIME, which renders literally on mobile/web. Use ` - ` (space-hyphen-space) for separators in subject lines. Use `--` for signature separators.
+
+**Call commitment wording:** Use "I'll give you a call tomorrow at {phone}" — not a specific day and time. Reasons: (1) calendar AppleScript integration times out so specific times are unreliable, (2) "tomorrow" is always true when Ferdie sends in the morning window, (3) a specific day/time creates a commitment that may not be kept.
+
+**Draft regeneration after template changes:** When the email template is modified, existing drafts in Gmail must be deleted and recreated. Use `outreach-pipeline.mjs --target-id {id}` to recreate. Gmail draft IDs are stored in Turso `email_message_id` column.
