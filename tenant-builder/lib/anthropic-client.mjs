@@ -1,72 +1,70 @@
 /**
- * Anthropic SDK client for direct API calls.
- * Replaces the nested `claude -p` subprocess that fails in active Claude Code sessions
- * due to CLAUDECODE env var conflicts.
+ * Claude CLI wrapper — uses `claude -p` subprocess via Max subscription.
+ * No API key needed. Strips CLAUDECODE env var to avoid nested session issues.
+ *
+ * This replaces the previous @anthropic-ai/sdk approach that required ANTHROPIC_API_KEY.
+ * The claude CLI authenticates via the Max subscription automatically.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-let _client = null;
-
-function getClient() {
-  if (!_client) {
-    // Load API key from environment
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-    _client = new Anthropic({ apiKey });
-  }
-  return _client;
-}
-
 /**
- * Send a prompt to Claude with optional image inputs.
+ * Send a prompt to Claude via `claude -p` subprocess.
+ * Uses the Max subscription — no API key needed.
+ *
  * @param {string} prompt - Text prompt
  * @param {object} [options]
- * @param {string} [options.model='claude-sonnet-4-6-20250514'] - Model to use
- * @param {number} [options.maxTokens=4096] - Max output tokens
- * @param {Array<{path?: string, base64?: string, mediaType?: string}>} [options.images] - Image inputs
- * @param {string} [options.systemPrompt] - System prompt
+ * @param {string} [options.model] - Model hint (ignored — claude -p uses account default)
+ * @param {number} [options.maxTokens=4096] - Max output tokens (advisory)
+ * @param {Array<{path?: string, base64?: string, mediaType?: string}>} [options.images] - Not supported via CLI (ignored with warning)
+ * @param {string} [options.systemPrompt] - Prepended to prompt as context
  * @returns {Promise<string>} - Response text
  */
-export async function callClaude(prompt, { model = 'claude-sonnet-4-6-20250514', maxTokens = 4096, images = [], systemPrompt } = {}) {
-  const client = getClient();
-
-  const content = [];
-
-  // Add images first
-  for (const img of images) {
-    let base64Data, mediaType;
-    if (img.path) {
-      const buf = readFileSync(img.path);
-      base64Data = buf.toString('base64');
-      mediaType = img.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
-    } else if (img.base64) {
-      base64Data = img.base64;
-      mediaType = img.mediaType || 'image/png';
-    }
-    if (base64Data) {
-      content.push({
-        type: 'image',
-        source: { type: 'base64', media_type: mediaType, data: base64Data },
-      });
-    }
+export async function callClaude(prompt, { model, maxTokens = 4096, images = [], systemPrompt } = {}) {
+  // Build the full prompt with optional system context
+  let fullPrompt = prompt;
+  if (systemPrompt) {
+    fullPrompt = `${systemPrompt}\n\n---\n\n${prompt}`;
   }
 
-  // Add text prompt
-  content.push({ type: 'text', text: prompt });
+  if (images.length > 0) {
+    // claude -p doesn't support inline images — note in prompt
+    fullPrompt += '\n\n(Note: image inputs were requested but are not supported in this mode.)';
+  }
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
-    messages: [{ role: 'user', content }],
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env };
+    delete env.CLAUDECODE; // Avoid nested session issues
+
+    const child = spawn('claude', ['-p', '--output-format', 'text'], {
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 120000, // 2 minute timeout
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`claude -p exited with code ${code}: ${stderr || stdout}`));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+
+    child.on('error', (err) => {
+      reject(new Error(`claude -p spawn error: ${err.message}`));
+    });
+
+    // Write prompt to stdin
+    child.stdin.write(fullPrompt);
+    child.stdin.end();
   });
-
-  return response.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('\n');
 }
 
 /**

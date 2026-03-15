@@ -270,28 +270,24 @@ Eight systemic fixes applied before the first 10-build nightly batch. Each addre
 
 **[2026-03-13] TC Contracting = quality benchmark:** Zero fixes needed. 7 services, 4 real testimonials, complete contact (phone + email + full address), 3 social links (Facebook + Instagram + Houzz), BBB trust badge. This is what every pipeline build should produce. Key differentiator: the original website had clean, accessible HTML with all contact info visible (not JS-rendered, not behind forms).
 
-## Image Sourcing Rules (Established 2026-03-13)
+## Session 25 Learnings (2026-03-15) — First Warm-Lead Pipeline Run
 
-**Gemini image generation is permitted ONLY for:**
-- **Hero background** — quality fallback when scraper finds no hero image. Stored as `hero-generated.jpg`.
-- **OG image** — social meta tag only, never displayed on the page. Stored as `og-image.jpg`.
+**[2026-03-15] Firecrawl v4 API breaking change:** `@mendable/firecrawl-js` v4.13.0 moved `scrapeUrl()` from the root instance to `.v1.scrapeUrl()`. The pipeline hangs silently when calling the non-existent method. Fix applied to `scrape-enhanced.mjs`: `const firecrawl = fcInstance.v1 ?? fcInstance`. Already fixed in `lib/firecrawl-client.mjs` (line 77). **Permanent fix: after ANY npm update, verify Firecrawl API surface.**
 
-**Gemini image generation is FORBIDDEN for:**
-- **Service card images** — AI-invented renovation photos misrepresent the contractor's actual portfolio. Removed from pipeline.
-- **About/team photos** — AI-generated team photos are visually unconvincing and dishonest. Removed from pipeline.
+**[2026-03-15] @anthropic-ai/sdk not in package.json:** The tenant-builder imports `@anthropic-ai/sdk` (via `lib/anthropic-client.mjs` and `qa/content-fidelity.mjs`) but it was never added to `package.json`. Fixed by `npm install @anthropic-ai/sdk`. **Permanent fix: add to package.json devDependencies.**
 
-**About image sourcing rule:** Use `selectAboutImage()` which picks the best real scraped photo: portfolio[0] → first scraped service image → null. Sections render as text-only when `aboutImageUrl` is empty.
+**[2026-03-15] Playwright browsers not installed:** All browser-based QA modules fail silently with "Executable doesn't exist" error. Fixed by `npx playwright install chromium`. **Permanent fix: add to setup checklist and pre-flight check in orchestrate.mjs.**
 
-**Service card sourcing rule:** All 5 standard service section components (grid-3-cards, grid-2-cards, bento, accordion-list, alternating-rows) use conditional rendering — `{imageUrl && <img>}`. Empty `imageUrl` renders a text-only card cleanly. Never fill with AI images.
+**[2026-03-15] False READY verdict when all QA checks are null:** When Playwright is not installed, all QA modules return null. The audit-report.mjs defaults to READY with `human_review_required: true`. This is dangerous — a build with zero QA should never be READY. **Permanent fix: audit-report should check for null/undefined checks and verdict NOT READY if >3 checks are null.**
 
-**Portfolio images are about fallbacks:** When a tenant has portfolio images but no about section photo, `portfolio[0].imageUrl` is a high-quality substitute for the about section.
+**[2026-03-15] aboutCopy type crash in original-vs-demo:** `about_copy` field can be string or string[] depending on the scraper. `scrapedAboutCopy.toLowerCase()` crashes on arrays. Fix applied: normalise array to joined string at function entry. **Permanent fix: normalise all text fields at scrape time, not at QA time.**
 
-**Cleanup pattern:** After batch builds from before this rule, run `cleanup-ai-service-images.mjs` to clear `/service-*.jpg` Supabase Storage URLs from `company_profile.services[].imageUrl` and `company_profile.aboutImageUrl` (about-generated.jpg). Changes are immediate — no redeploy needed.
+**[2026-03-15] Scrape reuse skips warm-lead fresh data:** When `scraped.json` exists from a previous build, the pipeline skips scraping entirely. For warm-leads, this means stale data is used. **Permanent fix: add `--force-scrape` flag or make warm-lead mode always re-scrape.**
 
-## Email Template Rules (Established 2026-03-13)
+**[2026-03-15] Opus 4.6 text-only architect timeout (300s):** Both attempts timed out for CCR Renovations (a straightforward site). The static fallback blueprint was used instead. This is consistent with previous sessions. **Recommendation: increase timeout to 600s for warm-lead mode, or skip Opus and use Claude Code SDK for in-process architect instead of spawning a claude -p subprocess.**
 
-**No special characters in subject line or body:** Em dashes (U+2014) get quoted-printable encoded as `=E2=80=94` in Gmail MIME, which renders literally on mobile/web. Use ` - ` (space-hyphen-space) for separators in subject lines. Use `--` for signature separators.
+**[2026-03-15] Codex CLI not available:** Content architect fails because `codex exec` is not installed or rate-limited. Falls back gracefully to manual content extraction from scraped HTML. **Recommendation: verify codex CLI subscription status; if unavailable, use claude -p as the primary content extractor.**
 
-**Call commitment wording:** Use "I'll give you a call tomorrow at {phone}" — not a specific day and time. Reasons: (1) calendar AppleScript integration times out so specific times are unreliable, (2) "tomorrow" is always true when Ferdie sends in the morning window, (3) a specific day/time creates a commitment that may not be kept.
+**[2026-03-15] Hero image generation partial:** Gemini 3.1 Flash generated 2 of 3 requested styles (Modern + Industrial, Farmhouse silently failed). Images are 1.7-1.9MB each, uploaded to Supabase Storage successfully. **Recommendation: add retry for failed styles; 2/3 is acceptable but 3/3 is ideal.**
 
-**Draft regeneration after template changes:** When the email template is modified, existing drafts in Gmail must be deleted and recreated. Use `outreach-pipeline.mjs --target-id {id}` to recreate. Gmail draft IDs are stored in Turso `email_message_id` column.
+**[2026-03-15] Live site audit 7/8 pass:** Only SEO meta failed (missing description or og:image). This is a provisioning gap — meta tags need to be seeded in admin_settings during provision step. **Permanent fix: add og:title, og:description, og:image to provision pipeline.**

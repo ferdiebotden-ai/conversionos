@@ -196,6 +196,19 @@ bespoke:
   max_custom_sections: 15       # Higher limit than template pipeline (was 5)
   visual_similarity_threshold: 3.5
 
+# Warm Lead — higher-quality build settings for hand-crafted prospects
+warm_lead:
+  vqa_threshold: 4.0            # Visual QA minimum (vs default 3.5)
+  ralph_max_iterations: 5       # Max refinement loop iterations (vs default 3)
+  section_count:
+    min: 10                     # Minimum sections per page
+    max: 15                     # Maximum sections per page
+  scrape_all_pages: true        # Scrape every discoverable page, not just top 6
+  download_all_images: true     # Download all images locally (no CDN dependency)
+  generate_hero_visualizer: true  # Generate before/after kitchen images for hero slider
+  extract_full_palette: true    # Run palette extractor for full OKLCH globals_override
+  copy_verification: true       # Verify copy fidelity against original site
+
 # Go-Live Audit
 audit:
   wcag_contrast_threshold: 4.5    # WCAG AA normal text ratio

@@ -1,18 +1,19 @@
 /**
  * Section registration — side-effect import.
- * Imports all 50 section components and registers them with the section registry.
+ * Imports all 51 section components and registers them with the section registry.
  * This file is imported by SectionRenderer as a side effect.
  */
 
 import { registerSection } from '@/lib/section-registry';
 import type { SectionId } from '@/lib/section-types';
 
-// Hero sections (5)
+// Hero sections (6)
 import { FullBleedOverlayHero } from '@/sections/hero/full-bleed-overlay';
 import { SplitImageTextHero } from '@/sections/hero/split-image-text';
 import { EditorialCenteredHero } from '@/sections/hero/editorial-centered';
 import { VideoBackgroundHero } from '@/sections/hero/video-background';
 import { GradientTextHero } from '@/sections/hero/gradient-text';
+import { VisualizerShowcaseHero } from '@/sections/hero/visualizer-showcase';
 
 // Navigation sections (4)
 import { StickySimpleNav } from '@/sections/navigation/sticky-simple';
@@ -88,6 +89,7 @@ const sections: [SectionId, Parameters<typeof registerSection>[1]][] = [
   ['hero:editorial-centered', EditorialCenteredHero],
   ['hero:video-background', VideoBackgroundHero],
   ['hero:gradient-text', GradientTextHero],
+  ['hero:visualizer-showcase', VisualizerShowcaseHero],
 
   // Navigation
   ['nav:sticky-simple', StickySimpleNav],

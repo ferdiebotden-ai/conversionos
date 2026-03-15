@@ -10,6 +10,7 @@
  *   node orchestrate.mjs --nightly
  *   node orchestrate.mjs --batch --limit 5 --dry-run
  *   node orchestrate.mjs --batch --limit 10 --concurrency 4
+ *   node orchestrate.mjs --url https://x.com --site-id x --tier accelerate --warm-lead
  */
 
 import { parseArgs } from 'node:util';
@@ -30,6 +31,8 @@ import { buildManifest } from './lib/build-manifest.mjs';
 import { recordHomepageScroll } from './scrape/screenshot-capture.mjs';
 import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '../scripts/polish/queue-utils.mjs';
 import { visualDiffWithCodex } from './qa/visual-diff-codex.mjs';
+import { extractPalette } from './lib/palette-extractor.mjs';
+import { generateHeroVisualizerImages } from './lib/hero-image-generator.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
@@ -60,6 +63,7 @@ const { values: args } = parseArgs({
     'skip-architect': { type: 'boolean', default: false },
     'skip-custom-sections': { type: 'boolean', default: false },
     bespoke: { type: 'boolean', default: false },
+    'warm-lead': { type: 'boolean', default: false },
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     help: { type: 'boolean' },
@@ -88,7 +92,8 @@ Options:
   --skip-polish      Bypass the Codex polish queue and allow immediate outreach
   --skip-architect   Skip AI architect (use default section layouts)
   --skip-custom-sections  Skip custom section generation
-  --bespoke          Bespoke rebuild: scrape HTML+CSS+screenshots, rebuild visual identity`);
+  --bespoke          Bespoke rebuild: scrape HTML+CSS+screenshots, rebuild visual identity
+  --warm-lead        Warm lead build: bespoke + palette extraction + hero visualiser + content fidelity QA`);
   process.exit(0);
 }
 
@@ -96,9 +101,26 @@ const limit = parseInt(args.limit, 10);
 const concurrency = parseInt(args.concurrency, 10);
 const dryRun = args['dry-run'];
 const skipPolish = args['skip-polish'];
-const bespokeMode = args.bespoke;
+const warmLeadMode = args['warm-lead'];
+const bespokeMode = args.bespoke || warmLeadMode; // warm-lead implies bespoke
 const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
 const auditOnly = args['audit-only'];
+
+// ── Warm-lead build config overrides ──────────────────────────────
+const warmLeadConfig = warmLeadMode ? (CONFIG.warm_lead || {}) : null;
+const vqaThreshold = warmLeadMode ? (warmLeadConfig.vqa_threshold ?? 4.0) : (CONFIG.qa?.thresholds?.average_min ?? 3.5);
+const ralphMaxIterations = warmLeadMode ? (warmLeadConfig.ralph_max_iterations ?? 5) : (CONFIG.qa?.max_refinement_iterations ?? 3);
+const warmLeadSectionCount = warmLeadMode ? (warmLeadConfig.section_count ?? { min: 10, max: 15 }) : null;
+const scrapeAllPages = warmLeadMode ? (warmLeadConfig.scrape_all_pages ?? true) : false;
+const downloadAllImages = warmLeadMode ? (warmLeadConfig.download_all_images ?? true) : false;
+const generateHeroVisualizer = warmLeadMode ? (warmLeadConfig.generate_hero_visualizer ?? true) : false;
+const extractFullPalette = warmLeadMode ? (warmLeadConfig.extract_full_palette ?? true) : false;
+const copyVerification = warmLeadMode ? (warmLeadConfig.copy_verification ?? true) : false;
+
+if (warmLeadMode) {
+  logger.info('Warm-lead mode enabled: bespoke + palette extraction + hero visualiser + content fidelity QA');
+  logger.info(`  VQA threshold: ${vqaThreshold}, RALPH iterations: ${ralphMaxIterations}, section count: ${warmLeadSectionCount?.min}-${warmLeadSectionCount?.max}`);
+}
 
 if (auditOnly) {
   if (!args['site-id'] || !args.url) {
@@ -347,6 +369,44 @@ const tasks = targets.map(target => async () => {
     }
   }
 
+  // 3b.6. Palette Extraction — extract full OKLCH palette from CSS tokens + design language (warm-lead only)
+  let globalsOverride = null;
+  if (warmLeadMode && extractFullPalette) {
+    logger.progress({ stage: 'palette-extraction', target_id: target.id, site_id: siteId, status: 'start' });
+    try {
+      const cssTokensPath = resolve(outputDir, 'css-tokens.json');
+      const designLanguagePath = resolve(outputDir, 'design-language.md');
+      let cssTokens = null;
+      let designLanguageDoc = {};
+
+      if (existsSync(cssTokensPath)) {
+        try { cssTokens = JSON.parse(readFileSync(cssTokensPath, 'utf-8')); } catch { /* parse error */ }
+      }
+      if (existsSync(designLanguagePath)) {
+        try {
+          // Design language is markdown; palette extractor accepts { palette: {} } object
+          // Parse any palette section from the markdown if available
+          const dlRaw = readFileSync(designLanguagePath, 'utf-8');
+          // Extract colour hints from the design language doc for the extractor
+          designLanguageDoc = { palette: {}, _raw: dlRaw };
+        } catch { /* read error */ }
+      }
+
+      if (cssTokens) {
+        globalsOverride = extractPalette(cssTokens, designLanguageDoc);
+        writeFileSync(resolve(outputDir, 'globals-override.json'), JSON.stringify(globalsOverride, null, 2));
+        logger.progress({ stage: 'palette-extraction', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: `${Object.keys(globalsOverride).length} CSS variables` });
+      } else {
+        logger.warn(`[${siteId}] No CSS tokens available — skipping palette extraction`);
+        logger.progress({ stage: 'palette-extraction', target_id: target.id, site_id: siteId, status: 'complete', detail: 'skipped (no css-tokens)' });
+      }
+    } catch (err) {
+      logger.warn(`[${siteId}] Palette extraction failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      logger.progress({ stage: 'palette-extraction', target_id: target.id, site_id: siteId, status: 'error', detail: err.message?.slice(0, 100) });
+    }
+  }
+
   // 3c. Build custom sections (if blueprint has customSections)
   if (!args['skip-custom-sections'] && CONFIG.custom_sections?.enabled !== false) {
     const blueprintPath = resolve(outputDir, 'site-blueprint-v2.json');
@@ -403,7 +463,50 @@ const tasks = targets.map(target => async () => {
     }
   }
 
-  // 3d. Provision (skip in dry run)
+  // 3c.5. Hero Visualiser Image Generation (warm-lead only)
+  let heroVisualizerImages = null;
+  if (warmLeadMode && generateHeroVisualizer) {
+    logger.progress({ stage: 'hero-visualiser', target_id: target.id, site_id: siteId, status: 'start' });
+    try {
+      const scrapedData = JSON.parse(readFileSync(scrapedPath, 'utf-8'));
+      heroVisualizerImages = await generateHeroVisualizerImages({
+        siteId,
+        primaryHex: scrapedData.primary_color_hex,
+        companyName: scrapedData.business_name,
+      });
+      if (heroVisualizerImages) {
+        writeFileSync(resolve(outputDir, 'hero-visualizer-images.json'), JSON.stringify(heroVisualizerImages, null, 2));
+        logger.progress({ stage: 'hero-visualiser', target_id: target.id, site_id: siteId, status: 'complete',
+          detail: `1 before + ${heroVisualizerImages.styles?.length ?? 0} after styles` });
+      } else {
+        logger.warn(`[${siteId}] Hero visualiser image generation returned null — will use generic images`);
+        logger.progress({ stage: 'hero-visualiser', target_id: target.id, site_id: siteId, status: 'complete', detail: 'null (fallback to generic)' });
+      }
+    } catch (err) {
+      logger.warn(`[${siteId}] Hero visualiser image generation failed (non-blocking): ${err.message?.slice(0, 100)}`);
+      logger.progress({ stage: 'hero-visualiser', target_id: target.id, site_id: siteId, status: 'error', detail: err.message?.slice(0, 100) });
+    }
+  }
+
+  // 3d. Inject warm-lead data into scraped.json before provision (non-destructive)
+  if (warmLeadMode && (globalsOverride || heroVisualizerImages)) {
+    try {
+      const scrapedForWarmLead = JSON.parse(readFileSync(scrapedPath, 'utf-8'));
+      if (globalsOverride) {
+        scrapedForWarmLead._globals_override = globalsOverride;
+        logger.info(`[${siteId}] Injected globals_override into scraped.json (${Object.keys(globalsOverride).length} vars)`);
+      }
+      if (heroVisualizerImages) {
+        scrapedForWarmLead._hero_visualizer_images = heroVisualizerImages;
+        logger.info(`[${siteId}] Injected heroVisualizerImages into scraped.json`);
+      }
+      writeFileSync(scrapedPath, JSON.stringify(scrapedForWarmLead, null, 2));
+    } catch (err) {
+      logger.warn(`[${siteId}] Failed to inject warm-lead data into scraped.json: ${err.message?.slice(0, 100)}`);
+    }
+  }
+
+  // 3e. Provision (skip in dry run)
   if (!dryRun) {
     const domain = `${siteId}.norbotsystems.com`;
     const tier = args.tier || CONFIG.provisioning.default_tier;
@@ -419,6 +522,7 @@ const tasks = targets.map(target => async () => {
       ];
       if (target.id) provArgs.push('--target-id', String(target.id));
       if (bespokeMode) provArgs.push('--bespoke');
+      if (warmLeadMode) provArgs.push('--warm-lead');
 
       execFileSync('node', provArgs, {
         cwd: DEMO_ROOT,
@@ -697,8 +801,31 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         }
       }
 
+      // 5e.6. Image Integrity QA (warm-lead mode, after screenshots, before visual QA)
+      if (warmLeadMode) {
+        try {
+          logger.info(`[${siteId}] Running image integrity check...`);
+          const { run: runImageIntegrity } = await import('./qa/image-integrity.mjs');
+          const imageIntegrityResult = await runImageIntegrity({
+            siteId,
+            demoUrl: siteUrl,
+            scrapedPath: existsSync(scrapedPath) ? scrapedPath : undefined,
+            logger,
+          });
+          writeFileSync(resolve(outputDir, 'image-integrity.json'), JSON.stringify(imageIntegrityResult, null, 2));
+          if (imageIntegrityResult.failures?.length > 0) {
+            for (const f of imageIntegrityResult.failures) {
+              logger.warn(`[${siteId}] Image integrity FAIL: ${f.issue} (${f.src})`);
+            }
+          }
+          logger.info(`[${siteId}] Image integrity: ${imageIntegrityResult.verified} verified, ${imageIntegrityResult.failures?.length ?? 0} failures`);
+        } catch (e) {
+          logger.warn(`[${siteId}] Image integrity check failed (non-blocking): ${e.message?.slice(0, 100)}`);
+        }
+      }
+
       // 5f. Visual QA with refinement
-      const maxIter = CONFIG.qa.max_refinement_iterations || 3;
+      const maxIter = ralphMaxIterations;
       const qaTimeoutMs = (maxIter * 250 + 120) * 1000 * timeoutMultiplier;
       const qaArgs = [
         resolve(TB_ROOT, 'qa/refinement-loop.mjs'),
@@ -764,6 +891,42 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
         qaStatus = report.verdict === 'NOT READY' ? 'not_ready' : report.verdict === 'REVIEW' ? 'review' : 'complete';
       } catch (e) {
         logger.warn(`[${siteId}] Audit report generation failed: ${e.message?.slice(0, 100)}`);
+      }
+
+      // 5j. Content Fidelity QA (warm-lead only, after audit report)
+      if (copyVerification) {
+        try {
+          logger.info(`[${siteId}] Running content fidelity check...`);
+          const { run: runContentFidelity } = await import('./qa/content-fidelity.mjs');
+
+          // Determine original source URL for informational purposes
+          let sourceUrl = null;
+          try {
+            if (existsSync(scrapedPath)) {
+              sourceUrl = JSON.parse(readFileSync(scrapedPath, 'utf-8'))?._meta?.source_url || null;
+            }
+          } catch { /* ignore */ }
+
+          const cfResult = await runContentFidelity({
+            siteId,
+            demoUrl: siteUrl,
+            sourceUrl,
+            scrapedPath: existsSync(scrapedPath) ? scrapedPath : undefined,
+            logger,
+          });
+          writeFileSync(resolve(outputDir, 'content-fidelity.json'), JSON.stringify(cfResult, null, 2));
+          logger.info(`[${siteId}] Content fidelity: A=${cfResult.categories.A} B=${cfResult.categories.B} C=${cfResult.categories.C} D=${cfResult.categories.D}, pass=${cfResult.pass}`);
+
+          // If content fidelity fails with Category D items, downgrade verdict to at most REVIEW
+          if (!cfResult.pass && cfResult.categories.D > 0) {
+            if (qaStatus === 'complete') {
+              logger.warn(`[${siteId}] Content fidelity found ${cfResult.categories.D} Category D items — downgrading verdict to REVIEW`);
+              qaStatus = 'review';
+            }
+          }
+        } catch (e) {
+          logger.warn(`[${siteId}] Content fidelity check failed (non-blocking): ${e.message?.slice(0, 100)}`);
+        }
       }
 
       qaResults.push({

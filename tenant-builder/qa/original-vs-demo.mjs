@@ -328,6 +328,215 @@ async function compareLogoPresence(page, baseUrl) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Comparison 8: About page copy
+// ──────────────────────────────────────────────────────────
+
+async function compareAboutCopy(browser, baseUrl, scrapedAboutCopy) {
+  // Normalise: about_copy can be string or string[] (known data shape issue)
+  if (Array.isArray(scrapedAboutCopy)) scrapedAboutCopy = scrapedAboutCopy.join(' ');
+  if (!scrapedAboutCopy || typeof scrapedAboutCopy !== 'string') return { field: 'about_copy', match: true, skipped: true };
+
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    const response = await page.goto(`${baseUrl}/about`, { waitUntil: 'networkidle', timeout: 30000 });
+    if (!response || response.status() >= 400) {
+      return { field: 'about_copy', match: true, skipped: true, reason: 'about page not found' };
+    }
+
+    const liveText = await page.evaluate(() => {
+      const paragraphs = document.querySelectorAll('main p');
+      return Array.from(paragraphs)
+        .map(p => p.innerText?.trim())
+        .filter(t => t && t.length > 20)
+        .join(' ');
+    });
+
+    if (!liveText) {
+      return { field: 'about_copy', match: false, expected_length: scrapedAboutCopy.length, actual_length: 0, score: 0 };
+    }
+
+    const normLive = liveText.toLowerCase().replace(/\s+/g, ' ');
+    const normScraped = scrapedAboutCopy.toLowerCase().replace(/\s+/g, ' ');
+
+    // Check if key phrases from scraped about copy appear in the live page
+    const scrapedSentences = normScraped.split(/[.!?]+/).filter(s => s.trim().length > 15);
+    let matchedSentences = 0;
+    for (const sentence of scrapedSentences) {
+      const trimmed = sentence.trim();
+      if (normLive.includes(trimmed) || levenshtein(trimmed.slice(0, 60), normLive.slice(0, 60)) <= 5) {
+        matchedSentences++;
+      }
+    }
+
+    const ratio = scrapedSentences.length > 0 ? matchedSentences / scrapedSentences.length : 0;
+    return {
+      field: 'about_copy',
+      match: ratio >= 0.3 || normLive.includes(normScraped.slice(0, 50)),
+      expected_length: scrapedAboutCopy.length,
+      actual_length: liveText.length,
+      sentence_match_ratio: parseFloat(ratio.toFixed(2)),
+      score: ratio >= 0.7 ? 100 : ratio >= 0.3 ? 70 : ratio > 0 ? 40 : 0,
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Comparison 9: Per-service name/description on /services
+// ──────────────────────────────────────────────────────────
+
+async function compareServiceDetails(browser, baseUrl, scrapedServices) {
+  if (!scrapedServices || !Array.isArray(scrapedServices) || scrapedServices.length === 0) {
+    return { field: 'service_details', match: true, skipped: true };
+  }
+
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    const response = await page.goto(`${baseUrl}/services`, { waitUntil: 'networkidle', timeout: 30000 });
+    if (!response || response.status() >= 400) {
+      return { field: 'service_details', match: true, skipped: true, reason: 'services page not found' };
+    }
+
+    const liveText = (await page.textContent('main') || '').toLowerCase();
+    let namesFound = 0;
+    let descriptionsFound = 0;
+    const missingNames = [];
+
+    for (const svc of scrapedServices) {
+      const name = (svc.name || '').trim();
+      if (!name || name.length < 3) continue;
+
+      if (liveText.includes(name.toLowerCase())) {
+        namesFound++;
+      } else {
+        missingNames.push(name);
+      }
+
+      const desc = (svc.description || '').trim();
+      if (desc && desc.length > 20 && liveText.includes(desc.toLowerCase().slice(0, 40))) {
+        descriptionsFound++;
+      }
+    }
+
+    const nameRatio = scrapedServices.length > 0 ? namesFound / scrapedServices.length : 0;
+    return {
+      field: 'service_details',
+      match: nameRatio >= 0.5,
+      total_services: scrapedServices.length,
+      names_found: namesFound,
+      descriptions_found: descriptionsFound,
+      missing_names: missingNames.slice(0, 5),
+      score: nameRatio >= 0.8 ? 100 : nameRatio >= 0.5 ? 70 : Math.round(nameRatio * 100),
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Comparison 10: Contact page data
+// ──────────────────────────────────────────────────────────
+
+async function compareContactData(browser, baseUrl, scrapedData) {
+  const scrapedPhone = scrapedData.phone;
+  const scrapedEmail = scrapedData.email;
+  const scrapedAddress = scrapedData.address;
+
+  if (!scrapedPhone && !scrapedEmail && !scrapedAddress) {
+    return { field: 'contact_page', match: true, skipped: true };
+  }
+
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    const response = await page.goto(`${baseUrl}/contact`, { waitUntil: 'networkidle', timeout: 30000 });
+    if (!response || response.status() >= 400) {
+      return { field: 'contact_page', match: true, skipped: true, reason: 'contact page not found' };
+    }
+
+    const pageText = (await page.textContent('main') || '');
+    const normDigits = s => (s || '').replace(/\D/g, '');
+
+    let phoneMatch = true;
+    let emailMatch = true;
+    let addressMatch = true;
+
+    if (scrapedPhone) {
+      const scraped10 = normDigits(scrapedPhone).slice(-10);
+      phoneMatch = scraped10.length === 10 && pageText.replace(/\D/g, '').includes(scraped10);
+    }
+
+    if (scrapedEmail) {
+      emailMatch = pageText.toLowerCase().includes(scrapedEmail.toLowerCase());
+    }
+
+    if (scrapedAddress && scrapedAddress.length > 5 && !/not provided/i.test(scrapedAddress)) {
+      // Check if key part of address appears
+      const addrWords = scrapedAddress.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const pageTextLower = pageText.toLowerCase();
+      const addrWordsFound = addrWords.filter(w => pageTextLower.includes(w));
+      addressMatch = addrWordsFound.length >= Math.min(2, addrWords.length);
+    }
+
+    const allMatch = phoneMatch && emailMatch && addressMatch;
+    let score = 100;
+    if (!phoneMatch) score -= 40;
+    if (!emailMatch) score -= 30;
+    if (!addressMatch) score -= 30;
+
+    return {
+      field: 'contact_page',
+      match: allMatch,
+      phone_match: phoneMatch,
+      email_match: emailMatch,
+      address_match: addressMatch,
+      score: Math.max(0, score),
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Comparison 11: Portfolio titles on /projects
+// ──────────────────────────────────────────────────────────
+
+async function comparePortfolioTitles(browser, baseUrl, scrapedPortfolio) {
+  if (!scrapedPortfolio || !Array.isArray(scrapedPortfolio) || scrapedPortfolio.length === 0) {
+    return { field: 'portfolio_titles', match: true, skipped: true };
+  }
+
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    const response = await page.goto(`${baseUrl}/projects`, { waitUntil: 'networkidle', timeout: 30000 });
+    if (!response || response.status() >= 400) {
+      return { field: 'portfolio_titles', match: true, skipped: true, reason: 'projects page not found' };
+    }
+
+    const pageText = (await page.textContent('main') || '').toLowerCase();
+    let titlesFound = 0;
+
+    for (const item of scrapedPortfolio) {
+      const title = (item.title || '').trim();
+      if (title && title.length >= 3 && pageText.includes(title.toLowerCase())) {
+        titlesFound++;
+      }
+    }
+
+    const ratio = scrapedPortfolio.length > 0 ? titlesFound / scrapedPortfolio.length : 0;
+    return {
+      field: 'portfolio_titles',
+      match: ratio >= 0.3 || titlesFound >= 1,
+      total: scrapedPortfolio.length,
+      found: titlesFound,
+      score: ratio >= 0.7 ? 100 : ratio >= 0.3 ? 70 : titlesFound >= 1 ? 50 : 0,
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 // Main exported function
 // ──────────────────────────────────────────────────────────
 
@@ -353,7 +562,7 @@ export async function runOriginalVsDemo(url, scrapedData, options = {}) {
     await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
     // 1. Business name
-    logger.info('  [1/7] Business name...');
+    logger.info('  [1/11] Business name...');
     const name = await compareBusinessName(
       page,
       scrapedData.business_name || scrapedData.businessName
@@ -361,17 +570,17 @@ export async function runOriginalVsDemo(url, scrapedData, options = {}) {
     comparisons.push(name);
 
     // 2. Phone
-    logger.info('  [2/7] Phone number...');
+    logger.info('  [2/11] Phone number...');
     const phone = await comparePhone(page, scrapedData.phone);
     comparisons.push(phone);
 
     // 3. Email
-    logger.info('  [3/7] Email...');
+    logger.info('  [3/11] Email...');
     const email = await compareEmail(page, scrapedData.email);
     comparisons.push(email);
 
     // 4. Service count (navigates to /services)
-    logger.info('  [4/7] Service count...');
+    logger.info('  [4/11] Service count...');
     const services = await compareServiceCount(
       browser, baseUrl,
       scrapedData.services
@@ -379,7 +588,7 @@ export async function runOriginalVsDemo(url, scrapedData, options = {}) {
     comparisons.push(services);
 
     // 5. Testimonials
-    logger.info('  [5/7] Testimonials...');
+    logger.info('  [5/11] Testimonials...');
     const testimonials = await compareTestimonials(
       page,
       scrapedData.testimonials
@@ -387,7 +596,7 @@ export async function runOriginalVsDemo(url, scrapedData, options = {}) {
     comparisons.push(testimonials);
 
     // 6. Primary colour
-    logger.info('  [6/7] Primary colour...');
+    logger.info('  [6/11] Primary colour...');
     const colour = await comparePrimaryColour(
       page,
       scrapedData.primary_color_hex || scrapedData.primaryColorHex || scrapedData.primaryColor
@@ -395,11 +604,40 @@ export async function runOriginalVsDemo(url, scrapedData, options = {}) {
     comparisons.push(colour);
 
     // 7. Logo presence
-    logger.info('  [7/7] Logo presence...');
+    logger.info('  [7/11] Logo presence...');
     const logo = await compareLogoPresence(page, baseUrl);
     comparisons.push(logo);
 
     await page.close();
+
+    // 8. About page copy comparison
+    logger.info('  [8/11] About page copy...');
+    const aboutCopy = await compareAboutCopy(
+      browser, baseUrl,
+      scrapedData.about_copy || scrapedData.aboutCopy
+    );
+    comparisons.push(aboutCopy);
+
+    // 9. Per-service name/description comparison
+    logger.info('  [9/11] Service details...');
+    const serviceDetails = await compareServiceDetails(
+      browser, baseUrl,
+      scrapedData.services
+    );
+    comparisons.push(serviceDetails);
+
+    // 10. Contact page data comparison
+    logger.info('  [10/11] Contact page data...');
+    const contactData = await compareContactData(browser, baseUrl, scrapedData);
+    comparisons.push(contactData);
+
+    // 11. Portfolio title verification
+    logger.info('  [11/11] Portfolio titles...');
+    const portfolio = await comparePortfolioTitles(
+      browser, baseUrl,
+      scrapedData.portfolio_items || scrapedData.portfolioItems
+    );
+    comparisons.push(portfolio);
   } finally {
     await browser.close();
   }
@@ -466,13 +704,17 @@ Usage:
   node qa/original-vs-demo.mjs --url https://example.norbotsystems.com --scraped-data ./results/scraped.json
 
 Comparisons:
-  1. Business name   — Header/logo text vs scraped name (fuzzy match, Levenshtein <= 3)
-  2. Phone number    — Footer phone vs scraped phone (normalised digits)
-  3. Email           — Footer mailto vs scraped email (exact)
-  4. Service count   — /services page card count vs scraped services length (delta <= 1)
-  5. Testimonials    — Scraped author names found in page text (at least 1 of 2+)
-  6. Primary colour  — CSS --primary vs scraped hex colour (Delta-E < 5.0)
-  7. Logo presence   — Header <img> loads with HTTP 200`);
+  1. Business name    — Header/logo text vs scraped name (fuzzy match, Levenshtein <= 3)
+  2. Phone number     — Footer phone vs scraped phone (normalised digits)
+  3. Email            — Footer mailto vs scraped email (exact)
+  4. Service count    — /services page card count vs scraped services length (delta <= 1)
+  5. Testimonials     — Scraped author names found in page text (at least 1 of 2+)
+  6. Primary colour   — CSS --primary vs scraped hex colour (Delta-E < 5.0)
+  7. Logo presence    — Header <img> loads with HTTP 200
+  8. About page copy  — /about paragraph text vs scraped about_copy (sentence matching)
+  9. Service details  — /services per-service name and description verification
+  10. Contact data    — /contact phone, email, address vs scraped data
+  11. Portfolio titles — /projects title verification against scraped portfolio items`);
     process.exit(0);
   }
 

@@ -26,6 +26,10 @@ export interface MaterialCost {
   unit: string;
   /** Room types where this material is commonly used */
   applicableRooms: RoomCategory[];
+  /** Data source citation (e.g., "Ontario contractor averages 2024-2026") */
+  source?: string;
+  /** Last updated date (e.g., "2026-03") */
+  lastUpdated?: string;
 }
 
 export type MaterialCategory =
@@ -248,6 +252,58 @@ export const REGIONAL_MULTIPLIERS: RegionalMultiplier[] = [
 
 /** Default multiplier when region is unknown */
 export const DEFAULT_REGIONAL_MULTIPLIER = 1.0;
+
+/** Map Ontario cities/towns to their regional multiplier region */
+const CITY_TO_REGION: Record<string, string> = {
+  'toronto': 'Greater Toronto Area (GTA)',
+  'mississauga': 'Greater Toronto Area (GTA)',
+  'brampton': 'Greater Toronto Area (GTA)',
+  'markham': 'Greater Toronto Area (GTA)',
+  'vaughan': 'Greater Toronto Area (GTA)',
+  'richmond hill': 'Greater Toronto Area (GTA)',
+  'scarborough': 'Greater Toronto Area (GTA)',
+  'etobicoke': 'Greater Toronto Area (GTA)',
+  'north york': 'Greater Toronto Area (GTA)',
+  'ottawa': 'Ottawa-Gatineau',
+  'gatineau': 'Ottawa-Gatineau',
+  'hamilton': 'Hamilton-Burlington',
+  'burlington': 'Hamilton-Burlington',
+  'kitchener': 'Kitchener-Waterloo',
+  'waterloo': 'Kitchener-Waterloo',
+  'cambridge': 'Kitchener-Waterloo',
+  'london': 'London',
+  'guelph': 'London',
+  'stratford': 'Southwestern Ontario',
+  'woodstock': 'Southwestern Ontario',
+  'ingersoll': 'Southwestern Ontario',
+  'brantford': 'Southwestern Ontario',
+  'chatham': 'Southwestern Ontario',
+  'windsor': 'Southwestern Ontario',
+  'sarnia': 'Southwestern Ontario',
+  'sudbury': 'Northern Ontario',
+  'thunder bay': 'Northern Ontario',
+  'sault ste. marie': 'Northern Ontario',
+  'north bay': 'Northern Ontario',
+  'niagara falls': 'Niagara Region',
+  'st. catharines': 'Niagara Region',
+  'welland': 'Niagara Region',
+  'barrie': 'Barrie-Simcoe',
+  'orillia': 'Barrie-Simcoe',
+  'collingwood': 'Barrie-Simcoe',
+  'midland': 'Barrie-Simcoe',
+};
+
+/**
+ * Look up the regional cost multiplier for an Ontario city.
+ * Returns DEFAULT_REGIONAL_MULTIPLIER (1.0) if the city is not recognized.
+ */
+export function matchRegionalMultiplier(city: string): number {
+  const normalized = city.toLowerCase().trim();
+  const region = CITY_TO_REGION[normalized];
+  if (!region) return DEFAULT_REGIONAL_MULTIPLIER;
+  const entry = REGIONAL_MULTIPLIERS.find(r => r.region === region);
+  return entry?.multiplier ?? DEFAULT_REGIONAL_MULTIPLIER;
+}
 
 // ---------------------------------------------------------------------------
 // Business Constants

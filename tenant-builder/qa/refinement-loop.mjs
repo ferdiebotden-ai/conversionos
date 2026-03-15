@@ -133,7 +133,7 @@ while (iteration < maxIterations) {
     const stdout = execFileSync('node', qaArgs, {
       cwd: demoRoot,
       env: process.env,
-      timeout: 120000,
+      timeout: 240000,
       maxBuffer: 10 * 1024 * 1024,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -149,8 +149,17 @@ while (iteration < maxIterations) {
       const jsonLine = stdout.split('\n').filter(l => l.trim().startsWith('{')).pop() || stdout;
       lastResult = JSON.parse(jsonLine);
     } catch {
-      logger.error(`Visual QA failed to produce output: ${e.message?.slice(0, 100)}`);
-      break;
+      // Timeout or parse failure — return synthetic result to avoid crash
+      const isTimeout = e.signal === 'SIGTERM' || /timed?\s*out|ETIMEDOUT/i.test(e.message || '');
+      logger.warn(`Visual QA ${isTimeout ? 'timed out' : 'failed to parse'}: ${e.message?.slice(0, 100)}`);
+      lastResult = {
+        pass: false,
+        average: previousScore || 0,
+        notes: isTimeout ? 'visual-qa-timeout' : 'visual-qa-parse-error',
+        timeout: isTimeout,
+        logo_fidelity: 0, colour_match: 0, copy_accuracy: 0,
+        layout_integrity: 0, brand_cohesion: 0, text_legibility: 0,
+      };
     }
   }
 
@@ -173,6 +182,31 @@ while (iteration < maxIterations) {
     if (lastSnapshot) {
       logger.info('Rolling back to previous snapshot...');
       await restoreSnapshot(siteId, lastSnapshot);
+
+      // Re-score after rollback to verify restoration
+      logger.info('Re-scoring after rollback to verify restoration...');
+      try {
+        const verifyArgs = [
+          resolve(import.meta.dirname, 'visual-qa.mjs'),
+          '--site-id', siteId,
+          '--screenshots', resolve(baseDir, 'screenshots'),
+        ];
+        if (targetId) verifyArgs.push('--target-id', String(targetId));
+
+        const verifyStdout = execFileSync('node', verifyArgs, {
+          cwd: demoRoot, env: process.env, timeout: 240000,
+          maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        const verifyJson = verifyStdout.split('\n').filter(l => l.trim().startsWith('{')).pop();
+        if (verifyJson) {
+          const verifyResult = JSON.parse(verifyJson);
+          logger.info(`Rollback verification score: ${verifyResult.average} (was ${previousScore} before regression)`);
+          lastResult = verifyResult;
+        }
+      } catch (verifyErr) {
+        logger.warn(`Rollback verification failed: ${verifyErr.message?.slice(0, 80)}`);
+      }
     }
     break;
   }
@@ -194,9 +228,24 @@ while (iteration < maxIterations) {
   const dims = ['logo_fidelity', 'colour_match', 'copy_accuracy', 'layout_integrity', 'brand_cohesion', 'text_legibility'];
   const lowDims = dims.filter(d => (lastResult[d] || 0) < 4.0);
 
-  // Include page-specific issues if available
-  const pageIssuesSection = lastResult.page_issues?.length > 0
-    ? `\nPage-specific issues:\n${lastResult.page_issues.map(i => `  [${i.severity}] ${i.page} (${i.dimension}): ${i.issue}`).join('\n')}`
+  // Per-dimension targeting: find the LOWEST-scoring dimension and focus fixes there
+  let lowestDim = null;
+  let lowestScore = 5;
+  for (const d of dims) {
+    const score = lastResult[d] || 0;
+    if (score < lowestScore) {
+      lowestScore = score;
+      lowestDim = d;
+    }
+  }
+  const targetDim = lowestDim || lowDims[0] || dims[0];
+
+  // Include page-specific issues if available (filtered to target dimension)
+  const relevantPageIssues = (lastResult.page_issues || []).filter(i =>
+    i.dimension === targetDim || !i.dimension
+  );
+  const pageIssuesSection = relevantPageIssues.length > 0
+    ? `\nPage-specific issues for ${targetDim}:\n${relevantPageIssues.map(i => `  [${i.severity}] ${i.page} (${i.dimension}): ${i.issue}`).join('\n')}`
     : '';
 
   const originalContext = args['original-screenshot'] && existsSync(args['original-screenshot'])
@@ -211,11 +260,12 @@ Average: ${lastResult.average}/5
 Notes: ${lastResult.notes || 'none'}
 ${pageIssuesSection}
 
-Low-scoring dimensions: ${lowDims.join(', ')}
+FOCUS: Fix ONLY the lowest-scoring dimension: **${targetDim}** (score: ${lowestScore}/5).
+Do NOT address other dimensions this iteration — one focused fix is better than scattered changes.
 ${originalContext}
 
 The site is powered by Supabase admin_settings (keys: business_info, branding, company_profile).
-What specific changes should be made to improve the low-scoring dimensions?
+What specific changes should be made to improve ${targetDim}?
 Give concrete, actionable fixes as a JSON array of objects: [{ "table": "admin_settings", "key": "branding|business_info|company_profile", "path": "dot.notation.path", "action": "set|append", "value": "new value" }]
 Only suggest fixes for things that can be changed in admin_settings. Do not suggest code changes.`;
 
@@ -272,9 +322,9 @@ Only suggest fixes for things that can be changed in admin_settings. Do not sugg
     logger.warn(`Fix generation failed: ${e.message} — skipping fixes`);
   }
 
-  // Brief pause for any CDN/edge caching
-  logger.info('Waiting 10s for cache propagation...');
-  await new Promise(r => setTimeout(r, 10000));
+  // Brief pause (Supabase has no CDN cache — minimal propagation delay needed)
+  logger.info('Waiting 2s for DB propagation...');
+  await new Promise(r => setTimeout(r, 2000));
 }
 
 // Final status

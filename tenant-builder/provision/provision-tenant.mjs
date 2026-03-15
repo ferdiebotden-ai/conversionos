@@ -25,7 +25,7 @@ import * as logger from '../lib/logger.mjs';
 import { withRetry } from '../lib/retry.mjs';
 import { writeProxyFragment } from './proxy-fragment.mjs';
 import { createVoiceAgent } from './voice-agent.mjs';
-import { generateHeroImage, selectAboutImage, generateOgImage } from '../lib/generate-images.mjs';
+import { generateHeroImage, generateAboutImage, generateOgImage, generateServiceImages } from '../lib/generate-images.mjs';
 import { seedSampleLeads } from './seed-sample-leads.mjs';
 
 loadEnv();
@@ -41,6 +41,7 @@ const { values: args } = parseArgs({
     'dry-run': { type: 'boolean', default: false },
     'skip-sample-data': { type: 'boolean', default: false },
     bespoke: { type: 'boolean', default: false },
+    'warm-lead': { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -132,7 +133,6 @@ if (!dryRun) {
     primaryHex: provisionData.primary_color_hex,
     companyName: provisionData.business_name,
     services: provisionData.services,
-    portfolio: provisionData.portfolio,
     tagline: provisionData.tagline || provisionData.hero_headline,
   };
 
@@ -152,14 +152,35 @@ if (!dryRun) {
   }
 
   if (!provisionData.about_image_url) {
-    logger.info('Step 1b: No about image — selecting from scraped data (no Gemini generation)');
-    const aboutUrl = selectAboutImage(imageOpts);
-    if (aboutUrl) {
-      provisionData.about_image_url = aboutUrl;
+    logger.info('Step 1b: No about image — generating via Gemini');
+    try {
+      const aboutUrl = await generateAboutImage(imageOpts);
+      if (aboutUrl) {
+        provisionData.about_image_url = aboutUrl;
+        imageDataUpdated = true;
+      }
+    } catch (e) {
+      logger.warn(`About image generation failed (non-blocking): ${e.message}`);
+    }
+
+    // Fallback: use the best scraped service image if Gemini failed
+    if (!provisionData.about_image_url && provisionData.services?.length > 0) {
+      for (const svc of provisionData.services) {
+        const imgs = svc.image_urls || [];
+        if (imgs.length > 0 && imgs[0]) {
+          provisionData.about_image_url = imgs[0];
+          imageDataUpdated = true;
+          logger.info(`Using service image as about fallback: ${imgs[0].slice(0, 60)}...`);
+          break;
+        }
+      }
+    }
+
+    // Final fallback: reuse the hero image
+    if (!provisionData.about_image_url && provisionData.hero_image_url) {
+      provisionData.about_image_url = provisionData.hero_image_url;
       imageDataUpdated = true;
-      logger.info(`Using real scraped photo as about image: ${aboutUrl.slice(0, 60)}...`);
-    } else {
-      logger.info('No real about image available — section will render without image');
+      logger.info('Using hero image as about fallback');
     }
   }
 
@@ -175,8 +196,19 @@ if (!dryRun) {
     logger.warn(`OG image generation failed (non-blocking): ${e.message}`);
   }
 
-  // Service images are NOT generated via Gemini — fake renovation photos misrepresent contractor work.
-  // Sections render as text-only cards when imageUrl is empty (all 5 standard components handle this gracefully).
+  // Generate images for services missing scraped images
+  if (provisionData.services?.length > 0) {
+    const missingCount = provisionData.services.filter(s => !s.image_urls?.length || !s.image_urls[0]).length;
+    if (missingCount > 0) {
+      logger.info(`Step 1b: ${missingCount} service(s) missing images — generating via Gemini`);
+      try {
+        const generated = await generateServiceImages(imageOpts);
+        if (generated > 0) imageDataUpdated = true;
+      } catch (e) {
+        logger.warn(`Service image generation failed (non-blocking): ${e.message}`);
+      }
+    }
+  }
 
   if (imageDataUpdated) {
     const targetPath = existsSync(provisionedPath) ? provisionedPath : dataPath;
@@ -449,6 +481,40 @@ if (!dryRun) {
       { onConflict: 'site_id,key' }
     );
     if (headlineErr) logger.warn(`Page hero headlines upsert failed: ${headlineErr.message}`);
+
+    // Warm-lead: upsert globals_override if present in provision data
+    if (args['warm-lead'] && provisionData._globals_override) {
+      const { error: globalsErr } = await (sb).from('admin_settings').upsert(
+        { site_id: siteId, key: 'globals_override', value: provisionData._globals_override },
+        { onConflict: 'site_id,key' }
+      );
+      if (globalsErr) logger.warn(`globals_override upsert failed: ${globalsErr.message}`);
+      else logger.info(`globals_override written (${Object.keys(provisionData._globals_override).length} CSS variables)`);
+    }
+
+    // Warm-lead: merge heroVisualizerImages into company_profile if present
+    if (args['warm-lead'] && provisionData._hero_visualizer_images) {
+      try {
+        // Read current company_profile, merge heroVisualizerImages into it
+        const { data: existingProfile } = await (sb).from('admin_settings')
+          .select('value')
+          .eq('site_id', siteId)
+          .eq('key', 'company_profile')
+          .single();
+
+        const profileValue = existingProfile?.value || {};
+        profileValue.heroVisualizerImages = provisionData._hero_visualizer_images;
+
+        const { error: heroErr } = await (sb).from('admin_settings').upsert(
+          { site_id: siteId, key: 'company_profile', value: profileValue },
+          { onConflict: 'site_id,key' }
+        );
+        if (heroErr) logger.warn(`heroVisualizerImages merge into company_profile failed: ${heroErr.message}`);
+        else logger.info(`heroVisualizerImages merged into company_profile (${provisionData._hero_visualizer_images.styles?.length ?? 0} styles)`);
+      } catch (e) {
+        logger.warn(`heroVisualizerImages merge failed (non-blocking): ${e.message}`);
+      }
+    }
 
     // NEVER set custom_nav or custom_footer flags.
     // Custom nav/footer sections render via SectionRenderer on the homepage only.

@@ -16,9 +16,15 @@ import { AI_CONFIG } from './config';
 import {
   MATERIAL_COSTS,
   calculateCostEstimate,
+  matchRegionalMultiplier,
   type FinishLevel,
   type RoomCategory,
 } from '../ai/knowledge/pricing-data';
+import type { BeforeScope } from './before-image-pricing-analysis';
+import { analyzeBeforeAfterScope, type ScopeOfWork } from './scope-of-work-analysis';
+import { estimateLabourByTrade, type TradeLabourEstimate } from './trade-labour-estimator';
+import { detectPermitRequirements, type PermitRequirement } from './knowledge/ontario-permit-rules';
+import { estimateTimeline, type TimelineEstimate } from './timeline-estimator';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,6 +60,16 @@ export interface ConceptPricingAnalysis {
   visibleChanges: string[];
   /** Confidence in the overall analysis */
   overallConfidence: number;
+  /** Detailed scope of work (when before image was provided) */
+  scopeOfWork?: ScopeOfWork;
+  /** Trade-specific labour breakdown (when scope is available) */
+  labourByTrade?: TradeLabourEstimate[];
+  /** Ontario permit requirements detected */
+  permits?: PermitRequirement[];
+  /** Project timeline estimate */
+  timeline?: TimelineEstimate;
+  /** Regional multiplier applied */
+  regionalMultiplier?: number;
 }
 
 export interface ConceptDescription {
@@ -101,13 +117,37 @@ const ConceptDescriptionSchema = z.object({
  * Uses GPT Vision to identify materials in the AI-generated image,
  * then prices them from the Ontario pricing database.
  *
- * Cost: ~$0.02-0.03 per concept
+ * Enhanced mode (when beforeScope + beforeImageUrl are provided):
+ * - Derives scope of work by comparing before/after images
+ * - Estimates labour by trade instead of flat 45% ratio
+ * - Detects Ontario permit requirements
+ * - Estimates project timeline
+ * - Applies regional cost multiplier
+ *
+ * Cost: ~$0.02-0.03 per concept (basic), ~$0.05-0.06 (enhanced with scope)
+ *
+ * All new parameters are optional — existing callers are unaffected.
  */
 export async function analyzeConceptForPricing(
   conceptImageUrl: string,
   roomType: string,
   style: string,
+  options?: {
+    /** Pre-computed before-image scope (enables enhanced analysis) */
+    beforeScope?: BeforeScope;
+    /** Before image URL (required with beforeScope for scope-of-work comparison) */
+    beforeImageUrl?: string;
+    /** City name for regional cost multiplier */
+    city?: string;
+  },
 ): Promise<ConceptPricingAnalysis> {
+  const beforeScope = options?.beforeScope;
+  const beforeImageUrl = options?.beforeImageUrl;
+  const city = options?.city;
+
+  // Regional multiplier
+  const regionalMultiplier = city ? matchRegionalMultiplier(city) : 1.0;
+
   // Build a compact material reference for the prompt
   const roomCategory = roomType as RoomCategory;
   const relevantMaterials = MATERIAL_COSTS
@@ -164,7 +204,7 @@ Be conservative with quantity estimates. Only identify materials you can clearly
   });
 
   // Calculate cost ranges from the overall per-sqft database
-  const estimate = calculateCostEstimate(roomType, object.inferredFinishLevel);
+  const estimate = calculateCostEstimate(roomType, object.inferredFinishLevel, undefined, regionalMultiplier);
 
   // Calculate material cost totals from identified items
   let materialLow = 0;
@@ -173,8 +213,8 @@ Be conservative with quantity estimates. Only identify materials you can clearly
     if (m.confidence >= 0.5) {
       // Parse quantity to get a multiplier
       const qty = parseQuantity(m.estimatedQuantity);
-      materialLow += m.priceRange.low * qty;
-      materialHigh += m.priceRange.high * qty;
+      materialLow += m.priceRange.low * qty * regionalMultiplier;
+      materialHigh += m.priceRange.high * qty * regionalMultiplier;
     }
   }
 
@@ -184,21 +224,73 @@ Be conservative with quantity estimates. Only identify materials you can clearly
     materialHigh = estimate.baseHigh * 0.55;
   }
 
-  // Labour estimate based on typical material/labour split
-  const labourLow = estimate ? estimate.baseLow * 0.45 : materialLow * 0.8;
-  const labourHigh = estimate ? estimate.baseHigh * 0.45 : materialHigh * 0.8;
+  // ─── Enhanced mode: scope-of-work analysis ───
+  let scopeOfWork: ScopeOfWork | undefined;
+  let labourByTrade: TradeLabourEstimate[] | undefined;
+  let permits: PermitRequirement[] | undefined;
+  let timeline: TimelineEstimate | undefined;
+  let labourLow: number;
+  let labourHigh: number;
 
-  return {
+  if (beforeScope && beforeImageUrl) {
+    try {
+      // Derive scope from before/after comparison (single vision call)
+      scopeOfWork = await analyzeBeforeAfterScope(
+        beforeImageUrl,
+        conceptImageUrl,
+        beforeScope,
+        roomType,
+      );
+
+      // Trade-specific labour (pure, no API call)
+      labourByTrade = estimateLabourByTrade(scopeOfWork);
+
+      // Sum trade labour costs
+      labourLow = labourByTrade.reduce((sum, t) => sum + t.cost.low, 0);
+      labourHigh = labourByTrade.reduce((sum, t) => sum + t.cost.high, 0);
+
+      // Apply regional multiplier to labour
+      labourLow = Math.round(labourLow * regionalMultiplier);
+      labourHigh = Math.round(labourHigh * regionalMultiplier);
+
+      // Detect permit requirements (pure, no API call)
+      permits = detectPermitRequirements(scopeOfWork);
+
+      // Estimate timeline (pure, no API call)
+      timeline = estimateTimeline(scopeOfWork, labourByTrade, permits);
+    } catch (err) {
+      // Enhanced analysis failed — fall back to flat ratio
+      console.error('Enhanced scope analysis failed, falling back to flat ratio:', err);
+      labourLow = estimate ? estimate.baseLow * 0.45 : materialLow * 0.8;
+      labourHigh = estimate ? estimate.baseHigh * 0.45 : materialHigh * 0.8;
+    }
+  } else {
+    // Standard mode: flat 45% labour ratio
+    labourLow = estimate ? estimate.baseLow * 0.45 : materialLow * 0.8;
+    labourHigh = estimate ? estimate.baseHigh * 0.45 : materialHigh * 0.8;
+  }
+
+  // ─── Build result ───
+  const result: ConceptPricingAnalysis = {
     identifiedMaterials,
     inferredFinishLevel: object.inferredFinishLevel,
     materialCostRange: { low: Math.round(materialLow), high: Math.round(materialHigh) },
     labourCostRange: { low: Math.round(labourLow), high: Math.round(labourHigh) },
     totalEstimate: estimate
       ? { low: estimate.totalLow, high: estimate.totalHigh }
-      : { low: Math.round((materialLow + labourLow) * 1.243), high: Math.round((materialHigh + labourHigh) * 1.243) }, // 1.243 = 1.10 contingency × 1.13 HST
+      : { low: Math.round((materialLow + labourLow) * 1.243), high: Math.round((materialHigh + labourHigh) * 1.243) }, // 1.243 = 1.10 contingency x 1.13 HST
     visibleChanges: object.visibleChanges,
     overallConfidence: object.overallConfidence,
   };
+
+  // Attach enhanced fields when available
+  if (scopeOfWork) result.scopeOfWork = scopeOfWork;
+  if (labourByTrade) result.labourByTrade = labourByTrade;
+  if (permits) result.permits = permits;
+  if (timeline) result.timeline = timeline;
+  if (regionalMultiplier !== 1.0) result.regionalMultiplier = regionalMultiplier;
+
+  return result;
 }
 
 /**

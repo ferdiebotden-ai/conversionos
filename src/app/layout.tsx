@@ -11,6 +11,7 @@ import { getTier } from "@/lib/entitlements.server";
 import { getQuoteAssistanceConfig } from "@/lib/quote-assistance";
 import { getDesignTokens } from "@/lib/theme";
 import { getLayoutFlags } from "@/lib/page-layout";
+import { getGlobalsOverride } from "@/lib/globals-override";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -78,8 +79,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [branding, tier, qaConfig, tokens, layoutFlags] = await Promise.all([
-    getBranding(), getTier(), getQuoteAssistanceConfig(), getDesignTokens(), getLayoutFlags(),
+  const [branding, tier, qaConfig, tokens, layoutFlags, globalsOverride] = await Promise.all([
+    getBranding(), getTier(), getQuoteAssistanceConfig(), getDesignTokens(), getLayoutFlags(), getGlobalsOverride(),
   ]);
   const quoteMode = tier === 'elevate' ? 'none' : qaConfig.mode;
 
@@ -104,23 +105,6 @@ export default async function RootLayout({
           const isCustomHeadingFont = tokens.typography.headingFont !== 'Plus Jakarta Sans';
           const isCustomBodyFont = tokens.typography.bodyFont !== 'DM Sans';
 
-          const darkVars = branding.darkMode ? [
-            '--background:oklch(0.145 0 0);',
-            '--foreground:oklch(0.985 0 0);',
-            '--card:oklch(0.205 0 0);',
-            '--card-foreground:oklch(0.985 0 0);',
-            '--popover:oklch(0.205 0 0);',
-            '--popover-foreground:oklch(0.985 0 0);',
-            '--secondary:oklch(0.205 0 0);',
-            '--secondary-foreground:oklch(0.985 0 0);',
-            '--muted:oklch(0.269 0 0);',
-            '--muted-foreground:oklch(0.708 0 0);',
-            '--accent:oklch(0.269 0 0);',
-            '--accent-foreground:oklch(0.985 0 0);',
-            '--border:oklch(1 0 0 / 10%);',
-            '--input:oklch(1 0 0 / 15%);',
-          ] : [];
-
           const css = [
             `:root{`,
             `--primary:oklch(${primaryOklch});`,
@@ -131,7 +115,6 @@ export default async function RootLayout({
             `--spacing-scale:${spacingScale};`,
             `--color-secondary:oklch(${tokens.colors.secondary});`,
             `--color-accent:oklch(${tokens.colors.accent});`,
-            ...darkVars,
             `}`,
           ].join('');
 
@@ -153,6 +136,10 @@ export default async function RootLayout({
             </>
           );
         })()}
+        {/* Per-tenant globals_override from admin_settings — overrides any CSS variable */}
+        {globalsOverride && (
+          <style dangerouslySetInnerHTML={{ __html: globalsOverride }} />
+        )}
       </head>
       <body
         className={`${plusJakartaSans.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}

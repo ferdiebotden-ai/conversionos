@@ -124,7 +124,9 @@ if (args.bespoke) {
 
   try {
     const FirecrawlApp = (await import('@mendable/firecrawl-js')).default;
-    const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+    const firecrawlInstance = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+    // Firecrawl v4 moved scrapeUrl to .v1 — use .v1 if available, fall back to root
+    const firecrawl = firecrawlInstance.v1 ?? firecrawlInstance;
 
     for (const pagePath of fallbackPages) {
       const pageUrl = new URL(pagePath, url).href;

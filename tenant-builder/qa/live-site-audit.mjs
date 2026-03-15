@@ -17,7 +17,7 @@ import { chromium } from 'playwright';
 import * as logger from '../lib/logger.mjs';
 import { parseOklch, hexToOklch, deltaE_oklch, contrastRatio, parseHex } from '../lib/colour-utils.mjs';
 
-const PAGES = ['/', '/about', '/services', '/projects'];
+const PAGES = ['/', '/about', '/services', '/projects', '/contact'];
 
 const VIEWPORTS = [
   { width: 1440, height: 900, label: 'desktop' },
