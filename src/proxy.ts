@@ -63,6 +63,7 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'gracia-makeovers.norbotsystems.com': 'gracia-makeovers',
   'dalm-construction-premium-home-builders.norbotsystems.com': 'dalm-construction-premium-home-builders',
   'custom-home-builder-in-simcoe-county-ontario-gilbert-burke.norbotsystems.com': 'custom-home-builder-in-simcoe-county-ontario-gilbert-burke',
+  'gilbert-burke.norbotsystems.com': 'gilbert-burke',
   'senso-design.norbotsystems.com': 'senso-design',
 };
 

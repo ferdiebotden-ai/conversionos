@@ -17,3 +17,4 @@ import './dundas-home-renovations/index';
 import './dalm-construction-premium-home-builders/index';
 import './senso-design/index';
 import './custom-home-builder-in-simcoe-county-ontario-gilbert-burke/index';
+import './gilbert-burke/index';

@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     '@norbot/conversionos-visualizer',
   ],
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
