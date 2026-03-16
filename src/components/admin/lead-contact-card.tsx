@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/lead-contact-card';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/lead-contact-card';

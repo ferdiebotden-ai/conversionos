@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/leads-page-header';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/leads-page-header';

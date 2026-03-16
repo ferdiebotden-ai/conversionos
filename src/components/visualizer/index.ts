@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-visualizer/src/components/visualizer/index';
+export * from '../../../packages/conversionos-visualizer/src/components/visualizer/index';

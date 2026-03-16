@@ -1,5 +1,3 @@
 {
-  "buildCommand": "mkdir -p ../../packages && cp -r packages/* ../../packages/ 2>/dev/null; ls ../../packages/ && next build",
-  "installCommand": "npm install",
   "framework": "nextjs"
 }

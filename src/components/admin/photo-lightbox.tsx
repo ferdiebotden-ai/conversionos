@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/photo-lightbox';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/photo-lightbox';
