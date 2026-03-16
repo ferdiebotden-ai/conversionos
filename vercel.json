@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cp -r packages ../packages 2>/dev/null; next build",
+  "installCommand": "npm install",
+  "framework": "nextjs"
+}
