@@ -61,3 +61,4 @@ playwright-report/
 
 # codex polish (dumped tenant state; patches in codex-polish/patches/ have their own .gitignore)
 codex-polish/current-tenant.json
+packages/*/node_modules
