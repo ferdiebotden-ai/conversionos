@@ -54,10 +54,13 @@ export async function bespokeArchitect(resultsDir, siteId, { maxRetries = 1, tim
   const hasScreenshots = existsSync(screenshotDir) && readdirSync(screenshotDir).some(f => f.endsWith('.png'));
 
   // ── Strategy 1: GPT 5.4 Vision Architect (primary) ──
+  // NOTE: Codex --image causes 10+ min timeouts (learned pattern from sessions 9-10, 17-18).
+  // Use aggressive timeout (120s) and 0 retries so we fail fast to Opus.
   if (hasScreenshots) {
-    logger.info('Bespoke Architect: trying GPT 5.4 vision (primary)');
+    logger.info('Bespoke Architect: trying GPT 5.4 vision (primary, fast-fail mode)');
     try {
-      const blueprint = await architectWithVision(resultsDir, siteId, { timeoutMs, maxRetries });
+      const visionTimeout = Math.min(timeoutMs, 120000); // Cap at 2 min — if Codex doesn't respond in 2 min, it won't
+      const blueprint = await architectWithVision(resultsDir, siteId, { timeoutMs: visionTimeout, maxRetries: 0 });
       logger.info(`Vision Architect succeeded: ${blueprint.pages.length} pages, ${blueprint.customSections?.length ?? 0} custom sections`);
       return blueprint;
     } catch (err) {

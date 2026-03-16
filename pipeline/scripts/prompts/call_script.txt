@@ -1,0 +1,20 @@
+Write a discovery call script for selling ConversionOS, an AI-powered quoting platform to this renovation contractor:
+
+{TARGET_CONTEXT}
+
+Structure:
+1. Opening (30 seconds) — mention the email you sent
+2. Quick Pitch (60 seconds) — AI-drafted quotes reviewed by the owner, design visualization, owner dashboard
+3. Discovery Questions — 5 questions about their current quoting process
+4. Anchor to Pain — tie their answers back to the problem
+5. Demo Offer — 20-minute walkthrough
+6. Objection Handling table — at least 5 common objections with responses
+7. Close — suggest sending the personalized microsite and scheduling a demo
+8. After the Call checklist
+
+Reference {COMPANY_NAME}'s specific details: their {GOOGLE_RATING}-star rating, {GOOGLE_REVIEW_COUNT} reviews, and services ({SERVICES}).
+
+IMPORTANT: This call script is for the Accelerate tier ($4,500 activation + $699/mo). Do NOT claim "exclusive territory", "territory lock", or any form of territorial exclusivity — that is a Dominate-only feature ($20,000 activation). If the prospect asks about exclusivity, say: "Territory exclusivity is available on our Dominate plan — I can walk you through what that looks like."
+
+Format as clean markdown with headers. Pricing: $4,500 activation fee + $699/mo (Accelerate tier).
+Live demo URL: https://dashboard-rho-ten-70.vercel.app

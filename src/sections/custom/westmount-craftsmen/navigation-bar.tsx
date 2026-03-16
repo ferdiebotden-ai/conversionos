@@ -65,7 +65,7 @@ function extractPhone(config: SectionBaseProps['config']) {
     businessInfo?.['phone'],
     businessInfo?.['phone_number'],
     businessInfo?.['primary_phone'],
-    config.phone,
+    configRecord?.['phone'],
   );
 
   if (!rawPhone) return null;
@@ -88,7 +88,7 @@ function extractBusinessName(
 
   return (
     branding?.name ??
-    pickString(configRecord?.['business_name'], businessInfo?.['business_name'], config.name) ??
+    pickString(configRecord?.['business_name'], businessInfo?.['business_name'], configRecord?.['name']) ??
     null
   );
 }

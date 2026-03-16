@@ -4,7 +4,9 @@ import { MapPin } from 'lucide-react';
 import type { SectionBaseProps } from '@/lib/section-types';
 
 export function MiscServiceArea({ config, className }: SectionBaseProps) {
-  if (!config.serviceArea) return null;
+  const c = (config ?? {}) as Record<string, unknown>;
+  const serviceArea = typeof c['serviceArea'] === 'string' ? c['serviceArea'] : (typeof c['service_area'] === 'string' ? c['service_area'] : null);
+  if (!serviceArea) return null;
 
   return (
     <section className={`border-t border-border bg-muted/30 px-4 py-12 md:py-16 ${className ?? ''}`}>
@@ -17,7 +19,7 @@ export function MiscServiceArea({ config, className }: SectionBaseProps) {
             </h2>
           </div>
           <p className="mt-4 text-muted-foreground">
-            We proudly serve homeowners and businesses throughout {config.serviceArea}.
+            We proudly serve homeowners and businesses throughout {serviceArea}.
           </p>
         </div>
       </div>

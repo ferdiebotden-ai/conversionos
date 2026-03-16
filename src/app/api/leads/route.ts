@@ -11,6 +11,7 @@ import { getBranding } from '@/lib/branding';
 import { getTier } from '@/lib/entitlements.server';
 import { canAccess } from '@/lib/entitlements';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { getCompanyConfig } from '@/lib/ai/knowledge/company';
 import type { LeadStatus, ProjectType, FinishLevel, Timeline, BudgetBand, Json } from '@/types/database';
 
 /**
@@ -203,14 +204,18 @@ export async function POST(request: NextRequest) {
             .select('*')
             .eq('site_id', siteId);
 
+          // Resolve contractor city for regional multiplier
+          const companyConfig = await getCompanyConfig();
+          const contractorCity = companyConfig.city || 'Ontario';
+
           aiGeneratedQuote = await generateAIQuote({
             projectType: data.projectType,
             areaSqft: data.areaSqft,
             finishLevel: data.finishLevel,
             chatTranscript: data.chatTranscript,
             goalsText: data.goalsText,
-            city: 'Ontario', // Default for now
-            province: 'ON',
+            city: contractorCity,
+            province: companyConfig.province || 'ON',
           }, undefined, contractorPrices ?? []);
 
           // Add AI quote data to the draft JSON

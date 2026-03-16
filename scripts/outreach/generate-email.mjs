@@ -14,27 +14,27 @@ import { resolve } from 'node:path';
 // Ferdie's exact email template — March 2026
 // ──────────────────────────────────────────────────────────
 
-const SUBJECT_TEMPLATE = 'Estimate Request - {city}';
+const SUBJECT_TEMPLATE = 'Estimate Request \u2014 {city}';
 
 // Rotation alternatives for 3+ targets in same city in one batch
 const SUBJECT_ROTATION = [
-  '{company_name} - Custom Estimate Portal',
+  '{company_name} \u2014 Custom Estimate Portal',
   '{city} Renovation Website Demo',
 ];
 
 const BODY_TEMPLATE = `Hi {firstName},
 
-I'm Ferdie out of Stratford - I built a custom website for {company_name} that captures and qualifies leads for you while you're on a job site.
+I'm Ferdie out of Stratford \u2014 I built a custom website for {company_name} that captures and qualifies leads for you while you're on a job site.
 
-It's live for 48 hours - take a look and you'll see your brand, your services, and a working estimate tool under your name (please keep it private):
+It's live for 48 hours \u2014 take a look and you'll see your brand, your services, and a working estimate tool under your name (please keep it private):
 {demoUrl}
 
-I'll give you a call tomorrow at {callPhone} to walk you through it - if there's a better time or number, just let me know.
+I'll give you a call on {callDay} at {callTime} at {callPhone} to walk you through it \u2014 if there's a better time or number, just let me know.
 
 Talk soon,
 Ferdie`;
 
-const SIGNATURE = `--
+const SIGNATURE = `\u2014
 Ferdie Botden, CPA
 Founder, NorBot Systems Inc.
 226-444-3478 | norbotsystems.com`;
@@ -192,6 +192,8 @@ export function generateEmail(target, options = {}) {
   const textBody = BODY_TEMPLATE
     .replace('{firstName}', firstName)
     .replace('{company_name}', companyName)
+    .replace('{callDay}', callDay)
+    .replace('{callTime}', callTime)
     .replace('{callPhone}', callPhone)
     .replace('{demoUrl}', demoUrl);
 

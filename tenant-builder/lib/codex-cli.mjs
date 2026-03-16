@@ -15,7 +15,8 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import * as logger from './logger.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -45,7 +46,9 @@ export async function codexExec(prompt, {
   outputFile,
   json = false,
 } = {}) {
-  logger.debug(`Codex exec [timeout=${timeoutMs}ms, prompt=${prompt.length} chars, images=${images.length}, ephemeral=${ephemeral}]`);
+  // Try Codex first with a short timeout, then fall back to Claude CLI
+  const codexTimeout = Math.min(timeoutMs, 30000); // Cap Codex at 30s — if it hasn't started in 30s, it's hanging
+  logger.debug(`Codex exec [timeout=${codexTimeout}ms, prompt=${prompt.length} chars, images=${images.length}, ephemeral=${ephemeral}]`);
 
   const codexArgs = ['exec', '--full-auto'];
 
@@ -57,14 +60,74 @@ export async function codexExec(prompt, {
   for (const img of images) codexArgs.push('--image', img);
   codexArgs.push(prompt);
 
-  const { stdout, stderr } = await execFileAsync('codex', codexArgs, {
+  try {
+    const { stdout, stderr } = await execFileAsync('codex', codexArgs, {
+      cwd,
+      timeout: codexTimeout,
+      maxBuffer: 50 * 1024 * 1024,
+      env: { ...process.env, CODEX_QUIET_MODE: '1' },
+    });
+    return { stdout, stderr };
+  } catch (codexErr) {
+    // Codex failed or timed out — fall back to Claude CLI
+    logger.info(`Codex failed (${codexErr.killed ? 'timeout' : 'error'}), falling back to Claude CLI`);
+    return claudeCodeGen(prompt, { cwd, timeoutMs, outputFile });
+  }
+}
+
+/**
+ * Claude CLI fallback for code generation.
+ * Uses `claude -p` to generate code, extracts it from the output, and writes to file.
+ *
+ * @param {string} prompt - The code generation prompt
+ * @param {object} [options]
+ * @param {string} [options.cwd] - Working directory
+ * @param {number} [options.timeoutMs=300000] - Timeout
+ * @param {string} [options.outputFile] - File path to write output
+ * @returns {Promise<{ stdout: string, stderr: string }>}
+ */
+export async function claudeCodeGen(prompt, { cwd, timeoutMs = 300000, outputFile } = {}) {
+  // Adapt the prompt for Claude CLI — ask it to output ONLY the code
+  const codePrompt = prompt + '\n\nIMPORTANT: Output ONLY the complete file content. No markdown fences, no explanations, no commentary. Just the raw TypeScript/React code.';
+
+  logger.debug(`Claude CLI codegen [timeout=${timeoutMs}ms, prompt=${prompt.length} chars]`);
+
+  const { stdout, stderr } = await execFileAsync('claude', ['-p', codePrompt, '--output-format', 'text'], {
     cwd,
     timeout: timeoutMs,
     maxBuffer: 50 * 1024 * 1024,
-    env: { ...process.env, CODEX_QUIET_MODE: '1' },
   });
 
-  return { stdout, stderr };
+  let code = stdout.trim();
+
+  // Strip markdown code fences if present
+  const fenceMatch = code.match(/^```(?:tsx?|jsx?|typescript|javascript|react)?\s*\n([\s\S]*?)\n```$/m);
+  if (fenceMatch) {
+    code = fenceMatch[1].trim();
+  } else {
+    // Try to extract the largest code block if multiple fences exist
+    const allFences = [...code.matchAll(/```(?:tsx?|jsx?|typescript|javascript|react)?\s*\n([\s\S]*?)\n```/gm)];
+    if (allFences.length > 0) {
+      code = allFences.reduce((a, b) => a[1].length > b[1].length ? a : b)[1].trim();
+    }
+  }
+
+  // If the prompt mentions a specific file path, try to write the code there
+  const filePathMatch = prompt.match(/Create file:\s*(.+\.tsx?)\b/i);
+  if (filePathMatch && cwd) {
+    const targetPath = filePathMatch[1].trim();
+    const fullPath = targetPath.startsWith('/') ? targetPath : `${cwd}/${targetPath}`;
+    mkdirSync(dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, code);
+    logger.info(`Claude CLI wrote ${code.length} chars to ${targetPath}`);
+  }
+
+  if (outputFile) {
+    mkdirSync(dirname(outputFile), { recursive: true });
+    writeFileSync(outputFile, code);
+  }
+
+  return { stdout: code, stderr: stderr || '' };
 }
 
 /**

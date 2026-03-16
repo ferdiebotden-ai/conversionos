@@ -1,0 +1,3671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{COMPANY_NAME}} — ConversionOS | Exclusive for {{TERRITORY}}</title>
+    <meta name="description" content="AI-drafted quotes reviewed by the owner, design visualization & voice assistants — built exclusively for {{COMPANY_NAME}} in {{TERRITORY}}">
+    <meta property="og:title" content="{{COMPANY_NAME}} — AI-Powered Renovation Platform">
+    <meta property="og:description" content="Exclusive AI platform for {{TERRITORY}}. AI-drafted quotes you review each morning, design visualization, voice AI.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    {{CUSTOM_FONT_LINKS}}
+    <style>
+        /* ======================================================
+           CSS Variables & Reset
+           ====================================================== */
+        :root {
+            --primary: #0F172A;
+            --primary-light: #1E293B;
+            --accent: {{ACCENT_COLOR}};
+            --accent-light: {{ACCENT_COLOR_LIGHT}};
+            --accent-dark: {{ACCENT_COLOR_DARK}};
+            --gold: #D97706;
+            --gold-light: #FEF3C7;
+            --success: #059669;
+            --success-light: #DCFCE7;
+            --text: #0F172A;
+            --text-muted: #64748B;
+            --text-light: #94A3B8;
+            --bg: #FFFFFF;
+            --bg-alt: #F8FAFC;
+            --border: #E2E8F0;
+            --border-light: #F1F5F9;
+            --glass: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.12);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+            --shadow-xl: 0 20px 60px rgba(0,0,0,0.15);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
+            --accent-glow: 0 0 20px rgba(220,38,38,0.25), 0 0 40px rgba(220,38,38,0.1);
+            --accent-glow-hover: 0 0 25px rgba(220,38,38,0.35), 0 0 50px rgba(220,38,38,0.15);
+            --font-heading: {{HEADING_FONT_FAMILY}}, 'Inter', -apple-system, sans-serif;
+            --font-body: {{BODY_FONT_FAMILY}}, 'Inter', -apple-system, sans-serif;
+            --accent-glow: {{ACCENT_GLOW_RGB}};
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            color: var(--text);
+            line-height: 1.6;
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        img { max-width: 100%; height: auto; display: block; }
+        a { text-decoration: none; color: inherit; }
+
+        /* ======================================================
+           Utility Classes
+           ====================================================== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+        .container-narrow { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
+
+        .section-label {
+            display: inline-block;
+            background: var(--accent-light, #EFF6FF);
+            color: var(--accent, #3B82F6);
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1.25rem;
+        }
+        .section-title {
+            font-size: clamp(2rem, 4.5vw, 3.2rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+        .section-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            line-height: 1.7;
+        }
+
+        /* ======================================================
+           Buttons
+           ====================================================== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.9rem 2rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+        .btn:focus-visible {
+            outline: 2px solid var(--accent, #3B82F6);
+            outline-offset: 2px;
+        }
+        .btn-primary {
+            background: var(--accent, #3B82F6);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15), var(--accent-glow);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2), var(--accent-glow-hover);
+        }
+        .btn-secondary {
+            background: var(--glass);
+            color: white;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(8px);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .btn-outline {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+        .btn-outline:hover { border-color: var(--accent, #3B82F6); color: var(--accent, #3B82F6); }
+        .btn-lg { padding: 1.1rem 2.5rem; font-size: 1.1rem; border-radius: var(--radius-md); }
+        .btn-ghost {
+            background: transparent;
+            color: rgba(255,255,255,0.8);
+            padding: 0.9rem 1.5rem;
+        }
+        .btn-ghost:hover { color: white; }
+        .btn-white {
+            background: white;
+            color: var(--accent, #3B82F6);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        }
+        .btn-white:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* ======================================================
+           Scroll Animations
+           ====================================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+        .reveal-delay-5 { transition-delay: 0.5s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal { opacity: 1; transform: none; transition: none; }
+            .reveal.visible { transition: none; }
+            .hero-orb { animation: none !important; }
+            .pulse-dot { animation: none !important; }
+            .waveform-bar { animation: none !important; }
+            .typing-cursor { animation: none !important; }
+            .ba-viewer-layer { transition: none !important; }
+            .ba-auto-animating { transition: none !important; }
+            .viz-generate-btn { transition: none !important; }
+            .style-chip { transition: none !important; }
+            .viz-phase-tab { transition: none !important; }
+            .viz-bubble { opacity: 1; transform: none; transition: none; }
+            .chat-bubble { opacity: 1; transform: none; transition: none; }
+            @keyframes floatOrb1 { to { transform: none; } }
+            @keyframes floatOrb2 { to { transform: none; } }
+        }
+
+        /* ======================================================
+           1. Sticky Personalization Banner
+           ====================================================== */
+        .top-banner {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
+            backdrop-filter: blur(20px) saturate(1.8);
+            -webkit-backdrop-filter: blur(20px) saturate(1.8);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.85rem;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.95);
+            letter-spacing: 0.01em;
+            transition: box-shadow 0.3s ease, background 0.3s ease;
+        }
+        .top-banner.scrolled {
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.05) inset;
+        }
+        .top-banner-logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            object-fit: contain;
+            background: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
+        .top-banner strong { font-weight: 700; color: white; }
+
+        /* ======================================================
+           2. Hero Section
+           ====================================================== */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(160deg, #0F172A 0%, #1E293B 40%, #0F172A 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+        .hero-orb-1 {
+            width: 600px;
+            height: 600px;
+            top: -15%;
+            right: -10%;
+            background: radial-gradient(circle, rgba(220,38,38,0.18) 0%, transparent 70%);
+            animation: floatOrb1 8s ease-in-out infinite;
+        }
+        .hero-orb-2 {
+            width: 400px;
+            height: 400px;
+            bottom: -10%;
+            left: -5%;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            animation: floatOrb2 10s ease-in-out infinite;
+        }
+        @keyframes floatOrb1 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-40px) translateX(20px); }
+        }
+        @keyframes floatOrb2 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(30px) translateX(-15px); }
+        }
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+            color: rgba(255,255,255,0.9);
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent, #3B82F6);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.2rem);
+            font-weight: 900;
+            line-height: 1.08;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+        }
+        .hero .highlight {
+            background: linear-gradient(135deg, var(--accent, #3B82F6) 0%, #F87171 50%, #FB923C 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-subtitle {
+            color: rgba(255,255,255,0.7);
+            max-width: 650px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+        }
+        .hero-ctas {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .hero-phone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+        .hero-phone a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .hero-phone a:hover { color: white; }
+
+        /* Hero CTA Enhancement */
+        .hero .btn-primary {
+            border: 2px solid rgba(255,255,255,0.25);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15), var(--accent-glow);
+            padding: 1.15rem 2.75rem;
+            font-size: 1.15rem;
+        }
+        .hero .btn-primary:hover {
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2), var(--accent-glow-hover);
+        }
+
+        /* Hero subtitle responsive */
+        .hero-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+        }
+
+        /* ======================================================
+           3. Why You Section (Personalized Trust)
+           ====================================================== */
+        .why-you { background: var(--bg); padding: 6rem 2rem; }
+        .why-you-header { text-align: center; margin-bottom: 3rem; }
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .trust-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+        }
+        .trust-card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+        .trust-card-stars {
+            font-size: 1.5rem;
+            letter-spacing: 0.15rem;
+            color: #F59E0B;
+        }
+        .trust-card-stars .star-empty {
+            color: #D1D5DB;
+        }
+        .trust-card h4 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            color: var(--accent, #3B82F6);
+        }
+        .trust-card p { color: var(--text-muted); font-size: 0.95rem; }
+        .testimonial-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .testimonial-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            position: relative;
+        }
+        .testimonial-card::before {
+            content: '\201C';
+            font-size: 4rem;
+            color: var(--accent-light, #EFF6FF);
+            position: absolute;
+            top: 0.5rem;
+            left: 1.5rem;
+            line-height: 1;
+            font-family: Georgia, serif;
+        }
+        .testimonial-card blockquote {
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            padding-top: 2rem;
+        }
+        .testimonial-card cite {
+            font-style: normal;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        .why-you-closer {
+            text-align: center;
+            margin-top: 2.5rem;
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .why-you-closer strong { color: var(--text); }
+
+        /* ======================================================
+           4. The Problem (PAS — Problem + Agitate)
+           ====================================================== */
+        .problem { background: var(--bg-alt); padding: 6rem 2rem; }
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        .problem-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        .problem-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent, #3B82F6);
+        }
+        .problem-stat {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--accent, #3B82F6);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        .problem-stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+        .problem-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .problem-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; }
+        .problem-agitate {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+        .problem-agitate strong { color: var(--text); }
+
+        /* ======================================================
+           5. Feature Showcase — AI Design Visualizer & Quote Assistant
+           ====================================================== */
+        .feature-section { padding: 6rem 2rem; }
+        .feature-section.alt { background: var(--bg-alt); }
+        .feature-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .feature-block.reverse { direction: rtl; }
+        .feature-block.reverse > * { direction: ltr; }
+        .feature-content {}
+        .feature-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--accent-light, #EFF6FF);
+            color: var(--accent, #3B82F6);
+            padding: 0.35rem 0.9rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.25rem;
+        }
+        .persona-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            padding: 0.4rem 1rem 0.4rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .persona-inline-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .persona-inline strong { font-weight: 700; }
+        .persona-inline .persona-inline-role { color: var(--text-muted); }
+        .feature-content h3 {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+        .feature-content > p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+        .feature-list {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.6rem;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+        .feature-list li::before {
+            content: '\2713';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            background: var(--success-light);
+            color: var(--success);
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 50%;
+            margin-top: 2px;
+        }
+        .voice-callout {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .voice-callout .waveform {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 16px;
+        }
+        .waveform-bar {
+            width: 3px;
+            background: var(--accent, #3B82F6);
+            border-radius: 2px;
+            animation: waveformPulse 1.2s ease-in-out infinite;
+        }
+        .waveform-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+        .waveform-bar:nth-child(2) { height: 12px; animation-delay: 0.15s; }
+        .waveform-bar:nth-child(3) { height: 8px; animation-delay: 0.3s; }
+        .waveform-bar:nth-child(4) { height: 14px; animation-delay: 0.45s; }
+        .waveform-bar:nth-child(5) { height: 6px; animation-delay: 0.6s; }
+        @keyframes waveformPulse {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* Feature Visual — Chat Demo */
+        .feature-visual {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .alt .feature-visual {
+            background: white;
+        }
+
+        /* iPhone Frame Component (reusable) */
+        .iphone-frame {
+            background: #1A1A1A;
+            border-radius: 44px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.18), inset 0 0 0 2px rgba(255,255,255,0.08);
+            max-width: 340px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .iphone-notch {
+            width: 120px;
+            height: 28px;
+            background: #1A1A1A;
+            border-radius: 0 0 18px 18px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+        }
+        .iphone-status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text);
+            position: relative;
+            z-index: 2;
+        }
+        .iphone-status-bar .time { letter-spacing: 0.3px; }
+        .iphone-status-bar .icons {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            font-size: 0.65rem;
+        }
+        .iphone-screen {
+            background: white;
+            border-radius: 32px;
+            overflow: hidden;
+            min-height: 380px;
+        }
+        .iphone-screen-inner {
+            padding: 0.75rem 1rem 1rem;
+        }
+        .iphone-home-bar {
+            width: 120px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin: 8px auto 4px;
+        }
+        @media (max-width: 640px) {
+            .iphone-frame { max-width: 300px; border-radius: 36px; padding: 10px; }
+            .iphone-notch { width: 100px; height: 24px; border-radius: 0 0 14px 14px; }
+            .iphone-screen { border-radius: 26px; min-height: 340px; }
+        }
+
+        .chat-demo { max-width: 380px; margin: 0 auto; width: 100%; }
+        .chat-demo-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .chat-demo-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--accent, #3B82F6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .chat-demo-name { font-weight: 600; font-size: 0.9rem; }
+        .chat-demo-status { font-size: 0.75rem; color: var(--success); }
+        .chat-bubble {
+            padding: 0.85rem 1.1rem;
+            border-radius: 16px;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            max-width: 88%;
+            line-height: 1.5;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .chat-bubble.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .chat-user {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-ai {
+            background: #F1F5F9;
+            border-bottom-left-radius: 4px;
+        }
+        .alt .chat-ai {
+            background: #F1F5F9;
+        }
+        .chat-agent-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+            padding-left: 0.2rem;
+        }
+        .chat-agent-label[data-delay] {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .chat-agent-label[data-delay].show {
+            opacity: 1;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 0.85rem 1.1rem;
+            opacity: 0;
+        }
+        .typing-indicator.show { opacity: 1; }
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: var(--text-light);
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        .style-preview {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+        .style-chip {
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .style-chip:hover:not(.active) {
+            background: var(--accent-light, #EFF6FF);
+            border-color: var(--accent, #3B82F6);
+            color: var(--accent, #3B82F6);
+        }
+        .style-chip.active {
+            background: white;
+            color: var(--text, #0F172A);
+            border: 2px solid var(--accent, #3B82F6);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: scale(1.05);
+            font-weight: 700;
+        }
+        .style-chip.active::before {
+            content: '\2713 ';
+        }
+
+        /* Visualizer Showcase — Two-Phase Interactive Demo */
+        .visualizer-showcase { width: 100%; }
+        .viz-phase-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--bg-alt);
+        }
+        .viz-phase-tab {
+            flex: 1;
+            padding: 0.85rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        .viz-phase-tab:hover:not(.active) {
+            background: rgba(0,0,0,0.04);
+        }
+        .viz-phase-tab.active {
+            background: white;
+            color: var(--text, #0F172A);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-bottom: 2px solid var(--accent, #3B82F6);
+        }
+        .viz-phase-tab:focus-visible {
+            outline: 2px solid var(--accent, #3B82F6);
+            outline-offset: -2px;
+        }
+        .viz-phase-content { display: none; }
+        .viz-phase-content.active { display: block; }
+
+        /* Phase 1 — Mia Conversation */
+        .viz-conversation {
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        .viz-photo-upload {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: #F1F5F9;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+        }
+        .viz-photo-thumb {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #94A3B8 0%, #64748B 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .viz-photo-info { font-size: 0.8rem; }
+        .viz-photo-info .viz-photo-name { font-weight: 600; color: var(--text); }
+        .viz-photo-info .viz-photo-analysis {
+            color: var(--success);
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .viz-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 16px;
+            margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            max-width: 90%;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .viz-bubble.show { opacity: 1; transform: translateY(0); }
+        .viz-bubble-mia {
+            background: #F1F5F9;
+            border-bottom-left-radius: 4px;
+        }
+        .viz-bubble-user {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .viz-agent-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.15rem;
+            padding-left: 0.2rem;
+        }
+        .viz-agent-label[data-delay] {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .viz-agent-label[data-delay].show {
+            opacity: 1;
+        }
+        .viz-generate-btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            background: var(--accent, #3B82F6);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.4s ease, transform 0.4s ease, filter 0.25s ease;
+        }
+        .viz-generate-btn.show { opacity: 1; transform: translateY(0); }
+        .viz-generate-btn:hover { filter: brightness(1.1); }
+
+        /* Phase 2 — Before/After Opacity Slider Viewer */
+        .ba-viewer {
+            position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            max-width: 480px;
+            margin: 0 auto;
+            aspect-ratio: 16 / 10;
+        }
+        .ba-viewer-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+        }
+        .ba-viewer-before {
+            background-image: url('https://ene7zidqbpxuzjzd.public.blob.vercel-storage.com/templates/microsite/sample-images/before.jpg');
+            z-index: 1;
+        }
+        .ba-viewer-after {
+            z-index: 2;
+            opacity: 0;
+            transition: background-image 0s;
+        }
+        .ba-viewer-after.transitioning {
+            transition: opacity 0.5s ease;
+        }
+        .ba-viewer-label {
+            position: absolute;
+            bottom: 12px;
+            z-index: 5;
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            padding: 0.35rem 0.85rem;
+            border-radius: 6px;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .ba-viewer-label-before {
+            left: 12px;
+        }
+        .ba-viewer-label-after {
+            right: 12px;
+        }
+
+        /* Opacity Slider Track — Enhanced Pill Design */
+        .ba-opacity-slider-wrap {
+            max-width: 480px;
+            margin: 0.75rem auto 0;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .ba-opacity-slider-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748B;
+            white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .ba-opacity-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #CBD5E1 0%, var(--accent, #3B82F6) 100%);
+            outline: none;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease;
+        }
+        .ba-opacity-slider:focus-visible {
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+        }
+        .ba-opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--accent, #3B82F6);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 4px rgba(59,130,246,0.12);
+            cursor: grab;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        .ba-opacity-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 3px 12px rgba(0,0,0,0.28), 0 0 0 6px rgba(59,130,246,0.15);
+            transform: scale(1.08);
+        }
+        .ba-opacity-slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+        .ba-opacity-slider::-moz-range-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--accent, #3B82F6);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 4px rgba(59,130,246,0.12);
+            cursor: grab;
+        }
+        .ba-opacity-slider::-moz-range-track {
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #CBD5E1 0%, var(--accent, #3B82F6) 100%);
+        }
+        /* Drag hint */
+        .ba-drag-hint {
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted, #64748B);
+            margin-top: 0.5rem;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        .ba-drag-hint.hidden { opacity: 0; pointer-events: none; }
+
+        /* Feature Visual — Dashboard Mock */
+        .dashboard-mock {
+            background: white;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+        .dashboard-mock-bar {
+            background: var(--primary);
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .dashboard-mock-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dashboard-mock-dot:nth-child(1) { background: #EF4444; }
+        .dashboard-mock-dot:nth-child(2) { background: #F59E0B; }
+        .dashboard-mock-dot:nth-child(3) { background: #22C55E; }
+        .dashboard-mock-bar span {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.75rem;
+            margin-left: auto;
+        }
+        .dashboard-mock-body { padding: 1.5rem; }
+        .dashboard-mock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+        .dashboard-mock-header h4 { font-weight: 700; font-size: 0.95rem; }
+        .dashboard-mock-live {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--success);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .dashboard-mock-live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+        .dashboard-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .dash-stat {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            background: var(--bg-alt);
+            border-radius: var(--radius-sm);
+        }
+        .dash-stat .num {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent, #3B82F6);
+            line-height: 1;
+        }
+        .dash-stat .lbl {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
+        .dashboard-comparison {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-alt);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+        }
+        .dashboard-comparison .old {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+        .dashboard-comparison .arrow { color: var(--success); font-weight: 700; }
+        .dashboard-comparison .new { color: var(--success); font-weight: 700; }
+
+        /* ======================================================
+           6. Meet Your AI Team
+           ====================================================== */
+        .ai-team { background: var(--primary); color: white; padding: 6rem 2rem; }
+        .ai-team .section-label {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.9);
+        }
+        .ai-team .section-title { color: white; }
+        .ai-team .section-subtitle { color: rgba(255,255,255,0.6); }
+        .ai-team-header { text-align: center; margin-bottom: 3rem; }
+        .ai-team-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.8);
+            margin-top: 1rem;
+        }
+        .persona-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        .persona-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .persona-card:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.18);
+        }
+        .persona-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+        }
+        .persona-card:nth-child(1) .persona-avatar { background: linear-gradient(135deg, #3B82F6, #6366F1); }
+        .persona-card:nth-child(2) .persona-avatar { background: linear-gradient(135deg, #F59E0B, #F97316); }
+        .persona-card:nth-child(3) .persona-avatar { background: linear-gradient(135deg, #8B5CF6, #EC4899); }
+        .persona-name { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .persona-role { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 1.25rem; }
+        .persona-traits {
+            list-style: none;
+            text-align: left;
+        }
+        .persona-traits li {
+            padding: 0.4rem 0;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .persona-traits li::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            background: var(--accent, #3B82F6);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .persona-waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 20px;
+            margin-top: 1.25rem;
+        }
+        .persona-waveform .waveform-bar {
+            width: 3px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+        }
+
+        /* ======================================================
+           7. ROI / Value Section
+           ====================================================== */
+        .roi { background: var(--bg); padding: 6rem 2rem; }
+        .roi-header { text-align: center; margin-bottom: 3rem; }
+        .roi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .roi-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+        }
+        .roi-card-icon { font-size: 2rem; margin-bottom: 1rem; }
+        .roi-number {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            color: var(--accent, #3B82F6);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .roi-label { font-weight: 600; margin-bottom: 0.5rem; }
+        .roi-desc { color: var(--text-muted); font-size: 0.9rem; }
+        .roi-quote {
+            max-width: 700px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-alt);
+            border-radius: var(--radius-lg);
+            border-left: 4px solid var(--accent, #3B82F6);
+        }
+        .roi-quote p {
+            font-size: 1.15rem;
+            font-style: italic;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+        }
+        .roi-quote cite {
+            font-style: normal;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* ======================================================
+           8. Exclusivity Section
+           ====================================================== */
+        .exclusivity {
+            background: linear-gradient(160deg, #0F172A 0%, #1E293B 40%, #0F172A 100%);
+            color: white;
+            padding: 6rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .exclusivity::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212,175,55,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .exclusivity-content { text-align: center; position: relative; z-index: 1; }
+        .exclusivity-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 1.5rem;
+            background: rgba(212,175,55,0.08);
+            border: 1.5px solid rgba(212,175,55,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.12); }
+            50% { box-shadow: 0 0 20px 6px rgba(212,175,55,0.06); }
+        }
+        .exclusivity h2 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+        .exclusivity-territory {
+            display: inline-block;
+            background: rgba(212,175,55,0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212,175,55,0.18);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin: 1rem 0 1.5rem;
+            letter-spacing: 0.02em;
+            color: rgba(255,255,255,0.9);
+        }
+        .exclusivity > .container > .exclusivity-content > p {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.7);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+        .exclusivity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-top: 3rem;
+            text-align: left;
+        }
+        .exclusivity-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 1.75rem;
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(8px);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .exclusivity-card:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: rgba(212,175,55,0.18);
+        }
+        .exclusivity-card h4 {
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+        .exclusivity-card p { font-size: 0.9rem; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+        /* ======================================================
+           9. Social Proof
+           ====================================================== */
+        .social-proof { background: var(--bg-alt); padding: 6rem 2rem; }
+        .social-proof-header { text-align: center; margin-bottom: 3rem; }
+        .proof-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+        .proof-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+        .proof-card blockquote {
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-left: 1.5rem;
+            border-left: 3px solid var(--accent, #3B82F6);
+        }
+        .proof-card cite {
+            font-style: normal;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .proof-context {
+            text-align: center;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        .proof-context strong { color: var(--text); }
+        .proof-stat {
+            display: inline-block;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0.6rem 1.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent, #3B82F6);
+            margin-top: 1rem;
+        }
+
+        /* ======================================================
+           10. How It Works (Timeline)
+           ====================================================== */
+        .timeline-section { background: var(--bg); padding: 6rem 2rem; }
+        .timeline-header { text-align: center; margin-bottom: 3rem; }
+        .timeline-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            position: relative;
+        }
+        .timeline-steps::before {
+            content: '';
+            position: absolute;
+            top: 48px;
+            left: 12.5%;
+            right: 12.5%;
+            height: 3px;
+            background: var(--border);
+            z-index: 0;
+        }
+        .timeline-step { text-align: center; position: relative; }
+        .step-circle {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            background: white;
+            border: 3px solid var(--border);
+            transition: border-color 0.5s ease, background 0.5s ease;
+        }
+        .step-circle.active {
+            border-color: var(--accent, #3B82F6);
+            background: var(--accent-light, #EFF6FF);
+        }
+        .step-circle .step-num {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent, #3B82F6);
+        }
+        .step-circle .step-icon { font-size: 1.5rem; }
+        .step-timing {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent, #3B82F6);
+            margin-bottom: 0.5rem;
+        }
+        .step-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+        .step-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* ======================================================
+           11. Pricing (3-Tier Layout)
+           ====================================================== */
+        .pricing { background: var(--primary); padding: 6rem 2rem; color: white; }
+        .pricing-header { text-align: center; margin-bottom: 1rem; }
+        .pricing-anchor {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .pricing-anchor p {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.75);
+        }
+        .pricing-anchor .strikethrough {
+            text-decoration: line-through;
+            color: rgba(255,255,255,0.5);
+            font-size: 1.1rem;
+        }
+        .pricing .section-label {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.95);
+        }
+        .pricing .section-title { color: white; }
+
+        /* 3-Tier Grid */
+        .pricing-tiers {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 1100px;
+            margin: 0 auto 3rem;
+            align-items: stretch;
+        }
+
+        /* Base Tier Card */
+        .pricing-tier {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem 2rem;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .pricing-tier .btn { margin-top: auto; }
+        .pricing-tier:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+
+        /* Elevate Tier */
+        .pricing-tier--core {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        /* Accelerate Tier (Highlighted — Most Popular) */
+        .pricing-tier--growth {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid var(--accent, #3B82F6);
+            transform: scale(1.03);
+            box-shadow: 0 0 30px rgba(220,38,38,0.15), 0 12px 40px rgba(0,0,0,0.25);
+        }
+        .pricing-tier--growth:hover {
+            transform: scale(1.03) translateY(-4px);
+            box-shadow: 0 0 40px rgba(220,38,38,0.2), 0 16px 50px rgba(0,0,0,0.3);
+        }
+
+        /* Accelerate "Most Popular" Badge */
+        .pricing-tier-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent, #3B82F6);
+            color: white;
+            padding: 0.4rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+        }
+
+        /* Dominate Tier */
+        .pricing-tier--concierge {
+            background: linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(217,119,6,0.08) 100%);
+            border-color: rgba(217,119,6,0.3);
+        }
+
+        /* Tier Content */
+        .pricing-tier-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+        .pricing-tier-tagline {
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 1.75rem;
+        }
+        .pricing-tier-setup {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 0.25rem;
+        }
+        .pricing-tier-setup strong {
+            color: white;
+            font-weight: 700;
+        }
+        .pricing-tier-price {
+            font-size: 2.75rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 0.15rem;
+        }
+        .pricing-tier-price .pricing-period {
+            font-size: 1rem;
+            font-weight: 400;
+            color: rgba(255,255,255,0.5);
+        }
+        .pricing-tier-divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin: 1.5rem 0;
+        }
+
+        /* Feature Lists */
+        .pricing-tier-features {
+            list-style: none;
+            margin: 0 0 2rem;
+        }
+        .pricing-tier-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            padding: 0.4rem 0;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.4;
+        }
+        .pricing-tier-features li::before {
+            content: '\2713';
+            color: var(--success, #059669);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .pricing-tier-features .tier-divider-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.5);
+            padding: 0.75rem 0 0.25rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            margin-top: 0.5rem;
+        }
+        .pricing-tier-features .tier-divider-label::before {
+            content: none;
+        }
+
+        /* Dominate gold check marks */
+        .pricing-tier--concierge .pricing-tier-features li::before {
+            color: var(--gold, #D97706);
+        }
+
+        /* Tier CTA Buttons */
+        .pricing-tier .btn {
+            width: 100%;
+            text-align: center;
+            padding: 0.9rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        .btn-outline-light {
+            display: inline-block;
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-outline-light:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.6);
+            box-shadow: 0 0 15px rgba(255,255,255,0.08);
+        }
+        .btn-outline-gold {
+            display: inline-block;
+            background: transparent;
+            color: var(--gold, #D97706);
+            border: 2px solid rgba(217,119,6,0.45);
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-outline-gold:hover {
+            background: rgba(217,119,6,0.12);
+            border-color: rgba(217,119,6,0.7);
+            box-shadow: 0 0 15px rgba(217,119,6,0.1);
+        }
+
+        /* Shared Area Below Tiers */
+        .pricing-shared {
+            max-width: 680px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .pricing-note {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .pricing-context {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* ======================================================
+           12. FAQ Accordion
+           ====================================================== */
+        .faq { background: var(--bg); padding: 6rem 2rem; }
+        .faq-header { text-align: center; margin-bottom: 3rem; }
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+        .faq-question {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            text-align: left;
+            line-height: 1.4;
+            gap: 1rem;
+        }
+        .faq-question:focus-visible {
+            outline: 2px solid var(--accent, #3B82F6);
+            outline-offset: 2px;
+        }
+        .faq-chevron {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        .faq-chevron::before,
+        .faq-chevron::after {
+            content: '';
+            position: absolute;
+            background: var(--text-muted);
+            border-radius: 2px;
+            transition: transform 0.3s ease;
+        }
+        .faq-chevron::before {
+            width: 14px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .faq-chevron::after {
+            width: 2px;
+            height: 14px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .faq-item.open .faq-chevron::after {
+            transform: translate(-50%, -50%) rotate(90deg);
+            opacity: 0;
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.35s ease;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 500px;
+        }
+        .faq-answer-inner {
+            padding: 0 0 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* ======================================================
+           13. Final CTA
+           ====================================================== */
+        .final-cta {
+            background: linear-gradient(160deg, var(--primary) 0%, #1E293B 100%);
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .final-cta::before {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(220,38,38,0.12) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .final-cta-content { position: relative; z-index: 1; }
+        .final-cta h2 {
+            font-size: clamp(2rem, 4.5vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+        .final-cta-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+        .final-cta-note {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius-lg);
+        }
+        .final-cta-note p {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.7;
+            font-style: italic;
+        }
+        .final-cta-note .sig {
+            font-style: normal;
+            font-weight: 600;
+            color: white;
+            margin-top: 0.75rem;
+            display: block;
+        }
+        .final-cta-urgency {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* ======================================================
+           14. Footer
+           ====================================================== */
+        footer {
+            background: #020617;
+            color: rgba(255,255,255,0.7);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        footer a { color: rgba(255,255,255,0.7); text-decoration: underline; text-underline-offset: 2px; }
+        footer a:hover { color: white; }
+        footer p { margin-bottom: 0.5rem; }
+        footer .footer-brand {
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+        footer .casl-note {
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* ======================================================
+           Floating Sticky CTA Bar
+           ====================================================== */
+        .floating-cta {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding: 0 1.5rem;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            transform: translateY(100%);
+            transition: transform 0.35s ease;
+        }
+        .floating-cta.visible { transform: translateY(0); }
+        .floating-cta-text {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .floating-cta .btn-primary {
+            padding: 0.6rem 1.5rem;
+            font-size: 0.9rem;
+            min-height: 40px;
+        }
+        .floating-cta-secondary {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            white-space: nowrap;
+        }
+        .floating-cta-secondary:hover { color: white; }
+
+        /* ======================================================
+           ROI Calculator
+           ====================================================== */
+        .roi-calculator { background: var(--bg); padding: 6rem 2rem; }
+        .roi-calculator-header { text-align: center; margin-bottom: 3rem; }
+        .roi-calc-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .roi-sliders {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .roi-slider-group { text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .roi-slider-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+            min-height: 2.8em;
+            display: flex;
+            align-items: center;
+        }
+        .roi-slider-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent, #3B82F6);
+            line-height: 1;
+            margin-bottom: 0.75rem;
+        }
+        .roi-slider-input {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+        }
+        .roi-slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent, #3B82F6);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .roi-slider-input::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent, #3B82F6);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .roi-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+        .roi-result-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+        }
+        .roi-result-card.before { border-top: 4px solid var(--text-light); }
+        .roi-result-card.after { border-top: 4px solid var(--accent, #3B82F6); }
+        .roi-result-card-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1.5rem;
+        }
+        .roi-result-card.before .roi-result-card-label { color: var(--text-light); }
+        .roi-result-card.after .roi-result-card-label { color: var(--accent, #3B82F6); }
+        .roi-result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.9rem;
+        }
+        .roi-result-row:last-child { border-bottom: none; }
+        .roi-result-row .label { color: var(--text-muted); }
+        .roi-result-row .value { font-weight: 700; color: var(--text); }
+        .roi-result-card.after .roi-result-row .value { color: var(--accent, #3B82F6); }
+        .roi-cost-waiting {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, var(--accent-light, #EFF6FF) 0%, white 100%);
+            border: 2px solid var(--accent, #3B82F6);
+            border-radius: var(--radius-lg);
+            margin-bottom: 2.5rem;
+        }
+        .roi-cost-waiting .amount {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--accent, #3B82F6);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .roi-cost-waiting .desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+        .roi-summary {
+            background: var(--primary);
+            color: white;
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .roi-summary-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        .roi-summary-stat .num {
+            font-size: 2.5rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .roi-summary-stat .lbl {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.75);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+        .roi-summary-investment {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 1.5rem;
+        }
+        .roi-summary .btn-primary { margin-bottom: 0.5rem; }
+        .roi-summary-sub {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.65);
+        }
+
+        /* ======================================================
+           Mid-Page CTAs
+           ====================================================== */
+        .mid-cta {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--bg-alt);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .mid-cta p {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 1.25rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .mid-cta-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .mid-cta-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+        }
+        .mid-cta .btn-primary {
+            background: var(--primary, #0F172A);
+            color: #FFFFFF;
+            border: 2px solid var(--primary-light, #1E293B);
+        }
+        .mid-cta .btn-primary:hover {
+            background: var(--primary-light, #1E293B);
+            transform: translateY(-2px);
+        }
+
+        /* ======================================================
+           Value Stack Table (replaces Social Proof)
+           ====================================================== */
+        .value-stack { background: var(--bg-alt); padding: 6rem 2rem; }
+        .value-stack-header { text-align: center; margin-bottom: 3rem; }
+        .value-stack-table {
+            max-width: 900px;
+            margin: 0 auto 2.5rem;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: white;
+        }
+        .value-stack-row {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr 1fr 1fr;
+            border-bottom: 1px solid var(--border);
+        }
+        .value-stack-row:last-child { border-bottom: none; }
+        .value-stack-row.header {
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .value-stack-row.total {
+            background: var(--bg-alt);
+            font-weight: 800;
+        }
+        .value-stack-cell {
+            padding: 1rem 1.25rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+        }
+        .value-stack-row.header .value-stack-cell { padding: 0.85rem 1.25rem; }
+        .value-stack-cell.capability { font-weight: 600; }
+        .value-stack-cell.custom { color: var(--text-muted); }
+        .value-stack-cell.staff { color: var(--text-muted); }
+        .value-stack-cell.ours {
+            color: var(--success);
+            font-weight: 700;
+        }
+        .value-stack-row.total .value-stack-cell.custom,
+        .value-stack-row.total .value-stack-cell.staff {
+            color: var(--accent, #3B82F6);
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+        .value-stack-row.total .value-stack-cell.ours {
+            color: var(--success);
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+        .value-stack-anchor {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .value-stack-anchor strong { color: var(--text); }
+
+        /* ======================================================
+           Pricing Guarantee
+           ====================================================== */
+        .guarantee-callout {
+            margin-top: 2rem;
+            padding: 1.5rem 2rem;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius-md);
+            background: rgba(255,255,255,0.04);
+        }
+        .guarantee-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+            color: var(--gold);
+        }
+        .guarantee-text {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.7;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* ======================================================
+           Responsive Breakpoints
+           ====================================================== */
+        @media (max-width: 1024px) {
+            .feature-block { gap: 3rem; }
+            .persona-grid { gap: 1.5rem; }
+
+            .pricing-tiers { gap: 1rem; }
+            .pricing-tier { padding: 2rem 1.5rem; }
+            .pricing-tier--growth { transform: scale(1.01); }
+            .pricing-tier--growth:hover { transform: scale(1.01) translateY(-4px); }
+        }
+
+        @media (max-width: 768px) {
+            .feature-block {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            .feature-block.reverse { direction: ltr; }
+
+            .problem-grid { grid-template-columns: 1fr; }
+
+            .persona-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+
+            .roi-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto 3rem; }
+
+            .roi-sliders { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto 3rem; }
+            .roi-results { grid-template-columns: 1fr; }
+            .roi-summary-stats { gap: 2rem; }
+
+            .value-stack-row { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+            .value-stack-cell { padding: 0.75rem 0.75rem; font-size: 0.82rem; }
+
+            .timeline-steps {
+                grid-template-columns: 1fr;
+                max-width: 320px;
+                margin: 0 auto;
+            }
+            .timeline-steps::before {
+                top: 0;
+                bottom: 0;
+                left: 48px;
+                right: auto;
+                width: 3px;
+                height: auto;
+            }
+            .timeline-step {
+                display: grid;
+                grid-template-columns: 96px 1fr;
+                text-align: left;
+                gap: 1rem;
+                align-items: start;
+            }
+            .timeline-step .step-circle { margin: 0; }
+            .timeline-step-content {}
+
+            .pricing-tiers {
+                grid-template-columns: 1fr;
+                max-width: 480px;
+                margin: 0 auto 3rem;
+            }
+            .pricing-tier--growth { order: -1; transform: none; }
+            .pricing-tier--growth:hover { transform: translateY(-4px); }
+
+            .testimonial-row { grid-template-columns: 1fr; }
+            .proof-cards { grid-template-columns: 1fr; }
+
+            .exclusivity-grid { grid-template-columns: 1fr 1fr; }
+
+            .trust-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            section, .feature-section, .ai-team, .exclusivity, .roi,
+            .social-proof, .value-stack, .roi-calculator, .timeline-section,
+            .pricing, .faq, .final-cta, .why-you, .problem { padding: 4rem 1.25rem; }
+
+            .hero { padding: 4rem 1.25rem 3rem; }
+
+            .hero h1 { font-size: clamp(2rem, 8vw, 2.8rem); }
+
+            .hero-ctas { flex-direction: column; align-items: center; }
+            .hero-ctas .btn { width: 100%; max-width: 320px; }
+
+            .final-cta-actions { flex-direction: column; align-items: center; }
+            .final-cta-actions .btn { width: 100%; max-width: 320px; }
+
+            .trust-grid { grid-template-columns: 1fr; }
+            .exclusivity-grid { grid-template-columns: 1fr; }
+
+            .pricing-tier { padding: 2rem 1.25rem; }
+            .pricing-tier-badge { font-size: 0.72rem; padding: 0.35rem 1.25rem; }
+            .pricing-tier-price { font-size: 2.25rem; }
+
+            .dashboard-stats-grid { grid-template-columns: repeat(3, 1fr); }
+
+            .top-banner { font-size: 0.78rem; gap: 0.5rem; padding: 0.5rem 1rem; }
+            /* Mobile touch targets */
+            .btn-lg, .faq-question { min-height: 52px; }
+
+            /* Floating CTA mobile */
+            .floating-cta { height: 52px; gap: 0.75rem; padding: 0 1rem; }
+            .floating-cta-text { font-size: 0.8rem; }
+            .floating-cta-secondary { display: none; }
+            .floating-cta .btn-primary { padding: 0.5rem 1.25rem; font-size: 0.85rem; min-height: 38px; }
+            body.floating-cta-active { padding-bottom: 56px; }
+
+            /* Value stack mobile — card layout */
+            .value-stack-table { border: none; background: transparent; }
+            .value-stack-row.header { display: none; }
+            .value-stack-row {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0;
+                border-bottom: none;
+                background: white;
+                border: 1px solid var(--border, #E2E8F0);
+                border-radius: var(--radius-md, 12px);
+                margin-bottom: 0.75rem;
+                padding: 1.25rem;
+            }
+            .value-stack-row.total {
+                background: var(--primary, #0F172A);
+                color: white;
+                border-color: var(--primary, #0F172A);
+            }
+            .value-stack-cell {
+                padding: 0.3rem 0;
+                font-size: 0.9rem;
+                display: flex;
+                justify-content: space-between;
+            }
+            .value-stack-cell.capability {
+                font-size: 1.05rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border-light, #F1F5F9);
+            }
+            .value-stack-cell.custom::before { content: 'Build Custom: '; color: var(--text-muted, #64748B); font-weight: 400; }
+            .value-stack-cell.staff::before { content: 'Hire Staff: '; color: var(--text-muted, #64748B); font-weight: 400; }
+            .value-stack-cell.ours::before { content: 'With Us: '; color: var(--text-muted, #64748B); font-weight: 400; }
+            .value-stack-row.total .value-stack-cell.capability { border-bottom-color: rgba(255,255,255,0.15); color: white; }
+            .value-stack-row.total .value-stack-cell.custom,
+            .value-stack-row.total .value-stack-cell.staff { color: rgba(255,255,255,0.7); font-size: 0.9rem; }
+            .value-stack-row.total .value-stack-cell.ours { color: var(--success, #059669); }
+            .value-stack-row.total .value-stack-cell.custom::before,
+            .value-stack-row.total .value-stack-cell.staff::before,
+            .value-stack-row.total .value-stack-cell.ours::before { color: rgba(255,255,255,0.65); }
+
+            /* Mid-CTA mobile */
+            .mid-cta-actions { flex-direction: column; align-items: center; }
+            .mid-cta-actions .btn { width: 100%; max-width: 320px; }
+        }
+        /* Bespoke CSS overrides */
+        {{CUSTOM_CSS_OVERRIDES}}
+    </style>
+</head>
+<body>
+    <!-- ====================================================
+         1. Sticky Personalization Banner
+         ==================================================== -->
+    <nav class="top-banner" aria-label="Personalization banner">
+        <img src="{{COMPANY_LOGO_URL}}" alt="{{COMPANY_NAME}} logo" class="top-banner-logo" onerror="this.style.display='none'">
+        <span>Built exclusively for <strong>{{COMPANY_NAME}}</strong> &mdash; {{TERRITORY}}</span>
+    </nav>
+
+    <main>
+        <!-- ====================================================
+             2. Hero Section
+             ==================================================== -->
+        <section class="hero" id="top" style="{{HERO_BG_STYLE}}">
+            <div class="hero-orb hero-orb-1" aria-hidden="true"></div>
+            <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
+            <div class="hero-content">
+                <h1>What If {{COMPANY_NAME}} Could <span class="highlight">Quote 10 Jobs Tonight</span> &mdash; While You're Asleep?</h1>
+                <p class="hero-subtitle">AI-drafted quotes ready for your review each morning, design visualization &amp; voice assistants &mdash; built exclusively for {{TERRITORY}}'s top-rated renovation contractor.</p>
+                {{COMPANY_TAGLINE}}
+                <div class="hero-ctas">
+                    <a href="{{CALENDAR_URL}}" class="btn btn-primary btn-lg" target="_blank" rel="noopener">Book Your Free Personalized Demo with the Founder &rarr;</a>
+                    <a href="mailto:ferdie@norbotsystems.com?subject=I%27d%20Like%20a%20Demo" class="btn btn-secondary btn-lg">Email for Inquiries &rarr;</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             3. The Problem (PAS)
+             ==================================================== -->
+        <section class="problem" id="problem">
+            <div class="container">
+                <div class="reveal" style="text-align: center;">
+                    <span class="section-label">The Problem</span>
+                    <h2 class="section-title">Your Craftsmanship Closes Deals. Your Website Loses Them.</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">Your work speaks for itself. But the business side hasn't caught up.</p>
+                </div>
+                <div class="problem-grid">
+                    <div class="problem-card reveal reveal-delay-1">
+                        <div class="problem-stat" data-count="3">0</div>
+                        <div class="problem-stat-label">Hours per quote</div>
+                        <h3>Time You Can't Bill</h3>
+                        <p>Every quote you build by hand is hours pulled from billable work. That's money left on the table every single week.</p>
+                    </div>
+                    <div class="problem-card reveal reveal-delay-2">
+                        <div class="problem-stat" data-count="9" data-suffix="/10">0</div>
+                        <div class="problem-stat-label">Visitors leave without contacting you</div>
+                        <h3>Invisible Lead Leak</h3>
+                        <p>9 out of 10 website visitors leave without ever reaching out. No chat, no quote, no conversion &mdash; just gone.</p>
+                    </div>
+                    <div class="problem-card reveal reveal-delay-3">
+                        <div class="problem-stat" data-count="5" data-suffix="+">0</div>
+                        <div class="problem-stat-label">Days to respond</div>
+                        <h3>Speed Kills (Deals)</h3>
+                        <p>The contractor who responds in 5 minutes wins the job. The one who responds in 5 days loses it. Every time.</p>
+                    </div>
+                </div>
+                <p class="problem-agitate reveal">
+                    Every week, <strong>{{OWNER_NAME}}</strong>, you lose hours to admin that could be billable. Every month, qualified leads go to <strong>faster competitors</strong>. The gap between what homeowners expect and what contractors deliver is where revenue disappears.
+                </p>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             4. Why You Section (Personalized Trust)
+             ==================================================== -->
+        <section class="why-you" id="why-you">
+            <div class="container">
+                <div class="why-you-header reveal">
+                    <span class="section-label">Why {{COMPANY_NAME}}</span>
+                    <h2 class="section-title">We Chose You Because You Deserve Better</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">Your reputation in {{TERRITORY}} speaks for itself. Here's what we already know.</p>
+                    <p style="color: var(--text-muted); line-height: 1.7;">{{ABOUT_EXCERPT}}</p>
+                </div>
+                <div class="trust-grid">
+                    <div class="trust-card reveal reveal-delay-1">
+                        <div class="trust-card-icon trust-card-stars" aria-hidden="true" data-rating="{{GOOGLE_RATING}}">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                        <h4>{{GOOGLE_RATING}}</h4>
+                        <p>Google rating from {{GOOGLE_REVIEW_COUNT}} reviews</p>
+                    </div>
+                    <div class="trust-card reveal reveal-delay-2">
+                        <div class="trust-card-icon" aria-hidden="true">&#128197;</div>
+                        <h4>{{YEARS_IN_BUSINESS}}+</h4>
+                        <p>Years serving {{CITY}} homeowners</p>
+                    </div>
+                    <div class="trust-card reveal reveal-delay-3">
+                        <div class="trust-card-icon" aria-hidden="true">&#128736;</div>
+                        <h4>{{SERVICES_LIST}}</h4>
+                        <p>Full-service renovation expertise</p>
+                    </div>
+                </div>
+                <div class="testimonial-row reveal">
+                    <div class="testimonial-card">
+                        <blockquote>{{TESTIMONIAL_1}}</blockquote>
+                        <cite>&mdash; {{TESTIMONIAL_1_AUTHOR}}</cite>
+                    </div>
+                    <div class="testimonial-card">
+                        <blockquote>{{TESTIMONIAL_2}}</blockquote>
+                        <cite>&mdash; {{TESTIMONIAL_2_AUTHOR}}</cite>
+                    </div>
+                </div>
+                <p class="why-you-closer reveal">
+                    Your customers already love you. <strong>Now imagine giving them an experience that matches.</strong>
+                </p>
+            </div>
+        </section>
+
+    <!-- Verified Reviews Section (hidden when no real reviews available) -->
+    <section style="display: {{REAL_REVIEWS_DISPLAY}}; padding: 5rem 0; background: var(--bg-alt);" id="verified-reviews">
+        <div class="container" style="text-align: center;">
+            <span class="section-label">Verified Reviews</span>
+            <h2 class="section-title">What Real Customers Say</h2>
+            <p class="section-subtitle" style="margin: 0 auto 3rem;">Reviews from Google and {{COMPANY_NAME}}'s website</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto;">
+                <div style="background: var(--bg); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-md); text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <span style="color: var(--gold); font-size: 1.2rem;">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">{{REAL_TESTIMONIAL_1_SOURCE}}</span>
+                    </div>
+                    <p style="color: var(--text); line-height: 1.7; margin-bottom: 1rem; font-style: italic;">"{{REAL_TESTIMONIAL_1}}"</p>
+                    <p style="font-weight: 600; color: var(--text);">{{REAL_TESTIMONIAL_1_AUTHOR}}</p>
+                </div>
+                <div style="background: var(--bg); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-md); text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <span style="color: var(--gold); font-size: 1.2rem;">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">{{REAL_TESTIMONIAL_2_SOURCE}}</span>
+                    </div>
+                    <p style="color: var(--text); line-height: 1.7; margin-bottom: 1rem; font-style: italic;">"{{REAL_TESTIMONIAL_2}}"</p>
+                    <p style="font-weight: 600; color: var(--text);">{{REAL_TESTIMONIAL_2_AUTHOR}}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+        <!-- ====================================================
+             5. Feature Showcase
+             ==================================================== -->
+        <!-- 5a. AI Design Visualizer -->
+        <section class="feature-section" id="features">
+            <div class="container">
+                <div class="feature-block">
+                    <div class="feature-content reveal">
+                        <span class="feature-tag">Feature 01</span>
+                        <h3>AI Design Visualizer</h3>
+                        <p>Homeowners upload a photo of their current space and see photorealistic &ldquo;after&rdquo; images in the style they want. No more &ldquo;I can't picture it&rdquo; &mdash; the #1 deal killer.</p>
+                        <ul class="feature-list">
+                            <li>Upload a current photo, get AI renders in 60 seconds</li>
+                            <li>Choose style: Modern, Farmhouse, Contemporary</li>
+                            <li>Photorealistic transformations build buyer confidence</li>
+                            <li>Eliminates the imagination gap that stalls decisions</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual reveal reveal-delay-2" style="background:transparent;border:none;padding:0;">
+                        <div class="visualizer-showcase" id="vizShowcase">
+                            <!-- Phase Tabs -->
+                            <div class="viz-phase-tabs">
+                                <button class="viz-phase-tab active" data-phase="result" aria-label="View before and after result">&#x1F4F8; Before &amp; After</button>
+                                <button class="viz-phase-tab" data-phase="chat" aria-label="View Mia conversation">&#x1F4AC; Chat with Mia</button>
+                            </div>
+
+                            <!-- Before/After Opacity Slider Viewer (default active) -->
+                            <div class="viz-phase-content active" data-phase="result">
+                                <div class="ba-viewer" id="baViewer">
+                                    <div class="ba-viewer-layer ba-viewer-before"></div>
+                                    <div class="ba-viewer-layer ba-viewer-after" id="baViewerAfter"></div>
+                                    <span class="ba-viewer-label ba-viewer-label-before">Before</span>
+                                    <span class="ba-viewer-label ba-viewer-label-after" id="baViewerAfterLabel">After &mdash; Modern</span>
+                                </div>
+                                <div class="ba-opacity-slider-wrap">
+                                    <span class="ba-opacity-slider-label">Before</span>
+                                    <input type="range" min="0" max="100" value="0" class="ba-opacity-slider" id="baOpacitySlider" aria-label="Drag to blend between before and after views">
+                                    <span class="ba-opacity-slider-label">After</span>
+                                </div>
+                                <p class="ba-drag-hint" id="baDragHint" aria-hidden="true">Drag to reveal the transformation</p>
+                                <div class="style-preview" id="styleChips">
+                                    <span class="style-chip active" data-style="Modern">Modern</span>
+                                    <span class="style-chip" data-style="Farmhouse">Farmhouse</span>
+                                    <span class="style-chip" data-style="Contemporary">Contemporary</span>
+                                </div>
+                            </div>
+
+                            <!-- Mia Conversation (iPhone frame) -->
+                            <div class="viz-phase-content" data-phase="chat">
+                                <div class="iphone-frame">
+                                    <div class="iphone-notch" aria-hidden="true"></div>
+                                    <div class="iphone-screen">
+                                        <div class="iphone-status-bar" aria-hidden="true">
+                                            <span class="time">9:41</span>
+                                            <span class="icons">&#9679;&#9679;&#9679; &#128267; &#128267;</span>
+                                        </div>
+                                        <div class="iphone-screen-inner">
+                                            <div class="viz-conversation" id="vizConversation">
+                                                <div class="chat-demo-header" style="margin-bottom:0.75rem;">
+                                                    <div class="chat-demo-avatar" style="background: linear-gradient(135deg, #F59E0B, #F97316);" aria-hidden="true">&#127912;</div>
+                                                    <div>
+                                                        <div class="chat-demo-name">Mia &mdash; Design Assistant</div>
+                                                        <div class="chat-demo-status">Online</div>
+                                                    </div>
+                                                </div>
+                                                <div class="viz-photo-upload">
+                                                    <div class="viz-photo-thumb" style="background-image: url('https://ene7zidqbpxuzjzd.public.blob.vercel-storage.com/templates/microsite/sample-images/before.jpg'); background-size: cover; background-position: center;" aria-hidden="true"></div>
+                                                    <div class="viz-photo-info">
+                                                        <div class="viz-photo-name">basement_photo.jpg</div>
+                                                        <div class="viz-photo-analysis">Basement detected &middot; Open-plan layout</div>
+                                                    </div>
+                                                </div>
+                                                <div class="viz-agent-label">Mia</div>
+                                                <div class="viz-bubble viz-bubble-mia" data-delay="0">Love this space! That&rsquo;s a huge basement with amazing natural light. What style are you drawn to &mdash; modern and sleek, or warm and rustic?</div>
+                                                <div class="viz-bubble viz-bubble-user" data-delay="1200">Definitely modern. Clean lines, polished finishes.</div>
+                                                <div class="viz-agent-label" data-delay="2400">Mia</div>
+                                                <div class="viz-bubble viz-bubble-mia" data-delay="2400">Great taste! Polished tile floors with a built-in entertainment area would look incredible in here. Ready to see it?</div>
+                                                <button class="viz-generate-btn" id="vizGenerateBtn" data-delay="3600">&#10024; Generate My Vision</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="iphone-home-bar" aria-hidden="true"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5b. AI Quote Assistant -->
+        <section class="feature-section alt">
+            <div class="container">
+                <div class="feature-block reverse">
+                    <div class="feature-content reveal">
+                        <span class="feature-tag">Feature 02</span>
+                        <h3>AI Quote Assistant</h3>
+                        <p>Homeowners describe their project naturally &mdash; by text or voice. The system asks smart follow-up questions, qualifies leads with intelligent scoping, and provides initial project estimates so you only spend time on serious prospects.</p>
+                        <ul class="feature-list">
+                            <li>Natural conversation, not cold forms</li>
+                            <li>Intelligent follow-up questions</li>
+                            <li>Qualifies leads and provides initial project scoping</li>
+                            <li>Works around the clock &mdash; never misses a lead</li>
+                            <li>Hands off qualified leads to you with full context</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual reveal reveal-delay-2" style="background:transparent;border:none;padding:0;">
+                        <div class="iphone-frame">
+                            <div class="iphone-notch" aria-hidden="true"></div>
+                            <div class="iphone-screen">
+                                <div class="iphone-status-bar" aria-hidden="true">
+                                    <span class="time">9:41</span>
+                                    <span class="icons">&#9679;&#9679;&#9679; &#128267; &#128267;</span>
+                                </div>
+                                <div class="iphone-screen-inner">
+                                    <div class="chat-demo" id="chatDemo" aria-label="Simulated chat conversation demo">
+                                        <div class="chat-demo-header">
+                                            <div class="chat-demo-avatar" style="background: linear-gradient(135deg, #3B82F6, #6366F1);" aria-hidden="true">&#128202;</div>
+                                            <div>
+                                                <div class="chat-demo-name">Marcus &mdash; Quote Assistant</div>
+                                                <div class="chat-demo-status">Online</div>
+                                            </div>
+                                        </div>
+                                        <div class="chat-agent-label">Marcus</div>
+                                        <div class="chat-bubble chat-ai" data-delay="0">Hi! I help homeowners scope out renovation projects. What are you thinking about?</div>
+                                        <div class="chat-bubble chat-user" data-delay="1000">Master bathroom, about 80 sq ft, full gut</div>
+                                        <div class="chat-agent-label" data-delay="2000">Marcus</div>
+                                        <div class="chat-bubble chat-ai" data-delay="2000">80 sq ft full reno &mdash; great scope! A few quick questions: keeping the current layout, or open to moving plumbing?</div>
+                                        <div class="chat-bubble chat-user" data-delay="3200">Open to changes. Want a walk-in shower instead of the tub.</div>
+                                        <div class="chat-agent-label" data-delay="4200">Marcus</div>
+                                        <div class="chat-bubble chat-ai" data-delay="4200">Got it &mdash; tub-to-shower conversion, possible layout change. I'll put together a detailed scope for {{COMPANY_NAME}} to review. What's the best email to send it to?</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="iphone-home-bar" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5c. Owner Dashboard -->
+        <section class="feature-section">
+            <div class="container">
+                <div class="feature-block">
+                    <div class="feature-content reveal">
+                        <span class="feature-tag">Feature 03</span>
+                        <h3>Owner Dashboard</h3>
+                        <p>Your command center for managing leads, quotes, and projects. AI does the heavy lifting &mdash; you stay in control.</p>
+                        <ul class="feature-list">
+                            <li>AI-generated quote line items from conversation context</li>
+                            <li>One-click review, edit, and approve</li>
+                            <li>Professional branded PDF quotes</li>
+                            <li>Full lead pipeline with stages and history</li>
+                            <li>3D drawing system for permit applications</li>
+                            <li>Invoice generator with accounting platform integration</li>
+                            <li>10 minutes to send a quote, not 3 hours</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual reveal reveal-delay-2">
+                        <div class="dashboard-mock">
+                            <div class="dashboard-mock-bar" aria-hidden="true">
+                                <span class="dashboard-mock-dot"></span>
+                                <span class="dashboard-mock-dot"></span>
+                                <span class="dashboard-mock-dot"></span>
+                                <span>{{COMPANY_NAME}} Dashboard</span>
+                            </div>
+                            <div class="dashboard-mock-body">
+                                <div class="dashboard-mock-header">
+                                    <h4>This Month's Pipeline</h4>
+                                    <div class="dashboard-mock-live">Live</div>
+                                </div>
+                                <div class="dashboard-stats-grid">
+                                    <div class="dash-stat">
+                                        <div class="num" data-count="24">0</div>
+                                        <div class="lbl">New Leads</div>
+                                    </div>
+                                    <div class="dash-stat">
+                                        <div class="num" data-count="18">0</div>
+                                        <div class="lbl">Quotes Sent</div>
+                                    </div>
+                                    <div class="dash-stat">
+                                        <div class="num" data-count="7">0</div>
+                                        <div class="lbl">Won</div>
+                                    </div>
+                                </div>
+                                <div class="dashboard-comparison">
+                                    <span class="old">3 hours per quote</span>
+                                    <span class="arrow">&rarr;</span>
+                                    <span class="new">10 minutes</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mid-Page CTA: After Dashboard -->
+        <div class="mid-cta reveal">
+            <p>See how this works for <strong>{{COMPANY_NAME}}</strong></p>
+            <div class="mid-cta-actions">
+                <a href="{{CALENDAR_URL}}" class="btn btn-primary" target="_blank" rel="noopener">Book Your Free Personalized Demo with the Founder &rarr;</a>
+            </div>
+            <p class="mid-cta-sub">No credit card, no contracts.</p>
+        </div>
+
+        <!-- ====================================================
+             ROI Calculator (Interactive) — with value highlights
+             ==================================================== -->
+        <section class="roi-calculator" id="roi-calculator">
+            <div class="container">
+                <div class="roi-calculator-header reveal">
+                    <span class="section-label">The Math</span>
+                    <h2 class="section-title">The Numbers That Matter for {{COMPANY_NAME}}</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">This isn't about technology &mdash; it's about time, revenue, and competitive advantage.</p>
+                </div>
+                <div class="roi-grid reveal" style="margin-bottom: 2rem;">
+                    <div class="roi-card">
+                        <div class="roi-card-icon" aria-hidden="true">&#9200;</div>
+                        <div class="roi-number">8&ndash;12h</div>
+                        <div class="roi-label">Hours Saved Per Week</div>
+                        <div class="roi-desc">Manual quoting takes ~3 hours each. AI handles the front end so you can focus on billable work.</div>
+                    </div>
+                    <div class="roi-card">
+                        <div class="roi-card-icon" aria-hidden="true">&#128200;</div>
+                        <div class="roi-number">3&ndash;5&times;</div>
+                        <div class="roi-label">More Website Conversations</div>
+                        <div class="roi-desc">AI chat engages the visitors who'd otherwise bounce. Every conversation is a potential lead.</div>
+                    </div>
+                    <div class="roi-card">
+                        <div class="roi-card-icon" aria-hidden="true">&#128176;</div>
+                        <div class="roi-number">Faster</div>
+                        <div class="roi-label">Quote-to-Close Cycle</div>
+                        <div class="roi-desc">Respond in minutes, not days. The contractor who replies first wins the job &mdash; every time.</div>
+                    </div>
+                </div>
+                <p class="section-subtitle reveal" style="text-align: center; margin: 0 auto 3rem; max-width: 600px;">Drag the sliders to match your business. Watch the numbers update in real-time.</p>
+                <div class="roi-calc-container">
+                    <div class="roi-sliders reveal">
+                        <div class="roi-slider-group">
+                            <div class="roi-slider-label">How many quotes do you write per week?</div>
+                            <div class="roi-slider-value" id="roiQuotesValue">4</div>
+                            <input type="range" class="roi-slider-input" id="roiQuotes" min="1" max="15" value="4" aria-label="Quotes per week">
+                        </div>
+                        <div class="roi-slider-group">
+                            <div class="roi-slider-label">What's your average job size?</div>
+                            <div class="roi-slider-value" id="roiJobValue">$35,000</div>
+                            <input type="range" class="roi-slider-input" id="roiJobSize" min="5000" max="150000" step="5000" value="35000" aria-label="Average job size">
+                        </div>
+                        <div class="roi-slider-group">
+                            <div class="roi-slider-label">What percentage of quotes do you win?</div>
+                            <div class="roi-slider-value" id="roiCloseValue">15%</div>
+                            <input type="range" class="roi-slider-input" id="roiCloseRate" min="5" max="50" value="15" aria-label="Current close rate">
+                        </div>
+                    </div>
+
+                    <div class="roi-results reveal">
+                        <div class="roi-result-card before">
+                            <div class="roi-result-card-label">Today</div>
+                            <div class="roi-result-row"><span class="label">Time per quote</span><span class="value">3 hours</span></div>
+                            <div class="roi-result-row"><span class="label">Weekly quote time</span><span class="value" id="roiBeforeHours">12 hrs</span></div>
+                            <div class="roi-result-row"><span class="label">Website conversion</span><span class="value">3%</span></div>
+                            <div class="roi-result-row"><span class="label">Close rate</span><span class="value" id="roiBeforeClose">15%</span></div>
+                            <div class="roi-result-row"><span class="label">Annual revenue</span><span class="value" id="roiBeforeRevenue">$0</span></div>
+                        </div>
+                        <div class="roi-result-card after">
+                            <div class="roi-result-card-label">With ConversionOS</div>
+                            <div class="roi-result-row"><span class="label">Time per quote</span><span class="value">10 min</span></div>
+                            <div class="roi-result-row"><span class="label">Weekly quote time</span><span class="value" id="roiAfterHours">40 min</span></div>
+                            <div class="roi-result-row"><span class="label">Website conversion</span><span class="value">12%</span></div>
+                            <div class="roi-result-row"><span class="label">Close rate</span><span class="value" id="roiAfterClose">19.5%</span></div>
+                            <div class="roi-result-row"><span class="label">Annual revenue</span><span class="value" id="roiAfterRevenue">$0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="roi-cost-waiting reveal">
+                        <div class="amount" id="roiCostWaiting">$0</div>
+                        <div class="desc">estimated revenue you're leaving on the table <strong>every month</strong> without this</div>
+                    </div>
+
+                    <div class="roi-summary reveal">
+                        <div class="roi-summary-stats">
+                            <div class="roi-summary-stat">
+                                <div class="num" id="roiAnnualDelta">$0</div>
+                                <div class="lbl">Additional Annual Revenue</div>
+                            </div>
+                            <div class="roi-summary-stat">
+                                <div class="num" id="roiHoursSaved">0</div>
+                                <div class="lbl">Hours Bought Back / Year</div>
+                            </div>
+                            <div class="roi-summary-stat">
+                                <div class="num" id="roiROI">0%</div>
+                                <div class="lbl">Year 1 ROI</div>
+                            </div>
+                        </div>
+                        <div class="roi-summary-investment">Year 1 investment (Pro): $5,000 setup + $999 &times; 12 = <strong>$16,988</strong></div>
+                        <a href="{{CALENDAR_URL}}" class="btn btn-primary btn-lg" target="_blank" rel="noopener">Book Your Free Personalized Demo with the Founder &rarr;</a>
+                        <p class="roi-summary-sub">No credit card, no contracts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             8. Exclusivity Section
+             ==================================================== -->
+        <section class="exclusivity" id="exclusivity">
+            <div class="container">
+                <div class="exclusivity-content">
+                    <div class="exclusivity-icon reveal" aria-hidden="true">&#128274;</div>
+                    <h2 class="reveal">This Was Built for {{COMPANY_NAME}} &mdash; And Only You</h2>
+                    <div class="exclusivity-territory reveal">{{TERRITORY}} &mdash; Reserved</div>
+                    <p class="reveal" style="font-size: 1.1rem; color: rgba(255,255,255,0.8); max-width: 600px; margin: 0 auto;">We researched your market, studied your reviews, and hand-picked {{COMPANY_NAME}} as our partner in {{TERRITORY}}. This isn't a mass-market product &mdash; it's a platform built around your business, offered to you first.</p>
+                    <div class="exclusivity-grid">
+                        <div class="exclusivity-card reveal reveal-delay-1">
+                            <h4>&#128737; Your Territory, Protected</h4>
+                            <p>No other contractor in {{CITY}} will ever get this platform. Your market is yours alone.</p>
+                        </div>
+                        <div class="exclusivity-card reveal reveal-delay-2">
+                            <h4>&#9889; The Unfair Advantage</h4>
+                            <p>While competitors rely on contact forms and voicemail, you have an AI team working around the clock.</p>
+                        </div>
+                        <div class="exclusivity-card reveal reveal-delay-3">
+                            <h4>&#128587; A Partner, Not a Vendor</h4>
+                            <p>Direct access to our team. We build features around your workflow and your feedback.</p>
+                        </div>
+                        <div class="exclusivity-card reveal reveal-delay-4">
+                            <h4>&#129309; Hand-Picked for a Reason</h4>
+                            <p>Your {{GOOGLE_RATING}}-star reputation and {{YEARS_IN_BUSINESS}}+ years of experience made the decision easy.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mid-Page CTA: After Exclusivity -->
+        <div class="mid-cta reveal">
+            <p>{{TERRITORY}} won't be available forever.</p>
+            <div class="mid-cta-actions">
+                <a href="{{CALENDAR_URL}}" class="btn btn-primary" target="_blank" rel="noopener">Book Your Free Personalized Demo with the Founder &rarr;</a>
+            </div>
+        </div>
+
+        <!-- ====================================================
+             9. Value Stack (Comparison Table)
+             ==================================================== -->
+        <section class="value-stack" id="value-stack">
+            <div class="container">
+                <div class="value-stack-header reveal">
+                    <span class="section-label">The Value</span>
+                    <h2 class="section-title">What You'd Pay to Build This Yourself</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">We did the math. Here's what each capability costs to build from scratch, hire for, or get through us.</p>
+                </div>
+                <div class="value-stack-table reveal">
+                    <div class="value-stack-row header">
+                        <div class="value-stack-cell capability">Capability</div>
+                        <div class="value-stack-cell custom">Build Custom</div>
+                        <div class="value-stack-cell staff">Hire Staff</div>
+                        <div class="value-stack-cell ours">ConversionOS</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">24/7 AI Chat</div>
+                        <div class="value-stack-cell custom">~$12,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">AI-Drafted Quotes</div>
+                        <div class="value-stack-cell custom">~$25,000</div>
+                        <div class="value-stack-cell staff">$45K/yr salary</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">Design Visualization</div>
+                        <div class="value-stack-cell custom">~$15,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">3 Voice AI Agents</div>
+                        <div class="value-stack-cell custom">~$20,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">Owner Dashboard + CRM</div>
+                        <div class="value-stack-cell custom">~$10,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">3D Permit Drawings</div>
+                        <div class="value-stack-cell custom">~$8,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row" data-reveal="row">
+                        <div class="value-stack-cell capability">Invoicing &amp; Accounting Integration</div>
+                        <div class="value-stack-cell custom">~$5,000</div>
+                        <div class="value-stack-cell staff">N/A</div>
+                        <div class="value-stack-cell ours">Included</div>
+                    </div>
+                    <div class="value-stack-row total" data-reveal="row">
+                        <div class="value-stack-cell capability">Total</div>
+                        <div class="value-stack-cell custom">$95,000+</div>
+                        <div class="value-stack-cell staff">$45,000+/yr</div>
+                        <div class="value-stack-cell ours">From $2,500 + $699/mo</div>
+                    </div>
+                </div>
+                <p class="value-stack-anchor reveal">You're not paying for software. <strong>You're buying back your time and unlocking revenue you're currently leaving on the table.</strong></p>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             10. How It Works (Timeline)
+             ==================================================== -->
+        <section class="timeline-section" id="how-it-works">
+            <div class="container">
+                <div class="timeline-header reveal">
+                    <span class="section-label">How It Works</span>
+                    <h2 class="section-title">Live in 3 Weeks. Seriously.</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">Four simple steps from first call to live platform.</p>
+                </div>
+                <div class="timeline-steps">
+                    <div class="timeline-step reveal reveal-delay-1">
+                        <div class="step-circle active">
+                            <span class="step-icon" aria-hidden="true">&#128222;</span>
+                        </div>
+                        <div class="timeline-step-content">
+                            <div class="step-timing">Today</div>
+                            <div class="step-title">Book a Demo</div>
+                            <div class="step-desc">A personalized walkthrough. See exactly how it works for {{COMPANY_NAME}}.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-step reveal reveal-delay-2">
+                        <div class="step-circle">
+                            <span class="step-icon" aria-hidden="true">&#127912;</span>
+                        </div>
+                        <div class="timeline-step-content">
+                            <div class="step-timing">This Week</div>
+                            <div class="step-title">Share Your Brand</div>
+                            <div class="step-desc">Logo, colors, pricing preferences &mdash; we handle the rest.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-step reveal reveal-delay-3">
+                        <div class="step-circle">
+                            <span class="step-icon" aria-hidden="true">&#9881;</span>
+                        </div>
+                        <div class="timeline-step-content">
+                            <div class="step-timing">Week 2</div>
+                            <div class="step-title">We Build &amp; Train</div>
+                            <div class="step-desc">Custom deployment, AI training on your services and pricing.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-step reveal reveal-delay-4">
+                        <div class="step-circle">
+                            <span class="step-icon" aria-hidden="true">&#128640;</span>
+                        </div>
+                        <div class="timeline-step-content">
+                            <div class="step-timing">Week 3</div>
+                            <div class="step-title">Go Live</div>
+                            <div class="step-desc">Platform launches. Leads start flowing. You focus on building.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             11. Pricing
+             ==================================================== -->
+        <section class="pricing" id="pricing">
+            <div class="container">
+                <div class="pricing-header reveal">
+                    <span class="section-label">Investment</span>
+                    <h2 class="section-title">Choose Your Engine</h2>
+                </div>
+                <div class="pricing-anchor reveal">
+                    <p>Custom AI platforms typically cost <span class="strikethrough">$95,000+</span> and take 6&ndash;12 months to build.</p>
+                    <p>You get yours in 3 weeks.</p>
+                </div>
+
+                <div class="pricing-tiers">
+                    <!-- Elevate -->
+                    <div class="pricing-tier pricing-tier--core reveal reveal-delay-1">
+                        <div class="pricing-tier-name">Elevate</div>
+                        <div class="pricing-tier-tagline">Elevate Your Brand &mdash; stop losing leads while you're on a job site</div>
+                        <div class="pricing-tier-setup">Activation fee: <strong>$1,500</strong></div>
+                        <div class="pricing-tier-price">$249<span class="pricing-period">/mo</span></div>
+                        <hr class="pricing-tier-divider">
+                        <ul class="pricing-tier-features">
+                            <li>AI-powered intake &amp; draft quoting &mdash; you review every estimate</li>
+                            <li>Owner dashboard &amp; lead management</li>
+                            <li>Your branding throughout</li>
+                            <li>Email &amp; chat support</li>
+                        </ul>
+                        <a href="{{CALENDAR_URL}}" class="btn btn-outline-light">Book Your Free Demo &rarr;</a>
+                    </div>
+
+                    <!-- Accelerate (Highlighted — Most Popular) -->
+                    <div class="pricing-tier pricing-tier--growth reveal">
+                        <div class="pricing-tier-badge">Most Popular</div>
+                        <div class="pricing-tier-name">Accelerate</div>
+                        <div class="pricing-tier-tagline">Accelerate Your Growth &mdash; your craftsmanship deserves a website that matches</div>
+                        <div class="pricing-tier-setup">Activation fee: <strong>$4,500</strong></div>
+                        <div class="pricing-tier-price">$699<span class="pricing-period">/mo</span></div>
+                        <hr class="pricing-tier-divider">
+                        <ul class="pricing-tier-features">
+                            <li>Everything in Elevate, plus:</li>
+                            <li>Design visualisation tool</li>
+                            <li>Bespoke demo with your branding</li>
+                            <li>Automated follow-up sequences</li>
+                            <li>Conversion analytics dashboard</li>
+                            <li>14-Day Confidence Guarantee</li>
+                            <li>Priority support</li>
+                        </ul>
+                        <a href="{{CALENDAR_URL}}" class="btn btn-primary btn-lg">Book Your Free Demo &rarr;</a>
+                    </div>
+
+                    <!-- Dominate -->
+                    <div class="pricing-tier pricing-tier--concierge reveal reveal-delay-1">
+                        <div class="pricing-tier-name">Dominate</div>
+                        <div class="pricing-tier-tagline">Dominate Your Market &mdash; exclusive {{TERRITORY}} territory, your competitors can't access it</div>
+                        <div class="pricing-tier-setup">Activation fee: <strong>$20,000</strong></div>
+                        <div class="pricing-tier-price">$2,500<span class="pricing-period">/mo</span></div>
+                        <hr class="pricing-tier-divider">
+                        <ul class="pricing-tier-features">
+                            <li>Everything in Accelerate, plus:</li>
+                            <li>{{TERRITORY}} territory exclusivity</li>
+                            <li>24/7 AI voice receptionist</li>
+                            <li>Invoicing &amp; payment processing</li>
+                            <li>Quarterly strategy reviews</li>
+                            <li>Custom integrations</li>
+                            <li>30-Day Confidence Guarantee</li>
+                            <li>Founder-led growth partnership</li>
+                        </ul>
+                        <a href="{{CALENDAR_URL}}" class="btn btn-outline-gold">Book a Strategy Call &rarr;</a>
+                    </div>
+                </div>
+
+                <div class="pricing-shared reveal">
+                    <p class="pricing-context">Custom AI platforms typically cost $95K+ and take 6&ndash;12 months. You get yours in 3 weeks.</p>
+                    <div class="guarantee-callout">
+                        <div class="guarantee-title">&#128737; Confidence Guarantee</div>
+                        <p class="guarantee-text"><strong>Accelerate:</strong> If ConversionOS hasn't meaningfully accelerated your business within 14 days of go-live, we'll refund 75% of your activation fee.<br><strong>Dominate:</strong> 30 days to prove we've helped you dominate your market &mdash; or 75% of your activation fee back. No questions. No excuses.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             12. FAQ
+             ==================================================== -->
+        <section class="faq" id="faq">
+            <div class="container">
+                <div class="faq-header reveal">
+                    <span class="section-label">FAQ</span>
+                    <h2 class="section-title">Common Questions</h2>
+                </div>
+                <div class="faq-list" role="list">
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>How long does setup take?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">About 3 weeks from kickoff to launch. Week 1 is onboarding (your branding, pricing, services). Week 2 is build and AI training. Week 3 is testing and go-live. You'll have a working platform before the month is out.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>Do I need to know anything about AI?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">Not a thing. The platform is designed for contractors, not tech people. If you can use a smartphone, you can use the dashboard. We handle all the AI configuration and training behind the scenes.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>What if I don't like it?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">See it before you commit. Book a demo call and I'll walk you through a live version personalized for {{COMPANY_NAME}} &mdash; no pressure, no obligation, just a 20-minute look at what's possible. If you like what you see, I might even let you test-drive the platform for a week at no cost before you decide.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>Will my customers know it's AI?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">The AI agents are transparent about being AI assistants for {{COMPANY_NAME}} &mdash; honesty builds trust. But they're so natural that most customers don't mind. They just appreciate the fast, helpful response at any hour.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>What about my existing website?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">We take your existing website's design, content, testimonials, and photos and build them right into ConversionOS &mdash; think of it as a seamless upgrade, not a separate system. Your branding, your voice, just powered by AI quoting and a better customer experience. Want to see what that looks like? Book a quick demo and I'll show you a version built around your actual brand.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>Is my data secure?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">Absolutely. All customer data is encrypted, stored securely, and never shared with third parties. Your business data stays yours. We're fully compliant with Canadian privacy regulations.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>What happens if I cancel?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">Cancel the monthly fee anytime with 30 days notice. Your territory exclusivity ends, and the platform winds down. All your lead data is exported to you. No lock-in, no penalties.</div>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>How is this different from a chatbot?</span>
+                            <span class="faq-chevron" aria-hidden="true"></span>
+                        </button>
+                        <div class="faq-answer" role="region">
+                            <div class="faq-answer-inner">Standard chatbots follow scripts and frustrate users. This is a full AI platform: conversational quote generation, voice agents, design visualization, and an owner dashboard. It's the difference between a FAQ page and a full sales team.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================
+             13. Final CTA
+             ==================================================== -->
+        <section class="final-cta" id="contact">
+            <div class="container">
+                <div class="final-cta-content">
+                    <h2 class="reveal">Ready to See What {{COMPANY_NAME}} Could Look Like?</h2>
+                    <div class="final-cta-actions reveal">
+                        <a href="{{CALENDAR_URL}}" class="btn btn-primary btn-lg" target="_blank" rel="noopener">Book Your Free Personalized Demo with the Founder &rarr;</a>
+                        <a href="mailto:ferdie@norbotsystems.com?subject=I%27d%20Like%20a%20Demo" class="btn btn-secondary btn-lg">Email for Inquiries &rarr;</a>
+                    </div>
+                    <div class="final-cta-note reveal">
+                        <p>"I built this because I believe in what renovation contractors do. You transform homes and improve lives &mdash; you deserve technology that matches your craft. Let me show you what's possible."</p>
+                        <span class="sig">&mdash; Ferdie Botden, Founder</span>
+                    </div>
+                    <p class="final-cta-urgency reveal">{{TERRITORY}} is available now. Let's talk before it's not.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ====================================================
+         14. Footer
+         ==================================================== -->
+    <footer>
+        <div class="container">
+            <p class="footer-brand">Norbot Systems Inc.</p>
+            <p>Questions? <a href="mailto:ferdie@norbotsystems.com?subject=I%27d%20Like%20a%20Demo">ferdie@norbotsystems.com</a></p>
+            <p class="casl-note">You received this because your business is publicly listed in {{TERRITORY}}. Reply STOP to opt out. Sender: Ferdie Botden &middot; ferdie@norbotsystems.com</p>
+        </div>
+    </footer>
+
+    <!-- Floating Sticky CTA Bar -->
+    <div class="floating-cta" id="floatingCta" aria-label="Quick action bar">
+        <span class="floating-cta-text">{{TERRITORY}} is still available</span>
+        <a href="{{CALENDAR_URL}}" class="btn btn-primary" target="_blank" rel="noopener">Book Your Demo</a>
+    </div>
+
+    <!-- ====================================================
+         JavaScript — Scroll animations, counters, interactivity
+         ==================================================== -->
+    <script>
+    (function() {
+        'use strict';
+
+        // Respect reduced motion preference
+        var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // 1. IntersectionObserver — reveal on scroll
+        var reveals = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window && !prefersReducedMotion) {
+            var revealObserver = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+            reveals.forEach(function(el) { revealObserver.observe(el); });
+        } else {
+            // Fallback: show everything immediately
+            reveals.forEach(function(el) { el.classList.add('visible'); });
+        }
+
+        // 2. Number counter animation
+        function animateCounter(el) {
+            var target = parseInt(el.getAttribute('data-count'), 10);
+            var prefix = el.getAttribute('data-prefix') || '';
+            var suffix = el.getAttribute('data-suffix') || '';
+            if (isNaN(target)) return;
+            var duration = 1500;
+            var start = 0;
+            var startTime = null;
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                var progress = Math.min((timestamp - startTime) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                var current = Math.round(eased * target);
+                el.textContent = prefix + current + suffix;
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        var counters = document.querySelectorAll('[data-count]');
+        if ('IntersectionObserver' in window && !prefersReducedMotion) {
+            var counterObserver = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        animateCounter(entry.target);
+                        counterObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+            counters.forEach(function(el) { counterObserver.observe(el); });
+        } else {
+            counters.forEach(function(el) {
+                var prefix = el.getAttribute('data-prefix') || '';
+                var suffix = el.getAttribute('data-suffix') || '';
+                el.textContent = prefix + el.getAttribute('data-count') + suffix;
+            });
+        }
+
+        // 3. Visualizer Showcase Controller
+        (function() {
+            var showcase = document.getElementById('vizShowcase');
+            if (!showcase) return;
+
+            // Phase tab switching
+            var tabs = showcase.querySelectorAll('.viz-phase-tab');
+            var phases = showcase.querySelectorAll('.viz-phase-content');
+            function switchPhase(phaseName) {
+                tabs.forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-phase') === phaseName); });
+                phases.forEach(function(p) { p.classList.toggle('active', p.getAttribute('data-phase') === phaseName); });
+            }
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() { switchPhase(this.getAttribute('data-phase')); });
+            });
+
+            // "Generate My Vision" button → switch to result tab
+            var genBtn = document.getElementById('vizGenerateBtn');
+            if (genBtn) {
+                genBtn.addEventListener('click', function() { switchPhase('result'); });
+            }
+
+            // Mia conversation bubble animation
+            var vizConvo = document.getElementById('vizConversation');
+            if (vizConvo && !prefersReducedMotion) {
+                var vizBubbles = vizConvo.querySelectorAll('.viz-bubble, .viz-generate-btn, .viz-agent-label[data-delay]');
+                var vizAnimated = false;
+                if ('IntersectionObserver' in window) {
+                    var vizObserver = new IntersectionObserver(function(entries) {
+                        entries.forEach(function(entry) {
+                            if (entry.isIntersecting && !vizAnimated) {
+                                vizAnimated = true;
+                                vizBubbles.forEach(function(el) {
+                                    var delay = parseInt(el.getAttribute('data-delay'), 10) || 0;
+                                    setTimeout(function() { el.classList.add('show'); }, delay);
+                                });
+                                vizObserver.unobserve(entry.target);
+                            }
+                        });
+                    }, { threshold: 0.3 });
+                    vizObserver.observe(vizConvo);
+                }
+            } else if (vizConvo) {
+                vizConvo.querySelectorAll('.viz-bubble, .viz-generate-btn').forEach(function(el) { el.classList.add('show'); });
+            }
+
+            // Before/After opacity slider viewer
+            var styleImages = {
+                'Modern': "url('https://ene7zidqbpxuzjzd.public.blob.vercel-storage.com/templates/microsite/sample-images/after-modern.jpg')",
+                'Farmhouse': "url('https://ene7zidqbpxuzjzd.public.blob.vercel-storage.com/templates/microsite/sample-images/after-farmhouse.jpg')",
+                'Contemporary': "url('https://ene7zidqbpxuzjzd.public.blob.vercel-storage.com/templates/microsite/sample-images/after-contemporary.jpg')"
+            };
+
+            var afterLayer = document.getElementById('baViewerAfter');
+            var afterLabel = document.getElementById('baViewerAfterLabel');
+            var beforeLabel = document.querySelector('.ba-viewer-label-before');
+            var opacitySlider = document.getElementById('baOpacitySlider');
+            var chips = document.querySelectorAll('#styleChips .style-chip');
+
+            function updateOpacity(val) {
+                var pct = val / 100;
+                afterLayer.style.opacity = pct;
+                // Fade labels: before fades out as after fades in
+                if (beforeLabel) beforeLabel.style.opacity = 1 - pct;
+                if (afterLabel) afterLabel.style.opacity = pct;
+            }
+
+            // On load: set Modern image and start at 0% overlay (fully before)
+            if (afterLayer) {
+                afterLayer.style.backgroundImage = styleImages['Modern'];
+                updateOpacity(0);
+            }
+
+            // Slider drives opacity in real-time + hide drag hint on first interaction
+            var dragHint = document.getElementById('baDragHint');
+            if (opacitySlider) {
+                opacitySlider.addEventListener('input', function() {
+                    updateOpacity(parseInt(this.value, 10));
+                    if (dragHint && !dragHint.classList.contains('hidden')) {
+                        dragHint.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Shared easing function for all B/A animations
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            // Style chips swap the after image with full 0→100→0 animated sweep
+            var chipAnimationId = null;
+            chips.forEach(function(chip) {
+                chip.addEventListener('click', function() {
+                    var style = chip.getAttribute('data-style');
+                    chips.forEach(function(c) { c.classList.remove('active'); });
+                    chip.classList.add('active');
+
+                    // Cancel any in-progress chip animation
+                    if (chipAnimationId) {
+                        cancelAnimationFrame(chipAnimationId);
+                        chipAnimationId = null;
+                    }
+
+                    // Set opacity to 0, swap image instantly
+                    updateOpacity(0);
+                    if (opacitySlider) opacitySlider.value = 0;
+                    afterLayer.style.backgroundImage = styleImages[style];
+                    afterLabel.innerHTML = 'After &mdash; ' + style;
+
+                    // Animate forward 0→100 (2s) then reverse 100→0 (1.5s)
+                    var startTime = null;
+                    var phase = 'forward';
+                    function animateChip(timestamp) {
+                        if (!startTime) startTime = timestamp;
+                        var elapsed = timestamp - startTime;
+                        if (phase === 'forward') {
+                            var progress = Math.min(elapsed / 2000, 1);
+                            var val = Math.round(easeInOutCubic(progress) * 100);
+                            if (opacitySlider) opacitySlider.value = val;
+                            updateOpacity(val);
+                            if (progress >= 1) {
+                                phase = 'reverse';
+                                startTime = null;
+                            }
+                            chipAnimationId = requestAnimationFrame(animateChip);
+                        } else {
+                            var progress = Math.min(elapsed / 1500, 1);
+                            var val = Math.round((1 - easeInOutCubic(progress)) * 100);
+                            if (opacitySlider) opacitySlider.value = val;
+                            updateOpacity(val);
+                            if (progress < 1) {
+                                chipAnimationId = requestAnimationFrame(animateChip);
+                            } else {
+                                chipAnimationId = null;
+                            }
+                        }
+                    }
+                    chipAnimationId = requestAnimationFrame(animateChip);
+                });
+            });
+
+            // Scroll-triggered auto-animation: before → after → before
+            var baViewerEl = document.getElementById('baViewer');
+            if (baViewerEl && opacitySlider && !prefersReducedMotion && 'IntersectionObserver' in window) {
+                var baAutoAnimated = false;
+                var baAutoObserver = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting && !baAutoAnimated) {
+                            baAutoAnimated = true;
+                            baAutoObserver.unobserve(entry.target);
+                            var startTime = null;
+                            var phase = 'forward';
+                            function animateSlider(timestamp) {
+                                if (!startTime) startTime = timestamp;
+                                var elapsed = timestamp - startTime;
+                                if (phase === 'forward') {
+                                    var progress = Math.min(elapsed / 2000, 1);
+                                    var val = Math.round(easeInOutCubic(progress) * 100);
+                                    opacitySlider.value = val;
+                                    updateOpacity(val);
+                                    if (progress >= 1) {
+                                        phase = 'reverse';
+                                        startTime = null;
+                                    }
+                                    requestAnimationFrame(animateSlider);
+                                } else {
+                                    var progress = Math.min(elapsed / 1500, 1);
+                                    var val = Math.round((1 - easeInOutCubic(progress)) * 100);
+                                    opacitySlider.value = val;
+                                    updateOpacity(val);
+                                    if (progress < 1) {
+                                        requestAnimationFrame(animateSlider);
+                                    }
+                                }
+                            }
+                            requestAnimationFrame(animateSlider);
+                            if (dragHint) {
+                                setTimeout(function() { dragHint.classList.add('hidden'); }, 4500);
+                            }
+                        }
+                    });
+                }, { threshold: 0.3 });
+                baAutoObserver.observe(baViewerEl);
+            }
+        })();
+
+        // 4. FAQ accordion
+        var faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(function(item) {
+            var btn = item.querySelector('.faq-question');
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                var isOpen = item.classList.contains('open');
+                // Close all others
+                faqItems.forEach(function(other) {
+                    other.classList.remove('open');
+                    var otherBtn = other.querySelector('.faq-question');
+                    if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+                });
+                if (!isOpen) {
+                    item.classList.add('open');
+                    btn.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+
+        // 5. Chat typing animation (bubbles + agent labels)
+        var chatDemo = document.getElementById('chatDemo');
+        if (chatDemo && !prefersReducedMotion) {
+            var chatElements = chatDemo.querySelectorAll('.chat-bubble, .chat-agent-label[data-delay]');
+            var chatAnimated = false;
+            if ('IntersectionObserver' in window) {
+                var chatObserver = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting && !chatAnimated) {
+                            chatAnimated = true;
+                            chatElements.forEach(function(el) {
+                                var delay = parseInt(el.getAttribute('data-delay'), 10) || 0;
+                                setTimeout(function() {
+                                    el.classList.add('show');
+                                }, delay);
+                            });
+                            chatObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.3 });
+                chatObserver.observe(chatDemo);
+            }
+        } else if (chatDemo) {
+            chatDemo.querySelectorAll('.chat-bubble, .chat-agent-label[data-delay]').forEach(function(b) { b.classList.add('show'); });
+        }
+
+        // 6. Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+                }
+            });
+        });
+
+        // 7. Sticky banner shadow on scroll + Floating CTA
+        var banner = document.querySelector('.top-banner');
+        var floatingCta = document.getElementById('floatingCta');
+        var heroSection = document.querySelector('.hero');
+        var finalCtaSection = document.querySelector('.final-cta');
+        if (banner || floatingCta) {
+            var scrollHandler = function() {
+                if (banner) {
+                    if (window.scrollY > 50) {
+                        banner.classList.add('scrolled');
+                    } else {
+                        banner.classList.remove('scrolled');
+                    }
+                }
+                if (floatingCta && heroSection && finalCtaSection) {
+                    var heroBottom = heroSection.getBoundingClientRect().bottom;
+                    var finalCtaTop = finalCtaSection.getBoundingClientRect().top;
+                    var viewportHeight = window.innerHeight;
+                    var showFloating = heroBottom < 0 && finalCtaTop > viewportHeight;
+                    floatingCta.classList.toggle('visible', showFloating);
+                    document.body.classList.toggle('floating-cta-active', showFloating);
+                }
+            };
+            window.addEventListener('scroll', scrollHandler, { passive: true });
+            scrollHandler();
+        }
+
+        // 8. ROI Calculator
+        (function() {
+            var quotesSlider = document.getElementById('roiQuotes');
+            var jobSizeSlider = document.getElementById('roiJobSize');
+            var closeRateSlider = document.getElementById('roiCloseRate');
+            if (!quotesSlider || !jobSizeSlider || !closeRateSlider) return;
+
+            var fmt = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+            function updateROI() {
+                var quotes = parseInt(quotesSlider.value, 10);
+                var jobSize = parseInt(jobSizeSlider.value, 10);
+                var closeRate = parseInt(closeRateSlider.value, 10) / 100;
+
+                // Display slider values
+                document.getElementById('roiQuotesValue').textContent = quotes;
+                document.getElementById('roiJobValue').textContent = fmt.format(jobSize);
+                document.getElementById('roiCloseValue').textContent = closeRateSlider.value + '%';
+
+                // Before calculations
+                var beforeHoursWeek = quotes * 3;
+                var beforeCloseRate = closeRate;
+                var beforeWeeklyRevenue = quotes * beforeCloseRate * jobSize;
+                var beforeAnnualRevenue = beforeWeeklyRevenue * 50;
+
+                // After calculations (30% close rate improvement, 50% more quotes from AI)
+                var afterQuotes = Math.round(quotes * 1.5);
+                var afterCloseRate = Math.min(closeRate * 1.3, 0.65);
+                var afterHoursWeek = afterQuotes * (10 / 60); // 10 min each
+                var afterWeeklyRevenue = afterQuotes * afterCloseRate * jobSize;
+                var afterAnnualRevenue = afterWeeklyRevenue * 50;
+
+                // Delta
+                var annualDelta = afterAnnualRevenue - beforeAnnualRevenue;
+                var monthlyDelta = annualDelta / 12;
+                var hoursSaved = Math.round((beforeHoursWeek - afterHoursWeek) * 50);
+                var yearOneCost = 5000 + (999 * 12);
+                var roi = yearOneCost > 0 ? Math.round(((annualDelta - yearOneCost) / yearOneCost) * 100) : 0;
+
+                // Update Before card
+                document.getElementById('roiBeforeHours').textContent = beforeHoursWeek + ' hrs';
+                document.getElementById('roiBeforeClose').textContent = closeRateSlider.value + '%';
+                document.getElementById('roiBeforeRevenue').textContent = fmt.format(beforeAnnualRevenue);
+
+                // Update After card
+                document.getElementById('roiAfterHours').textContent = Math.round(afterHoursWeek * 60) + ' min';
+                document.getElementById('roiAfterClose').textContent = (afterCloseRate * 100).toFixed(1) + '%';
+                document.getElementById('roiAfterRevenue').textContent = fmt.format(afterAnnualRevenue);
+
+                // Cost of waiting
+                document.getElementById('roiCostWaiting').textContent = fmt.format(Math.round(monthlyDelta));
+
+                // Summary
+                document.getElementById('roiAnnualDelta').textContent = fmt.format(Math.round(annualDelta));
+                document.getElementById('roiHoursSaved').textContent = hoursSaved;
+                document.getElementById('roiROI').textContent = Math.max(0, roi) + '%';
+            }
+
+            quotesSlider.addEventListener('input', updateROI);
+            jobSizeSlider.addEventListener('input', updateROI);
+            closeRateSlider.addEventListener('input', updateROI);
+            updateROI();
+        })();
+
+        // 9. Value stack row-by-row reveal
+        (function() {
+            var rows = document.querySelectorAll('[data-reveal="row"]');
+            if (!rows.length || prefersReducedMotion) return;
+            rows.forEach(function(row) {
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            });
+            if ('IntersectionObserver' in window) {
+                var rowObserver = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            var tableRows = entry.target.closest('.value-stack-table');
+                            if (tableRows) {
+                                var allRows = tableRows.querySelectorAll('[data-reveal="row"]');
+                                allRows.forEach(function(row, i) {
+                                    setTimeout(function() {
+                                        row.style.opacity = '1';
+                                        row.style.transform = 'translateY(0)';
+                                    }, i * 120);
+                                });
+                            }
+                            rowObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.2 });
+                if (rows[0]) rowObserver.observe(rows[0]);
+            }
+        })();
+
+        // 10. Dynamic star rating display
+        document.querySelectorAll('.trust-card-stars[data-rating]').forEach(function(el) {
+            var rating = parseFloat(el.getAttribute('data-rating')) || 0;
+            var full = Math.floor(rating);
+            var half = (rating % 1) >= 0.3 ? 1 : 0;
+            var empty = 5 - full - half;
+            var html = '';
+            for (var i = 0; i < full; i++) html += '&#9733;';
+            if (half) html += '<span style="position:relative;display:inline-block;"><span style="position:absolute;overflow:hidden;width:50%;">&#9733;</span><span class="star-empty">&#9733;</span></span>';
+            for (var j = 0; j < empty; j++) html += '<span class="star-empty">&#9733;</span>';
+            el.innerHTML = html;
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -36,6 +36,7 @@ import {
   generateConceptDescriptions,
   analyzeConceptForPricing,
 } from '@/lib/ai/concept-pricing';
+import { deriveBeforeScopeFromAnalysis } from '@/lib/ai/before-image-pricing-analysis';
 import type { DesignIntent } from '@/lib/schemas/visualizer-extraction';
 
 // Extended request schema (same as non-streaming route)
@@ -616,7 +617,18 @@ export async function POST(request: NextRequest) {
 
         // Fire-and-forget: concept pricing + metrics
         if (!dbError && visualization && concepts.length > 0 && process.env['OPENAI_API_KEY']) {
-          analyzeConceptForPricing(concepts[0]!.imageUrl, effectiveRoomType, effectiveStyle)
+          // Derive BeforeScope from photo analysis when available (zero API calls)
+          const beforeScope = photoAnalysis ? deriveBeforeScopeFromAnalysis(photoAnalysis) : undefined;
+
+          analyzeConceptForPricing(
+            concepts[0]!.imageUrl,
+            effectiveRoomType,
+            effectiveStyle,
+            {
+              ...(beforeScope && { beforeScope }),
+              ...(beforeScope && originalImageUrl && { beforeImageUrl: originalImageUrl }),
+            },
+          )
             .then(async (pricingAnalysis) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               await (supabase.from('visualizations') as any)

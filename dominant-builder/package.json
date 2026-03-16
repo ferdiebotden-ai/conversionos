@@ -1,6 +1,10 @@
 {
   "name": "dominant-builder",
-  "type": "module",
+  "version": "0.1.0",
   "private": true,
-  "description": "Sprint 3 — Opus Vision-driven bespoke website generation for Dominate/Black Label tiers"
+  "type": "module",
+  "scripts": {
+    "shadow-build": "node src/cli/shadow-build.mjs",
+    "test": "node --test"
+  }
 }

@@ -17,11 +17,11 @@ export function MiscBreadcrumbHero({ branding, config, className }: SectionBaseP
         <div className="container mx-auto">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              {config.heroHeadline || branding.name}
+              {(config as Record<string, unknown>)?.['heroHeadline'] as string || branding.name}
             </h1>
-            {(config.heroSubheadline || branding.tagline) && (
+            {((config as Record<string, unknown>)?.['heroSubheadline'] || branding.tagline) && (
               <p className="mt-4 text-lg text-muted-foreground">
-                {config.heroSubheadline || branding.tagline}
+                {(config as Record<string, unknown>)?.['heroSubheadline'] as string || branding.tagline}
               </p>
             )}
           </div>

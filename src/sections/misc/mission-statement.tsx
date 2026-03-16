@@ -3,7 +3,9 @@
 import type { SectionBaseProps } from '@/lib/section-types';
 
 export function MiscMissionStatement({ config, className }: SectionBaseProps) {
-  if (!config.mission) return null;
+  const c = (config ?? {}) as Record<string, unknown>;
+  const mission = typeof c['mission'] === 'string' ? c['mission'] : null;
+  if (!mission) return null;
 
   return (
     <section className={`border-y border-border bg-primary px-4 py-12 md:py-16 ${className ?? ''}`}>
@@ -12,7 +14,7 @@ export function MiscMissionStatement({ config, className }: SectionBaseProps) {
           Our Mission
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/90">
-          {config.mission}
+          {mission}
         </p>
       </div>
     </section>

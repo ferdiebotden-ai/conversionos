@@ -59,19 +59,6 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'rose-building-group.norbotsystems.com': 'rose-building-group',
   'a-p-hurley-construction.norbotsystems.com': 'a-p-hurley-construction',
   'eagleview-construction.norbotsystems.com': 'eagleview-construction',
-  'easy-renovation.norbotsystems.com': 'easy-renovation',
-  'gracia-makeovers.norbotsystems.com': 'gracia-makeovers',
-  'red-stone-contracting.norbotsystems.com': 'red-stone-contracting',
-  'bradburn-group.norbotsystems.com': 'bradburn-group',
-  'eastview-homes.norbotsystems.com': 'eastview-homes',
-  'ostrander-construction.norbotsystems.com': 'ostrander-construction',
-  'kwc-basements-renovations.norbotsystems.com': 'kwc-basements-renovations',
-  'inex-general-contracting.norbotsystems.com': 'inex-general-contracting',
-  'northpoint-renovations.norbotsystems.com': 'northpoint-renovations',
-  'hache-construction.norbotsystems.com': 'hache-construction',
-  'tc-contracting.norbotsystems.com': 'tc-contracting',
-  'bacvar-building.norbotsystems.com': 'bacvar-building',
-  'yorkland-homes.norbotsystems.com': 'yorkland-homes',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

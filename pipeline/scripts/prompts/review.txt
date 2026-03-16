@@ -1,0 +1,47 @@
+You are a quality reviewer for sales outreach artifacts. Review the following artifacts for a pitch to "{COMPANY_NAME}".
+
+REVIEW CHECKLIST:
+1. No remaining {{TOKEN}} placeholders in any artifact
+2. Company name "{COMPANY_NAME}" spelled correctly throughout
+3. No lorem ipsum, placeholder text, or generic filler
+4. CASL compliance: sender ID, physical address placeholder, unsubscribe in every email
+5. Professional tone — warm but not pushy, human not templated
+6. Specific details about the company are referenced (not generic)
+7. Call script has clear structure with objection handling
+
+EMAIL COPY QUALITY CHECKS:
+8. Email 1 body is <=80 words (excluding signature/footer)
+9. Email 2 body is <=80 words
+10. Each email has exactly ONE call-to-action (not multiple)
+11. No pricing mentioned in any email
+12. No feature dump lists (no "It does three things: 1. 2. 3.")
+13. Subject lines are 2-6 words, all lowercase (proper nouns only capitalised), no "Quick question about..."
+14. Emails lead with the contractor's pain, not our product features
+15. Canadian spelling used (colour, favourite, centre)
+16. No "ConversionOS" anywhere in emails — use "platform", "I built something", etc.
+17. Microsite described as "a private page I built for {COMPANY_NAME}" — NOT a product demo or feature tour
+18. CTA is a plain visible URL (www.norbotsystems.com/{SLUG}) on its own line, NOT hidden behind markdown link text
+
+TIER ACCURACY CHECKS (CRITICAL):
+19. No "exclusive territory", "territory lock", or exclusivity claims anywhere — Accelerate tier is non-exclusive. Only Dominate ($20,000) has territory exclusivity.
+20. Pricing matches Accelerate tier: $4,500 activation fee + $699/mo. No other numbers.
+21. No "setup fee" — always "activation fee"
+
+Score 0-100. Mark critical issues that MUST be fixed before sending. Mark warnings for things that should be improved. Mark minor for style suggestions.
+
+A score >= 80 with zero critical issues = PASS.
+
+---
+
+MICROSITE HTML (first 2000 chars):
+{MICROSITE_PREVIEW}
+
+---
+
+EMAIL CONTENT:
+{EMAIL_CONTENT}
+
+---
+
+CALL SCRIPT (first 3000 chars):
+{CALL_SCRIPT_PREVIEW}

@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "initial": {
+      "type": "object",
+      "properties": {
+        "subject_lines": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "5-7 A/B test subject lines, <=50 chars each, casual and personalized"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body in plain text, <=80 words excluding signature/footer"
+        }
+      },
+      "required": ["subject_lines", "body"]
+    },
+    "follow_up": {
+      "type": "object",
+      "properties": {
+        "subject_lines": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "3 A/B test subject lines for follow-up, <=50 chars each"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body <=80 words, different angle from email 1"
+        }
+      },
+      "required": ["subject_lines", "body"]
+    }
+  },
+  "required": ["initial", "follow_up"]
+}

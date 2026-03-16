@@ -61,7 +61,7 @@ export function VisualizerShowcaseHero({ branding, config, className }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [sliderPosition, setSliderPosition] = useState(shouldReduce ? 90 : 0);
   const [isDragging, setIsDragging] = useState(false);
-  const [hasAnimated, setHasAnimated] = useState(!!shouldReduce);
+  const [, setHasAnimated] = useState(!!shouldReduce);
   const [showLabels, setShowLabels] = useState(!!shouldReduce);
   const trackRef = useRef<HTMLDivElement>(null);
   const cancelledRef = useRef(false);
@@ -112,9 +112,7 @@ export function VisualizerShowcaseHero({ branding, config, className }: Props) {
     if (hasAnimatedRef.current) return;
     hasAnimatedRef.current = true;
     cancelledRef.current = false;
-    // Defer animation start to avoid synchronous setState in effect body
-    const raf = requestAnimationFrame(() => { runIntroAnimation(); });
-    return () => cancelAnimationFrame(raf);
+    requestAnimationFrame(() => runIntroAnimation());
   }, [runIntroAnimation]);
 
   // ── Position calculation from pointer ──────────────────────────────

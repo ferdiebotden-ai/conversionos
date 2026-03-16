@@ -48,10 +48,10 @@ export function ContactSplitSection({ branding, config, tokens, className }: Sec
   const businessInfo = asRecord(configRecord?.['business_info']);
   const companyProfile = asRecord(configRecord?.['company_profile']);
 
-  const phone = typeof businessInfo?.['phone'] === 'string' ? businessInfo['phone'] : config.phone;
-  const email = typeof businessInfo?.['email'] === 'string' ? businessInfo['email'] : config.email;
-  const address = typeof businessInfo?.['address'] === 'string' ? businessInfo['address'] : config.address;
-  const hours = typeof businessInfo?.['hours'] === 'string' ? businessInfo['hours'] : config.hours;
+  const phone = String(typeof businessInfo?.['phone'] === 'string' ? businessInfo['phone'] : configRecord?.['phone'] ?? '');
+  const email = String(typeof businessInfo?.['email'] === 'string' ? businessInfo['email'] : configRecord?.['email'] ?? '');
+  const address = String(typeof businessInfo?.['address'] === 'string' ? businessInfo['address'] : configRecord?.['address'] ?? '');
+  const hours = String(typeof businessInfo?.['hours'] === 'string' ? businessInfo['hours'] : configRecord?.['hours'] ?? '');
   const socialLinksRaw = companyProfile?.['social_links'];
 
   const socialLinks = Array.isArray(socialLinksRaw)

@@ -1,0 +1,48 @@
+You are writing a 2-email cold outreach sequence for selling an AI-powered quoting platform to a renovation contractor.
+
+Target company:
+{TARGET_CONTEXT}
+
+## COPY RULES (MANDATORY)
+- Email 1 body: <=80 words (excluding signature and CASL footer)
+- Email 2 body: <=80 words
+- ONE call-to-action per email: the plain microsite URL (www.norbotsystems.com/{SLUG}) on its own line, introduced with a context sentence
+- Lead with THEIR pain (slow quoting, lost leads), not OUR features
+- No feature dumps. No numbered lists of what the platform does.
+- No pricing in emails — not even hints.
+- No "ConversionOS" — use "I built something", "the platform", or "a platform"
+- No "instant quotes" — always "AI-drafted quotes" with owner review emphasis
+- Plain text Gmail-friendly. No HTML, no images, no bold/italic in body.
+- Canadian spelling (colour, favourite, centre)
+- Personalize with 1-2 specific facts from their data (rating, reviews, years, services)
+- No unverifiable claims (don't say "doubles your leads")
+- No "exclusive territory" or exclusivity claims — Accelerate is non-exclusive. Only Dominate tier has territory lock.
+- Tone: human, hand-written feel. Not templated. Not salesy. Like texting a friend.
+- Short paragraphs (1-3 sentences). No bullet points or formatted lists in email body.
+- Hint, don't explain — the email's job is curiosity → click. One sentence for value prop, never a feature tour.
+
+## SUBJECT LINE RULES (CRITICAL)
+- 2-6 words, ALL LOWERCASE (capitalise proper nouns only)
+- Best pattern: scenario-painting + curiosity gap (e.g., "kirk's website after hours")
+- NEVER use "Quick question about..." — overused, signals cold email
+- Must pass the "would I open this from a stranger?" test
+- Email 2: "re:" prefix OK for follow-ups
+
+## STRUCTURE PER EMAIL (4-block structure)
+1. **Personal proof** — one specific fact about their business (rating, review count, city, years, services)
+2. **Problem scenario** — paint the scene they'll recognise (slow quoting, lost leads, after-hours enquiries)
+3. **Microsite offer** — describe as "a private page I built for {COMPANY_NAME}" + plain URL on its own line (www.norbotsystems.com/{SLUG} format, NOT markdown link syntax)
+4. **Micro-CTA question** — one low-friction ask (e.g., "Worth a look?")
+5. Sign off with "Cheers,\nFerdie" (first name only, no email, no dash)
+
+## CASL COMPLIANCE (mandatory for every email)
+End each email with:
+---
+Ferdie Botden | NorBot Systems Inc. | 140 Dempsey Dr, Stratford, ON N5A 0K5
+If you'd prefer not to hear from me, just reply STOP and I'll remove you immediately.
+
+## EMAIL ANGLES
+- Email 1 (Day 1): Their reputation is impressive → but leads go cold waiting for quotes → there's a fix → worth a look?
+- Email 2 (Day 2): Different angle — time spent on quotes that don't convert → AI handles initial conversation → worth a look?
+
+Reference specific details about {COMPANY_NAME} — their rating, services, city, years in business. Make it feel hand-written.

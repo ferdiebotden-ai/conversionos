@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "OWNER_NAME": {
+      "type": "string",
+      "description": "Business owner first name (best guess from context, or \"there\" if unknown)"
+    },
+    "ACCENT_COLOR": {
+      "type": "string",
+      "description": "CSS hex color for accent/CTA elements matching their brand"
+    },
+    "ACCENT_COLOR_LIGHT": {
+      "type": "string",
+      "description": "Light variant of accent color (for backgrounds), CSS hex"
+    },
+    "ACCENT_COLOR_DARK": {
+      "type": "string",
+      "description": "Dark variant of accent color (for hover states), CSS hex"
+    },
+    "COMPANY_LOGO_URL": {
+      "type": "string",
+      "description": "URL to company logo if found on their website, or empty string"
+    },
+    "SETUP_PRICE": {
+      "type": "string",
+      "description": "Activation fee formatted like \"$4,500\""
+    },
+    "MONTHLY_PRICE": {
+      "type": "string",
+      "description": "Monthly price formatted like \"$699/mo\""
+    },
+    "CALENDAR_URL": {
+      "type": "string",
+      "description": "Booking page URL"
+    },
+    "PHONE_NUMBER": {
+      "type": "string",
+      "description": "Our phone number for the CTA"
+    },
+    "TESTIMONIAL_1": {
+      "type": "string",
+      "description": "Realistic testimonial quote from a satisfied homeowner (2-3 sentences). Reference specific renovation work matching the company services."
+    },
+    "TESTIMONIAL_1_AUTHOR": {
+      "type": "string",
+      "description": "First name and last initial of testimonial author with city, e.g. \"Sarah M., London\""
+    },
+    "TESTIMONIAL_2": {
+      "type": "string",
+      "description": "Second testimonial from a different homeowner (2-3 sentences, different renovation type than the first)"
+    },
+    "TESTIMONIAL_2_AUTHOR": {
+      "type": "string",
+      "description": "First name and last initial with city, e.g. \"Mike T., London\""
+    }
+  },
+  "required": [
+    "OWNER_NAME",
+    "ACCENT_COLOR",
+    "ACCENT_COLOR_LIGHT",
+    "ACCENT_COLOR_DARK",
+    "COMPANY_LOGO_URL",
+    "SETUP_PRICE",
+    "MONTHLY_PRICE",
+    "CALENDAR_URL",
+    "PHONE_NUMBER",
+    "TESTIMONIAL_1",
+    "TESTIMONIAL_1_AUTHOR",
+    "TESTIMONIAL_2",
+    "TESTIMONIAL_2_AUTHOR"
+  ]
+}

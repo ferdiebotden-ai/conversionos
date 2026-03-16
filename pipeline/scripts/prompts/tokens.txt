@@ -1,0 +1,21 @@
+You are generating personalized token values for a sales microsite targeting a renovation contractor.
+
+Here is the target company data:
+{TARGET_CONTEXT}
+
+Generate values for each token. Guidelines:
+- OWNER_NAME: Use the OWNER NAME from the target data if provided and not "unknown". Extract just the first name for the greeting (e.g., "John" from "John Smith"). If owner name is "unknown", use "there" (for "Hi there").
+- ACCENT_COLOR: Pick a color that matches their brand. If brand colors are known, derive from the accent color. If unknown, use a warm, professional color like #DC2626 (red) or #2563EB (blue).
+- ACCENT_COLOR_LIGHT: A very light tint of the accent (for section backgrounds), e.g. if accent is #DC2626, light would be #FEF2F2.
+- ACCENT_COLOR_DARK: A darker shade for hover states, e.g. if accent is #DC2626, dark would be #B91C1C.
+- COMPANY_LOGO_URL: If you know their website, construct a reasonable favicon URL like "https://[domain]/favicon.ico". Otherwise leave empty.
+- SETUP_PRICE: "$4,500" (Accelerate tier activation fee)
+- MONTHLY_PRICE: "$699/mo" (Accelerate tier)
+- CALENDAR_URL: "https://www.norbotsystems.com/contact"
+- PHONE_NUMBER: "226-884-0095"
+- TESTIMONIAL_1: Write a realistic 2-3 sentence testimonial from a homeowner. Reference specific renovation work matching this company's services ({SERVICES}). Sound authentic — not overly polished.
+- TESTIMONIAL_1_AUTHOR: A realistic first name + last initial + city. e.g. "Sarah M., {CITY}"
+- TESTIMONIAL_2: Another testimonial from a different homeowner about a different service. Must differ from testimonial 1.
+- TESTIMONIAL_2_AUTHOR: Different name. e.g. "Mike T., {CITY}"
+
+IMPORTANT: This is for the Accelerate tier (non-exclusive). Do NOT include any claims about "exclusive territory", "territory lock", or exclusivity in any token value — including testimonials. Territory exclusivity is a Dominate-only feature ($20,000 activation). Testimonials should focus on speed, quality, and responsiveness — never on market exclusivity.

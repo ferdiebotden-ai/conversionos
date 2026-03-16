@@ -10,7 +10,8 @@
           "type": { "type": "string", "enum": ["primary", "header", "footer", "favicon", "other"] },
           "format": { "type": "string", "enum": ["svg", "png", "jpg", "webp", "ico", "unknown"] }
         },
-        "required": ["url", "type"]
+        "required": ["url", "type", "format"],
+        "additionalProperties": false
       },
       "description": "Detected logo images in priority order"
     },
@@ -23,7 +24,8 @@
           "role": { "type": "string", "enum": ["primary", "secondary", "accent", "background", "text", "other"] },
           "confidence": { "type": "number", "description": "Confidence 0-1 that this is a brand colour" }
         },
-        "required": ["hex", "role"]
+        "required": ["hex", "role", "confidence"],
+        "additionalProperties": false
       },
       "description": "Detected brand colours"
     },
@@ -36,7 +38,8 @@
           "role": { "type": "string", "enum": ["heading", "body", "accent", "other"] },
           "source": { "type": "string", "description": "Where the font was detected (CSS, Google Fonts link, etc.)" }
         },
-        "required": ["family", "role"]
+        "required": ["family", "role", "source"],
+        "additionalProperties": false
       },
       "description": "Detected fonts"
     },
@@ -47,9 +50,11 @@
         "values": { "type": "array", "items": { "type": "string" }, "description": "Inferred brand values" },
         "target_audience": { "type": "string", "description": "Inferred target audience" }
       },
+      "required": ["tone", "values", "target_audience"],
+      "additionalProperties": false,
       "description": "Brand personality assessment"
     }
   },
-  "required": ["logos", "colors", "fonts"],
+  "required": ["logos", "colors", "fonts", "personality"],
   "additionalProperties": false
 }

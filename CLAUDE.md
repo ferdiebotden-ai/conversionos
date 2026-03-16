@@ -4,7 +4,7 @@ NorBot Systems rebuilds contractor websites with AI underneath. Same brand, same
 
 **Business model (March 2026 pivot):** "We rebuild your website" — not "adopt our platform." The autonomous build pipeline IS the delivery mechanism. Each demo is a production-grade website ready for DNS cutover. Post-sale onboarding (DNS cutover, custom domains, Black Label) is handled manually by Ferdie.
 
-**Strategy documents:** Master Brief, Pricing Architecture, Delivery Playbook, Founder Notes, SOW Template, Investor Memo (in norbot-ops business context docs — titles stable, paths may move).
+**Strategy documents:** Master Brief, Pricing Architecture, Delivery Playbook, Founder Notes, SOW Template, Investor Memo (in ~/Norbot-Systems/docs/ — titles stable, paths may move).
 
 ## Living Product Reference — IMPORTANT
 After ANY session where you implement features, fix bugs, modify AI prompts, change database schema, update API routes, or alter handoff mechanisms: update `docs/PRODUCT_REFERENCE.md` to reflect the current state of the product. This is not optional. Use the `/update-product-reference` skill for detailed instructions.

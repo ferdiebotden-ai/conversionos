@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConversionOS — {{COMPANY_NAME}}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --norbot-navy: #0A1628;
+    --norbot-blue: #1E3A5F;
+    --norbot-accent: #00D4FF;
+    --norbot-accent-dim: #0099BB;
+    --norbot-accent-glow: rgba(0, 212, 255, 0.12);
+    --norbot-gold: #FFB800;
+    --norbot-success: #00E676;
+    --norbot-danger: #FF4466;
+    --norbot-white: #FFFFFF;
+    --norbot-light: #F0F4F8;
+    --norbot-lighter: #F7F9FC;
+    --norbot-muted: #8899AA;
+    --norbot-text: #334455;
+    --norbot-gradient: linear-gradient(135deg, #00D4FF 0%, #0066FF 50%, #7B2FFF 100%);
+    --norbot-dark-gradient: linear-gradient(180deg, #0A1628 0%, #132744 100%);
+  }
+
+  @page {
+    size: letter;
+    margin: 0;
+  }
+
+  html, body {
+    width: 8.5in;
+    height: 11in;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--norbot-white);
+    color: var(--norbot-navy);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    overflow: hidden;
+  }
+
+  a { text-decoration: none; color: inherit; }
+
+  .page {
+    width: 8.5in;
+    height: 11in;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ═══════════════════════════════════════════════
+     HERO HEADER — Dark gradient with glow accents
+     ═══════════════════════════════════════════════ */
+  .hero {
+    background: var(--norbot-dark-gradient);
+    padding: 0.4in 0.5in 0.35in;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -30px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0,212,255,0.10) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: 25%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(123,47,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.18in;
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    background: var(--norbot-gradient);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: white;
+    letter-spacing: -1px;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.25);
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--norbot-white);
+    letter-spacing: -0.3px;
+  }
+
+  .brand-product {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--norbot-accent);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+  }
+
+  .prepared-for {
+    text-align: right;
+  }
+
+  .prepared-label {
+    font-size: 7.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--norbot-muted);
+    margin-bottom: 4px;
+  }
+
+  .prepared-company {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--norbot-accent);
+    letter-spacing: -0.3px;
+  }
+
+  .hero-headline {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-headline h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--norbot-white);
+    line-height: 1.2;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+    text-decoration: none;
+  }
+
+  .hero-headline h1 .accent {
+    color: var(--norbot-accent);
+    text-decoration: none;
+  }
+
+  .hero-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.55;
+    max-width: 88%;
+    font-weight: 400;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 0;
+    margin-top: 0.18in;
+    position: relative;
+    z-index: 1;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding-right: 10px;
+  }
+
+  .stat + .stat {
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding-left: 20px;
+  }
+
+  .stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--norbot-accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--norbot-muted);
+    margin-top: 4px;
+  }
+
+  .gradient-bar {
+    height: 3px;
+    background: var(--norbot-gradient);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════
+     MAIN CONTENT AREA
+     ═══════════════════════════════════════════════ */
+  .content {
+    flex: 1;
+    padding: 0.28in 0.5in 0.15in;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2in;
+  }
+
+  /* ── Section Labels ── */
+  .section-label {
+    font-size: 7.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--norbot-accent-dim);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    background: var(--norbot-gradient);
+    border-radius: 1px;
+  }
+
+  .section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--norbot-navy);
+    margin-bottom: 10px;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+
+  /* ── Problem Section ── */
+  .problem-section {
+    display: flex;
+    gap: 0.25in;
+    align-items: stretch;
+  }
+
+  .problem-left {
+    flex: 1;
+  }
+
+  .pain-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pain-points li {
+    font-size: 10.5px;
+    color: var(--norbot-text);
+    line-height: 1.45;
+    padding-left: 22px;
+    position: relative;
+  }
+
+  .pain-points li .x-mark {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 14px;
+    height: 14px;
+    background: rgba(255,68,102,0.08);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pain-points li .x-mark svg {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* ── ROI Box ── */
+  .roi-box {
+    width: 2.15in;
+    background: var(--norbot-lighter);
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(0,100,255,0.06);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .roi-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+
+  .roi-header svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .roi-header span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--norbot-navy);
+  }
+
+  .roi-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4.5px 0;
+    border-bottom: 1px solid rgba(0,50,100,0.04);
+  }
+
+  .roi-row:last-child {
+    border-bottom: none;
+    padding-top: 7px;
+    margin-top: 3px;
+    border-top: 2px solid var(--norbot-accent);
+  }
+
+  .roi-label {
+    font-size: 9px;
+    color: #556677;
+    font-weight: 500;
+  }
+
+  .roi-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--norbot-navy);
+  }
+
+  .roi-value.highlight {
+    color: var(--norbot-accent);
+    font-size: 15px;
+  }
+
+  /* ── Solution Section ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+    margin-top: 8px;
+  }
+
+  .feature {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .feature-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .feature-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .feature-icon.blue {
+    background: rgba(0,100,255,0.07);
+  }
+  .feature-icon.blue svg { color: #0066FF; }
+
+  .feature-icon.purple {
+    background: rgba(123,47,255,0.07);
+  }
+  .feature-icon.purple svg { color: #7B2FFF; }
+
+  .feature-icon.green {
+    background: rgba(0,200,100,0.07);
+  }
+  .feature-icon.green svg { color: #00C864; }
+
+  .feature-icon.gold {
+    background: rgba(255,184,0,0.07);
+  }
+  .feature-icon.gold svg { color: #E6A600; }
+
+  .feature-text h4 {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--norbot-navy);
+    margin-bottom: 2px;
+    line-height: 1.2;
+  }
+
+  .feature-text p {
+    font-size: 8.5px;
+    color: #667788;
+    line-height: 1.45;
+  }
+
+  /* ── Proof Section ── */
+  .proof-section {
+    display: flex;
+    gap: 0.25in;
+    align-items: stretch;
+  }
+
+  .proof-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .testimonial {
+    background: var(--norbot-lighter);
+    border-radius: 10px;
+    padding: 11px 14px;
+    position: relative;
+    border-left: 3px solid var(--norbot-accent);
+  }
+
+  .testimonial-quote {
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--norbot-accent);
+    opacity: 0.15;
+    line-height: 1;
+  }
+
+  .testimonial-text {
+    font-size: 9.5px;
+    font-style: italic;
+    color: var(--norbot-text);
+    line-height: 1.55;
+    margin-bottom: 4px;
+    position: relative;
+  }
+
+  .testimonial-author {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: var(--norbot-navy);
+  }
+
+  .trust-badges {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 8.5px;
+    color: #556677;
+    font-weight: 500;
+    background: var(--norbot-lighter);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,50,100,0.04);
+  }
+
+  .badge svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+  }
+
+  .badge strong {
+    color: var(--norbot-navy);
+  }
+
+  /* ── Exclusive Offer Box ── */
+  .offer-box {
+    width: 2.15in;
+    background: var(--norbot-dark-gradient);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .offer-box::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .offer-badge {
+    background: var(--norbot-gradient);
+    color: white;
+    font-size: 7px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    padding: 3px 14px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .offer-territory {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--norbot-white);
+    text-align: center;
+    margin-bottom: 5px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .offer-detail {
+    font-size: 8.5px;
+    color: var(--norbot-muted);
+    text-align: center;
+    line-height: 1.55;
+    position: relative;
+    z-index: 1;
+  }
+
+  .offer-available {
+    color: var(--norbot-success);
+    font-weight: 700;
+  }
+
+  .offer-price {
+    margin-top: 10px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .offer-price .from {
+    font-size: 7.5px;
+    color: var(--norbot-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    display: block;
+  }
+
+  .offer-price .amount {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--norbot-accent);
+    display: block;
+    margin-top: 2px;
+    line-height: 1;
+  }
+
+  .offer-price .period {
+    font-size: 10px;
+    color: var(--norbot-muted);
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════════
+     BOTTOM CTA BAR
+     ═══════════════════════════════════════════════ */
+  .cta-bar {
+    background: var(--norbot-dark-gradient);
+    padding: 0.22in 0.5in;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+
+  .cta-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--norbot-gradient);
+  }
+
+  .cta-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at 75% 50%, rgba(0,212,255,0.04) 0%, transparent 60%);
+  }
+
+  .cta-left {
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta-headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--norbot-white);
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+
+  .cta-subtitle {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+  }
+
+  .cta-contact {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .cta-item {
+    font-size: 9px;
+    color: var(--norbot-accent);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+  }
+
+  .cta-item svg {
+    width: 11px;
+    height: 11px;
+    opacity: 0.7;
+  }
+
+  .cta-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .qr-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .qr-code {
+    width: 82px;
+    height: 82px;
+    border-radius: 10px;
+    background: white;
+    padding: 5px;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.12), 0 0 0 1px rgba(0,212,255,0.08);
+  }
+
+  .qr-code img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 4px;
+  }
+
+  .qr-label {
+    font-size: 6.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--norbot-muted);
+    text-align: center;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+
+  /* ── Utility ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,50,100,0.06) 20%, rgba(0,50,100,0.06) 80%, transparent 100%);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══ HERO HEADER ═══ -->
+  <div class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="brand-icon">N</div>
+        <div class="brand-text">
+          <div class="brand-name">NorBot Systems</div>
+          <div class="brand-product">ConversionOS</div>
+        </div>
+      </div>
+      <div class="prepared-for">
+        <div class="prepared-label">Prepared exclusively for</div>
+        <div class="prepared-company">{{COMPANY_NAME}}</div>
+      </div>
+    </div>
+    <div class="hero-headline">
+      <h1>Own Every Renovation Lead in<br><span class="accent">{{TERRITORY}}</span></h1>
+      <p class="hero-subtitle">A done-for-you lead generation system built specifically for {{COMPANY_NAME}} — capturing homeowners actively searching for renovation contractors in {{CITY}} and surrounding areas.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-value">{{GOOGLE_RATING}}<span style="font-size:16px;">&#9733;</span></div>
+        <div class="stat-label">Google Rating</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{GOOGLE_REVIEW_COUNT}}</div>
+        <div class="stat-label">Google Reviews</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{YEARS_IN_BUSINESS}}+</div>
+        <div class="stat-label">Years in Business</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{SCORE}}/100</div>
+        <div class="stat-label">Qualification Score</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gradient-bar"></div>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <div class="content">
+
+    <!-- ── Problem + ROI ── -->
+    <div class="problem-section">
+      <div class="problem-left">
+        <div class="section-label">The Challenge</div>
+        <div class="section-title">Great Renovations.<br>Not Enough People Know.</div>
+        <ul class="pain-points">
+          <li>
+            <span class="x-mark"><svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#FF4466" stroke-width="2" stroke-linecap="round"/></svg></span>
+            Relying on word-of-mouth that dries up in slow seasons — leaving gaps in your schedule
+          </li>
+          <li>
+            <span class="x-mark"><svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#FF4466" stroke-width="2" stroke-linecap="round"/></svg></span>
+            Competitors with worse reviews showing up on Google before you in {{CITY}}
+          </li>
+          <li>
+            <span class="x-mark"><svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#FF4466" stroke-width="2" stroke-linecap="round"/></svg></span>
+            Spending on ads that bring tire-kickers, not homeowners ready for $30K+ projects
+          </li>
+          <li>
+            <span class="x-mark"><svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#FF4466" stroke-width="2" stroke-linecap="round"/></svg></span>
+            No system to follow up with leads automatically while you're on the job site
+          </li>
+        </ul>
+      </div>
+      <div class="roi-box">
+        <div class="roi-header">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="3" height="6" rx="0.5" fill="#0066FF"/><rect x="6" y="5" width="3" height="9" rx="0.5" fill="#00D4FF"/><rect x="11" y="2" width="3" height="12" rx="0.5" fill="#7B2FFF"/></svg>
+          <span>Your ROI Projection</span>
+        </div>
+        <div class="roi-row">
+          <span class="roi-label">Avg. Lead Cost</span>
+          <span class="roi-value">$32</span>
+        </div>
+        <div class="roi-row">
+          <span class="roi-label">Avg. Job Value</span>
+          <span class="roi-value">$28,500</span>
+        </div>
+        <div class="roi-row">
+          <span class="roi-label">Monthly Leads</span>
+          <span class="roi-value">15–30</span>
+        </div>
+        <div class="roi-row">
+          <span class="roi-label">Close Rate</span>
+          <span class="roi-value">12%</span>
+        </div>
+        <div class="roi-row">
+          <span class="roi-label">Projected ROI</span>
+          <span class="roi-value highlight">18:1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── Solution Features ── -->
+    <div>
+      <div class="section-label">The Solution</div>
+      <div class="section-title">Your Exclusive {{TERRITORY}} Lead Engine</div>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon blue">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.2" opacity="0.4"/><circle cx="10" cy="10" r="2.5" fill="currentColor" opacity="0.3"/></svg>
+          </div>
+          <div class="feature-text">
+            <h4>Custom Microsite</h4>
+            <p>SEO-optimized landing page built around {{CITY}} renovation searches — your brand, your territory</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon purple">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 17h4M10 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="8.5" r="1.5" fill="currentColor" opacity="0.4"/><path d="M7.5 10.5c0-1.4 1.1-2 2.5-2s2.5.6 2.5 2" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg>
+          </div>
+          <div class="feature-text">
+            <h4>AI Follow-Up Engine</h4>
+            <p>Automated email + SMS sequences that book estimates while you're swinging hammers</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon green">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 13l3-4 2.5 2.5L15 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="feature-text">
+            <h4>Real-Time Dashboard</h4>
+            <p>See every lead, their status, and conversion metrics — all in one place, from any device</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon gold">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="5" y="3" width="10" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 7h4M8 9.5h4" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><circle cx="10" cy="13" r="1.2" fill="currentColor"/></svg>
+          </div>
+          <div class="feature-text">
+            <h4>Territory Exclusivity</h4>
+            <p>Only ONE contractor per city. Once {{TERRITORY}} is locked, competitors can't get in</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── Social Proof + Offer ── -->
+    <div class="proof-section">
+      <div class="proof-left">
+        <div class="section-label">Proven Results</div>
+        <div class="testimonial">
+          <div class="testimonial-text">"Within 60 days we had more qualified leads than we could handle. The territory lock means we're the only game in town for online renovation leads."</div>
+          <div class="testimonial-author">— Renovation Contractor, Ontario</div>
+        </div>
+        <div class="trust-badges">
+          <div class="badge">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5H13l-3 2.5 1.2 3.5L7 8.2 2.8 10.5 4 7 1 4.5h4.5z" fill="#FFB800"/></svg>
+            <span>CASL <strong>Compliant</strong></span>
+          </div>
+          <div class="badge">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M2 5c0-2.8 2.2-4 5-4s5 1.2 5 4c0 4-5 8-5 8S2 9 2 5z" fill="#FF4444" opacity="0.7"/><path d="M5.5 5.5l1.2 1.2 2.3-2.3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Built for <strong>Ontario</strong></span>
+          </div>
+          <div class="badge">
+            <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#00D4FF" stroke-width="1.2"/><path d="M7 4v3.5l2.5 1.5" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <span><strong>24hr</strong> Setup</span>
+          </div>
+          <div class="badge">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M3 10l2.5-3 2 2 4.5-5" stroke="#00C864" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span><strong>{{SCORE}}%</strong> Match</span>
+          </div>
+        </div>
+      </div>
+      <div class="offer-box">
+        <div class="offer-badge">Exclusive Offer</div>
+        <div class="offer-territory">{{TERRITORY}}</div>
+        <div class="offer-detail">This territory is currently<br><span class="offer-available">available</span> — lock it before<br>a competitor does</div>
+        <div class="offer-price">
+          <span class="from">Starting from</span>
+          <span class="amount">$497<span class="period">/mo</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ CTA BAR ═══ -->
+  <div class="cta-bar">
+    <div class="cta-left">
+      <div class="cta-headline">Ready to Lock In {{TERRITORY}}?</div>
+      <div class="cta-subtitle">Book a free 15-minute strategy call — no obligation, no pressure.</div>
+      <div class="cta-contact">
+        <span class="cta-item">
+          <svg viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 3.5l5 4 5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          ferdie@norbotsystems.com
+        </span>
+        <span class="cta-item">
+          <svg viewBox="0 0 14 14" fill="none"><rect x="3.5" y="1" width="7" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="10.5" r="0.8" fill="currentColor"/></svg>
+          226-884-0095
+        </span>
+        <span class="cta-item">
+          <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 1.5v0M7 12.5v0M1.5 7h0M12.5 7h0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1"/></svg>
+          norbotsystems.com
+        </span>
+      </div>
+    </div>
+    <div class="cta-right">
+      <div class="qr-container">
+        <div class="qr-code">
+          <img src="{{QR_CODE_DATA_URL}}" alt="Scan to view your custom demo" />
+        </div>
+        <div class="qr-label">Scan for your<br>custom demo site</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

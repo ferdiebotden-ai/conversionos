@@ -82,7 +82,8 @@ import { MiscServiceArea } from '@/sections/misc/service-area';
 
 // ─── Register all sections ──────────────────────────────────────────────────
 
-const sections: [SectionId, Parameters<typeof registerSection>[1]][] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sections: [SectionId, any][] = [
   // Hero
   ['hero:full-bleed-overlay', FullBleedOverlayHero],
   ['hero:split-image-text', SplitImageTextHero],
