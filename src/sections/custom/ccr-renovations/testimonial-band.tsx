@@ -86,6 +86,7 @@ export function TestimonialBand({ branding, config, tokens, className }: Section
   if (testimonials.length === 0) return null;
 
   const testimonial = testimonials[activeIndex];
+
   if (!testimonial?.quote || !testimonial.author) return null;
 
   const starCount = Math.max(0, Math.min(5, testimonial.rating ?? 5));
