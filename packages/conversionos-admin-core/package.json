@@ -1,0 +1,62 @@
+{
+  "name": "@norbot/conversionos-admin-core",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/admin/ai-quote-suggestions": "./src/components/admin/ai-quote-suggestions.tsx",
+    "./components/admin/audit-log": "./src/components/admin/audit-log.tsx",
+    "./components/admin/before-after-comparison": "./src/components/admin/before-after-comparison.tsx",
+    "./components/admin/category-markup-settings": "./src/components/admin/category-markup-settings.tsx",
+    "./components/admin/chat-transcript": "./src/components/admin/chat-transcript.tsx",
+    "./components/admin/contractor-intake-dialog": "./src/components/admin/contractor-intake-dialog.tsx",
+    "./components/admin/email-preview": "./src/components/admin/email-preview.tsx",
+    "./components/admin/header": "./src/components/admin/header.tsx",
+    "./components/admin/invoice-metrics-widget": "./src/components/admin/invoice-metrics-widget.tsx",
+    "./components/admin/invoice-send-wizard": "./src/components/admin/invoice-send-wizard.tsx",
+    "./components/admin/lead-contact-card": "./src/components/admin/lead-contact-card.tsx",
+    "./components/admin/lead-detail-header": "./src/components/admin/lead-detail-header.tsx",
+    "./components/admin/lead-drawings-panel": "./src/components/admin/lead-drawings-panel.tsx",
+    "./components/admin/lead-project-card": "./src/components/admin/lead-project-card.tsx",
+    "./components/admin/lead-visualization-panel": "./src/components/admin/lead-visualization-panel.tsx",
+    "./components/admin/leads-page-header": "./src/components/admin/leads-page-header.tsx",
+    "./components/admin/leads-table": "./src/components/admin/leads-table.tsx",
+    "./components/admin/login-form": "./src/components/admin/login-form.tsx",
+    "./components/admin/metrics-cards": "./src/components/admin/metrics-cards.tsx",
+    "./components/admin/photo-gallery": "./src/components/admin/photo-gallery.tsx",
+    "./components/admin/photo-lightbox": "./src/components/admin/photo-lightbox.tsx",
+    "./components/admin/price-upload": "./src/components/admin/price-upload.tsx",
+    "./components/admin/quote-editor": "./src/components/admin/quote-editor.tsx",
+    "./components/admin/quote-line-item": "./src/components/admin/quote-line-item.tsx",
+    "./components/admin/quote-line-item-card": "./src/components/admin/quote-line-item-card.tsx",
+    "./components/admin/quote-line-items-layout": "./src/components/admin/quote-line-items-layout.tsx",
+    "./components/admin/quote-send-wizard": "./src/components/admin/quote-send-wizard.tsx",
+    "./components/admin/quote-version-history": "./src/components/admin/quote-version-history.tsx",
+    "./components/admin/recent-leads": "./src/components/admin/recent-leads.tsx",
+    "./components/admin/regenerate-quote-dialog": "./src/components/admin/regenerate-quote-dialog.tsx",
+    "./components/admin/scope-gap-recommendations": "./src/components/admin/scope-gap-recommendations.tsx",
+    "./components/admin/settings-preview": "./src/components/admin/settings-preview.tsx",
+    "./components/admin/sidebar": "./src/components/admin/sidebar.tsx",
+    "./components/admin/template-manager": "./src/components/admin/template-manager.tsx",
+    "./components/admin/template-picker": "./src/components/admin/template-picker.tsx",
+    "./components/admin/transparency-card": "./src/components/admin/transparency-card.tsx",
+    "./components/admin/undo-redo-toolbar": "./src/components/admin/undo-redo-toolbar.tsx",
+    "./components/admin/visualization-metrics-widget": "./src/components/admin/visualization-metrics-widget.tsx",
+    "./components/admin/voice-dictation-input": "./src/components/admin/voice-dictation-input.tsx"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
+    "lucide-react": "^0.563.0"
+  },
+  "peerDependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.18",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
+  }
+}

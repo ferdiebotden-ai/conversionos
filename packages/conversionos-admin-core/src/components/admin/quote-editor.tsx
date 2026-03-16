@@ -1,0 +1,1101 @@
+'use client';
+
+/**
+ * Quote Editor
+ * Full quote editor with line items, totals, assumptions/exclusions, and AI integration
+ * [DEV-054, DEV-055, DEV-056, DEV-072]
+ */
+
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { type LineItem } from './quote-line-item';
+import { QuoteLineItemsLayout } from './quote-line-items-layout';
+import { RegenerateQuoteDialog } from './regenerate-quote-dialog';
+import { QuoteSendWizard } from './quote-send-wizard';
+import { ScopeGapRecommendations } from './scope-gap-recommendations';
+import { QuoteVersionHistory, type VersionSummary } from './quote-version-history';
+import { detectScopeGaps, type ScopeGap } from '@/lib/ai/scope-gap-rules';
+import { TemplatePicker } from './template-picker';
+import { UndoRedoToolbar } from './undo-redo-toolbar';
+import { SRAnnounce } from '@/components/ui/sr-announce';
+import { countPriceMatches } from '@/lib/pricing/fuzzy-match';
+import { useQuoteEditorStore } from '@/stores/quote-editor-store';
+import type { QuoteDraft, Json, AssemblyTemplate, ContractorPrice } from '@/types/database';
+import type { AIGeneratedQuote, AIQuoteLineItem } from '@/lib/schemas/ai-quote';
+import {
+  Plus,
+  Save,
+  Loader2,
+  FileText,
+  AlertCircle,
+  Download,
+  Send,
+  Check,
+  Sparkles,
+  RotateCcw,
+  Layers,
+  X,
+  RefreshCw,
+  AlertTriangle,
+  Receipt,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+
+// Business constants
+const HST_PERCENT = 13;
+const DEFAULT_DEPOSIT_PERCENT = 15;
+const DEFAULT_CONTINGENCY_PERCENT = 10;
+
+// Default templates
+const DEFAULT_ASSUMPTIONS = [
+  'All work to be completed during regular business hours (Mon-Fri, 8am-5pm)',
+  'Customer provides access to work area and utilities',
+  'Existing structure is sound and code-compliant',
+  'No hidden damage or issues behind walls/floors',
+];
+
+const DEFAULT_EXCLUSIONS = [
+  'Permit fees (if required)',
+  'Moving or storage of customer belongings',
+  'Repairs to existing structural damage',
+  'Hazardous material removal (asbestos, mold, etc.)',
+];
+
+interface QuoteEditorProps {
+  leadId: string;
+  initialQuote: QuoteDraft | null;
+  initialEstimate: Json | null;
+  customerEmail?: string;
+  customerName?: string;
+  projectType?: string | undefined;
+  goalsText?: string | undefined;
+  versions?: VersionSummary[] | undefined;
+  depositPercent?: number | undefined;
+}
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+interface ParsedLineItem {
+  description?: string;
+  category?: string;
+  quantity?: number;
+  unit?: string;
+  unit_price?: number;
+  total?: number;
+  isFromAI?: boolean;
+  isModified?: boolean;
+  isAccepted?: boolean;
+  confidenceScore?: number;
+  aiReasoning?: string;
+  transparencyData?: unknown;
+  costBeforeMarkup?: number;
+  markupPercent?: number;
+}
+
+function isLineItemObject(item: Json): item is { [key: string]: Json | undefined } {
+  return item !== null && typeof item === 'object' && !Array.isArray(item);
+}
+
+function parseLineItems(lineItems: Json | null): LineItem[] {
+  if (!Array.isArray(lineItems)) return [];
+  return lineItems
+    .filter(isLineItemObject)
+    .map((item) => {
+      const parsed = item as unknown as ParsedLineItem;
+      return {
+        id: generateId(),
+        description: parsed.description || '',
+        category: (parsed.category as LineItem['category']) || 'other',
+        quantity: parsed.quantity || 1,
+        unit: parsed.unit || 'ea',
+        unit_price: parsed.unit_price || 0,
+        total: parsed.total || 0,
+        isFromAI: parsed.isFromAI || false,
+        isModified: parsed.isModified || false,
+        isAccepted: parsed.isAccepted || false,
+        confidenceScore: parsed.confidenceScore,
+        aiReasoning: parsed.aiReasoning,
+        transparencyData: parsed.transparencyData as LineItem['transparencyData'],
+        costBeforeMarkup: parsed.costBeforeMarkup,
+        markupPercent: parsed.markupPercent,
+      };
+    });
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+  }).format(value);
+}
+
+// Extract AI quote from initialEstimate
+function extractAIQuote(estimate: Json | null): AIGeneratedQuote | null {
+  if (!estimate || typeof estimate !== 'object' || Array.isArray(estimate)) {
+    return null;
+  }
+  const obj = estimate as { aiQuote?: AIGeneratedQuote };
+  return obj.aiQuote || null;
+}
+
+// Convert AI line items to editor line items
+function aiItemsToLineItems(items: AIQuoteLineItem[]): LineItem[] {
+  return items.map((item) => ({
+    id: generateId(),
+    description: item.description,
+    category: item.category as LineItem['category'],
+    quantity: 1,
+    unit: 'lot',
+    unit_price: item.total,
+    total: item.total,
+    isFromAI: true,
+    isModified: false,
+    confidenceScore: item.confidenceScore,
+    aiReasoning: item.aiReasoning,
+    transparencyData: item.transparencyData,
+    costBeforeMarkup: item.transparencyData?.totalBeforeMarkup,
+    markupPercent: item.transparencyData?.markupApplied?.percent,
+  }));
+}
+
+export function QuoteEditor({
+  leadId,
+  initialQuote,
+  initialEstimate,
+  customerEmail,
+  customerName,
+  projectType = 'other',
+  goalsText,
+  versions,
+  depositPercent = DEFAULT_DEPOSIT_PERCENT,
+}: QuoteEditorProps) {
+  // Extract AI quote from initial estimate
+  const aiQuoteFromEstimate = extractAIQuote(initialEstimate);
+
+  // --- Zustand store for undoable state (F12) ---
+  const store = useQuoteEditorStore();
+  const lineItems = store.lineItems;
+  const assumptions = store.assumptions;
+  const exclusions = store.exclusions;
+  const contingencyPercent = store.contingencyPercent;
+  // Initialise the store once from props
+  const storeInitialised = useRef(false);
+  useEffect(() => {
+    if (storeInitialised.current) return;
+    storeInitialised.current = true;
+
+    // Line items
+    let initLineItems: LineItem[];
+    if (initialQuote) {
+      initLineItems = parseLineItems(initialQuote.line_items);
+    } else if (aiQuoteFromEstimate) {
+      initLineItems = aiQuoteFromEstimate.lineItems.map((item) => ({
+        id: generateId(),
+        description: item.description,
+        category: item.category as LineItem['category'],
+        quantity: 1,
+        unit: 'lot',
+        unit_price: item.total,
+        total: item.total,
+        isFromAI: true,
+        isModified: false,
+        confidenceScore: item.confidenceScore,
+        aiReasoning: item.aiReasoning,
+        transparencyData: item.transparencyData,
+        costBeforeMarkup: item.transparencyData?.totalBeforeMarkup,
+        markupPercent: item.transparencyData?.markupApplied?.percent,
+      }));
+    } else {
+      initLineItems = [];
+    }
+
+    // Assumptions
+    let initAssumptions: string;
+    if (!initialQuote && aiQuoteFromEstimate?.assumptions?.length) {
+      initAssumptions = aiQuoteFromEstimate.assumptions.join('\n');
+    } else {
+      initAssumptions = (initialQuote?.assumptions || DEFAULT_ASSUMPTIONS).join('\n');
+    }
+
+    // Exclusions
+    let initExclusions: string;
+    if (!initialQuote && aiQuoteFromEstimate?.exclusions?.length) {
+      initExclusions = aiQuoteFromEstimate.exclusions.join('\n');
+    } else {
+      initExclusions = (initialQuote?.exclusions || DEFAULT_EXCLUSIONS).join('\n');
+    }
+
+    store.init({
+      lineItems: initLineItems,
+      assumptions: initAssumptions,
+      exclusions: initExclusions,
+      contingencyPercent: initialQuote?.contingency_percent ?? DEFAULT_CONTINGENCY_PERCENT,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [aiQuote, setAiQuote] = useState<AIGeneratedQuote | null>(aiQuoteFromEstimate);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // V9: Subtotal sanity check dismissal
+  const [sanityDismissed, setSanityDismissed] = useState(false);
+
+  // C4: Reset to AI confirmation
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // E1: Retry state — tracks the last failed operation for retry
+  const [failedOperation, setFailedOperation] = useState<'save' | 'load' | null>(null);
+
+  // PDF and send quote state
+  const router = useRouter();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showSendWizard, setShowSendWizard] = useState(false);
+  const [sentAt] = useState<Date | null>(
+    initialQuote?.sent_at ? new Date(initialQuote.sent_at) : null
+  );
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+
+  // Version history state
+  const latestVersion = versions?.[0]?.version ?? (initialQuote?.version ?? 1);
+  const [selectedVersion, setSelectedVersion] = useState(latestVersion);
+  const isReadOnly = versions && versions.length > 1 && selectedVersion !== latestVersion;
+
+  // Template picker state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+  // Contractor prices state (for "Using your prices" indicator)
+  const [contractorPrices, setContractorPrices] = useState<ContractorPrice[]>([]);
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const res = await fetch('/api/admin/prices');
+        const json = await res.json();
+        if (json.success && json.data?.length > 0) {
+          setContractorPrices(json.data);
+        }
+      } catch {
+        // Silently fail — indicator just won't show
+      }
+    }
+    fetchPrices();
+  }, []);
+
+  const contractorPriceMatchCount = useMemo(
+    () => countPriceMatches(lineItems.map(i => i.description), contractorPrices),
+    [lineItems, contractorPrices],
+  );
+
+  // Acceptance status from initial quote
+  const quoteRecord = initialQuote as unknown as Record<string, unknown> | null;
+  const acceptanceStatus = quoteRecord?.['acceptance_status'] as string | null;
+  const acceptedByName = quoteRecord?.['accepted_by_name'] as string | null;
+  const acceptedAt = quoteRecord?.['accepted_at'] as string | null;
+
+  // F12: Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (isReadOnly) return;
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        store.undo();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        store.redo();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isReadOnly, store]);
+
+  // Debounce ref for auto-save
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Calculate totals
+  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
+  const contingencyAmount = subtotal * (contingencyPercent / 100);
+  const subtotalWithContingency = subtotal + contingencyAmount;
+  const hstAmount = subtotalWithContingency * (HST_PERCENT / 100);
+  const total = subtotalWithContingency + hstAmount;
+  const depositRequired = total * (depositPercent / 100);
+
+  // Count AI items
+  const aiItemCount = lineItems.filter((item) => item.isFromAI).length;
+
+  // Save function
+  const saveQuote = useCallback(async () => {
+    // Read latest state from store at save time
+    const storeState = useQuoteEditorStore.getState();
+    const currentLineItems = storeState.lineItems;
+    const currentAssumptions = storeState.assumptions;
+    const currentExclusions = storeState.exclusions;
+    const currentContingency = storeState.contingencyPercent;
+
+    if (currentLineItems.length === 0) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const payload: Record<string, unknown> = {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        line_items: currentLineItems.map(({ id, ...item }) => item),
+        assumptions: currentAssumptions.split('\n').filter((a) => a.trim()),
+        exclusions: currentExclusions.split('\n').filter((e) => e.trim()),
+        contingency_percent: currentContingency,
+      };
+
+      const response = await fetch(`/api/quotes/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save quote');
+      }
+
+      setLastSaved(new Date());
+      setHasChanges(false);
+    } catch (err) {
+      console.error('Error saving quote:', err);
+      setError('Failed to save quote.');
+      setFailedOperation('save');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [leadId]);
+
+  // Auto-save on changes (debounced)
+  useEffect(() => {
+    if (!hasChanges) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveQuote();
+    }, 1500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [hasChanges, saveQuote]);
+
+  // Mark as changed
+  function markChanged() {
+    setHasChanges(true);
+  }
+
+  // Line item handlers — delegate to store, then mark changed for auto-save
+  function handleAddItem() {
+    const newItem: LineItem = {
+      id: generateId(),
+      description: '',
+      category: 'materials',
+      quantity: 1,
+      unit: 'ea',
+      unit_price: 0,
+      total: 0,
+      isFromAI: false,
+    };
+    store.addItem(newItem);
+    markChanged();
+  }
+
+  function handleInsertTemplate(template: AssemblyTemplate) {
+    const items = typeof template.items === 'string' ? JSON.parse(template.items) : template.items;
+    const newItems: LineItem[] = items.map((item: { description: string; category: string; quantity: number; unit: string; unit_price: number }) => ({
+      id: generateId(),
+      description: item.description,
+      category: item.category as LineItem['category'],
+      quantity: item.quantity,
+      unit: item.unit,
+      unit_price: item.unit_price,
+      total: item.quantity * item.unit_price,
+      isFromAI: false,
+    }));
+    store.insertTemplate(newItems);
+    markChanged();
+  }
+
+  function handleUpdateItem(index: number, updatedItem: LineItem) {
+    store.updateItem(index, updatedItem);
+    markChanged();
+  }
+
+  function handleDeleteItem(index: number) {
+    store.deleteItem(index);
+    markChanged();
+  }
+
+  function handleDuplicateItem(index: number) {
+    store.duplicateItem(index);
+    markChanged();
+  }
+
+  async function handleRegenerateAIQuote(guidance?: string) {
+    setIsRegenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/quotes/${leadId}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guidance }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate quote');
+      }
+
+      const data = await response.json();
+      setAiQuote(data.aiQuote);
+
+      const newAssumptions = data.aiQuote?.assumptions?.length > 0
+        ? data.aiQuote.assumptions.join('\n')
+        : assumptions;
+      const newExclusions = data.aiQuote?.exclusions?.length > 0
+        ? data.aiQuote.exclusions.join('\n')
+        : exclusions;
+
+      if (data.aiQuote) {
+        const newItems = aiItemsToLineItems(data.aiQuote.lineItems);
+        store.loadFromAI(newItems, newAssumptions, newExclusions);
+      }
+
+      markChanged();
+    } catch (err) {
+      console.error('Error regenerating quote:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate quote');
+      setFailedOperation('load');
+    } finally {
+      setIsRegenerating(false);
+    }
+  }
+
+  // C4: Show confirmation before resetting
+  function handleResetToAI() {
+    if (!aiQuote) return;
+    setShowResetConfirm(true);
+  }
+
+  // Actually execute the reset after confirmation
+  function executeResetToAI() {
+    if (!aiQuote) return;
+
+    const aiItems = aiItemsToLineItems(aiQuote.lineItems);
+
+    const resetAssumptions = aiQuote.assumptions.length > 0
+      ? aiQuote.assumptions.join('\n')
+      : assumptions;
+    const resetExclusions = aiQuote.exclusions.length > 0
+      ? aiQuote.exclusions.join('\n')
+      : exclusions;
+
+    store.resetToAI(aiItems, resetAssumptions, resetExclusions);
+    markChanged();
+  }
+
+  // Download PDF
+  async function handleDownloadPdf() {
+    if (lineItems.length === 0) {
+      setError('Add line items before downloading PDF');
+      return;
+    }
+
+    // Save first if there are unsaved changes
+    if (hasChanges) {
+      await saveQuote();
+    }
+
+    setIsDownloading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/quotes/${leadId}/pdf`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      // Get filename from header or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'quote.pdf';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match?.[1]) {
+          filename = match[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+      setError(err instanceof Error ? err.message : 'Failed to download PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
+  // Handle send wizard opening - save first if needed
+  async function handleOpenSendWizard() {
+    if (lineItems.length === 0) {
+      setError('Add line items before sending quote');
+      return;
+    }
+
+    if (!customerEmail) {
+      setError('No email address available for this customer');
+      return;
+    }
+
+    // Save first if there are unsaved changes
+    if (hasChanges) {
+      await saveQuote();
+    }
+
+    setShowSendWizard(true);
+  }
+
+  // Handle send complete - refresh the page
+  function handleSendComplete() {
+    window.location.reload();
+  }
+
+  // Create invoice from sent quote
+  async function handleCreateInvoice() {
+    if (!initialQuote?.id) return;
+
+    setIsCreatingInvoice(true);
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: leadId,
+          quote_draft_id: initialQuote.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to create invoice');
+      }
+
+      const result = await response.json();
+      router.push(`/admin/invoices/${result.data.id}`);
+    } catch (err) {
+      console.error('Error creating invoice:', err);
+    } finally {
+      setIsCreatingInvoice(false);
+    }
+  }
+
+  // V9: Subtotal sanity check
+  const isSanityWarning = subtotal > 0 && (subtotal < 500 || subtotal > 500000);
+
+  // Scope gap detection (pure rules, zero API cost, microseconds)
+  const scopeGaps = useMemo(() => {
+    return detectScopeGaps(lineItems, projectType);
+  }, [lineItems, projectType]);
+
+  // F8: Filter out gaps where the suggested item already exists in line items
+  const filteredScopeGaps = useMemo(() => {
+    const existingDescriptions = new Set(
+      lineItems.map((item) => item.description.toLowerCase().trim())
+    );
+    return scopeGaps.filter(
+      (gap) => !existingDescriptions.has(gap.suggestedItem.description.toLowerCase().trim())
+    );
+  }, [scopeGaps, lineItems]);
+
+  // E1: Retry handler
+  function handleRetry() {
+    if (failedOperation === 'save') {
+      setError(null);
+      setFailedOperation(null);
+      saveQuote();
+    } else if (failedOperation === 'load') {
+      setError(null);
+      setFailedOperation(null);
+      handleRegenerateAIQuote();
+    }
+  }
+
+  function handleDismissError() {
+    setError(null);
+    setFailedOperation(null);
+  }
+
+  function handleAddScopeGapItem(gap: ScopeGap) {
+    const newItem: LineItem = {
+      id: generateId(),
+      description: gap.suggestedItem.description,
+      category: gap.suggestedItem.category,
+      quantity: 1,
+      unit: 'lot',
+      unit_price: gap.suggestedItem.estimatedTotal,
+      total: gap.suggestedItem.estimatedTotal,
+      isFromAI: false,
+    };
+    store.addScopeGapItem(newItem);
+    markChanged();
+  }
+
+  return (
+    <div className="space-y-6">
+      <SRAnnounce
+        message={
+          isSaving ? 'Saving quote...' :
+          isRegenerating ? 'Generating AI quote...' :
+          lastSaved ? 'Quote saved' : ''
+        }
+      />
+      {/* AI Info Banner */}
+      {aiQuote && aiItemCount > 0 && (
+        <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50/50 border border-purple-200/50">
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <Sparkles className="h-4 w-4 text-purple-600" />
+            <span className="text-purple-700">
+              AI-generated quote — {aiItemCount} items
+            </span>
+            {contractorPriceMatchCount > 0 && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                Using your prices ({contractorPriceMatchCount} item{contractorPriceMatchCount !== 1 ? 's' : ''})
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRegenerateDialog(true)}
+            disabled={isRegenerating}
+            className="text-purple-700 border-purple-200 hover:bg-purple-100"
+          >
+            {isRegenerating ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4 mr-1" />
+            )}
+            Regenerate
+          </Button>
+        </div>
+      )}
+
+      {/* Version History */}
+      {versions && versions.length > 1 && (
+        <QuoteVersionHistory
+          versions={versions}
+          activeVersion={selectedVersion}
+          onSelectVersion={setSelectedVersion}
+        />
+      )}
+
+      {/* Line Items */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Quote Line Items
+            </CardTitle>
+            {aiItemCount > 0 && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                <Sparkles className="h-3 w-3 mr-1" />
+                {aiItemCount} from AI
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {lastSaved && (
+              <span className="text-xs text-muted-foreground">
+                Last saved: {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+            {hasChanges && !isSaving && (
+              <span className="text-xs text-amber-600">Unsaved changes</span>
+            )}
+            {isSaving && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Saving...
+              </span>
+            )}
+            {!isReadOnly && <UndoRedoToolbar />}
+            <Button onClick={saveQuote} disabled={isSaving || !hasChanges || !!isReadOnly} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              Save
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* E1: Error banner with retry/dismiss */}
+          {error && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span className="text-sm flex-1">{error}</span>
+              {failedOperation && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDismissError}
+                className="h-6 w-6 shrink-0 text-destructive hover:bg-destructive/10"
+                aria-label="Dismiss error"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
+          {/* Initial estimate info (legacy display) */}
+          {initialEstimate && !initialQuote && !aiQuote && (
+            <div className="mb-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                AI Estimate:{' '}
+                {formatCurrency((initialEstimate as { estimateLow?: number }).estimateLow || 0)} -{' '}
+                {formatCurrency((initialEstimate as { estimateHigh?: number }).estimateHigh || 0)}
+              </p>
+            </div>
+          )}
+
+          {/* F8: Scope Gap Recommendations above line items */}
+          {filteredScopeGaps.length > 0 && (
+            <div className="mb-4">
+              <ScopeGapRecommendations
+                gaps={filteredScopeGaps}
+                onAddItem={handleAddScopeGapItem}
+              />
+            </div>
+          )}
+
+          {/* V9: Subtotal sanity check warning */}
+          {isSanityWarning && !sanityDismissed && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span className="text-sm flex-1">This quote total seems unusual. Please verify.</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSanityDismissed(true)}
+                className="h-6 w-6 shrink-0 text-amber-600 hover:bg-amber-100"
+                aria-label="Dismiss warning"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
+          <QuoteLineItemsLayout
+            items={lineItems}
+            onChangeItem={handleUpdateItem}
+            onDeleteItem={handleDeleteItem}
+            onDuplicateItem={handleDuplicateItem}
+          />
+
+          <div className="flex items-center gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddItem}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Line Item
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplatePicker(true)}
+            >
+              <Layers className="h-4 w-4 mr-1" />
+              Insert Template
+            </Button>
+            {aiQuote && lineItems.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetToAI}
+                className="text-muted-foreground"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Reset to AI Quote
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Totals */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quote Totals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-w-md">
+            {/* Subtotal */}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-medium">{formatCurrency(subtotal)}</span>
+            </div>
+
+            {/* Contingency */}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Contingency</span>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  step="1"
+                  value={contingencyPercent}
+                  onChange={(e) => {
+                    store.setContingency(parseFloat(e.target.value) || 0);
+                    markChanged();
+                  }}
+                  className="w-[70px] h-8"
+                  aria-label="Contingency percentage"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+              <span className="font-medium">{formatCurrency(contingencyAmount)}</span>
+            </div>
+
+            {/* HST */}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">HST ({HST_PERCENT}%)</span>
+              <span className="font-medium">{formatCurrency(hstAmount)}</span>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between pt-3 border-t">
+              <span className="font-semibold">Total</span>
+              <span className="font-bold text-lg">{formatCurrency(total)}</span>
+            </div>
+
+            {/* Deposit */}
+            <div className="flex justify-between text-primary">
+              <span className="font-medium">
+                Deposit Required ({depositPercent}%)
+              </span>
+              <span className="font-bold">{formatCurrency(depositRequired)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assumptions & Exclusions */}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Assumptions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="assumptions" className="text-sm text-muted-foreground">
+                One assumption per line
+              </Label>
+              <Textarea
+                id="assumptions"
+                value={assumptions}
+                onChange={(e) => {
+                  store.setAssumptions(e.target.value);
+                  markChanged();
+                }}
+                placeholder="Enter assumptions..."
+                rows={6}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Exclusions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="exclusions" className="text-sm text-muted-foreground">
+                One exclusion per line
+              </Label>
+              <Textarea
+                id="exclusions"
+                value={exclusions}
+                onChange={(e) => {
+                  store.setExclusions(e.target.value);
+                  markChanged();
+                }}
+                placeholder="Enter exclusions..."
+                rows={6}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Actions: Download PDF & Send Quote */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quote Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              {sentAt && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="h-4 w-4" />
+                  <span>
+                    Sent to {initialQuote?.sent_to_email || customerEmail} on{' '}
+                    {sentAt.toLocaleDateString('en-CA', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
+              {acceptanceStatus === 'accepted' && acceptedByName && acceptedAt && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Check className="h-3 w-3 mr-1" />
+                  Approved by {acceptedByName} on{' '}
+                  {new Date(acceptedAt).toLocaleDateString('en-CA', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Badge>
+              )}
+              {acceptanceStatus === 'pending' && sentAt && (
+                <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                  Awaiting approval
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={isDownloading || lineItems.length === 0}
+              >
+                {isDownloading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Download PDF
+              </Button>
+
+              {!isReadOnly && (
+                <Button
+                  onClick={handleOpenSendWizard}
+                  disabled={lineItems.length === 0 || !customerEmail}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sentAt ? 'Resend Quote' : 'Send Quote'}
+                </Button>
+              )}
+
+              {sentAt && initialQuote?.id && (
+                <Button
+                  variant="outline"
+                  onClick={handleCreateInvoice}
+                  disabled={isCreatingInvoice}
+                  className="border-green-200 text-green-700 hover:bg-green-50"
+                >
+                  {isCreatingInvoice ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Receipt className="h-4 w-4 mr-2" />
+                  )}
+                  Create Invoice
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Send Quote Wizard with Email Preview */}
+      <QuoteSendWizard
+        open={showSendWizard}
+        onOpenChange={setShowSendWizard}
+        leadId={leadId}
+        customerName={customerName || 'Customer'}
+        customerEmail={customerEmail || ''}
+        projectType={projectType}
+        quoteTotal={total}
+        depositRequired={depositRequired}
+        lineItemCount={lineItems.length}
+        goalsText={goalsText}
+        sentAt={sentAt}
+        onSendComplete={handleSendComplete}
+      />
+
+      {/* Regenerate Quote Dialog */}
+      <RegenerateQuoteDialog
+        open={showRegenerateDialog}
+        onOpenChange={setShowRegenerateDialog}
+        onRegenerate={handleRegenerateAIQuote}
+        isRegenerating={isRegenerating}
+      />
+
+      {/* Template Picker */}
+      <TemplatePicker
+        open={showTemplatePicker}
+        onOpenChange={setShowTemplatePicker}
+        onInsert={handleInsertTemplate}
+      />
+
+      {/* C4: Reset to AI confirmation */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reset to AI Quote"
+        description="This will discard all manual edits and regenerate from AI. This cannot be undone."
+        confirmLabel="Reset"
+        destructive
+        onConfirm={executeResetToAI}
+      />
+    </div>
+  );
+}

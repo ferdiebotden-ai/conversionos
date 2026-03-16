@@ -1,0 +1,28 @@
+{
+  "name": "@norbot/conversionos-visualizer",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/visualizer/visualizer-form": "./src/components/visualizer/visualizer-form.tsx",
+    "./components/visualizer/before-after-slider": "./src/components/visualizer/before-after-slider.tsx",
+    "./components/visualizer/concept-thumbnails": "./src/components/visualizer/concept-thumbnails.tsx"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "^3.0.69",
+    "ai": "^6.0.67",
+    "framer-motion": "^12.34.0",
+    "lucide-react": "^0.563.0"
+  },
+  "peerDependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.18",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
+  }
+}
