@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-visualizer/src/components/visualizer/renovation-planner/step-room-details';
+export * from '../../../../packages/conversionos-visualizer/src/components/visualizer/renovation-planner/step-room-details';
