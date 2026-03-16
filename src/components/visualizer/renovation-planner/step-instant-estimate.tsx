@@ -1,1 +1,1 @@
-export * from '../../../../packages/conversionos-visualizer/src/components/visualizer/renovation-planner/step-instant-estimate';
+export * from '../../../../../packages/conversionos-visualizer/src/components/visualizer/renovation-planner/step-instant-estimate';

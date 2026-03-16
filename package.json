@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "vercel-build": "cp -r packages ../packages 2>/dev/null; next build",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

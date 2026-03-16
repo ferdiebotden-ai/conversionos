@@ -106,18 +106,18 @@ export async function search(query, options = {}) {
 }
 
 /**
- * Scrape a single URL and return markdown + metadata.
+ * Scrape a single URL and return markdown + metadata + optional branding.
  * @param {string} url - URL to scrape
  * @param {object} [options]
- * @param {string[]} [options.formats=['markdown']] - output formats
+ * @param {string[]} [options.formats=['markdown']] - output formats (supports 'markdown', 'branding', etc.)
  * @param {number} [options.timeout=30000] - timeout in ms
- * @returns {Promise<{ markdown: string, metadata: object }>}
+ * @returns {Promise<{ markdown: string, metadata: object, branding: object|null }>}
  */
 export async function scrape(url, options = {}) {
   const fc = getApp();
   const { formats = ['markdown'], timeout = 30000 } = options;
 
-  logger.debug(`Firecrawl scrape: ${url}`);
+  logger.debug(`Firecrawl scrape: ${url} (formats: ${formats.join(', ')})`);
   await enforceRateLimit();
   const result = await retryOn429(() => fc.scrapeUrl(url, { formats, timeout }));
   creditsUsed += 1;
@@ -129,6 +129,7 @@ export async function scrape(url, options = {}) {
   return {
     markdown: result.markdown || '',
     metadata: result.metadata || {},
+    branding: result.branding || null,
   };
 }
 

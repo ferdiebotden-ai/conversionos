@@ -59,6 +59,10 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'rose-building-group.norbotsystems.com': 'rose-building-group',
   'a-p-hurley-construction.norbotsystems.com': 'a-p-hurley-construction',
   'eagleview-construction.norbotsystems.com': 'eagleview-construction',
+  'dundas-home-renovations.norbotsystems.com': 'dundas-home-renovations',
+  'gracia-makeovers.norbotsystems.com': 'gracia-makeovers',
+  'dalm-construction-premium-home-builders.norbotsystems.com': 'dalm-construction-premium-home-builders',
+  'custom-home-builder-in-simcoe-county-ontario-gilbert-burke.norbotsystems.com': 'custom-home-builder-in-simcoe-county-ontario-gilbert-burke',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

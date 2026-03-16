@@ -23,6 +23,7 @@
         "height": { "type": "number", "description": "Height in pixels" }
       },
       "required": ["x", "y", "width", "height"],
+      "additionalProperties": false,
       "description": "Approximate bounding box of the logo"
     },
     "confidence": {
