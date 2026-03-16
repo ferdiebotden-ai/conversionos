@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node -e \"const{existsSync:e,mkdirSync:m,symlinkSync:s}=require('fs'),{resolve:r}=require('path');const t=r(__dirname,'..','packages');if(!e(t)){m(r(__dirname,'..'),{recursive:true});s(r(__dirname,'packages'),t)}\" && next build",
+    "vercel-build": "cp -r packages ../packages 2>/dev/null; next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
