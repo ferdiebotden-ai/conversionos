@@ -403,9 +403,8 @@ if (!dryRun) {
     } else {
       pageLayouts = {
         homepage: [
-          'hero:full-bleed-overlay',
+          'hero:visualizer-teardown',
           'trust:badge-strip',
-          'misc:visualizer-teaser',
           'services:grid-3-cards',
           'about:split-image-copy',
           'gallery:masonry-grid',

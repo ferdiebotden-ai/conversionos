@@ -23,6 +23,7 @@ const AVAILABLE_SECTIONS = [
   { id: 'hero:editorial-centered', desc: 'Centred editorial hero with large headline. Minimal, elegant.' },
   { id: 'hero:video-background', desc: 'Video background hero with overlay text. High-impact.' },
   { id: 'hero:gradient-text', desc: 'Gradient-coloured headline hero. Modern tech aesthetic.' },
+  { id: 'hero:visualizer-teardown', desc: 'RECOMMENDED DEFAULT. Split hero: headline+CTA left, before/after frame scrubber right. 5 style tabs, AI-powered badge. Premium feel with construction teardown animation.' },
 
   // Services
   { id: 'services:grid-3-cards', desc: '3-column card grid of services with images, name, description, CTA.' },
@@ -164,6 +165,8 @@ ${scrapedSummary}
 ${sectionCatalogue}
 
 ## Rules
+- ALWAYS use hero:visualizer-teardown as the homepage hero — it's the platform's primary differentiator (before/after frame scrubber with 5 style tabs). Do NOT use hero:full-bleed-overlay or other heroes for homepage.
+- Do NOT include misc:visualizer-teaser — the visualiser is already embedded in hero:visualizer-teardown
 - Every page MUST have at least 2 sections
 - Homepage should have 6-10 sections for a complete feel
 - Inner pages (about, services, contact, projects) should start with misc:breadcrumb-hero
@@ -214,9 +217,8 @@ function getDefaultBlueprint(scraped) {
         slug: 'homepage',
         title: scraped.business_name || 'Home',
         sections: [
-          { sectionId: 'hero:full-bleed-overlay' },
+          { sectionId: 'hero:visualizer-teardown' },
           { sectionId: 'trust:badge-strip' },
-          { sectionId: 'misc:visualizer-teaser' },
           { sectionId: 'services:grid-3-cards' },
           { sectionId: 'about:split-image-copy' },
           ...(hasPortfolio ? [{ sectionId: 'gallery:masonry-grid' }] : []),

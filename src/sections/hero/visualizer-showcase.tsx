@@ -35,9 +35,11 @@ interface StyleOption {
 /** Default fallback images when config is not set. */
 const DEFAULT_BEFORE = '/images/hero/before-kitchen.png';
 const DEFAULT_STYLES: StyleOption[] = [
+  { label: 'Transitional', after: '/images/hero/after-transitional.png' },
   { label: 'Modern', after: '/images/hero/after-modern.png' },
   { label: 'Farmhouse', after: '/images/hero/after-farmhouse.png' },
   { label: 'Industrial', after: '/images/hero/after-industrial.png' },
+  { label: 'Scandinavian', after: '/images/hero/after-scandinavian.png' },
 ];
 
 interface Props extends SectionBaseProps {
