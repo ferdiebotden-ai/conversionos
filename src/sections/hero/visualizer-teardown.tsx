@@ -443,22 +443,26 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
             </div>
 
             <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-2xl shadow-black/10">
-              {/* Style tabs */}
-              <div className="flex gap-0.5 overflow-x-auto scrollbar-hide border-b border-border px-2 pt-2 pb-1.5 sm:gap-1 sm:px-4 sm:pt-3 sm:pb-2">
-                {styles.map((style, i) => (
-                  <button
-                    key={style.label}
-                    onClick={() => handleTabSwitch(i)}
-                    className={cn(
-                      'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide transition-all duration-300 sm:px-4 sm:py-1.5 sm:text-xs',
-                      i === activeIndex
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    )}
-                  >
-                    {style.label}
-                  </button>
-                ))}
+              {/* Style tabs — horizontally scrollable with fade hint */}
+              <div className="relative border-b border-border">
+                <div className="flex gap-0.5 overflow-x-auto scrollbar-hide px-2 pt-2 pb-1.5 sm:gap-1 sm:px-4 sm:pt-3 sm:pb-2">
+                  {styles.map((style, i) => (
+                    <button
+                      key={style.label}
+                      onClick={() => handleTabSwitch(i)}
+                      className={cn(
+                        'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide transition-all duration-300 sm:px-4 sm:py-1.5 sm:text-xs',
+                        i === activeIndex
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Right-edge gradient fade to hint scrollability */}
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card to-transparent sm:hidden" aria-hidden="true" />
               </div>
 
               {/* Image area */}
