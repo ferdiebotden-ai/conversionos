@@ -303,7 +303,7 @@ export function VisualizerShowcaseHero({ branding, config, className }: Props) {
                   src={beforeImage}
                   alt="Kitchen before renovation"
                   fill
-                  className="object-cover"
+                  className="object-cover object-center"
                   sizes="(max-width: 768px) 100vw, 600px"
                   priority
                 />
@@ -313,7 +313,7 @@ export function VisualizerShowcaseHero({ branding, config, className }: Props) {
                   src={active.after}
                   alt={`${active.label} style renovation`}
                   fill
-                  className="object-cover"
+                  className="object-cover object-center"
                   style={{ opacity: sliderPosition / 100 }}
                   sizes="(max-width: 768px) 100vw, 600px"
                   priority

@@ -65,6 +65,22 @@ const DEFAULT_STYLES: StyleOption[] = [
   { label: 'Scandinavian', after: '/images/hero/after-scandinavian.png' },
 ];
 
+// ── Canvas cover drawing (centered crop, not top-left) ────────────
+
+function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, canvasW: number, canvasH: number) {
+  const imgAR = img.naturalWidth / img.naturalHeight;
+  const canvasAR = canvasW / canvasH;
+  let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+  if (imgAR > canvasAR) {
+    sw = img.naturalHeight * canvasAR;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = img.naturalWidth / canvasAR;
+    sy = (img.naturalHeight - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+}
+
 // ── Frame Scrubber sub-component ──────────────────────────────────
 
 function FrameScrubber({
@@ -153,7 +169,7 @@ function FrameScrubber({
     if (frame?.complete) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        drawImageCover(ctx, frame, canvas.width, canvas.height);
       }
     }
   });
@@ -176,7 +192,7 @@ function FrameScrubber({
       const idx = Math.round((current / 100) * (frameCount - 1));
       const frame = framesRef.current[idx];
       if (frame?.complete && ctx) {
-        ctx.drawImage(frame, 0, 0, rect.width, rect.height);
+        drawImageCover(ctx, frame, rect.width, rect.height);
       }
     };
 
@@ -194,7 +210,7 @@ function FrameScrubber({
         const rect = canvas.getBoundingClientRect();
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.drawImage(frame, 0, 0, rect.width, rect.height);
+          drawImageCover(ctx, frame, rect.width, rect.height);
           lastDrawnRef.current = 0;
         }
       }
@@ -469,8 +485,8 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
               <div className="relative aspect-video select-none overflow-hidden sm:aspect-[16/10]">
                 {renderMode === 'opacity' ? (
                   <>
-                    <Image src={beforeImage} alt="Kitchen before renovation" fill className="object-cover" sizes="(max-width: 768px) 100vw, 600px" priority />
-                    <Image src={active.after} alt={`${active.label} style renovation`} fill className="object-cover" style={{ opacity: 1 }} sizes="(max-width: 768px) 100vw, 600px" priority />
+                    <Image src={beforeImage} alt="Kitchen before renovation" fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 600px" priority />
+                    <Image src={active.after} alt={`${active.label} style renovation`} fill className="object-cover object-center" style={{ opacity: 1 }} sizes="(max-width: 768px) 100vw, 600px" priority />
                   </>
                 ) : renderMode === 'frames' ? (
                   <FrameScrubber
