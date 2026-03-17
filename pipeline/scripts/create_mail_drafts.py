@@ -235,7 +235,7 @@ def parse_blob_email_md(raw_md: str) -> dict:
         [email body]
 
         ---
-        Ferdie Botden | NorBot Systems Inc. | 140 Dempsey Dr, ...
+        Ferdie Botden | NorBot Systems Inc. | PO Box 23030 Stratford PO Main, ...
         If you'd prefer not to hear from me, ...
 
     Returns dict with 'subject', 'body', 'casl_footer' keys.
@@ -432,10 +432,10 @@ def validate_casl(parsed: dict) -> list[str]:
         violations.append("Missing full sender name (need 'Ferdie Botden')")
     if "NorBot Systems" not in footer:
         violations.append("Missing business name (need 'NorBot Systems Inc.')")
-    if "140 Dempsey" not in footer:
-        violations.append("Missing street address (need '140 Dempsey Dr')")
-    if "N5A 0K5" not in footer:
-        violations.append("Missing postal code (need 'N5A 0K5')")
+    if "PO Box 23030" not in footer and "140 Dempsey" not in footer:
+        violations.append("Missing mailing address (need 'PO Box 23030 Stratford PO Main')")
+    if "N5A 7V8" not in footer and "N5A 0K5" not in footer:
+        violations.append("Missing postal code (need 'N5A 7V8')")
     if "STOP" not in footer and "stop" not in footer:
         violations.append("Missing unsubscribe mechanism")
 

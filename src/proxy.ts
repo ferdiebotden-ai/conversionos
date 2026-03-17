@@ -64,6 +64,18 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'dalm-construction-premium-home-builders.norbotsystems.com': 'dalm-construction-premium-home-builders',
   'gilbert-burke.norbotsystems.com': 'gilbert-burke',
   'senso-design.norbotsystems.com': 'senso-design',
+  'ottawa-renovation-specialists.norbotsystems.com': 'ottawa-renovation-specialists',
+  'level-one-construction.norbotsystems.com': 'level-one-construction',
+  'kidd-bros-construction-ltd.norbotsystems.com': 'kidd-bros-construction-ltd',
+  'frontline-builders.norbotsystems.com': 'frontline-builders',
+  'mastered-home-renovations.norbotsystems.com': 'mastered-home-renovations',
+  'ackard-contractors.norbotsystems.com': 'ackard-contractors',
+  'classic-construction.norbotsystems.com': 'classic-construction',
+  'msi-home-improvements-construction.norbotsystems.com': 'msi-home-improvements-construction',
+  'family-home-improvements.norbotsystems.com': 'family-home-improvements',
+  'total-living-concepts.norbotsystems.com': 'total-living-concepts',
+  'arg-contracting.norbotsystems.com': 'arg-contracting',
+  'behome-beckwith-contracting-inc.norbotsystems.com': 'behome-beckwith-contracting-inc',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

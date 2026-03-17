@@ -106,18 +106,43 @@ function scoreGoogleReviews(rating, count, velocity) {
   return Math.min(score, WEIGHTS.google_reviews);
 }
 
-/** Geography: ring-based scoring from Stratford outward */
-const RING_1 = (CONFIG.icp_scoring.geographic_rings?.ring_1 || []).map(c => c.toLowerCase());
-const RING_2 = (CONFIG.icp_scoring.geographic_rings?.ring_2 || []).map(c => c.toLowerCase());
-const RING_3 = (CONFIG.icp_scoring.geographic_rings?.ring_3 || []).map(c => c.toLowerCase());
+/** Geography: ring-based scoring from Stratford outward (6 rings, Canada + US) */
+const GEOGRAPHIC_RINGS = (() => {
+  const rings = CONFIG.icp_scoring.geographic_rings || {};
+  const result = [];
+  for (const [key, ring] of Object.entries(rings)) {
+    // Support both old format (array) and new format (object with score + cities)
+    const cities = Array.isArray(ring) ? ring : (ring.cities || []);
+    const score = ring.score ?? ({ ring_1: 15, ring_2: 13, ring_3: 11, ring_4: 9, ring_5: 7, ring_6: 5 }[key] ?? 5);
+    result.push({
+      name: key,
+      score,
+      cities: cities.map(c => c.toLowerCase()),
+      compliance: ring.compliance || 'CASL',
+    });
+  }
+  // Sort by score descending so highest-value rings match first
+  return result.sort((a, b) => b.score - a.score);
+})();
 
 function scoreGeography(city) {
   if (!city) return 3;
   const norm = city.toLowerCase();
-  if (RING_1.includes(norm)) return Math.min(15, WEIGHTS.geography);
-  if (RING_2.includes(norm)) return Math.min(12, WEIGHTS.geography);
-  if (RING_3.includes(norm)) return Math.min(9, WEIGHTS.geography);
+  for (const ring of GEOGRAPHIC_RINGS) {
+    if (ring.cities.includes(norm)) return Math.min(ring.score, WEIGHTS.geography);
+  }
+  // Unknown city — could be a new market not yet in config
   return 5;
+}
+
+/** Get the compliance regime for a city (CASL or CAN-SPAM) */
+export function getComplianceRegime(city) {
+  if (!city) return 'CASL';
+  const norm = city.toLowerCase();
+  for (const ring of GEOGRAPHIC_RINGS) {
+    if (ring.cities.includes(norm)) return ring.compliance;
+  }
+  return 'CASL'; // Default to stricter Canadian rules
 }
 
 /** Company establishment: larger/more established = higher score */

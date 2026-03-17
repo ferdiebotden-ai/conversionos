@@ -123,11 +123,31 @@ def brave_search_contractors(city: str, territory: str, limit: int = 5) -> list[
         print("  Set BRAVE_SEARCH_API_KEY env var or configure in OpenClaw")
         return []
 
-    queries = [
-        f"renovation contractor {city} Ontario",
-        f"kitchen bathroom renovation {city} ON",
-        f"home remodeling contractor {city} Ontario",
-    ]
+    # Geographic-aware search queries
+    # US cities get different search patterns than Canadian cities
+    us_cities = {
+        "boston", "new york", "philadelphia", "pittsburgh", "buffalo", "syracuse",
+        "chicago", "detroit", "minneapolis", "cleveland", "columbus", "indianapolis",
+        "atlanta", "charlotte", "nashville", "raleigh", "tampa", "miami",
+        "seattle", "portland", "denver", "phoenix", "san diego", "los angeles",
+        "san francisco", "sacramento", "hartford", "providence", "milwaukee", "cincinnati",
+        "jacksonville", "orlando",
+    }
+    city_lower = city.lower()
+    is_us = city_lower in us_cities
+
+    if is_us:
+        queries = [
+            f"renovation contractor {city}",
+            f"kitchen bathroom remodeling {city}",
+            f"home renovation company {city}",
+        ]
+    else:
+        queries = [
+            f"renovation contractor {city}",
+            f"kitchen bathroom renovation {city}",
+            f"home renovation company {city}",
+        ]
 
     all_results = []
     seen_urls = set()
@@ -282,9 +302,9 @@ def brave_discover_and_insert(
 def search_contractors(city: str, territory: str, limit: int = 5) -> list[dict]:
     """Search for renovation contractors using Firecrawl search API."""
     queries = [
-        f"renovation contractor {city} Ontario",
-        f"kitchen bathroom renovation company {city} ON",
-        f"home renovation remodeling contractor {city} Ontario reviews",
+        f"renovation contractor {city}",
+        f"kitchen bathroom renovation company {city}",
+        f"home renovation contractor {city}",
     ]
 
     all_results = []
@@ -295,11 +315,15 @@ def search_contractors(city: str, territory: str, limit: int = 5) -> list[dict]:
             break
 
         print(f"  Searching: {query}")
+        # Detect country from territory or city
+        search_country = "US" if territory and ", US" in territory else "CA"
+        search_location = f"{city},Canada" if search_country == "CA" else f"{city},United States"
+
         result = _api_request("search", {
             "query": query,
             "limit": limit,
-            "location": f"{city},Ontario,Canada",
-            "country": "CA",
+            "location": search_location,
+            "country": search_country,
         })
 
         if not result.get("success"):
@@ -622,7 +646,9 @@ def discover_and_insert(
             print(f"      Services: {extracted.get('services', [])}")
             print(f"      Rating: {extracted.get('google_rating', 'N/A')}")
         else:
-            target_id = insert_target(**target_data)
+            # Strip fields not in insert_target() signature before calling
+            insert_data = {k: v for k, v in target_data.items() if k != 'brand_assets'}
+            target_id = insert_target(**insert_data)
             print(f"    INSERTED: {name} (ID: {target_id}, slug: {slug})")
             target_data["id"] = target_id
 

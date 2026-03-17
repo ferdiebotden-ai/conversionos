@@ -45,6 +45,7 @@ export async function codexExec(prompt, {
   outputSchema,
   outputFile,
   json = false,
+  model,
 } = {}) {
   // Try Codex first with a short timeout, then fall back to Claude CLI
   const codexTimeout = Math.min(timeoutMs, 30000); // Cap Codex at 30s — if it hasn't started in 30s, it's hanging
@@ -71,7 +72,7 @@ export async function codexExec(prompt, {
   } catch (codexErr) {
     // Codex failed or timed out — fall back to Claude CLI
     logger.info(`Codex failed (${codexErr.killed ? 'timeout' : 'error'}), falling back to Claude CLI`);
-    return claudeCodeGen(prompt, { cwd, timeoutMs, outputFile });
+    return claudeCodeGen(prompt, { cwd, timeoutMs, outputFile, model: options?.model });
   }
 }
 
@@ -86,13 +87,16 @@ export async function codexExec(prompt, {
  * @param {string} [options.outputFile] - File path to write output
  * @returns {Promise<{ stdout: string, stderr: string }>}
  */
-export async function claudeCodeGen(prompt, { cwd, timeoutMs = 300000, outputFile } = {}) {
+export async function claudeCodeGen(prompt, { cwd, timeoutMs = 300000, outputFile, model } = {}) {
   // Adapt the prompt for Claude CLI — ask it to output ONLY the code
   const codePrompt = prompt + '\n\nIMPORTANT: Output ONLY the complete file content. No markdown fences, no explanations, no commentary. Just the raw TypeScript/React code.';
 
-  logger.debug(`Claude CLI codegen [timeout=${timeoutMs}ms, prompt=${prompt.length} chars]`);
+  logger.debug(`Claude CLI codegen [timeout=${timeoutMs}ms, prompt=${prompt.length} chars, model=${model || 'default'}]`);
 
-  const { stdout, stderr } = await execFileAsync('claude', ['-p', codePrompt, '--output-format', 'text'], {
+  const claudeArgs = ['-p', codePrompt, '--output-format', 'text'];
+  if (model) claudeArgs.push('--model', model);
+
+  const { stdout, stderr } = await execFileAsync('claude', claudeArgs, {
     cwd,
     timeout: timeoutMs,
     maxBuffer: 50 * 1024 * 1024,

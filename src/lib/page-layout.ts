@@ -3,7 +3,7 @@ import { getSiteIdAsync } from '@/lib/db/site';
 import type { SectionId } from '@/lib/section-types';
 
 const DEFAULT_HOMEPAGE_LAYOUT: SectionId[] = [
-  'hero:full-bleed-overlay',
+  'hero:visualizer-teardown',
   'trust:badge-strip',
   'misc:visualizer-teaser',
   'services:grid-3-cards',

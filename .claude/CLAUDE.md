@@ -1,5 +1,7 @@
 # ConversionOS — Premium Website Rebuild Platform
 
+> **Part of NorBot Systems Inc.** For business context, revenue targets, and priorities: read `~/Norbot-Systems/brain/BUSINESS_OS.md`. For current session priorities: read `~/Norbot-Systems/brain/projects.md`. For infrastructure and agent mesh: read `~/Norbot-Systems/.claude/rules/infrastructure.md`. Self-improvement log: `~/Norbot-Systems/brain/.learnings/LEARNINGS.md`.
+
 ## What This Is
 NorBot Systems rebuilds contractor websites with AI underneath — same brand, same feel, but now it captures leads, qualifies them, and generates estimates automatically. Single codebase, four pricing tiers, domain-driven multi-tenancy.
 
@@ -81,7 +83,7 @@ Scrape → quality gates → upload images → provision DB → register domain 
 - **UI:** `BrandingProvider` + `TierProvider` contexts feed branding and entitlements to client components
 - **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
 - **Deploy:** Single Vercel project (`conversionos`) with proxy routing + wildcard DNS
-- **Section registry:** 47 components, `SectionRenderer` renders homepage dynamically via `getPageLayout()`
+- **Section registry:** 52 components (51 standard + custom), `SectionRenderer` renders homepage dynamically via `getPageLayout()`
 
 ## Adding a New Tenant
 

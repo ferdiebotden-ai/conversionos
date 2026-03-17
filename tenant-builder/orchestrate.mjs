@@ -60,12 +60,14 @@ const { values: args } = parseArgs({
     'skip-git': { type: 'boolean', default: false },
     'skip-outreach': { type: 'boolean', default: false },
     'skip-polish': { type: 'boolean', default: false },
+    'auto-polish': { type: 'boolean', default: false },
     'skip-architect': { type: 'boolean', default: false },
     'skip-custom-sections': { type: 'boolean', default: false },
     bespoke: { type: 'boolean', default: false },
     'warm-lead': { type: 'boolean', default: false },
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
+    model: { type: 'string' },  // Pass-through to Claude CLI: --model sonnet, --model opus
     help: { type: 'boolean' },
   },
 });
@@ -90,21 +92,27 @@ Options:
   --skip-git         Skip git commit + push
   --skip-outreach    Skip outreach email drafts
   --skip-polish      Bypass the Codex polish queue and allow immediate outreach
+  --auto-polish      Run warm-leads-polish autonomous QA loop after queue handoff
   --skip-architect   Skip AI architect (use default section layouts)
   --skip-custom-sections  Skip custom section generation
   --bespoke          Bespoke rebuild: scrape HTML+CSS+screenshots, rebuild visual identity
-  --warm-lead        Warm lead build: bespoke + palette extraction + hero visualiser + content fidelity QA`);
+  --warm-lead        Warm lead build: bespoke + palette extraction + hero visualiser + content fidelity QA
+  --model MODEL      Claude CLI model override: sonnet (scale builds) or opus (quality builds)`);
   process.exit(0);
 }
 
-const limit = parseInt(args.limit, 10);
-const concurrency = parseInt(args.concurrency, 10);
+const nightlyConfig = args.nightly ? CONFIG.nightly : {};
+const limit = args.nightly ? (nightlyConfig.limit ?? 10) : parseInt(args.limit, 10);
+const concurrency = args.nightly ? (nightlyConfig.concurrency ?? 4) : parseInt(args.concurrency, 10);
+const waveSize = nightlyConfig.wave_size ?? limit; // Default: no wave splitting
 const dryRun = args['dry-run'];
 const skipPolish = args['skip-polish'];
+const autoPolish = args['auto-polish'];
 const warmLeadMode = args['warm-lead'];
 const bespokeMode = args.bespoke || warmLeadMode; // warm-lead implies bespoke
 const timeoutMultiplier = parseFloat(args['timeout-multiplier']) || 1;
 const auditOnly = args['audit-only'];
+const modelOverride = args.model || null; // --model sonnet → pass to Claude CLI calls
 
 // ── Warm-lead build config overrides ──────────────────────────────
 const warmLeadConfig = warmLeadMode ? (CONFIG.warm_lead || {}) : null;
@@ -137,8 +145,8 @@ let targets = [];
 
 if (args.nightly) {
   // Nightly = batch with config defaults
-  logger.info('Nightly mode: batch with config defaults');
-  targets = await selectPipelineTargets(CONFIG.nightly.limit);
+  logger.info(`Nightly mode: limit=${limit}, concurrency=${concurrency}, wave_size=${waveSize}, model=${modelOverride || 'default'}`);
+  targets = await selectPipelineTargets(limit);
 } else if (args.batch) {
   targets = await selectPipelineTargets(limit);
 } else if (args['target-id']) {
@@ -221,6 +229,30 @@ if (!args.url) { // Skip scoring for direct URL mode
   const filtered = before - targets.length;
   if (filtered > 0) {
     logger.info(`Filtered out ${filtered} target(s) below ICP threshold (${threshold}) or unscored`);
+  }
+
+  // ICP routing: split high-value targets from scale outreach (nightly/batch mode only)
+  const icpRouting = CONFIG.icp_scoring.icp_routing;
+  if (icpRouting && (args.nightly || args.batch) && !warmLeadMode) {
+    const warmLeadThreshold = icpRouting.warm_lead_threshold ?? 80;
+    const warmLeadCandidates = targets.filter(t => t.icp_score >= warmLeadThreshold);
+    const templateCandidates = targets.filter(t => t.icp_score < warmLeadThreshold);
+
+    if (warmLeadCandidates.length > 0) {
+      logger.info(`ICP routing: ${warmLeadCandidates.length} target(s) scored ${warmLeadThreshold}+ → warm-lead queue (Ferdie calls)`);
+      for (const t of warmLeadCandidates) {
+        logger.info(`  → ${t.company_name} (ICP ${t.icp_score}) → warm_lead_queued`);
+        try {
+          await execute("UPDATE targets SET status = 'warm_lead_queued' WHERE id = ? AND status IN ('qualified', 'discovered')", [t.id]);
+        } catch (e) {
+          logger.warn(`Could not update ${t.company_name} to warm_lead_queued: ${e.message}`);
+        }
+      }
+    }
+
+    // Continue with template candidates only for this run
+    targets = templateCandidates;
+    logger.info(`ICP routing: ${targets.length} target(s) scored ${threshold}-${warmLeadThreshold - 1} → template build pipeline`);
   }
 }
 
@@ -546,6 +578,65 @@ const tasks = targets.map(target => async () => {
 });
 
 results = await pool(tasks, concurrency);
+
+// Circuit breaker: abort if >50% of builds failed
+const buildSucceeded = results.filter(r => r.status === 'fulfilled').length;
+const buildFailed = results.filter(r => r.status === 'rejected').length;
+if (buildFailed > 0 && buildFailed / (buildSucceeded + buildFailed) > 0.5) {
+  logger.error(`Circuit breaker: ${buildFailed}/${buildSucceeded + buildFailed} builds failed (${Math.round(buildFailed / (buildSucceeded + buildFailed) * 100)}%). Aborting pipeline.`);
+  // Still write summary before exiting
+  const summaryDir = resolve(TB_ROOT, `results/${TODAY}`);
+  mkdirSync(summaryDir, { recursive: true });
+  writeFileSync(resolve(summaryDir, 'batch-summary.json'), JSON.stringify({
+    date: TODAY, total: targets.length, succeeded: buildSucceeded, failed: buildFailed,
+    aborted: true, abort_reason: 'circuit_breaker_50pct_failure',
+    targets: targets.map(t => ({ id: t.id, name: t.company_name, slug: t.slug, icp_score: t.icp_score })),
+  }, null, 2));
+  logger.summary({ total: targets.length, succeeded: buildSucceeded, failed: buildFailed, skipped: 0 });
+  process.exit(2);
+}
+
+// Retry queue: collect failed builds for one retry at end (if few enough)
+const failedTargets = [];
+for (let i = 0; i < results.length; i++) {
+  if (results[i].status === 'rejected' && targets[i]) {
+    failedTargets.push(targets[i]);
+  }
+}
+if (failedTargets.length > 0 && failedTargets.length <= 5) {
+  logger.info(`Retry queue: retrying ${failedTargets.length} failed build(s) with 2x timeout...`);
+  const retryTasks = failedTargets.map(target => async () => {
+    const siteId = target.slug;
+    const outputDir = resolve(TB_ROOT, `results/${TODAY}/${siteId}`);
+    mkdirSync(outputDir, { recursive: true });
+    // Re-run the same build with doubled timeouts (simplified — just re-invoke scrape+provision)
+    logger.info(`[${siteId}] Retry build...`);
+    try {
+      execFileSync('node', [
+        resolve(TB_ROOT, 'scrape/scrape-enhanced.mjs'),
+        '--url', target.website, '--site-id', siteId, '--output', outputDir,
+      ], { cwd: DEMO_ROOT, env: process.env, timeout: 600000, maxBuffer: 50 * 1024 * 1024, stdio: 'pipe' });
+      // Continue with provision...
+      execFileSync('node', [
+        resolve(TB_ROOT, 'provision/provision-tenant.mjs'),
+        '--site-id', siteId, '--scraped-path', resolve(outputDir, 'scraped.json'),
+        '--tier', args.tier || CONFIG.provisioning.default_tier,
+      ], { cwd: DEMO_ROOT, env: process.env, timeout: 600000, maxBuffer: 50 * 1024 * 1024, stdio: 'pipe' });
+      return { siteId, targetId: target.id };
+    } catch (e) {
+      logger.warn(`[${siteId}] Retry also failed: ${e.message?.slice(0, 100)}`);
+      throw e;
+    }
+  });
+  const retryResults = await pool(retryTasks, 2);
+  // Merge retry results back
+  for (const rr of retryResults) {
+    if (rr.status === 'fulfilled') {
+      results.push(rr);
+      logger.info(`[${rr.value.siteId}] Retry succeeded`);
+    }
+  }
+}
 }
 
 // ──────────────────────────────────────────────────────────
@@ -658,8 +749,12 @@ const qaResults = [];
 const polishQueue = [];
 
 if ((!dryRun || auditOnly) && !args['skip-qa']) {
-  for (const r of results) {
-    if (r.status !== 'fulfilled') continue;
+  // Parallel QA: run QA for each tenant concurrently (up to 4 workers)
+  const qaConcurrency = Math.min(concurrency, 4);
+  const qaTargets = results.filter(r => r.status === 'fulfilled');
+  logger.info(`Running QA on ${qaTargets.length} tenant(s) with concurrency ${qaConcurrency}...`);
+
+  const qaTasks = qaTargets.map(r => async () => {
     const { siteId, targetId } = r.value;
     const siteUrl = auditOnly ? args.url : `https://${siteId}.norbotsystems.com`;
     const outputDir = resolve(TB_ROOT, `results/${TODAY}/${siteId}`);
@@ -958,7 +1053,11 @@ if ((!dryRun || auditOnly) && !args['skip-qa']) {
       });
       logger.progress({ stage: 'qa', target_id: targetId, site_id: siteId, status: 'error', detail: e.message?.slice(0, 100) });
     }
-  }
+  });
+
+  // Execute all QA tasks in parallel with pool()
+  await pool(qaTasks, qaConcurrency);
+  logger.info(`QA complete: ${qaResults.length} results (${qaResults.filter(r => !r.error).length} passed, ${qaResults.filter(r => r.error).length} errors)`);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1027,6 +1126,24 @@ if (!dryRun && !auditOnly) {
 
   if (skipPolish) {
     logger.info('Codex polish queue skipped (--skip-polish) — outreach may proceed immediately');
+  }
+
+  // Auto-polish: run warm-leads-polish orchestrator on queued items
+  if (autoPolish && polishQueue.length > 0) {
+    const polishBin = resolve(import.meta.dirname, '../../warm-leads-polish/polish-orchestrator.mjs');
+    for (const item of polishQueue) {
+      const siteId = item.site_id;
+      const liveUrl = item.live_url || `https://${siteId}.norbotsystems.com`;
+      logger.info(`[${siteId}] Running auto-polish...`);
+      try {
+        execFileSync('node', [polishBin, '--site-id', siteId, '--url', liveUrl], {
+          stdio: 'inherit',
+          timeout: 900_000, // 15 min per site
+        });
+      } catch (err) {
+        logger.warn(`[${siteId}] Auto-polish failed: ${err.message}`);
+      }
+    }
   }
 }
 
@@ -1099,6 +1216,9 @@ const summaryData = {
   skipped,
   dryRun,
   skipPolish,
+  model: modelOverride || 'default',
+  concurrency,
+  waveSize,
   targets: targets.map(t => ({
     id: t.id,
     name: t.company_name,

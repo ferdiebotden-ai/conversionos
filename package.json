@@ -27,6 +27,7 @@
     "@ai-sdk/react": "^3.0.69",
     "@anthropic-ai/sdk": "^0.78.0",
     "@elevenlabs/react": "^0.14.1",
+    "@google/genai": "^1.45.0",
     "@google/generative-ai": "^0.24.1",
     "@libsql/client": "^0.17.0",
     "@norbot/conversionos-admin-core": "file:./packages/conversionos-admin-core",

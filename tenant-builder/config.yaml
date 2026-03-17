@@ -16,41 +16,155 @@ icp_scoring:
     auto_proceed: 85
     manual_review: 65
     reject: 65
+  # ICP-based routing: auto-split high-value leads from scale outreach
+  icp_routing:
+    warm_lead_threshold: 80    # Score 80+ → bespoke warm-lead build (Opus, Ferdie calls)
+    tenant_threshold: 55       # Score 55-80 → template tenant build (Sonnet, scale outreach)
+    reject_threshold: 55       # Score <55 → disqualified
   geographic_rings:
-    ring_1:
-      - Stratford
-      - Woodstock
-      - Kitchener
-      - Waterloo
-      - Cambridge
-      - Guelph
-      - New Hamburg
-      - Listowel
-      - Mitchell
-      - Tavistock
-    ring_2:
-      - London
-      - Brantford
-      - Hamilton
-      - Fergus
-      - Orangeville
-      - Ingersoll
-      - Tillsonburg
-      - St. Thomas
-      - Elmira
-      - Elora
-      - Paris
-      - Simcoe
-      - Norfolk
-      - Exeter
-    ring_3:
-      - Toronto
-      - Oakville
-      - Burlington
-      - Barrie
-      - Kingston
-      - Mississauga
-      - Brampton
+    ring_1:   # Home base — Ferdie can visit in person
+      score: 15
+      cities:
+        - Stratford
+        - Woodstock
+        - Kitchener
+        - Waterloo
+        - Cambridge
+        - Guelph
+        - New Hamburg
+        - Listowel
+        - Mitchell
+        - Tavistock
+    ring_2:   # Day trip — Ferdie can drive
+      score: 13
+      cities:
+        - London
+        - Brantford
+        - Hamilton
+        - Fergus
+        - Orangeville
+        - Ingersoll
+        - Tillsonburg
+        - St. Thomas
+        - Elmira
+        - Elora
+        - Paris
+        - Simcoe
+        - Norfolk
+        - Exeter
+    ring_3:   # GTA — large market
+      score: 11
+      cities:
+        - Toronto
+        - Oakville
+        - Burlington
+        - Barrie
+        - Kingston
+        - Mississauga
+        - Brampton
+        - Markham
+        - Richmond Hill
+        - Vaughan
+        - Oshawa
+        - Whitby
+        - Ajax
+        - Pickering
+        - Newmarket
+        - Aurora
+    ring_4:   # Ontario expanded — remote sales
+      score: 9
+      cities:
+        - Ottawa
+        - Niagara Falls
+        - St. Catharines
+        - Peterborough
+        - Belleville
+        - Sudbury
+        - Thunder Bay
+        - Windsor
+        - Sarnia
+        - Chatham-Kent
+        - Cornwall
+        - North Bay
+        - Sault Ste. Marie
+        - Orillia
+        - Midland
+        - Collingwood
+        - Owen Sound
+        - Muskoka
+    ring_5:   # Rest of Canada — remote sales
+      score: 7
+      compliance: CASL
+      cities:
+        # British Columbia
+        - Vancouver
+        - Victoria
+        - Kelowna
+        - Kamloops
+        - Nanaimo
+        - Surrey
+        - Burnaby
+        - Langley
+        - Abbotsford
+        - Chilliwack
+        # Alberta
+        - Calgary
+        - Edmonton
+        - Red Deer
+        - Lethbridge
+        - Medicine Hat
+        - Airdrie
+        - Cochrane
+        - Sherwood Park
+        # Quebec (bilingual consideration)
+        - Montreal
+        - Quebec City
+        - Laval
+        - Gatineau
+        - Longueuil
+        - Sherbrooke
+        # Atlantic
+        - Halifax
+        - Moncton
+        - Saint John
+        - Fredericton
+        - Charlottetown
+        # Prairies
+        - Winnipeg
+        - Saskatoon
+        - Regina
+    ring_6:   # United States — Phase 2 (gated behind us_expansion_enabled)
+      score: 5
+      compliance: CAN-SPAM
+      cities:
+        # Northeast US
+        - Boston
+        - New York
+        - Philadelphia
+        - Pittsburgh
+        - Buffalo
+        - Syracuse
+        # Midwest US
+        - Chicago
+        - Detroit
+        - Minneapolis
+        - Cleveland
+        - Columbus
+        - Indianapolis
+        # Southeast US
+        - Atlanta
+        - Charlotte
+        - Nashville
+        - Raleigh
+        - Tampa
+        - Miami
+        # West US
+        - Seattle
+        - Portland
+        - Denver
+        - Phoenix
+        - San Diego
+        - Los Angeles
 
 # Scraping configuration
 scraping:
@@ -143,37 +257,77 @@ concurrency:
 # Discovery — Firecrawl search settings
 discovery:
   search_templates:
-    - "premium renovation contractor {city} Ontario"
-    - "design build firm {city} Ontario portfolio"
+    - "premium renovation contractor {city}"
+    - "design build firm {city} portfolio"
     - "kitchen bathroom renovation company {city} reviews"
-    - "luxury home renovation {city} Ontario"
-    - "award winning contractor {city} Ontario"
+    - "luxury home renovation {city}"
+    - "award winning contractor {city}"
+  # Canada-specific templates (appended for Canadian cities)
+  search_templates_ca:
+    - "renovation contractor {city} Canada"
+    - "home renovation company {city}"
+  # US-specific templates (appended for US cities)
+  search_templates_us:
+    - "renovation contractor {city}"
+    - "home remodeling company {city}"
   quality_floor:
     min_google_reviews: 10
     min_google_rating: 3.5
     reject_directory_listings: true
   max_results_per_city: 10
+  us_expansion_enabled: false   # Gate US discovery until sending domain is warmed
   active_cities:
+    # Ring 1 — Home base
     - Kitchener
     - Waterloo
     - Cambridge
     - Guelph
-    - London
+    - Stratford
     - Woodstock
+    # Ring 2 — Day trip
+    - London
     - Brantford
     - Hamilton
-    - Oakville
-    - Burlington
-    - Stratford
     - Ingersoll
     - Tillsonburg
     - St. Thomas
+    # Ring 3 — GTA
     - Toronto
+    - Oakville
+    - Burlington
+    - Mississauga
+    - Brampton
+    - Markham
+    - Vaughan
+    # Ring 4 — Ontario expanded (immediate activation)
+    - Ottawa
+    - Niagara Falls
+    - St. Catharines
+    - Peterborough
+    - Windsor
+    - Sarnia
+    - Sudbury
+    - Barrie
+    - Orillia
+    - Collingwood
+    - Owen Sound
+    # Ring 5 — Rest of Canada (activate week 2)
+    - Vancouver
+    - Calgary
+    - Edmonton
+    - Montreal
+    - Halifax
+    - Winnipeg
+    - Victoria
+    - Kelowna
+    - Surrey
+    - Ottawa
 
 # Nightly schedule
 nightly:
-  limit: 10
-  concurrency: 4
+  limit: 20                 # Start conservative, tune to 30 based on first run success rate
+  concurrency: 6            # Raised from 4 — Max subscription has doubled limits for 2 weeks
+  wave_size: 15             # Targets per deploy wave (build wave → deploy → QA wave, overlap next build)
   skip_provisioned: true    # Skip targets that already have a demo tenant
 
 # Design Director — vision-based Design Language production

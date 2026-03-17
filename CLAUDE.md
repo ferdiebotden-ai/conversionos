@@ -111,7 +111,7 @@ node scripts/outreach/outreach-pipeline.mjs
 node scripts/outreach/rescore-all.mjs --report
 ```
 
-- **Scripts:** `scripts/outreach/` — 6 scripts + tests
+- **Scripts:** `scripts/outreach/` — 8 scripts + tests
 - **Rules:** `.claude/rules/outreach.md` — CASL compliance, template integrity, call slots, banned terms
 - **Tests:** `node scripts/outreach/tests/test-email-template.mjs` (56 tests)
 - **Send monitor:** LaunchAgent `com.norbot.send-monitor` (every 15 min, 6am-9pm weekdays)
@@ -162,7 +162,7 @@ node scripts/outreach/rescore-all.mjs --report
 - Dev: `?__site_id=` query param override (dev mode only)
 
 ## Section Registry (47 components)
-- **`src/sections/register.ts`** — 47 section components across 11 categories (hero, services, about, gallery, testimonials, CTA, trust, contact, footer, pricing, misc)
+- **`src/sections/register.ts`** — 52 section components across 11 categories (hero, services, about, gallery, testimonials, CTA, trust, contact, footer, pricing, misc)
 - **`src/components/section-renderer.tsx`** — `SectionRenderer` client component renders sections by ID
 - **`src/lib/page-layout.ts`** — `getPageLayout('homepage')` reads from `admin_settings`, falls back to `DEFAULT_HOMEPAGE_LAYOUT`
 - Homepage renders dynamically via SectionRenderer. Inner pages (about, contact, services, projects) are still hardcoded components.
@@ -171,7 +171,7 @@ node scripts/outreach/rescore-all.mjs --report
 ```
 src/app/              -- 50+ routes (public pages, admin dashboard, 30+ API endpoints)
 src/components/       -- React components (admin, chat, visualizer, voice, ui)
-src/sections/         -- 47 section components (hero, services, about, gallery, CTA, etc.)
+src/sections/         -- 52 section components (hero, services, about, gallery, CTA, etc.)
 src/lib/              -- Shared utilities (entitlements, branding, AI, DB, copy)
 src/proxy.ts          -- Domain -> tenant routing
 tenant-builder/       -- Autonomous build pipeline (orchestrator, scrapers, QA, provision)
@@ -191,7 +191,7 @@ scripts/onboarding/   -- Legacy onboarding scripts (superseded by tenant-builder
 - **Production clients** get their own Supabase project (separate data, separate billing)
 - Key tables: `admin_settings`, `leads`, `quotes`, `quote_items`, `invoices`, `drawings`, `tenants`
 
-## Current Tenants (12+)
+## Current Tenants (36+)
 All tenants live on `{slug}.norbotsystems.com`. See `src/proxy.ts` DOMAIN_TO_SITE for full list. Key tenants:
 - `conversionos` — NorBot-branded base platform (fixture source)
 - `demo` — Ferdie's testing sandbox
@@ -240,3 +240,36 @@ HST: 13% | Deposit: 15% | Contingency: 10% | Estimate Variance: +/-15%
 - `getSiteId()` is synchronous (env var only) — only for non-API contexts
 - `getSiteIdAsync()` is the standard for all API routes
 - Proxy env var fallback is dev-only — production unknown hosts return 404
+
+---
+
+## Feature Development & Warm-Lead Updates
+
+### Mobile Responsiveness (Mandatory)
+ALL sections and pages must be mobile-responsive. Test at 3 breakpoints:
+- **375px** — iPhone SE (minimum)
+- **768px** — iPad
+- **1024px** — Small laptop
+
+Use `/mobile-audit {site-name}` to audit and fix responsiveness.
+
+### Propagating Platform Changes to Warm-Leads
+Changes to this codebase or the shared packages affect ALL 54+ tenants:
+1. Make the change in `src/` or `../../packages/`
+2. Test locally: `npm run dev` → verify at all breakpoints
+3. Build: `npm run build` → must pass clean
+4. Deploy platform: `scripts/sync-deploy.sh`
+5. Deploy warm-leads: `/fix-warm-lead {name}` or `/fix-warm-lead all`
+
+### Warm-Lead Locations
+Individual warm-lead builds live at `../../products/warm-leads/{client-name}/`.
+Each is a standalone Next.js app with the same 3 shared packages.
+Use `/fix-warm-lead` skill for the deploy workflow.
+
+### Testing Checklist
+Before deploying any platform change:
+- [ ] `npm run build` passes clean
+- [ ] No TypeScript errors (`npx tsc --noEmit`)
+- [ ] Mobile responsive at 375/768/1024px
+- [ ] Multi-tenant: test with at least 2 different `?__site_id=` values
+- [ ] Entitlements: verify feature gating at Elevate vs Accelerate vs Dominate
