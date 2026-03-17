@@ -108,7 +108,8 @@ export function formatSlotTime(slot) {
  * Extract first name from owner_name, or default to "there".
  */
 const SENTINEL_NAMES = new Set([
-  'not specified', 'not applicable', 'not provided', 'n/a', 'na', 'unknown', 'none', 'owner',
+  'not specified', 'not applicable', 'not provided', 'not found',
+  'n/a', 'na', 'unknown', 'none', 'owner',
 ]);
 
 export function getFirstName(ownerName) {
@@ -116,9 +117,12 @@ export function getFirstName(ownerName) {
   const trimmed = ownerName.trim();
   if (SENTINEL_NAMES.has(trimmed.toLowerCase())) return 'there';
   const first = trimmed.split(/\s+/)[0];
+  // Strip trailing punctuation (commas, periods, semicolons) from first name
+  // Handles multi-person names like "Domenic, Nick, and Jo" → "Domenic"
+  const cleaned = first.replace(/[,;.]+$/, '');
   // Reject single-char names or names that look like placeholders
-  if (first.length <= 1) return 'there';
-  return first;
+  if (cleaned.length <= 1) return 'there';
+  return cleaned;
 }
 
 /**
@@ -349,4 +353,140 @@ ${caslHtml}
 </html>`;
 }
 
-export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS };
+// ──────────────────────────────────────────────────────────
+// Follow-up email templates (5-touch sequence)
+// ──────────────────────────────────────────────────────────
+// Subject: "Re: Estimate Request — {city}" to thread in same conversation.
+// Send timing: Mon-Thu 7:00 AM ET (contractors check phone before job site).
+// Each follow-up is a Gmail draft — Ferdie reviews before sending.
+//
+// Sequence: Email 1 (Day 1) → Email 2 (Day 3) → Email 3 (Day 6)
+//           → Email 4 (Day 12) → Email 5 (Day 20)
+
+const FOLLOWUP_TEMPLATES = {
+  // Email 2: Casual check-in (Day 3)
+  2: {
+    subjectPrefix: 'Re: ',
+    body: `Hi {firstName},
+
+Just checking in \u2014 did you get a chance to look at the site I built for {company_name}?
+
+Here's the link again in case it got buried: {demoUrl}
+
+No pressure at all \u2014 take a look when you have a minute.
+
+Ferdie`,
+  },
+
+  // Email 3: Value drop with specific comparison (Day 6)
+  3: {
+    subjectPrefix: 'Re: ',
+    body: `Hi {firstName},
+
+Quick thought \u2014 I was looking at your current site vs the one I built, and the difference is pretty clear. Your visitors are getting a basic brochure while your competitors are capturing leads and generating estimates 24/7.
+
+The rebuild has everything under your brand \u2014 your colours, your projects, your reviews \u2014 just with the tools to actually convert visitors into paying clients: {demoUrl}
+
+Worth a 5-minute look?
+
+Ferdie`,
+  },
+
+  // Email 4: Social proof + soft CTA (Day 12)
+  4: {
+    subjectPrefix: 'Re: ',
+    body: `Hi {firstName},
+
+I've been building these for renovation contractors across {region} and the feedback has been really positive \u2014 especially on the estimate tool and the AI visualiser that lets homeowners see what their reno could look like.
+
+I built yours specifically for {company_name}: {demoUrl}
+
+If you're curious, I'm happy to walk you through it in a quick call. No sales pitch \u2014 just showing you what's there.
+
+Ferdie`,
+  },
+
+  // Email 5: Break-up / final note (Day 20)
+  5: {
+    subjectPrefix: '',
+    body: `Hi {firstName},
+
+I've reached out a few times about the website I built for {company_name} \u2014 totally understand if it's not the right time or not a fit.
+
+I'll be moving on to other contractors in {city}, but the demo is still live if you want to take a look before I take it down: {demoUrl}
+
+Either way, no hard feelings. If you ever need a hand with your online presence, you know where to find me.
+
+All the best,
+Ferdie`,
+  },
+};
+
+// Follow-up timing: days after email 1 was sent
+export const FOLLOWUP_SCHEDULE = {
+  2: 3,   // Email 2: 3 days after email 1
+  3: 6,   // Email 3: 6 days after email 1
+  4: 12,  // Email 4: 12 days after email 1
+  5: 20,  // Email 5: 20 days after email 1
+};
+
+/**
+ * Generate a follow-up email for a target.
+ *
+ * @param {object} target — Turso target row
+ * @param {number} emailNum — 2-5 (which follow-up)
+ * @param {object} [options]
+ * @param {string} [options.region] — region name for social proof (defaults to target.city)
+ * @returns {{ to, subject, textBody, htmlBody, emailNum, skipped, skipReason }}
+ */
+export function generateFollowUpEmail(target, emailNum, options = {}) {
+  if (emailNum < 2 || emailNum > 5) {
+    return { to: target.email, subject: '', textBody: '', htmlBody: '', emailNum, skipped: true, skipReason: `Invalid emailNum: ${emailNum}` };
+  }
+
+  if (!target.email || !target.email.includes('@')) {
+    return { to: target.email, subject: '', textBody: '', htmlBody: '', emailNum, skipped: true, skipReason: 'HARD STOP: missing email' };
+  }
+
+  if (!target.company_name || target.company_name.trim().length === 0) {
+    return { to: target.email, subject: '', textBody: '', htmlBody: '', emailNum, skipped: true, skipReason: 'HARD STOP: missing company_name' };
+  }
+
+  const template = FOLLOWUP_TEMPLATES[emailNum];
+  const firstName = getFirstName(target.owner_name);
+  const city = (target.city || '').trim();
+  const companyName = target.company_name.trim();
+  const siteId = target.slug;
+  const demoUrl = target.demo_url || `https://${siteId}.norbotsystems.com`;
+  const region = options.region || target.territory || city || 'Ontario';
+
+  // Subject: "Re: Estimate Request — {city}" for threading (emails 2-4)
+  // Email 5 uses a different subject to stand out
+  const baseSubject = city ? `Estimate Request \u2014 ${city}` : `Estimate Request \u2014 ${companyName}`;
+  const subject = emailNum === 5
+    ? `${firstName === 'there' ? companyName : firstName} \u2014 last note`
+    : `Re: ${baseSubject}`;
+
+  const textBody = template.body
+    .replace(/\{firstName\}/g, firstName)
+    .replace(/\{company_name\}/g, companyName)
+    .replace(/\{city\}/g, city)
+    .replace(/\{demoUrl\}/g, demoUrl)
+    .replace(/\{region\}/g, region);
+
+  const fullTextBody = `${textBody}\n\n${SIGNATURE}\n\n${CASL_FOOTER}`;
+  const htmlBody = textToHtml(textBody, SIGNATURE, CASL_FOOTER);
+
+  return {
+    to: target.email,
+    subject,
+    textBody: fullTextBody,
+    htmlBody,
+    emailNum,
+    demoUrl,
+    siteId,
+    skipped: false,
+  };
+}
+
+export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS, FOLLOWUP_TEMPLATES };
