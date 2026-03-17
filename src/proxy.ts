@@ -66,16 +66,19 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'senso-design.norbotsystems.com': 'senso-design',
   'ottawa-renovation-specialists.norbotsystems.com': 'ottawa-renovation-specialists',
   'level-one-construction.norbotsystems.com': 'level-one-construction',
+  // Session 29 — March 17 batch (10 new tenants across Canada)
   'kidd-bros-construction-ltd.norbotsystems.com': 'kidd-bros-construction-ltd',
-  'frontline-builders.norbotsystems.com': 'frontline-builders',
+  'classic-construction.norbotsystems.com': 'classic-construction',
+  'a-macdonald-construction.norbotsystems.com': 'a-macdonald-construction',
   'mastered-home-renovations.norbotsystems.com': 'mastered-home-renovations',
   'ackard-contractors.norbotsystems.com': 'ackard-contractors',
-  'classic-construction.norbotsystems.com': 'classic-construction',
-  'msi-home-improvements-construction.norbotsystems.com': 'msi-home-improvements-construction',
+  'frontline-builders.norbotsystems.com': 'frontline-builders',
   'family-home-improvements.norbotsystems.com': 'family-home-improvements',
+  'msi-home-improvements-construction.norbotsystems.com': 'msi-home-improvements-construction',
   'total-living-concepts.norbotsystems.com': 'total-living-concepts',
-  'arg-contracting.norbotsystems.com': 'arg-contracting',
   'behome-beckwith-contracting-inc.norbotsystems.com': 'behome-beckwith-contracting-inc',
+  'arg-contracting.norbotsystems.com': 'arg-contracting',
+  'mckegney-contracting.norbotsystems.com': 'mckegney-contracting',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
