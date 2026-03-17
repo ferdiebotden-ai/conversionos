@@ -60,6 +60,10 @@ export const generatedConceptSchema = z.object({
   description: z.string().optional(),
   // Generation timestamp
   generatedAt: z.string().datetime(),
+  // Style label for multi-style generation (e.g., "Modern", "Farmhouse")
+  styleLabel: z.string().optional(),
+  // Machine-readable style ID for multi-style generation
+  styleId: designStyleSchema.optional(),
 });
 
 export type GeneratedConcept = z.infer<typeof generatedConceptSchema>;
@@ -72,8 +76,10 @@ export const visualizationResponseSchema = z.object({
   originalImageUrl: z.string().url(),
   // Room type
   roomType: roomTypeSchema,
-  // Design style applied
+  // Primary design style (backward compat — first selected style)
   style: designStyleSchema,
+  // All selected styles (multi-style generation)
+  styles: z.array(designStyleSchema).optional(),
   // User constraints
   constraints: z.string().optional(),
   // Generated concept images

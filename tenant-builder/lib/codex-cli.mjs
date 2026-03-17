@@ -93,13 +93,17 @@ export async function claudeCodeGen(prompt, { cwd, timeoutMs = 300000, outputFil
 
   logger.debug(`Claude CLI codegen [timeout=${timeoutMs}ms, prompt=${prompt.length} chars, model=${model || 'default'}]`);
 
-  const claudeArgs = ['-p', codePrompt, '--output-format', 'text'];
+  const claudeArgs = ['-p', codePrompt, '--output-format', 'text',
+    '--max-turns', '10',              // Prevent runaway loops
+    '--no-session-persistence',       // Clean batch runs — no session file accumulation
+  ];
   if (model) claudeArgs.push('--model', model);
 
   const { stdout, stderr } = await execFileAsync('claude', claudeArgs, {
     cwd,
     timeout: timeoutMs,
     maxBuffer: 50 * 1024 * 1024,
+    env: { ...process.env, CLAUDECODE: '' },  // Strip to prevent nested sessions
   });
 
   let code = stdout.trim();

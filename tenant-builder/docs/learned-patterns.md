@@ -291,3 +291,19 @@ Eight systemic fixes applied before the first 10-build nightly batch. Each addre
 **[2026-03-15] Hero image generation partial:** Gemini 3.1 Flash generated 2 of 3 requested styles (Modern + Industrial, Farmhouse silently failed). Images are 1.7-1.9MB each, uploaded to Supabase Storage successfully. **Recommendation: add retry for failed styles; 2/3 is acceptable but 3/3 is ideal.**
 
 **[2026-03-15] Live site audit 7/8 pass:** Only SEO meta failed (missing description or og:image). This is a provisioning gap — meta tags need to be seeded in admin_settings during provision step. **Permanent fix: add og:title, og:description, og:image to provision pipeline.**
+
+## Hero Template Retrofit (2026-03-17)
+
+**[2026-03-17] hero:visualizer-teardown is now the platform default.** Replaced hero:full-bleed-overlay + misc:visualizer-teaser in 3 locations (page-layout.ts, architect.mjs, provision-tenant.mjs). All 37 tenants retrofitted in Supabase. The hero embeds the frame scrubber (5 styles × 80 frames), style tabs, Before/After labels, and "Try with Your Space" CTA directly in the hero section. No separate visualizer-teaser section needed.
+
+**[2026-03-17] Bespoke tenants with unregistered custom sections break after hero replacement.** When replacing custom:*-hero with hero:visualizer-teardown, other custom sections (services, about, etc.) remain in the layout but aren't registered in the deploy repo. Result: pages render with only hero + trust + CTA. **Fix: replace ALL unregistered custom sections with standard equivalents in the same pass. Script: `fix-broken-custom-layouts.mjs`.**
+
+**[2026-03-17] 6/12 draft-ready domains returned 404 — missing Vercel registration.** Domains were in proxy.ts but never registered via add-domain.mjs (no SSL cert). Contractors would see "Tenant not found". **Prevention: orchestrate.mjs should verify HTTP 200 after domain registration, not just update proxy.ts.**
+
+**[2026-03-17] Style tabs overflow on mobile.** "Scandinavian" tab truncated at 375px. Fixed with `overflow-x-auto scrollbar-hide` + right-edge gradient fade (`sm:hidden`). **Pattern: always test 5+ tab layouts at 375px.**
+
+**[2026-03-17] Stale relative dates in drafts.** Drafts from Mar 6/13 said "Monday" or "tomorrow" — stale after a few days. **Recommendation: use absolute dates ("March 19") in email template, or add staleness guard in outreach-pipeline.mjs.**
+
+**[2026-03-17] Duplicate drafts from re-runs.** Multiple pipeline runs create parallel drafts. **Fix: outreach-pipeline.mjs should delete existing draft (via email_draft_id) before creating a new one for the same target.**
+
+**[2026-03-17] getFirstName() punctuation bug.** Multi-person owner names like "Domenic, Nick, and Jo" produced "Hi Domenic,," (double comma). **Fix: strip trailing punctuation from first name token. Added to generate-email.mjs permanently.**

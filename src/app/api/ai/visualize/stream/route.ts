@@ -53,6 +53,11 @@ const enhancedVisualizationRequestSchema = visualizationRequestSchema
       z.literal('other'),
     ]),
     customStyle: z.string().max(100).optional(),
+    // Multi-style selection (up to 2 styles for side-by-side comparison)
+    styles: z.array(z.union([
+      z.enum(['modern', 'traditional', 'farmhouse', 'industrial', 'minimalist', 'contemporary', 'transitional', 'scandinavian', 'coastal', 'mid_century_modern']),
+      z.literal('other'),
+    ])).max(2).optional(),
     skipAnalysis: z.boolean().optional().default(false),
     photoAnalysis: z.record(z.string(), z.unknown()).optional(),
     designIntent: z.object({
@@ -345,6 +350,7 @@ export async function POST(request: NextRequest) {
           image,
           roomType,
           style,
+          styles: selectedStyles,
           customRoomType,
           customStyle,
           constraints,
@@ -357,6 +363,21 @@ export async function POST(request: NextRequest) {
           conversationContext,
           mode,
         } = validated;
+
+        // Build per-concept style assignments from multi-style selection
+        // 2 styles → [A, A, B, B], 1 style → [A, A, A, A], 0 styles → use primary
+        const effectiveStyleList: (typeof style)[] = (() => {
+          const styles = selectedStyles ?? [];
+          if (styles.length === 2) {
+            return [styles[0]!, styles[0]!, styles[1]!, styles[1]!];
+          }
+          if (styles.length === 1) {
+            return [styles[0]!, styles[0]!, styles[0]!, styles[0]!];
+          }
+          // No styles selected — use primary style for all (may be from conversation)
+          return [style, style, style, style];
+        })();
+        const isMultiStyle = (selectedStyles ?? []).length === 2;
 
         // Validate image MIME type and size before processing
         const imageCheck = validateImageUpload(image);
@@ -452,10 +473,12 @@ export async function POST(request: NextRequest) {
         // ── 4. Build config ─────────────────────────────────────────────
         const effectiveRoomType: RoomType = roomType === 'other' ? 'living_room' : roomType as RoomType;
         const effectiveStyle: DesignStyle = style === 'other' ? 'contemporary' : style as DesignStyle;
+        // For multi-style: primary style is first selected (used for DB record)
+        const primaryStyle: DesignStyle = effectiveStyleList[0] === 'other' ? 'contemporary' : (effectiveStyleList[0] as DesignStyle) || effectiveStyle;
 
         const visualizationConfig: VisualizationConfig = {
           roomType: effectiveRoomType,
-          style: effectiveStyle,
+          style: primaryStyle,
           ...(constraints && { constraints }),
           ...(photoAnalysis && { photoAnalysis }),
           ...(designIntent && {
@@ -483,19 +506,33 @@ export async function POST(request: NextRequest) {
         const concepts: GeneratedConcept[] = [];
         const progressPerConcept = [40, 55, 70, 85];
 
-        // Fire ALL concepts in parallel
+        // Fire ALL concepts in parallel — each concept may have a different style
         const conceptPromises = Array.from({ length: count }, (_, i) =>
           (async () => {
             try {
-              const result = await generateWithRetry(image, visualizationConfig, i);
+              // Per-concept style from multi-style distribution
+              const conceptStyleRaw = effectiveStyleList[i] || style;
+              const conceptStyle: DesignStyle = conceptStyleRaw === 'other' ? 'contemporary' : conceptStyleRaw as DesignStyle;
+              const conceptStyleLabel = conceptStyle.charAt(0).toUpperCase() + conceptStyle.slice(1).replace(/_/g, ' ');
+
+              // Build per-concept config with the correct style
+              const perConceptConfig: VisualizationConfig = {
+                ...visualizationConfig,
+                style: conceptStyle,
+              };
+
+              const result = await generateWithRetry(image, perConceptConfig, i);
               if (result) {
                 const imageUrl = await uploadGeneratedImage(supabase, result, i);
                 if (imageUrl) {
                   const concept: GeneratedConcept = {
                     id: `concept-${i + 1}-${Date.now()}`,
                     imageUrl,
-                    description: buildConceptDescription(visualizationConfig, i),
+                    description: buildConceptDescription(perConceptConfig, i),
                     generatedAt: new Date().toISOString(),
+                    // Multi-style metadata
+                    styleLabel: isMultiStyle ? conceptStyleLabel : undefined,
+                    styleId: isMultiStyle ? conceptStyle : undefined,
                   };
                   concepts.push(concept);
 
@@ -504,6 +541,8 @@ export async function POST(request: NextRequest) {
                     index: i,
                     imageUrl: concept.imageUrl,
                     description: concept.description,
+                    styleLabel: concept.styleLabel,
+                    styleId: concept.styleId,
                     total: count,
                   }, isAborted);
 
@@ -652,11 +691,18 @@ export async function POST(request: NextRequest) {
         }
 
         // ── 8. Complete event ───────────────────────────────────────────
+        // Dedupe styles used across concepts for the response
+        const usedStyles = [...new Set(
+          (selectedStyles ?? [])
+            .filter((s): s is DesignStyle => s !== 'other')
+        )];
+
         const response: VisualizationResponse = {
           id: visualization?.id ?? `local-${Date.now()}`,
           originalImageUrl,
           roomType: effectiveRoomType,
-          style: effectiveStyle,
+          style: primaryStyle,
+          styles: usedStyles.length > 0 ? usedStyles : undefined,
           constraints: constraints || undefined,
           concepts,
           generationTimeMs,

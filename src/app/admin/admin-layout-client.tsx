@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, FileText, MessageSquare, ArrowRight } from 'lucide-react';
 import { Sidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
+import { FeedbackWidget } from '@/components/admin/feedback-widget';
 import { Button } from '@/components/ui/button';
 import { useBranding } from '@/components/branding-provider';
 import {
@@ -223,6 +224,9 @@ export function AdminLayoutClient({
           {children}
         </main>
       </div>
+
+      {/* Feedback co-pilot widget — visible on all admin pages */}
+      <FeedbackWidget />
     </div>
   );
 }

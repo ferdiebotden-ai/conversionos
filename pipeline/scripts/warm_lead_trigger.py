@@ -20,6 +20,23 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Load pipeline .env BEFORE importing db_utils (which reads TURSO_DATABASE_URL at module level)
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if not _line or _line.startswith("#"):
+                continue
+            if _line.startswith("export "):
+                _line = _line[7:]
+            if "=" in _line:
+                _key, _, _val = _line.partition("=")
+                _key = _key.strip()
+                _val = _val.strip().strip("'\"")
+                if _key and _key not in os.environ:
+                    os.environ[_key] = _val
+
 sys.path.insert(0, str(Path(__file__).parent))
 from db_utils import get_db
 

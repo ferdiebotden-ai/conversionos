@@ -57,11 +57,14 @@ export function ReceptionistWidget() {
             transition={panelSpring}
             className={cn(
               'fixed right-4 z-50',
-              'w-[calc(100vw-2rem)] max-w-[400px] h-[520px]',
+              'w-[calc(100vw-2rem)] max-w-[400px]',
               'bg-background rounded-2xl shadow-2xl border border-border',
               'flex flex-col overflow-hidden'
             )}
-            style={{ bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))' }}
+            style={{
+              bottom: 'calc(5rem + var(--mobile-cta-bar-height, 0px))',
+              height: 'min(520px, calc(100dvh - 6rem - var(--mobile-cta-bar-height, 0px)))',
+            }}
           >
             <WidgetPanelHeader onClose={() => setIsOpen(false)} companyName={branding.name} />
             <div className="flex-1 min-h-0">

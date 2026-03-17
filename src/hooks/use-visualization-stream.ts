@@ -13,6 +13,8 @@ interface VisualizationRequest {
   image: string;
   roomType: string;
   style: string;
+  /** Multi-style selection (up to 2) */
+  styles?: string[] | undefined;
   customRoomType?: string | undefined;
   customStyle?: string | undefined;
   constraints?: string | undefined;
@@ -22,6 +24,8 @@ interface VisualizationRequest {
   voicePreferencesSummary?: string | undefined;
   voiceTranscript?: { role: string; content: string; timestamp: Date }[] | undefined;
   photoAnalysis?: Record<string, unknown> | undefined;
+  /** Pre-generation conversation context for conversational style discovery */
+  conversationContext?: Record<string, unknown> | undefined;
 }
 
 export type StreamStatus = 'idle' | 'connecting' | 'generating' | 'complete' | 'error';
@@ -192,6 +196,9 @@ export function useVisualizationStream(): UseVisualizationStreamReturn {
                       imageUrl: data.imageUrl,
                       description: data.description,
                       generatedAt: new Date().toISOString(),
+                      // Multi-style metadata
+                      ...(data.styleLabel && { styleLabel: data.styleLabel }),
+                      ...(data.styleId && { styleId: data.styleId }),
                     };
                     // If this index already exists (description update), replace it
                     const existing = prev.findIndex(c => c.id === concept.id);

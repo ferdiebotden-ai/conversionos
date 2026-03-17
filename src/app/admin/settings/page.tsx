@@ -119,7 +119,8 @@ export default function SettingsPage() {
     try {
       const response = await fetch('/api/admin/settings');
       if (!response.ok) {
-        throw new Error('Failed to load settings');
+        console.error(`Settings API returned ${response.status}`);
+        throw new Error(`Failed to load settings (${response.status})`);
       }
       const data = await response.json();
 
@@ -263,16 +264,21 @@ export default function SettingsPage() {
               Unsaved changes
             </Badge>
           )}
-          <Button
-            variant={showPreview ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={() => setShowPreview((v) => !v)}
-            className="gap-1.5"
-            aria-label={showPreview ? 'Hide preview' : 'Show preview'}
-          >
-            {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            Preview
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showPreview ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setShowPreview((v) => !v)}
+                className="gap-1.5 hidden md:inline-flex"
+                aria-label={showPreview ? 'Hide preview' : 'Show preview'}
+              >
+                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                Preview
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Preview how business info changes look on your public site</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -280,7 +286,7 @@ export default function SettingsPage() {
       {loadFailed && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="text-sm flex-1">Failed to load settings. Using defaults.</span>
+          <span className="text-sm flex-1">Could not load saved settings — showing defaults. Your changes will still save correctly.</span>
           <Button
             variant="outline"
             size="sm"
@@ -306,7 +312,7 @@ export default function SettingsPage() {
           {/* Fade indicators for scroll overflow */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 md:hidden" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-background to-transparent z-10 md:hidden" />
-          <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div className="overflow-x-auto scrollbar-hide -mx-1 px-1" style={{ touchAction: 'pan-x', overscrollBehavior: 'contain auto' }}>
             <TabsList className="inline-flex w-auto min-w-full md:w-full">
               <TabsTrigger value="rates" className="gap-2 shrink-0">
                 <Settings2 className="h-4 w-4" />
