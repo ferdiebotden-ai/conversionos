@@ -141,7 +141,7 @@ Each demo must feel hand-built for the target. NOT cookie-cutter.
 Single-page journey at `/visualizer`: upload → AI analysis → style → generate 4 concepts (SSE) → Design Studio Chat → refine → lead capture.
 
 ## Outreach Pipeline
-- **Scripts:** `scripts/outreach/` — 6 scripts + tests
+- **Scripts:** `scripts/outreach/` — 8 scripts + tests
 - **Rules:** `.claude/rules/outreach.md` — CASL, template integrity, call slots, banned terms
 - **Tests:** `node scripts/outreach/tests/test-email-template.mjs` (56 tests)
 - **Status flow:** `demo_built` → `draft_ready` → `email_1_sent`

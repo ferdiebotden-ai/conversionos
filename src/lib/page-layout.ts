@@ -82,7 +82,7 @@ export async function getPageLayout(pageSlug: string = 'homepage'): Promise<Sect
   return DEFAULT_LAYOUTS[pageSlug] ?? DEFAULT_HOMEPAGE_LAYOUT;
 }
 
-export async function getLayoutFlags(): Promise<{ custom_nav?: boolean; custom_footer?: boolean }> {
+export async function getLayoutFlags(): Promise<{ custom_nav?: boolean; custom_footer?: boolean; hide_attribution?: boolean }> {
   try {
     const siteId = await getSiteIdAsync();
     const supabase = createServiceClient();

@@ -14,7 +14,7 @@ const quickLinks = [
   { href: "/contact", label: "Contact" },
 ]
 
-export function Footer() {
+export function Footer({ hideAttribution = false }: { hideAttribution?: boolean }) {
   const pathname = usePathname()
   const branding = useBranding()
   const { tier } = useTier()
@@ -84,11 +84,11 @@ export function Footer() {
                 ))}
               </div>
             )}
-            {tier !== 'dominate' && (
-              <p className={tier === 'elevate' ? 'text-xs text-muted-foreground/60' : 'text-xs text-muted-foreground/40'}>
-                Powered by{' '}
-                <a href="https://www.norbotsystems.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-primary transition-colors">
-                  ConversionOS
+            {tier !== 'dominate' && !hideAttribution && (
+              <p className="text-xs text-muted-foreground/40">
+                Built by{' '}
+                <a href="https://www.norbotsystems.com" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-primary transition-colors">
+                  NorBot Systems
                 </a>
               </p>
             )}

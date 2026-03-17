@@ -2,6 +2,8 @@
 
 NorBot Systems rebuilds contractor websites with AI underneath. Same brand, same feel — but now it captures leads, qualifies them, and generates estimates automatically. Single codebase, four pricing tiers, domain-driven multi-tenancy.
 
+**Architecture reference:** `brain/ARCHITECTURE.md` — build categories, deploy paths, agent roles, memory layers.
+
 **Business model (March 2026 pivot):** "We rebuild your website" — not "adopt our platform." The autonomous build pipeline IS the delivery mechanism. Each demo is a production-grade website ready for DNS cutover. Post-sale onboarding (DNS cutover, custom domains, Black Label) is handled manually by Ferdie.
 
 **Strategy documents:** Master Brief, Pricing Architecture, Delivery Playbook, Founder Notes, SOW Template, Investor Memo (in ~/Norbot-Systems/docs/ — titles stable, paths may move).

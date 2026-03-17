@@ -149,7 +149,7 @@ export default async function RootLayout({
           <TierProvider tier={tier} quoteMode={quoteMode}>
             {!layoutFlags.custom_nav && <Header />}
             <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-            {!layoutFlags.custom_footer && <Footer />}
+            {!layoutFlags.custom_footer && <Footer hideAttribution={!!layoutFlags.hide_attribution} />}
             <ReceptionistWidgetLoader />
             <MobileCTABar />
           </TierProvider>
