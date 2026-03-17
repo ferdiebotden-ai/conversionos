@@ -462,7 +462,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
                   ))}
                 </div>
                 {/* Right-edge gradient fade to hint scrollability */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card to-transparent sm:hidden" aria-hidden="true" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card to-transparent" aria-hidden="true" />
               </div>
 
               {/* Image area */}
