@@ -21,23 +21,16 @@ done
 
 echo "=== Fixing import paths (monorepo -> project-local) ==="
 cd "$DEPLOY"
-# Fix all deep relative package imports to project-root-relative
-# 6-level (from src/components/visualizer/renovation-planner/)
-find src/ -type f \( -name "*.ts" -o -name "*.tsx" \) -print0 | xargs -0 grep -l "../../../../../../packages/" 2>/dev/null | while read f; do
-  dir=$(dirname "$f"); depth=$(echo "$dir" | tr '/' '\n' | wc -l)
-  rel=$(printf '../%.0s' $(seq 1 $depth))
-  sed -i '' "s|\.\./\.\./\.\./\.\./\.\./\.\./packages/|${rel}packages/|g" "$f"
-done
-# 5-level
-find src/ -type f \( -name "*.ts" -o -name "*.tsx" \) -print0 | xargs -0 grep -l "../../../../../packages/" 2>/dev/null | while read f; do
-  dir=$(dirname "$f"); depth=$(echo "$dir" | tr '/' '\n' | wc -l)
-  rel=$(printf '../%.0s' $(seq 1 $depth))
-  sed -i '' "s|\.\./\.\./\.\./\.\./\.\./packages/|${rel}packages/|g" "$f"
-done
-find src/ -type f \( -name "*.ts" -o -name "*.tsx" \) -print0 | xargs -0 grep -l "../../../../packages/" 2>/dev/null | while read f; do
-  dir=$(dirname "$f"); depth=$(echo "$dir" | tr '/' '\n' | wc -l)
-  rel=$(printf '../%.0s' $(seq 1 $depth))
-  sed -i '' "s|../../../../packages/|${rel}packages/|g" "$f"
+# Universal fix: replace ANY depth of ../ before packages/ with the correct relative path
+# Works for all depth levels (3, 4, 5, 6+) — calculates correct ../ count from file location
+find src/ -type f \( -name "*.ts" -o -name "*.tsx" \) -print0 | xargs -0 grep -l "packages/conversionos" 2>/dev/null | while read f; do
+  dir=$(dirname "$f")
+  depth=$(echo "$dir" | tr '/' '\n' | wc -l | tr -d ' ')
+  rel=""
+  for i in $(seq 1 "$depth"); do rel="../$rel"; done
+  # Replace any number of ../ before packages/ with the correct relative path
+  sed -i '' -E "s|'\.\./(\.\./)*packages/|'${rel}packages/|g" "$f"
+  sed -i '' -E "s|\"\.\./(\.\.\/)*packages/|\"${rel}packages/|g" "$f"
 done
 
 echo "=== Fixing turbopack root ==="

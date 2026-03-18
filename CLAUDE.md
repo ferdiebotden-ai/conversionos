@@ -17,7 +17,10 @@ Next.js 16.1.6 (App Router) | React 19 | TypeScript 5 (strict) | Supabase (Postg
 ## AI Stack
 - **Chat/Vision:** OpenAI GPT-5.4
 - **Image generation:** Google Gemini 3.1 Flash Image (Nano Banana 2) — `src/lib/ai/gemini.ts`
+- **Build-time AI:** Gemini CLI (`tenant-builder/lib/gemini-cli.mjs`) for image classification, content audit ($0 marginal via subscription)
+- **Quote/Email generation:** GPT-4o-mini (cost-efficient structured output)
 - **Voice agent:** ElevenLabs (single Emma persona, context-aware) — web on all tiers, phone as $499/mo add-on
+- **Model routing:** `tenant-builder/lib/model-router.mjs` — routes tasks to optimal model (CLI subscriptions for build-time, API for runtime)
 - **Validation:** Zod schemas on all AI outputs
 
 ## Commands
