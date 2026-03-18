@@ -37,6 +37,12 @@ const CONTEXT_CONFIG: Record<
     bgColor: 'bg-purple-600',
     ringColor: 'ring-purple-600/30',
   },
+  'visualizer-discovery': {
+    icon: Palette,
+    color: 'text-white',
+    bgColor: 'bg-purple-600',
+    ringColor: 'ring-purple-600/30',
+  },
 };
 
 const SIZES = {

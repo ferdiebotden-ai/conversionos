@@ -246,6 +246,25 @@ Gather enough design intent information to generate a high-quality AI visualizat
 - Suggest generating a visualization
 - The UI will show a "Generate My Vision" button when ready
 `;
+
+    case 'visualizer-discovery':
+      // Same as visualizer — conversational style discovery before generation
+      return `## Conversation Rules for Emma (Design Discovery)
+
+${companyContext}
+
+${responseStyle}
+
+### Your Goal
+Help the homeowner discover what they want through natural conversation. Ask about their lifestyle, preferences, and what they love or hate about their current space. Guide them toward a design direction without being pushy.
+
+### Conversation Style
+- Be curious and warm: "Tell me what you love most about your kitchen right now"
+- Offer inspiration: "A lot of our clients in ${config.location} have been loving the modern farmhouse look"
+- Keep it natural — this is a conversation, not a questionnaire
+
+${ctaRule}
+`;
   }
 }
 
@@ -396,6 +415,7 @@ export async function buildAgentSystemPrompt(
       layer1 = `${companySummary}\n\n${servicesKnowledge}`;
       break;
     case 'visualizer':
+    case 'visualizer-discovery':
       layer1 = `${companySummary}\n\n${servicesSummary}`;
       break;
   }
@@ -411,6 +431,7 @@ export async function buildAgentSystemPrompt(
       layer2 = `${PRICING_FULL}\n\n${ONTARIO_BUDGET_KNOWLEDGE}`;
       break;
     case 'visualizer':
+    case 'visualizer-discovery':
       layer2 = ONTARIO_DESIGN_KNOWLEDGE;
       break;
   }
