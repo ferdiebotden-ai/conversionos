@@ -96,6 +96,7 @@ function FrameScrubber({
   const framesRef = useRef<(HTMLImageElement | null)[]>([]);
   const [loadedCount, setLoadedCount] = useState(0);
   const lastDrawnRef = useRef(-1);
+  const cssSizeRef = useRef({ w: 0, h: 0 }); // CSS dimensions for DPR-aware drawing
 
   // Preload frames progressively — keyframes first, then fill
   useEffect(() => {
@@ -168,8 +169,9 @@ function FrameScrubber({
 
     if (frame?.complete) {
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        drawImageCover(ctx, frame, canvas.width, canvas.height);
+      const { w, h } = cssSizeRef.current;
+      if (ctx && w > 0) {
+        drawImageCover(ctx, frame, w, h);
       }
     }
   });
@@ -184,6 +186,7 @@ function FrameScrubber({
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
+      cssSizeRef.current = { w: rect.width, h: rect.height };
       const ctx = canvas.getContext('2d');
       if (ctx) ctx.scale(dpr, dpr);
       // Redraw current frame at new size
