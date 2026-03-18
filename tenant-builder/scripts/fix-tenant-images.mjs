@@ -120,6 +120,19 @@ async function downloadAndUpload(imageUrl, storagePath, siteId) {
     let buffer = Buffer.from(await response.arrayBuffer());
     if (buffer.length > 10 * 1024 * 1024) return null; // Skip >10MB
 
+    // Content quality gate: reject badges/logos/icons
+    try {
+      const checkMeta = await sharp(buffer).metadata();
+      if (checkMeta.width < 200 || checkMeta.height < 150) {
+        logger.debug(`Rejecting small image (${checkMeta.width}x${checkMeta.height}): ${imageUrl.slice(0, 60)}`);
+        return null;
+      }
+      if (checkMeta.width / checkMeta.height > 3) {
+        logger.debug(`Rejecting banner ratio (${checkMeta.width}x${checkMeta.height}): ${imageUrl.slice(0, 60)}`);
+        return null;
+      }
+    } catch { /* continue if check fails */ }
+
     // Optimize with sharp
     try {
       const image = sharp(buffer);

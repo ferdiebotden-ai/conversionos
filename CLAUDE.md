@@ -64,9 +64,9 @@ node tenant-builder/orchestrate.mjs --nightly
 ### Pipeline Steps (18)
 1. **Select targets** — Turso DB (ICP-scored), direct URL, or Firecrawl discovery
 2. **ICP scoring** — 6-criterion model (geography, company size, web sophistication, contact completeness)
-3. **Scrape** — Firecrawl v2 branding extractor (hero, logo, services, testimonials, portfolio, colours, socials)
+3. **Scrape** — Firecrawl SDK 4.16.0: branding v2 + `map()` (site URL discovery) + deep image scrape (markdown + scroll actions + `onlyMainContent: false`) + CSS hero extraction (Playwright `background-image`) + logo extraction + social links + screenshots
 4. **Quality gates** — Pre-provision validation (testimonials, about copy, portfolio titles, brand detection)
-5. **Upload images** — Supabase Storage, generate fallback hero/about/OG via Gemini if scrape failed
+5. **Upload images** — Supabase Storage, generate fallback hero/about/OG via Gemini if scrape failed. `generateServiceImages()` removed — real photos or text-only cards only
 6. **Provision DB** — `admin_settings` (5 keys), `tenants`, `assembly_templates`, proxy.ts fragment
 7. **Seed sample data** — Margaret Wilson sample lead with AI visualization
 8. **Register domain** — Vercel API + SSL cert for `{slug}.norbotsystems.com`
@@ -95,6 +95,9 @@ node tenant-builder/orchestrate.mjs --nightly
 | `tenant-builder/lib/quality-gates.mjs` | Pre-provision data validation (6 gates) |
 | `tenant-builder/provision/provision-tenant.mjs` | Image upload + DB provisioning |
 | `tenant-builder/qa/audit-report.mjs` | Go-live readiness report generator |
+| `tenant-builder/scripts/fix-tenant-images.mjs` | Batch re-scrape + replace AI images with real photos |
+| `tenant-builder/lib/gemini-cli.mjs` | Gemini CLI wrapper for build-time AI tasks ($0 marginal) |
+| `tenant-builder/lib/model-router.mjs` | Multi-model task routing (CLI vs API) |
 
 ---
 
@@ -166,11 +169,14 @@ node scripts/outreach/rescore-all.mjs --report
 - Proxy env var fallback is **dev-only** — production unknown hosts get 404
 - Dev: `?__site_id=` query param override (dev mode only)
 
-## Section Registry (47 components)
-- **`src/sections/register.ts`** — 52 section components across 11 categories (hero, services, about, gallery, testimonials, CTA, trust, contact, footer, pricing, misc)
+## Section Registry (52 components)
+- **`src/sections/register.ts`** — 52 section components across 11 categories (hero, services, about, gallery, testimonials, CTA, trust, contact, footer, navigation, misc)
 - **`src/components/section-renderer.tsx`** — `SectionRenderer` client component renders sections by ID
 - **`src/lib/page-layout.ts`** — `getPageLayout('homepage')` reads from `admin_settings`, falls back to `DEFAULT_HOMEPAGE_LAYOUT`
+- **Default homepage flow:** Hero → Services → Projects → How It Works → About → Testimonials → Trust → Contact → CTA
 - Homepage renders dynamically via SectionRenderer. Inner pages (about, contact, services, projects) are still hardcoded components.
+- **`hero:visualizer-teardown`** — supports `heroImageUrl` as background image (real contractor photo behind the frame scrubber animation)
+- **Scroll-spy navigation** — IntersectionObserver on homepage sections, smooth scroll + active nav highlight (`src/components/header.tsx`)
 
 ## Key Directories
 ```
@@ -245,6 +251,9 @@ HST: 13% | Deposit: 15% | Contingency: 10% | Estimate Variance: +/-15%
 - `getSiteId()` is synchronous (env var only) — only for non-API contexts
 - `getSiteIdAsync()` is the standard for all API routes
 - Proxy env var fallback is dev-only — production unknown hosts return 404
+- Firecrawl SDK 4.16.0: `images` format is NOT valid (causes 422 error). Use `markdown` format + parse `<img>` tags. `executeJavascript` param does NOT exist — use `actions: [{ type: 'scroll' }]` for lazy-loaded content
+- `generateServiceImages()` has been removed — service cards use real scraped photos or render as text-only. Never generate AI service images
+- processSteps are always the ConversionOS standard (Upload Photo → Explore Designs → Request Quote) — never scraped from the original site
 
 ---
 

@@ -150,7 +150,10 @@ export async function map(url, options = {}) {
 
   logger.info(`Firecrawl map: ${url} (limit ${limit}${search ? `, search: "${search}"` : ''})`);
   await enforceRateLimit();
-  const result = await retryOn429(() => fc.mapUrl(url, { limit, ...(search ? { search } : {}) }));
+  // Defensive: SDK may expose map() or mapUrl() depending on version
+  const mapFn = fc.mapUrl || fc.map;
+  if (!mapFn) throw new Error('Firecrawl SDK has no map/mapUrl method — check SDK version');
+  const result = await retryOn429(() => mapFn.call(fc, url, { limit, ...(search ? { search } : {}) }));
   creditsUsed += 1;
 
   if (!result.success) {

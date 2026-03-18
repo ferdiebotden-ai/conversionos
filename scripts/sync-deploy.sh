@@ -6,7 +6,7 @@ set -euo pipefail
 
 SRC="/Users/norbot/Norbot-Systems/products/conversionos"
 DEPLOY="/Users/norbot/norbot-ops/products/demo"
-PACKAGES="/Users/norbot/norbot-ops/packages"
+PACKAGES="/Users/norbot/Norbot-Systems/packages"
 
 echo "=== Syncing source to deploy ==="
 rsync -av --delete \

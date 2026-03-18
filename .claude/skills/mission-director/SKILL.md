@@ -380,6 +380,8 @@ Apply findings, log the solution to the issue log.
 **This is the primary fix workflow for batch builds.** 90% of fixes across 13 production builds
 were Supabase data patches — no code changes, no redeploy needed. Changes take effect on next page load.
 
+**Batch image fix tool:** `node tenant-builder/scripts/fix-tenant-images.mjs --all` — re-scrapes original websites using Firecrawl map() + deep image scrape + CSS hero extraction, replaces AI-generated images with real contractor photos. Also fixes processSteps and page_layouts.
+
 ### The 7 Common Data Fixes
 
 | Issue | Detection | Fix | Source |

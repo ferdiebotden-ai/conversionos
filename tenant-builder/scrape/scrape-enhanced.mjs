@@ -92,8 +92,14 @@ const imagePagePatterns = /gallery|portfolio|project|our-work|our-portfolio|serv
 logger.info('Phase 1.5: Mapping site URLs via Firecrawl');
 try {
   const configPath = resolve(import.meta.dirname, '../config.yaml');
-  const configYaml = existsSync(configPath) ? parseYaml(readYaml(configPath, 'utf-8')) : {};
+  const configYaml = existsSync(configPath) ? parseYaml(readFileSync(configPath, 'utf-8')) : {};
   const mapLimit = configYaml?.scraping?.firecrawl?.map_limit || 50;
+  const imageScrapeActions = configYaml?.scraping?.firecrawl?.image_scrape_actions || [
+    { type: 'scroll', direction: 'down' },
+    { type: 'wait', milliseconds: 2000 },
+    { type: 'scroll', direction: 'down' },
+    { type: 'wait', milliseconds: 1000 },
+  ];
 
   const mapResult = await map(url, { limit: mapLimit });
   sitePages = (mapResult.links || []).map(l => typeof l === 'string' ? l : l.url).filter(Boolean);
@@ -226,7 +232,8 @@ try {
   const excludePatterns = /\.xml|\.pdf|sitemap|feed|rss|wp-json|\.css|\.js|tag\/|category\//i;
   const filteredImagePages = imagePages.filter(u => !excludePatterns.test(u));
   const pagesToScrape = [url, ...filteredImagePages.slice(0, 15)]; // Cap at 16 pages total
-  const scrollActions = [
+  // Use scroll actions from config.yaml (or defaults set in Phase 1.5)
+  const scrollActions = typeof imageScrapeActions !== 'undefined' ? imageScrapeActions : [
     { type: 'scroll', direction: 'down' },
     { type: 'wait', milliseconds: 2000 },
     { type: 'scroll', direction: 'down' },

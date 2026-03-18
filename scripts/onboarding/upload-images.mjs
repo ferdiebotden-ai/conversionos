@@ -174,6 +174,22 @@ async function downloadAndUpload(url, storagePath, imageType = 'portfolio') {
       return null;
     }
 
+    // Content quality gate: reject tiny badges/icons for service/portfolio images
+    if (imageType === 'service' || imageType === 'portfolio') {
+      try {
+        const meta = await sharp(buffer).metadata();
+        if (meta.width < 200 || meta.height < 150) {
+          console.log(`    Skipping: too small for ${imageType} (${meta.width}x${meta.height} — likely a badge/icon)`);
+          return null;
+        }
+        // Reject very wide banners (likely logos)
+        if (meta.width / meta.height > 3) {
+          console.log(`    Skipping: banner ratio (${meta.width}x${meta.height} — likely a logo)`);
+          return null;
+        }
+      } catch { /* continue if sharp fails */ }
+    }
+
     // Optimize with sharp
     const { buffer: optimized, contentType: optType, ext: optExt } = await optimizeImage(buffer, contentType, imageType);
 

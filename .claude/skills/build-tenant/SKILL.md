@@ -153,7 +153,7 @@ The build-worker handles internal fix loops (up to 3 cycles). The Ralph Loop add
 
 | Component | Cost |
 |-----------|------|
-| Pipeline scripts (GPT-4o) | ~$0.15 |
+| Pipeline scripts (GPT-4o-mini) | ~$0.08 |
 | Pre-screen (Haiku) | ~$0.02 |
 | Build-worker (Sonnet) | ~$0.80-1.00 |
 | Validation (Haiku) | ~$0.01-0.03 |

@@ -129,6 +129,9 @@ Target URL
 | `templates/integration-spec.md` | Cheat sheet (~85 lines) injected into Codex prompts |
 | `schemas/site-blueprint-v2.zod.mjs` | Zod schema for SiteBlueprint v2 |
 | `schemas/site-blueprint-v2-jsonschema.json` | JSON Schema for Codex --output-schema |
+| `lib/gemini-cli.mjs` | Gemini CLI wrapper for build-time AI tasks ($0 marginal via subscription) |
+| `lib/model-router.mjs` | Multi-model task routing (CLI subscriptions vs API) |
+| `scripts/fix-tenant-images.mjs` | Batch re-scrape + replace AI images with real contractor photos |
 
 ### Custom Section System
 - Generated sections live in `src/sections/custom/{siteId}/` (e.g., `custom/md-construction/`)
@@ -154,6 +157,9 @@ This is a systemic Codex prompt issue — the integration-spec.md should documen
 | **pipeline-scout** | Haiku 4.5 | Pre-screening, ICP scoring, discovery | ~$0.05 |
 | **qa-monitor** | Haiku 4.5 | Heartbeat for batch Agent Teams | ~$0.02 |
 | **image-polisher** | Sonnet 4.6 | Hero image quality audit + Gemini generation | ~$0.04 |
+| **gemini-cli** | Gemini 3.1 Flash | Image classification, content audit via CLI ($0 marginal) | ~$0.00 |
+
+**Model router:** `lib/model-router.mjs` routes each task to the optimal model. Build-time tasks use CLI subscriptions ($0 marginal); runtime tasks use APIs (pay-per-use). Quote/email generation uses GPT-4o-mini (switched from gpt-4o for cost savings).
 
 **Skills:** `tenant-qa-knowledge` (fix playbook), `build-tenant` (orchestrator), `maintain-pipeline` (pipeline depth)
 
@@ -241,6 +247,10 @@ npm run cleanup            # Remove test artifacts
 - **Codex review quality gate catches 6 issue types:** hardcoded data, snake_case without dual-lookup, missing animations, missing image fallbacks, missing 'use client', bad imports. Auto-fixes via Codex, max 2 cycles.
 - **Never set `layout_flags.custom_footer`.** Custom footer sections only render on homepage via SectionRenderer. Setting the flag hides the standard footer on inner pages, leaving them footerless. Always let the standard footer render on all pages.
 - **OKLCH in inline styles is invalid.** CSS vars store full `oklch()` values. Never use `oklch(var(--primary) / 0.9)` in style attrs — it double-nests. Use Tailwind: `bg-primary/90`, `from-primary/80`.
+- **Firecrawl SDK 4.16.0 API findings:** `images` format is NOT valid (causes 422 error). Use `markdown` format + parse `<img>` tags from the response. `executeJavascript` param does NOT exist — use `actions: [{ type: 'scroll' }]` for lazy-loaded content. `map()` is valid and returns all site URLs.
+- **`generateServiceImages()` removed.** Service cards use real scraped photos or render as text-only. Never generate AI service images.
+- **processSteps are always ConversionOS standard** (Upload Photo, Explore Designs, Request Quote) — never scraped from the original site.
+- **Gemini CLI for build-time tasks.** `lib/gemini-cli.mjs` wraps the Gemini CLI (`/opt/homebrew/bin/gemini`) for $0 marginal cost image classification and content audit. Strips `CLAUDECODE` env var to avoid nested session issues.
 
 ## Self-Improving Documentation
 

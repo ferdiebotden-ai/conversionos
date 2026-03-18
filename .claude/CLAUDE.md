@@ -60,7 +60,7 @@ node scripts/outreach/rescore-all.mjs --report
 ```
 
 ### Pipeline Flow
-Scrape → quality gates → upload images → provision DB → register domain → deploy → 9 QA modules → audit report → outreach email. Full 18-step breakdown in `CLAUDE.md` (repo root).
+Scrape (Firecrawl SDK 4.16.0: branding v2 + map() + deep image scrape + CSS hero extraction) → quality gates → upload images → provision DB → register domain → deploy → 9 QA modules → audit report → outreach email. Full 18-step breakdown in `CLAUDE.md` (repo root).
 
 ### QA Verdicts
 - **READY** (score >=4.0) → outreach fires automatically
@@ -84,6 +84,9 @@ Scrape → quality gates → upload images → provision DB → register domain 
 - **Server:** `getBranding()` for SSR, `getTier()` for entitlement checks
 - **Deploy:** Single Vercel project (`conversionos`) with proxy routing + wildcard DNS
 - **Section registry:** 52 components (51 standard + custom), `SectionRenderer` renders homepage dynamically via `getPageLayout()`
+- **Default homepage flow:** Hero, Services, Projects, How It Works, About, Testimonials, Trust, Contact, CTA
+- **Scroll-spy navigation:** IntersectionObserver on homepage sections, smooth scroll + active nav highlight
+- **hero:visualizer-teardown** supports heroImageUrl as background image (real contractor photo behind the frame scrubber)
 
 ## Adding a New Tenant
 
@@ -120,8 +123,11 @@ node scripts/onboarding/onboard.mjs --url {url} --site-id {site-id} --domain {si
 - Dynamic prompts: `buildVoiceSystemPrompt(context)` server-side, passed as session override
 - Single env var: `ELEVENLABS_AGENT_EMMA` per Vercel project
 
-## Gemini Image Generation
+## Gemini Image Generation & Build-Time AI
 - Model: `gemini-3.1-flash-image-preview` (Nano Banana 2 — configured in `src/lib/ai/gemini.ts`)
+- **Build-time AI:** Gemini CLI (`tenant-builder/lib/gemini-cli.mjs`) for image classification, content audit ($0 marginal via Google subscription)
+- **Model router:** `tenant-builder/lib/model-router.mjs` routes tasks to optimal model (CLI subscriptions for build-time, API for runtime)
+- **Quote/Email generation:** GPT-4o-mini (switched from gpt-4o for cost savings)
 - Every image must be stunning. These demos replace real contractor websites.
 
 ## Quality Standard
@@ -147,6 +153,9 @@ Single-page journey at `/visualizer`: upload → AI analysis → style → gener
 - **Status flow:** `demo_built` → `draft_ready` → `email_1_sent`
 - **Integration:** `orchestrate.mjs` Step 18 auto-runs outreach after QA
 
+## Pipeline Maintenance Scripts
+- **`tenant-builder/scripts/fix-tenant-images.mjs`** -- Batch re-scrape original websites, replace AI-generated images with real contractor photos. Flags: `--site-id`, `--all`, `--tier1`, `--tier2`, `--dry-run`, `--concurrency N`
+
 ## Gotchas
 - Write tool creates CRLF on macOS — fix shell scripts: `perl -pi -e 's/\r\n/\n/g'`
 - Vercel env vars: use API (curl), NOT `echo | vercel env add` (adds newline)
@@ -161,3 +170,6 @@ Single-page journey at `/visualizer`: upload → AI analysis → style → gener
 - CAD rendering colours (#1565C0) are intentional — do NOT change to primary
 - Image generation model source of truth: `src/lib/ai/gemini.ts` line 19
 - Vision/analysis model: `gpt-5.4` — source of truth: `src/lib/ai/config.ts`
+- Firecrawl SDK 4.16.0: `images` format is NOT valid (causes 422). Use `markdown` format + parse `<img>` tags. `executeJavascript` does NOT exist — use `actions: [{ type: 'scroll' }]` for lazy-loaded content
+- `generateServiceImages()` removed — service cards use real scraped photos or render as text-only. Never generate AI service images
+- processSteps are always ConversionOS standard (Upload Photo → Explore Designs → Request Quote) — never scraped from original site
