@@ -12,7 +12,6 @@ const CONTEXT_TO_PERSONA: Record<PageContext, PersonaKey> = {
   general: 'receptionist',
   estimate: 'quote-specialist',
   visualizer: 'design-consultant',
-  'visualizer-discovery': 'design-consultant',
 };
 
 const HANDOFF_KEY = 'demo_handoff_context';
@@ -284,7 +283,6 @@ export function buildHandoffPromptPrefix(context: HandoffContext): string {
     general: 'the homepage',
     estimate: 'the estimate page',
     visualizer: 'the visualizer',
-    'visualizer-discovery': 'the design discovery',
   };
 
   const fromDesc = pageDescriptions[sourcePage];

@@ -7,7 +7,7 @@
  * Page context determines which knowledge layers Emma receives.
  * Replaces the old multi-persona model (Emma/Marcus/Mia).
  */
-export type PageContext = 'general' | 'estimate' | 'visualizer';
+export type PageContext = 'general' | 'estimate' | 'visualizer' | 'visualizer-discovery';
 
 /**
  * @deprecated Use PageContext instead. Kept for backward compatibility during migration.

@@ -95,14 +95,17 @@ export function ResultDisplay({
     setRefinedVersions(prev => new Map(prev).set(index, (prev.get(index) ?? 0) + 1));
   };
 
-  // Slider labels
+  // Slider labels — include style name when multi-style
   const selectedVersion = refinedVersions.get(selectedConceptIndex) ?? 0;
-  const afterLabel = selectedVersion > 0
-    ? `Concept ${selectedConceptIndex + 1} — V${selectedVersion + 1}`
-    : `Concept ${selectedConceptIndex + 1}`;
+  const conceptStyleLabel = selectedConcept?.styleLabel;
+  const afterLabel = [
+    conceptStyleLabel,
+    `Concept ${selectedConceptIndex + 1}`,
+    selectedVersion > 0 ? `V${selectedVersion + 1}` : null,
+  ].filter(Boolean).join(' — ');
 
   const formatTime = (ms: number): string => `${Math.round(ms / 1000)}s`;
-  const formatStyle = (style: string): string => style.charAt(0).toUpperCase() + style.slice(1);
+  const formatStyle = (style: string): string => style.charAt(0).toUpperCase() + style.slice(1).replace(/_/g, ' ');
   const formatRoomType = (roomType: string): string => roomType.replace(/_/g, ' ');
 
   const hasMultipleConcepts = visualization.concepts.length > 1;
@@ -116,8 +119,16 @@ export function ResultDisplay({
         </div>
         <h2 className="text-xl font-bold">Your Vision is Ready!</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {visualization.concepts.length} {formatStyle(visualization.style)}{' '}
-          {formatRoomType(visualization.roomType)} concepts
+          {(() => {
+            const styles = visualization.styles || [visualization.style];
+            const roomName = formatRoomType(visualization.roomType);
+            if (styles.length === 2) {
+              // Count concepts per style from concept metadata
+              const counts = styles.map(s => visualization.concepts.filter(c => c.styleId === s).length || Math.floor(visualization.concepts.length / 2));
+              return `${counts[0]} ${formatStyle(styles[0]!)} + ${counts[1]} ${formatStyle(styles[1]!)} ${roomName} concepts`;
+            }
+            return `${visualization.concepts.length} ${formatStyle(styles[0]!)} ${roomName} concepts`;
+          })()}
           <span className="inline-flex items-center gap-1 ml-2">
             <Clock className="w-3.5 h-3.5" />
             {formatTime(visualization.generationTimeMs)}

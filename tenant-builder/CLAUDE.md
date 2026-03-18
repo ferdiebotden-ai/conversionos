@@ -4,6 +4,29 @@ Autonomous pipeline that discovers Ontario renovation contractors, scrapes their
 
 **At session start:** Read `docs/learned-patterns.md` — 30+ accumulated patterns covering scraping, provisioning, QA, and bespoke builds.
 
+## Operating Modes
+
+This directory supports two Claude Code modes depending on the user's intent:
+
+### Builder Mode (Default)
+When the user says "build", "run the pipeline", "batch", etc. — you ARE the builder.
+Run `orchestrate.mjs`, handle scraping, provisioning, QA, and outreach. Follow the 18-step pipeline below.
+
+### Mission Director Mode
+When the user says "monitor", "check status", "review builds", "QA check", etc. — you are the DIRECTOR.
+- Check build status: read `results/{date}/batch-summary.json` and per-site `go-live-readiness.json`
+- Review QA scores: read `visual-qa.json`, `audit-report.md` for each site
+- Use Haiku subagents as heartbeats to poll running builds (avoid blocking your context)
+- Escalate failures: if >50% of builds fail, stop the batch and report
+- After QA: route to `../../warm-leads-polish/` for final polish (use `--auto-polish` flag or run manually)
+- Present structured summaries to Ferdie with scores, verdicts, and recommendations
+
+### Polish Loop Integration
+After Step 17 (QA → queue handoff), builds flow to the polish loop:
+- **Automatic:** `orchestrate.mjs --auto-polish` runs the polish orchestrator after queue handoff
+- **Manual:** `node ../../warm-leads-polish/polish-orchestrator.mjs --site-id {id}`
+- **Verdicts:** SHIP (outreach proceeds) | POLISH (needs more work) | REJECT (manual review)
+
 ## Critical: Deploy Repo Location
 
 The NorBot-Systems monorepo gitignores `products/*/`. The **actual Vercel-connected git repo** is:

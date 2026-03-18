@@ -3,7 +3,11 @@
 /**
  * Visualizer Form
  * Streamlined single-page form for AI design visualization
- * Flow: Upload Photo → Room Type → Style → Preferences → Generate → Results
+ * Flow: Upload Photo → Emma Welcome → Room Type → Style (or Chat) → Preferences → Generate → Results
+ *
+ * Two paths to generation:
+ * 1. Style picker: select up to 2 styles → 4 concepts (2 per style, or 4 of one)
+ * 2. Conversational: "Don't Have a Style?" → Emma chat → AI picks styles from conversation
  */
 
 import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
@@ -19,6 +23,7 @@ import { FloatingGenerateButton } from './floating-generate-button';
 import { PhotoSummaryBar } from './photo-summary-bar';
 import { ResultDisplay } from './result-display';
 import { GenerationLoading } from './generation-loading';
+import { EmmaWelcomeCard } from './emma-welcome-card';
 import { useVisualizationStream } from '@/hooks/use-visualization-stream';
 import { mergeDesignIntent, type DesignPreferences } from '@/lib/schemas/design-preferences';
 import type {
@@ -27,6 +32,7 @@ import type {
 } from '@/lib/schemas/visualization';
 import type { RoomAnalysis } from '@/lib/ai/photo-analyzer';
 import { useTier } from '@/components/tier-provider';
+import { useBranding } from '@/components/branding-provider';
 import { NoPhotoChatPanel } from './no-photo-chat-panel';
 import { useCopyContext } from '@/lib/copy/use-site-copy';
 import { getSkipPhotoText } from '@/lib/copy/site-copy';
@@ -43,10 +49,15 @@ interface FormData {
   photoFile: File | null;
   roomType: RoomTypeSelection | null;
   customRoomType: string;
-  style: DesignStyleSelection | null;
+  /** Multi-style selection: 0 to 2 styles */
+  styles: DesignStyleSelection[];
   customStyle: string;
   textPreferences: string;
   photoAnalysis?: RoomAnalysis;
+  /** Pre-generation conversation messages (from "Don't Have a Style" path) */
+  preGenMessages: { role: 'user' | 'assistant'; content: string }[];
+  /** Whether the user opted for conversational style discovery */
+  showPreGenChat: boolean;
 }
 
 /** Build a concise summary from photo analysis for the summary bar */
@@ -56,6 +67,12 @@ function buildAnalysisSummary(analysis: RoomAnalysis): string {
   if (analysis.estimatedCeilingHeight) parts.push(`${analysis.estimatedCeilingHeight} ceilings`);
   if (analysis.currentCondition) parts.push(analysis.currentCondition);
   return parts.join(', ') || '';
+}
+
+/** Format style label for display */
+function formatStyleLabel(style: DesignStyleSelection, customStyle?: string): string {
+  if (style === 'other') return customStyle || 'Custom';
+  return style.replace(/_/g, ' ');
 }
 
 const TRANSITION_MESSAGES = [
@@ -114,6 +131,7 @@ function VisualizerFormInner() {
   const searchParams = useSearchParams();
   const { canAccess } = useTier();
   const copyCtx = useCopyContext();
+  const branding = useBranding();
 
   // Auto-skip to chat if ?mode=chat is present (from homepage CTA)
   const initialStep: Step = searchParams.get('mode') === 'chat' ? 'no_photo_chat' : 'photo';
@@ -123,9 +141,11 @@ function VisualizerFormInner() {
     photoFile: null,
     roomType: null,
     customRoomType: '',
-    style: null,
+    styles: [],
     customStyle: '',
     textPreferences: '',
+    preGenMessages: [],
+    showPreGenChat: false,
   });
   const [visualization, setVisualization] = useState<VisualizationResponse | null>(null);
   const [error, setError] = useState<VisualizationError | null>(null);
@@ -138,9 +158,9 @@ function VisualizerFormInner() {
   // Refs for auto-scroll behavior
   const styleSectionRef = useRef<HTMLDivElement>(null);
   const preferencesSectionRef = useRef<HTMLDivElement>(null);
+  const preGenChatRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll with offset — keeps the selected item visible above the fold
-  // Smaller offset on mobile where header is shorter
+  // Auto-scroll with offset
   const scrollToWithOffset = useCallback((el: HTMLElement | null, offset?: number) => {
     if (!el) return;
     const effectiveOffset = offset ?? (window.innerWidth < 768 ? 80 : 120);
@@ -148,23 +168,39 @@ function VisualizerFormInner() {
     window.scrollTo({ top, behavior: 'smooth' });
   }, []);
 
-  // Select a concept as the active one (single selection — replaces toggle)
+  // Select a concept as the active one (single selection)
   const toggleFavourite = useCallback((index: number) => {
     setFavouritedIndices(new Set([index]));
   }, []);
 
-  // Auto-scroll: room → style, style → preferences
+  // Auto-scroll: room → style
   const handleRoomTypeChange = useCallback((value: RoomTypeSelection) => {
     setFormData(prev => ({ ...prev, roomType: value }));
     setTimeout(() => scrollToWithOffset(styleSectionRef.current), 150);
   }, [scrollToWithOffset]);
 
-  const handleStyleChange = useCallback((value: DesignStyleSelection) => {
-    setFormData(prev => ({ ...prev, style: value }));
-    setTimeout(() => scrollToWithOffset(preferencesSectionRef.current), 150);
+  // Multi-style change handler
+  const handleStylesChange = useCallback((styles: DesignStyleSelection[]) => {
+    setFormData(prev => ({ ...prev, styles }));
+    // When 2nd style picked (or first, if max is 1), scroll to preferences
+    if (styles.length >= 1) {
+      setTimeout(() => scrollToWithOffset(preferencesSectionRef.current), 150);
+    }
   }, [scrollToWithOffset]);
 
-  // Run photo analysis async after upload — pre-detects room type
+  // "Don't Have a Style in Mind?" handler
+  const handleSkipStyle = useCallback(() => {
+    setFormData(prev => ({ ...prev, showPreGenChat: true, styles: [] }));
+    setTimeout(() => scrollToWithOffset(preGenChatRef.current), 150);
+  }, [scrollToWithOffset]);
+
+  // Back to style picker from chat
+  const handleBackToStyles = useCallback(() => {
+    setFormData(prev => ({ ...prev, showPreGenChat: false }));
+    setTimeout(() => scrollToWithOffset(styleSectionRef.current), 150);
+  }, [scrollToWithOffset]);
+
+  // Run photo analysis async after upload
   const runPhotoAnalysis = useCallback(async (imageBase64: string) => {
     setIsAnalyzingPhoto(true);
     try {
@@ -180,7 +216,6 @@ function VisualizerFormInner() {
           setFormData(prev => ({
             ...prev,
             photoAnalysis: data.analysis,
-            // Pre-fill room type if user hasn't selected one yet
             ...(prev.roomType === null && data.analysis.roomType
               ? { roomType: data.analysis.roomType }
               : {}),
@@ -188,7 +223,7 @@ function VisualizerFormInner() {
         }
       }
     } catch {
-      // Non-fatal — analysis will run again server-side during generation
+      // Non-fatal
     } finally {
       setIsAnalyzingPhoto(false);
     }
@@ -197,7 +232,6 @@ function VisualizerFormInner() {
   const handlePhotoUpload = useCallback((photo: string | null, file: File | null) => {
     setFormData(prev => ({ ...prev, photo, photoFile: file }));
     if (photo) {
-      // Clear stale handoff context from previous sessions
       if (typeof window !== 'undefined') {
         try { sessionStorage.removeItem('demo_handoff_context'); } catch { /* noop */ }
       }
@@ -214,15 +248,22 @@ function VisualizerFormInner() {
     setCurrentStep('photo');
   }, []);
 
-  // Start SSE generation (called after transition delay)
+  // Start SSE generation
   const startStreamGeneration = useCallback(() => {
-    if (!formData.photo || !formData.roomType || !formData.style) return;
+    if (!formData.photo || !formData.roomType) return;
+
+    // Need either styles selected or pre-gen conversation
+    const hasStyles = formData.styles.length > 0;
+    const hasConversation = formData.preGenMessages.length >= 2;
+    if (!hasStyles && !hasConversation) return;
+
+    const primaryStyle = formData.styles[0] || 'modern';
 
     const prefs: DesignPreferences = {
       roomType: formData.roomType,
       customRoomType: formData.roomType === 'other' ? formData.customRoomType : undefined,
-      style: formData.style,
-      customStyle: formData.style === 'other' ? formData.customStyle : undefined,
+      style: primaryStyle,
+      customStyle: primaryStyle === 'other' ? formData.customStyle : undefined,
       textPreferences: formData.textPreferences,
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
     };
@@ -232,7 +273,8 @@ function VisualizerFormInner() {
     stream.startGeneration({
       image: formData.photo,
       roomType: formData.roomType,
-      style: formData.style,
+      style: primaryStyle,
+      styles: formData.styles.length > 0 ? formData.styles : undefined,
       customRoomType: formData.customRoomType || undefined,
       customStyle: formData.customStyle || undefined,
       constraints: formData.textPreferences || undefined,
@@ -240,18 +282,25 @@ function VisualizerFormInner() {
       mode: 'streamlined',
       designIntent,
       photoAnalysis: formData.photoAnalysis as Record<string, unknown> | undefined,
+      // Pass pre-gen conversation for conversational style discovery
+      conversationContext: formData.preGenMessages.length > 0
+        ? { preGenerationMessages: formData.preGenMessages }
+        : undefined,
     });
   }, [formData, stream]);
 
-  // Build design preferences and show transition before generating
+  // Show transition before generating
   const handleGenerate = useCallback(async () => {
-    if (!formData.photo || !formData.roomType || !formData.style) return;
+    if (!formData.photo || !formData.roomType) return;
+    const hasStyles = formData.styles.length > 0;
+    const hasConversation = formData.preGenMessages.length >= 2;
+    if (!hasStyles && !hasConversation) return;
 
     setError(null);
     setCurrentStep('transitioning');
   }, [formData]);
 
-  // Scroll to top when entering transition/generation — prevents viewport showing footer
+  // Scroll to top when entering transition/generation
   useEffect(() => {
     if (currentStep === 'transitioning' || currentStep === 'generating') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -268,7 +317,7 @@ function VisualizerFormInner() {
     return () => clearTimeout(timer);
   }, [currentStep, startStreamGeneration]);
 
-  // Watch stream status and transition steps accordingly
+  // Watch stream status
   useEffect(() => {
     if (stream.status === 'complete' && stream.visualization) {
       setVisualization(stream.visualization);
@@ -289,9 +338,11 @@ function VisualizerFormInner() {
       photoFile: null,
       roomType: null,
       customRoomType: '',
-      style: null,
+      styles: [],
       customStyle: '',
       textPreferences: '',
+      preGenMessages: [],
+      showPreGenChat: false,
     });
     setVisualization(null);
     setError(null);
@@ -299,13 +350,14 @@ function VisualizerFormInner() {
     setCurrentStep('photo');
   }, []);
 
-  // Try another style — keeps photo + room type, resets style and preferences
   const handleTryAnotherStyle = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      style: null,
+      styles: [],
       customStyle: '',
       textPreferences: '',
+      preGenMessages: [],
+      showPreGenChat: false,
     }));
     setVisualization(null);
     setFavouritedIndices(new Set());
@@ -314,31 +366,26 @@ function VisualizerFormInner() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleGetQuote = useCallback(() => {
-    // Elevate tier: redirect to contact page (no estimate handoff)
     if (!canAccess('ai_quote_engine')) {
       const params = new URLSearchParams();
       params.set('from', 'visualizer');
-      if (visualization?.id) {
-        params.set('visualization', visualization.id);
-      }
+      if (visualization?.id) params.set('visualization', visualization.id);
       router.push(`/contact?${params.toString()}`);
       return;
     }
 
-    // Accelerate+: Serialize full context for estimate handoff
-    const messages: { role: 'user' | 'assistant'; content: string }[] = [];
-
     const roomLabel = formData.roomType === 'other'
       ? formData.customRoomType
       : formData.roomType?.replace(/_/g, ' ') || '';
-    const styleLabel = formData.style === 'other'
-      ? formData.customStyle
-      : formData.style || '';
+    const styleLabels = formData.styles.map(s => formatStyleLabel(s, formData.customStyle));
+    const styleLabel = styleLabels.join(', ') || 'AI-selected';
 
-    // Store rich handoff context in sessionStorage
+    // Get starred concept image URL
+    const starredIndex = favouritedIndices.size > 0 ? Array.from(favouritedIndices)[0]! : 0;
+    const starredConceptImageUrl = visualization?.concepts[starredIndex]?.imageUrl;
+
     if (typeof window !== 'undefined') {
       try {
-        // Build photo analysis subset for handoff (avoid serializing full blob)
         const photoAnalysisHandoff = formData.photoAnalysis ? {
           roomType: formData.photoAnalysis.roomType,
           layoutType: formData.photoAnalysis.layoutType,
@@ -356,11 +403,12 @@ function VisualizerFormInner() {
           fromPersona: 'design-consultant' as const,
           toPersona: 'quote-specialist' as const,
           summary: `User designed a ${roomLabel} renovation in ${styleLabel} style.`,
-          recentMessages: messages.slice(-6),
+          recentMessages: [] as { role: 'user' | 'assistant'; content: string }[],
           designPreferences: {
             roomType: formData.roomType || '',
             customRoomType: formData.customRoomType,
-            style: formData.style || '',
+            style: formData.styles[0] || '',
+            styles: formData.styles,
             customStyle: formData.customStyle,
             textPreferences: formData.textPreferences,
           },
@@ -370,13 +418,17 @@ function VisualizerFormInner() {
             originalImageUrl: visualization.originalImageUrl,
             roomType: visualization.roomType,
             style: visualization.style,
+            styles: visualization.styles,
           } : undefined,
           clientFavouritedConcepts: favouritedIndices.size > 0
             ? Array.from(favouritedIndices)
             : undefined,
+          starredConceptImageUrl,
           photoAnalysis: photoAnalysisHandoff,
-          // quoteAssistanceMode and costSignals will be injected server-side
-          // by the estimate page API based on tenant config
+          // Pre-generation conversation (for conversational path)
+          preGenerationConversation: formData.preGenMessages.length > 0
+            ? formData.preGenMessages.slice(-10)
+            : undefined,
           timestamp: Date.now(),
         };
         sessionStorage.setItem('demo_handoff_context', JSON.stringify(handoffData));
@@ -386,9 +438,7 @@ function VisualizerFormInner() {
     }
 
     const params = new URLSearchParams();
-    if (visualization?.id) {
-      params.set('visualization', visualization.id);
-    }
+    if (visualization?.id) params.set('visualization', visualization.id);
     router.push(`/estimate?${params.toString()}`);
   }, [formData, visualization, router, canAccess, favouritedIndices]);
 
@@ -396,18 +446,22 @@ function VisualizerFormInner() {
     handleGenerate();
   }, [handleGenerate]);
 
-  // Determine if generate button should be visible
-  const canGenerate = !!formData.roomType && !!formData.style;
+  // Can generate: need room type + (styles OR conversation)
+  const canGenerate = !!formData.roomType && (
+    formData.styles.length > 0 ||
+    formData.preGenMessages.length >= 2
+  );
 
-  // Get effective room/style for display
+  // Effective labels for display
   const effectiveRoomType = formData.roomType === 'other'
     ? formData.customRoomType || 'Custom'
     : formData.roomType?.replace(/_/g, ' ');
-  const effectiveStyle = formData.style === 'other'
-    ? formData.customStyle || 'Custom'
-    : formData.style;
+  const effectiveStyleLabels = formData.styles.map(s => formatStyleLabel(s, formData.customStyle));
+  const effectiveStyleDisplay = effectiveStyleLabels.length > 0
+    ? effectiveStyleLabels.join(', ')
+    : formData.preGenMessages.length >= 2 ? 'Emma\'s picks' : '';
 
-  // Transitioning state — fun rotating messages before generation
+  // Transitioning state
   if (currentStep === 'transitioning') {
     return <TransitionScreen />;
   }
@@ -447,7 +501,7 @@ function VisualizerFormInner() {
     return (
       <div data-testid="generation-loading">
         <GenerationLoading
-          style={effectiveStyle || 'modern'}
+          style={effectiveStyleDisplay || 'modern'}
           roomType={effectiveRoomType || 'kitchen'}
           progress={stream.progress}
           stage={stream.stage}
@@ -474,7 +528,7 @@ function VisualizerFormInner() {
     );
   }
 
-  // No-photo chat path — skip visualizer, go straight to Emma chat + lead form
+  // No-photo chat path
   if (currentStep === 'no_photo_chat') {
     return (
       <div className="max-w-2xl mx-auto">
@@ -516,6 +570,18 @@ function VisualizerFormInner() {
         onChangePhoto={handleChangePhoto}
       />
 
+      {/* Emma Welcome Card — appears after photo analysis completes */}
+      <AnimatePresence>
+        {formData.photoAnalysis && (
+          <section className="py-4">
+            <EmmaWelcomeCard
+              companyName={branding.name}
+              photoAnalysis={formData.photoAnalysis}
+            />
+          </section>
+        )}
+      </AnimatePresence>
+
       {/* Room Type Section */}
       <section className="py-6">
         <RoomTypeSelector
@@ -527,20 +593,81 @@ function VisualizerFormInner() {
         />
       </section>
 
-      {/* Style Section */}
-      <section ref={styleSectionRef} className="py-6 border-t border-border">
-        <StyleSelector
-          value={formData.style}
-          onChange={handleStyleChange}
-          allowCustom
-          customValue={formData.customStyle}
-          onCustomChange={(v) => setFormData(prev => ({ ...prev, customStyle: v }))}
-        />
-      </section>
+      {/* Style Section — hidden when pre-gen chat is active */}
+      {!formData.showPreGenChat && (
+        <section ref={styleSectionRef} className="py-6 border-t border-border">
+          <StyleSelector
+            selectedStyles={formData.styles}
+            onChange={handleStylesChange}
+            allowCustom
+            customValue={formData.customStyle}
+            onCustomChange={(v) => setFormData(prev => ({ ...prev, customStyle: v }))}
+            onSkipStyle={handleSkipStyle}
+          />
+        </section>
+      )}
 
-      {/* Preferences Section — animates in after style selection */}
+      {/* Pre-generation chat — shown when user clicks "Don't Have a Style in Mind?" */}
+      {formData.showPreGenChat && (
+        <section ref={preGenChatRef} className="py-6 border-t border-border">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Tell Emma What You Want</h3>
+                <p className="text-sm text-muted-foreground">
+                  Describe your vision and Emma will pick the perfect styles
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleBackToStyles}
+                className="shrink-0 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Pick styles instead
+              </button>
+            </div>
+
+            {/* Simple inline text input for preferences (pre-gen chat MVP) */}
+            <PreferencesSection
+              textValue={formData.textPreferences}
+              onTextChange={(v) => setFormData(prev => ({ ...prev, textPreferences: v }))}
+            />
+
+            {/* Generate button for chat path */}
+            {formData.textPreferences.length >= 10 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="pt-2"
+              >
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    // Convert text preferences into conversation messages for the pipeline
+                    setFormData(prev => ({
+                      ...prev,
+                      preGenMessages: [
+                        { role: 'user' as const, content: prev.textPreferences },
+                        { role: 'assistant' as const, content: 'I understand your vision. Let me create some concepts that match.' },
+                      ],
+                    }));
+                    handleGenerate();
+                  }}
+                  disabled={!formData.roomType}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Let Emma Surprise You
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Preferences Section — animates in after style selection (style picker path only) */}
       <AnimatePresence>
-        {formData.style && (
+        {!formData.showPreGenChat && formData.styles.length > 0 && (
           <motion.section
             ref={preferencesSectionRef}
             className="py-6 border-t border-border"
@@ -558,7 +685,7 @@ function VisualizerFormInner() {
       </AnimatePresence>
 
       {/* Selection Summary */}
-      {canGenerate && (
+      {canGenerate && !formData.showPreGenChat && (
         <div className="bg-muted/50 rounded-lg p-4 border border-border mb-24">
           <h4 className="font-medium text-sm mb-2">Your Selection</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -568,7 +695,7 @@ function VisualizerFormInner() {
             </div>
             <div>
               <span className="text-muted-foreground">Style:</span>{' '}
-              <span className="font-medium capitalize">{effectiveStyle}</span>
+              <span className="font-medium capitalize">{effectiveStyleDisplay}</span>
             </div>
           </div>
           {formData.textPreferences && (
@@ -579,12 +706,14 @@ function VisualizerFormInner() {
         </div>
       )}
 
-      {/* Floating Generate Button */}
-      <FloatingGenerateButton
-        visible={canGenerate}
-        onClick={handleGenerate}
-        disabled={!canGenerate}
-      />
+      {/* Floating Generate Button (style picker path) */}
+      {!formData.showPreGenChat && (
+        <FloatingGenerateButton
+          visible={canGenerate}
+          onClick={handleGenerate}
+          disabled={!canGenerate}
+        />
+      )}
     </div>
   );
 }

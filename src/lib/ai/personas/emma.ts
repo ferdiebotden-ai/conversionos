@@ -56,10 +56,77 @@ Whether you're dreaming about a new kitchen, heritage restoration, net-zero upgr
  * Used in the inline post-generation chat where the homeowner
  * refines their design and moves toward an estimate.
  */
+/**
+ * Build a pre-generation system prompt for Emma.
+ * Used in the conversational style discovery chat ("Don't Have a Style in Mind?")
+ * where Emma guides the homeowner to describe their vision before generation.
+ */
+export function buildPreGenerationPrompt(context: {
+  companyName: string;
+  companyCity?: string;
+  companyServices?: string[];
+  companyPrincipals?: string;
+  roomType: string;
+  photoAnalysis?: { estimatedDimensions?: string | undefined; currentCondition?: string | undefined; layoutType?: string | undefined; identifiedFixtures?: string[] | undefined; structuralElements?: string[] | undefined } | undefined;
+}): string {
+  const persona = EMMA_PERSONA;
+  const parts: string[] = [];
+
+  // Identity — deeply personalised
+  parts.push(`You are ${persona.name}, the ${persona.role} at ${context.companyName}${context.companyCity ? ` in ${context.companyCity}` : ''}.`);
+  parts.push(`Personality: warm, concise, uses "we" language. Keep responses to 2-3 sentences.`);
+
+  // Company context (if available)
+  if (context.companyPrincipals) {
+    parts.push(`Our founder is ${context.companyPrincipals}.`);
+  }
+  if (context.companyServices && context.companyServices.length > 0) {
+    parts.push(`We specialise in: ${context.companyServices.slice(0, 3).join(', ')}.`);
+  }
+
+  // Photo context — what we know about the room
+  parts.push(`\n## Room Analysis`);
+  const room = context.roomType.replace(/_/g, ' ');
+  parts.push(`The homeowner uploaded a photo of their ${room}.`);
+  if (context.photoAnalysis) {
+    const pa = context.photoAnalysis;
+    if (pa.estimatedDimensions) parts.push(`Approximate size: ${pa.estimatedDimensions}`);
+    if (pa.currentCondition) parts.push(`Current condition: ${pa.currentCondition}`);
+    if (pa.layoutType) parts.push(`Layout: ${pa.layoutType}`);
+    if (pa.identifiedFixtures?.length) parts.push(`Key features: ${pa.identifiedFixtures.slice(0, 5).join(', ')}`);
+    if (pa.structuralElements?.length) parts.push(`Structure to preserve: ${pa.structuralElements.slice(0, 3).join(', ')}`);
+  }
+
+  // Goal — style discovery
+  parts.push(`\n## Your Goal`);
+  parts.push(`Guide the homeowner to describe what they want changed about this space.`);
+  parts.push(`Ask focused, specific questions about:`);
+  parts.push(`- What they love or hate about the current room`);
+  parts.push(`- Desired mood/feel (bright, cosy, dramatic, calm)`);
+  parts.push(`- Colour preferences or materials they're drawn to`);
+  parts.push(`- Features to keep (island, cabinets, fireplace) vs change`);
+  parts.push(`Reference what you can see in their photo — be specific.`);
+
+  // Rules
+  parts.push(`\n## Rules`);
+  parts.push(`- Keep responses to 2-3 sentences. Ask ONE question at a time.`);
+  parts.push(`- Use "we" language ("we can transform this space").`);
+  parts.push(`- NEVER mention other companies, competitors, or tenants.`);
+  parts.push(`- NEVER discuss pricing in this conversation — that comes later.`);
+  parts.push(`- Reference visible room features from the photo analysis above.`);
+  parts.push(`- After 2+ exchanges with clear design signals, end with: [Suggestions: Generate now | Keep chatting]`);
+
+  return parts.join('\n');
+}
+
 export function buildDesignStudioPrompt(context: {
   companyName: string;
+  companyCity?: string;
+  companyServices?: string[];
   roomType: string;
   style: string;
+  /** Style label for the active concept (multi-style mode) */
+  conceptStyleLabel?: string;
   photoAnalysis?: { estimatedDimensions?: string | undefined; currentCondition?: string | undefined; layoutType?: string | undefined } | undefined;
   starredConcepts: number[];
   conceptDescriptions?: string[] | undefined;
@@ -70,13 +137,17 @@ export function buildDesignStudioPrompt(context: {
   const persona = EMMA_PERSONA;
   const parts: string[] = [];
 
-  // Identity
-  parts.push(`You are ${persona.name}, the ${persona.role} at ${context.companyName}.`);
+  // Identity — enriched with city and services when available
+  parts.push(`You are ${persona.name}, the ${persona.role} at ${context.companyName}${context.companyCity ? ` in ${context.companyCity}` : ''}.`);
   parts.push(`Personality: warm, concise, uses "we" language. Keep responses to 2-3 sentences.`);
+  if (context.companyServices && context.companyServices.length > 0) {
+    parts.push(`We specialise in: ${context.companyServices.slice(0, 3).join(', ')}.`);
+  }
 
   // Room context
   parts.push(`\n## Room Context`);
-  parts.push(`Room: ${context.roomType.replace(/_/g, ' ')} | Style: ${context.style}`);
+  const styleDisplay = context.conceptStyleLabel || context.style;
+  parts.push(`Room: ${context.roomType.replace(/_/g, ' ')} | Style: ${styleDisplay}`);
   if (context.photoAnalysis) {
     const pa = context.photoAnalysis;
     if (pa.estimatedDimensions) parts.push(`Dimensions: ${pa.estimatedDimensions}`);

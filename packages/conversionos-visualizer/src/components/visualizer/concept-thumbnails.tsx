@@ -81,10 +81,16 @@ export function ConceptThumbnails({
               />
             </button>
 
-            {/* Concept number */}
-            <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center font-medium pointer-events-none z-10">
-              {index + 1}
-            </div>
+            {/* Style badge + concept number */}
+            {concept.styleLabel ? (
+              <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium pointer-events-none z-10">
+                {concept.styleLabel} #{index + 1}
+              </div>
+            ) : (
+              <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center font-medium pointer-events-none z-10">
+                {index + 1}
+              </div>
+            )}
 
             {/* Active star badge (top-right) — filled when active */}
             {isActive && (

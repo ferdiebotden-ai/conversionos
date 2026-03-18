@@ -5,17 +5,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./branding": "./src/branding.ts",
-    "./entitlements.server": "./src/entitlements.server.ts",
-    "./entitlements": "./src/entitlements.ts",
-    "./index": "./src/index.ts",
-    "./quote-assistance": "./src/quote-assistance.ts",
-    "./section-types": "./src/section-types.ts",
-    "./theme": "./src/theme.ts",
-    "./types/database": "./src/types/database.ts",
-    "./schemas/theme": "./src/schemas/theme.ts",
-    "./db/server": "./src/db/server.ts",
-    "./db/site": "./src/db/site.ts"
+    "./*": "./src/*"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

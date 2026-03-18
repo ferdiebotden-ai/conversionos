@@ -2,11 +2,11 @@
 
 /**
  * Admin Header
- * Top header bar with mobile menu toggle and user info
+ * Top header bar with mobile menu toggle and page title
  */
 
 import { Button } from '@/components/ui/button';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
@@ -29,24 +29,6 @@ export function AdminHeader({ onMenuClick, title = 'Dashboard' }: AdminHeaderPro
 
       {/* Page title */}
       <h1 className="text-lg font-semibold flex-1">{title}</h1>
-
-      {/* Right side actions */}
-      <div className="flex items-center gap-1">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative min-h-[44px] min-w-[44px]">
-          <Bell className="h-5 w-5" />
-          {/* Notification badge */}
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
-          <span className="sr-only">Notifications</span>
-        </Button>
-
-        {/* User avatar */}
-        <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <User className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
     </header>
   );
 }

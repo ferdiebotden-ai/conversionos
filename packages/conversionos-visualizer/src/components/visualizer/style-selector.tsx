@@ -2,13 +2,15 @@
 
 /**
  * Style Selector
- * Visual cards for selecting design style
+ * Multi-select cards for choosing up to 2 design styles.
+ * "Don't Have a Style in Mind?" offers a conversational alternative.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Check, Palette } from 'lucide-react';
+import { Check, Palette, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type DesignStyle =
   | 'modern'
@@ -109,51 +111,122 @@ const STYLE_IMAGES: Record<DesignStyle, string> = {
 };
 
 interface StyleSelectorProps {
-  value: DesignStyleSelection | null;
-  onChange: (value: DesignStyleSelection) => void;
+  /** Array of selected styles (0 to maxSelections) */
+  selectedStyles: DesignStyleSelection[];
+  /** Called with updated array when selection changes */
+  onChange: (styles: DesignStyleSelection[]) => void;
+  /** Maximum styles the user can pick (default: 2) */
+  maxSelections?: number;
   allowCustom?: boolean;
   customValue?: string;
   onCustomChange?: (value: string) => void;
+  /** Called when user clicks "Don't have a style in mind?" */
+  onSkipStyle?: () => void;
   className?: string;
+
+  // Backward compat — if consuming code still passes single-value props
+  /** @deprecated Use selectedStyles instead */
+  value?: DesignStyleSelection | null;
 }
 
 export function StyleSelector({
-  value,
+  selectedStyles,
   onChange,
+  maxSelections = 2,
   allowCustom = false,
   customValue = '',
   onCustomChange,
+  onSkipStyle,
   className,
+  value,
 }: StyleSelectorProps) {
-  const [showCustomInput, setShowCustomInput] = useState(value === 'other');
+  // Backward compat: if old single-value prop is used, convert
+  const effectiveStyles = selectedStyles ?? (value ? [value] : []);
+  const [showCustomInput, setShowCustomInput] = useState(effectiveStyles.includes('other'));
+  const [shakeId, setShakeId] = useState<string | null>(null);
 
-  const handleSelect = (id: DesignStyleSelection) => {
+  const handleSelect = useCallback((id: DesignStyleSelection) => {
     if (id === 'other') {
-      setShowCustomInput(true);
-    } else {
-      setShowCustomInput(false);
+      if (effectiveStyles.includes('other')) {
+        onChange(effectiveStyles.filter(s => s !== 'other'));
+        setShowCustomInput(false);
+      } else if (effectiveStyles.length < maxSelections) {
+        setShowCustomInput(true);
+        onChange([...effectiveStyles, 'other']);
+      } else {
+        setShakeId('other');
+        setTimeout(() => setShakeId(null), 500);
+      }
+      return;
     }
-    onChange(id);
-  };
+
+    if (effectiveStyles.includes(id)) {
+      onChange(effectiveStyles.filter(s => s !== id));
+    } else if (effectiveStyles.length < maxSelections) {
+      onChange([...effectiveStyles, id]);
+    } else {
+      setShakeId(id);
+      setTimeout(() => setShakeId(null), 500);
+    }
+  }, [effectiveStyles, maxSelections, onChange]);
+
+  const selectionCount = effectiveStyles.length;
 
   return (
     <div className={cn('space-y-4', className)}>
-      <div>
-        <h3 className="text-lg font-semibold">Choose your style</h3>
-        <p className="text-sm text-muted-foreground">
-          Select the design aesthetic you want to visualize
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Choose Up to Two Styles</h3>
+          <p className="text-sm text-muted-foreground">
+            Pick one for four concepts, or two for a side-by-side comparison
+          </p>
+        </div>
+
+        {onSkipStyle && (
+          <button
+            type="button"
+            onClick={onSkipStyle}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">Don&apos;t have a style in mind?</span>
+            <span className="sm:hidden">No style?</span>
+          </button>
+        )}
       </div>
+
+      {/* Selection count dots */}
+      {selectionCount > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: maxSelections }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'w-2 h-2 rounded-full transition-colors',
+                  i < selectionCount ? 'bg-primary' : 'bg-muted-foreground/30'
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {selectionCount} of {maxSelections} selected
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {STYLE_OPTIONS.map((option) => {
-          const isSelected = value === option.id;
+          const isSelected = effectiveStyles.includes(option.id);
+          const isShaking = shakeId === option.id;
 
           return (
-            <button
+            <motion.button
               key={option.id}
               type="button"
               onClick={() => handleSelect(option.id)}
+              animate={isShaking ? { x: [0, -4, 4, -4, 4, 0] } : {}}
+              transition={isShaking ? { duration: 0.4 } : {}}
               className={cn(
                 'group relative rounded-xl overflow-hidden transition-all',
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
@@ -161,7 +234,6 @@ export function StyleSelector({
                 isSelected && 'ring-2 ring-primary'
               )}
             >
-              {/* Style preview image */}
               <div className="aspect-[4/3] relative">
                 <img
                   src={STYLE_IMAGES[option.id]}
@@ -171,7 +243,6 @@ export function StyleSelector({
                 />
               </div>
 
-              {/* Content overlay */}
               <div className="absolute inset-0 flex flex-col justify-end p-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
                 <span className="font-semibold text-white text-sm">
                   {option.label}
@@ -181,55 +252,65 @@ export function StyleSelector({
                 </span>
               </div>
 
-              {/* Selection indicator */}
-              {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
-            </button>
+              <AnimatePresence>
+                {isSelected && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                  >
+                    <Check className="w-4 h-4 text-primary-foreground" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
           );
         })}
 
-        {/* "Other" option */}
         {allowCustom && (
-          <button
+          <motion.button
             type="button"
             onClick={() => handleSelect('other')}
+            animate={shakeId === 'other' ? { x: [0, -4, 4, -4, 4, 0] } : {}}
+            transition={shakeId === 'other' ? { duration: 0.4 } : {}}
             className={cn(
               'group relative rounded-xl overflow-hidden transition-all',
               'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
               'hover:ring-2 hover:ring-primary/50',
-              value === 'other' && 'ring-2 ring-primary'
+              effectiveStyles.includes('other') && 'ring-2 ring-primary'
             )}
           >
-            {/* Gradient placeholder */}
             <div className="aspect-[4/3] relative bg-gradient-to-br from-primary/20 via-primary/10 to-muted flex items-center justify-center">
               <Palette className="w-12 h-12 text-primary/40" />
             </div>
 
-            {/* Content overlay */}
             <div className="absolute inset-0 flex flex-col justify-end p-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
-              <span className="font-semibold text-white text-sm">
-                Other
-              </span>
+              <span className="font-semibold text-white text-sm">Other</span>
               <span className="text-xs text-white/80 line-clamp-2 mt-0.5">
                 Describe your preferred style
               </span>
             </div>
 
-            {/* Selection indicator */}
-            {value === 'other' && (
-              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                <Check className="w-4 h-4 text-primary-foreground" />
-              </div>
-            )}
-          </button>
+            <AnimatePresence>
+              {effectiveStyles.includes('other') && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                >
+                  <Check className="w-4 h-4 text-primary-foreground" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
         )}
       </div>
 
-      {/* Custom style input */}
-      {showCustomInput && value === 'other' && (
+      {showCustomInput && effectiveStyles.includes('other') && (
         <div className="mt-3">
           <Input
             value={customValue}

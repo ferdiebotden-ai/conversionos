@@ -77,6 +77,12 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'paul-s-contracting.norbotsystems.com': 'paul-s-contracting',
   'regency-home-improvements-ltd.norbotsystems.com': 'regency-home-improvements-ltd',
   'creative-contractors-okanagan.norbotsystems.com': 'creative-contractors-okanagan',
+  'verbeek-kitchens-and-bath.norbotsystems.com': 'verbeek-kitchens-and-bath',
+  'tpm-construction.norbotsystems.com': 'tpm-construction',
+  'jfs-construction.norbotsystems.com': 'jfs-construction',
+  'camboia-contracting.norbotsystems.com': 'camboia-contracting',
+  'mckegney-contracting.norbotsystems.com': 'mckegney-contracting',
+  'germano-creative-interior-contracting-ltd.norbotsystems.com': 'germano-creative-interior-contracting-ltd',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────

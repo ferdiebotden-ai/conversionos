@@ -5,6 +5,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./index": "./src/index.ts",
     "./components/admin/ai-quote-suggestions": "./src/components/admin/ai-quote-suggestions.tsx",
     "./components/admin/audit-log": "./src/components/admin/audit-log.tsx",
     "./components/admin/before-after-comparison": "./src/components/admin/before-after-comparison.tsx",
@@ -28,8 +29,8 @@
     "./components/admin/photo-lightbox": "./src/components/admin/photo-lightbox.tsx",
     "./components/admin/price-upload": "./src/components/admin/price-upload.tsx",
     "./components/admin/quote-editor": "./src/components/admin/quote-editor.tsx",
-    "./components/admin/quote-line-item": "./src/components/admin/quote-line-item.tsx",
     "./components/admin/quote-line-item-card": "./src/components/admin/quote-line-item-card.tsx",
+    "./components/admin/quote-line-item": "./src/components/admin/quote-line-item.tsx",
     "./components/admin/quote-line-items-layout": "./src/components/admin/quote-line-items-layout.tsx",
     "./components/admin/quote-send-wizard": "./src/components/admin/quote-send-wizard.tsx",
     "./components/admin/quote-version-history": "./src/components/admin/quote-version-history.tsx",
