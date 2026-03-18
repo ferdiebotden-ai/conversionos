@@ -2,7 +2,7 @@
 
 Autonomous pipeline that discovers Ontario renovation contractors, scrapes their websites, provisions branded ConversionOS demo tenants, runs 9-module QA, and creates outreach email drafts. Two build modes: **template** (pick from 50 standard sections) and **bespoke** (Opus architect + Codex-generated custom React sections matching the original site's visual DNA).
 
-**At session start:** Read `docs/learned-patterns.md` — 30+ accumulated patterns covering scraping, provisioning, QA, and bespoke builds.
+**At session start:** Read `docs/learned-patterns.md` (30+ accumulated patterns) AND `docs/improvement-log.md` (systemic issues from manual fixes — the pipeline's feedback loop).
 
 ## Operating Modes
 
@@ -20,6 +20,18 @@ When the user says "monitor", "check status", "review builds", "QA check", etc. 
 - Escalate failures: if >50% of builds fail, stop the batch and report
 - After QA: route to `../../warm-leads-polish/` for final polish (use `--auto-polish` flag or run manually)
 - Present structured summaries to Ferdie with scores, verdicts, and recommendations
+
+### Tenant Fix Mode
+When the user says "fix", "update", "improve" a specific tenant — you fix the issue AND think systemically.
+
+**After every fix, ask yourself:**
+1. **Is this a one-off or systemic?** If the same issue could affect other tenants, log it.
+2. **Where in the pipeline did this break?** Trace the root cause to a specific scraping, provisioning, or QA step.
+3. **What would have prevented this?** Think about what check or improvement in the pipeline would have caught it.
+
+**Then log it:** Append to `docs/improvement-log.md` following the format there (symptom, root cause, impact, suggested fix, risk). Do NOT implement pipeline fixes during a fix session — only document them.
+
+**Improvement log:** `docs/improvement-log.md` — read this at session start alongside `docs/learned-patterns.md`. The log captures systemic patterns found during manual fixes. Ferdie periodically reviews it and triggers implementation of the highest-impact, lowest-risk items.
 
 ### Polish Loop Integration
 After Step 17 (QA → queue handoff), builds flow to the polish loop:
@@ -195,6 +207,7 @@ ICP scoring: geography (15 pts), company size (15 pts), web sophistication gap (
 | Outreach integration | `docs/outreach-integration.md` |
 | Data shape interfaces | `SHARED_INTERFACES.md` |
 | Accumulated build learnings | `docs/learned-patterns.md` |
+| Systemic improvement log | `docs/improvement-log.md` |
 | Bespoke pipeline handoff | `docs/bespoke-handoff.md` |
 | Session handoff (Mar 11) | `docs/session-handoff-2026-03-11.md` |
 | Outreach rules (CASL, template) | `../scripts/outreach/README.md` |
