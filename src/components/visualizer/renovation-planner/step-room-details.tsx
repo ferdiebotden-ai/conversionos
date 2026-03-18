@@ -1,1 +1,2 @@
-export * from '../../../../packages/conversionos-visualizer/src/components/visualizer/renovation-planner/step-room-details';
+// Renovation planner — placeholder (not yet implemented)
+export {};

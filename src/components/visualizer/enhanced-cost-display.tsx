@@ -1,1 +1,2 @@
-export * from '../../../packages/conversionos-visualizer/src/components/visualizer/enhanced-cost-display';
+// Enhanced cost display — placeholder (package module not yet implemented)
+export {};
