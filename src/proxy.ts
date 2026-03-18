@@ -88,6 +88,10 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'easy-renovation.norbotsystems.com': 'easy-renovation',
   'ostrander-construction.norbotsystems.com': 'ostrander-construction',
   'bacvar-building.norbotsystems.com': 'bacvar-building',
+  'd-e-p-construction.norbotsystems.com': 'd-e-p-construction',
+  'a-macdonald-construction.norbotsystems.com': 'a-macdonald-construction',
+  'chermark-renovations.norbotsystems.com': 'chermark-renovations',
+  'kwc-basements.norbotsystems.com': 'kwc-basements',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
