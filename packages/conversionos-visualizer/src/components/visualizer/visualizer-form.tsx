@@ -182,11 +182,7 @@ function VisualizerFormInner() {
   // Multi-style change handler
   const handleStylesChange = useCallback((styles: DesignStyleSelection[]) => {
     setFormData(prev => ({ ...prev, styles }));
-    // When 2nd style picked (or first, if max is 1), scroll to preferences
-    if (styles.length >= 1) {
-      setTimeout(() => scrollToWithOffset(preferencesSectionRef.current), 150);
-    }
-  }, [scrollToWithOffset]);
+  }, []);
 
   // "Don't Have a Style in Mind?" handler
   const handleSkipStyle = useCallback(() => {

@@ -2,15 +2,11 @@
 
 /**
  * Preferences Section
- * Text input with dictation support for design preferences.
- * Uses Web Speech API for free, real-time voice-to-text (en-CA).
+ * Text input for design preferences.
  */
 
-import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff } from 'lucide-react';
-import { useDictation } from '@/hooks/use-dictation';
 
 interface PreferencesSectionProps {
   textValue: string;
@@ -25,31 +21,6 @@ export function PreferencesSection({
 }: PreferencesSectionProps) {
   const charCount = textValue.length;
   const maxChars = 500;
-  const dictation = useDictation();
-
-  // Append dictated text to existing textarea content
-  useEffect(() => {
-    if (dictation.transcript && dictation.status === 'recording') {
-      const combined = textValue
-        ? `${textValue.trimEnd()} ${dictation.transcript}`
-        : dictation.transcript;
-      if (combined.length <= maxChars) {
-        onTextChange(combined);
-      }
-    }
-    // Only react to transcript changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dictation.transcript]);
-
-  const handleMicToggle = () => {
-    if (dictation.status === 'recording') {
-      dictation.stopDictation();
-      dictation.clearTranscript();
-    } else {
-      dictation.clearTranscript();
-      dictation.startDictation();
-    }
-  };
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -58,7 +29,7 @@ export function PreferencesSection({
           Tell Us What You&apos;re Thinking
         </h3>
         <p className="text-sm text-muted-foreground">
-          Describe your vision — type or tap the mic to dictate
+          Describe your vision — colours, materials, features you love or want changed
         </p>
       </div>
 
@@ -76,28 +47,7 @@ export function PreferencesSection({
             maxLength={maxChars}
             autoFocus
           />
-          <div className="absolute bottom-2 right-3 flex items-center gap-2">
-            {/* Dictation button — hidden if unsupported */}
-            {dictation.status !== 'unsupported' && (
-              <button
-                type="button"
-                onClick={handleMicToggle}
-                className={cn(
-                  'rounded-full p-1.5 transition-colors',
-                  dictation.status === 'recording'
-                    ? 'bg-red-100 text-red-600 animate-pulse dark:bg-red-900/30'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-                aria-label={dictation.status === 'recording' ? 'Stop dictation' : 'Start dictation'}
-              >
-                {dictation.status === 'recording' ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </button>
-            )}
-
+          <div className="absolute bottom-2 right-3">
             <span
               className={cn(
                 'text-xs tabular-nums',
