@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/template-picker';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/template-picker';

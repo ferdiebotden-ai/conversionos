@@ -1,1 +1,1 @@
-export * from '../../../../packages/conversionos-runtime/src/section-types';
+export * from '../../packages/conversionos-runtime/src/section-types';

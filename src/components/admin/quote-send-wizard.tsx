@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/quote-send-wizard';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/quote-send-wizard';

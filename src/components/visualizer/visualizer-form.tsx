@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-visualizer/src/components/visualizer/visualizer-form';
+export * from '../../../packages/conversionos-visualizer/src/components/visualizer/visualizer-form';

@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/lead-drawings-panel';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/lead-drawings-panel';

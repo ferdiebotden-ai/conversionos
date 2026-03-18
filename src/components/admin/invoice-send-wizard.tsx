@@ -1,1 +1,1 @@
-export * from '../../../../../packages/conversionos-admin-core/src/components/admin/invoice-send-wizard';
+export * from '../../../packages/conversionos-admin-core/src/components/admin/invoice-send-wizard';
