@@ -424,16 +424,35 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
       ? 'frames'
       : 'tiles';
 
+  // Hero background image: use tenant's heroImageUrl if available
+  const heroImageUrl = config.heroImageUrl;
+  const hasHeroBg = Boolean(heroImageUrl);
+
   return (
-    <section className={cn('relative overflow-hidden bg-gradient-to-b from-background via-background to-muted/30', className)}>
-      <div className="container mx-auto px-4 py-16 md:py-20 lg:py-24">
+    <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-b from-background via-background to-muted/30', className)}>
+      {/* Background hero image from the contractor's website */}
+      {hasHeroBg && (
+        <>
+          <Image
+            src={heroImageUrl!}
+            alt=""
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
+        </>
+      )}
+      <div className={cn('container relative mx-auto px-4', hasHeroBg ? 'py-20 md:py-24 lg:py-28' : 'py-16 md:py-20 lg:py-24')}>
         <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
           {/* Left: Tagline + CTA */}
           <div className="order-2 space-y-6 md:order-1">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className={cn('text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl', hasHeroBg ? 'text-white' : 'text-foreground')}>
               {headline}
             </h1>
-            <p className="text-lg leading-8 text-muted-foreground md:text-xl">
+            <p className={cn('text-lg leading-8 md:text-xl', hasHeroBg ? 'text-white/80' : 'text-muted-foreground')}>
               See your renovation vision come to life. Our AI Design Visualiser
               lets you explore styles before construction begins.
             </p>

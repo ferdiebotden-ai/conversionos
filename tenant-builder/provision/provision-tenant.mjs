@@ -196,17 +196,12 @@ if (!dryRun) {
     logger.warn(`OG image generation failed (non-blocking): ${e.message}`);
   }
 
-  // Generate images for services missing scraped images
+  // Service images: log missing but do NOT generate AI images
+  // Real service photos come from Firecrawl scraping; AI-generated images look fake
   if (provisionData.services?.length > 0) {
     const missingCount = provisionData.services.filter(s => !s.image_urls?.length || !s.image_urls[0]).length;
     if (missingCount > 0) {
-      logger.info(`Step 1b: ${missingCount} service(s) missing images — generating via Gemini`);
-      try {
-        const generated = await generateServiceImages(imageOpts);
-        if (generated > 0) imageDataUpdated = true;
-      } catch (e) {
-        logger.warn(`Service image generation failed (non-blocking): ${e.message}`);
-      }
+      logger.info(`Step 1b: ${missingCount} service(s) missing images — skipping AI generation (text-only cards)`);
     }
   }
 
@@ -404,11 +399,13 @@ if (!dryRun) {
       pageLayouts = {
         homepage: [
           'hero:visualizer-teardown',
-          'trust:badge-strip',
           'services:grid-3-cards',
-          'about:split-image-copy',
           'gallery:masonry-grid',
+          'misc:process-steps',
+          'about:split-image-copy',
           'testimonials:cards-carousel',
+          'trust:badge-strip',
+          'contact:form-simple',
           'cta:full-width-primary',
         ],
         about: [

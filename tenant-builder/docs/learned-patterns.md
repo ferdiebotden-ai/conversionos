@@ -307,3 +307,19 @@ Eight systemic fixes applied before the first 10-build nightly batch. Each addre
 **[2026-03-17] Duplicate drafts from re-runs.** Multiple pipeline runs create parallel drafts. **Fix: outreach-pipeline.mjs should delete existing draft (via email_draft_id) before creating a new one for the same target.**
 
 **[2026-03-17] getFirstName() punctuation bug.** Multi-person owner names like "Domenic, Nick, and Jo" produced "Hi Domenic,," (double comma). **Fix: strip trailing punctuation from first name token. Added to generate-email.mjs permanently.**
+
+## Firecrawl Maximization (2026-03-18)
+
+**[2026-03-18] Firecrawl `images` format does NOT exist.** The API docs mention it but the endpoint returns 400 "invalid_value". Valid formats: markdown, html, rawHtml, links, screenshot, screenshot@fullPage, extract, json, summary, changeTracking, branding. **Workaround: extract image URLs from markdown via regex `!/[^\]]*\]\(([^)]+)\)/g`. With scroll actions + onlyMainContent: false, this catches 10-100x more images than schema extraction alone.**
+
+**[2026-03-18] Firecrawl `executeJavascript` action does NOT exist.** Returns 400 "invalid_union". Valid actions: wait, click, scroll, write, press, screenshot, scrape. **Workaround: use Playwright for CSS background-image extraction (hero sections). Firecrawl handles all `<img>` tag images via markdown.**
+
+**[2026-03-18] `scroll` + `wait` actions dramatically improve image discovery.** Without scrolling, lazy-loaded gallery/portfolio images are never captured. Two scroll-down + wait cycles (total 3s) consistently captures 10-50x more images. Red Stone Contracting: 14 homepage images with scroll vs 0-3 without.
+
+**[2026-03-18] `onlyMainContent: false` is essential for image scraping.** Default (`true`) strips `<header>` and `<footer>`, which removes logos, nav images, and hero images that are children of `<header>`. Always disable for image-focused scrapes.
+
+**[2026-03-18] `map()` discovers real pages — filter out XML sitemaps.** Many contractor sites have `/local-services-sitemap*.xml` URLs that match image patterns (contain "service"). Filter with `/\.xml|\.pdf|sitemap|feed|rss|wp-json/i`. Also add fallback paths (`/gallery`, `/portfolio`, etc.) since map() might not return them.
+
+**[2026-03-18] AI service images must NEVER be generated.** `generateServiceImages()` created fake renovation photos that are immediately recognizable. Services without real photos render as text-only cards (clean, honest). AI generation only acceptable for hero (last resort) and OG images.
+
+**[2026-03-18] "How It Works" must ALWAYS be ConversionOS standard.** The process steps section explains the AI visualizer journey (Upload Photo → Explore Designs → Request Quote), NOT the contractor's build process. Scraped `process_steps` from the contractor's website should never be used. Source of truth: `src/lib/ai/knowledge/company.ts:199-203`.

@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-visualizer/src/components/visualizer/no-photo-lead-form';
+export * from '../../../../../packages/conversionos-visualizer/src/components/visualizer/no-photo-lead-form';

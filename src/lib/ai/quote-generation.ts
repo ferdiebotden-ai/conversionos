@@ -278,7 +278,7 @@ export async function generateAIQuote(
 
   // Generate the quote
   const { object } = await generateObject({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'),
     schema: AIGeneratedQuoteSchema,
     system: QUOTE_GENERATION_SYSTEM_PROMPT,
     prompt: buildUserPrompt(validatedInput, markups, contractorPrices),
@@ -311,7 +311,7 @@ Please regenerate the quote incorporating this feedback.`;
 
   // Generate the quote
   const { object } = await generateObject({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'),
     schema: AIGeneratedQuoteSchema,
     system: QUOTE_GENERATION_SYSTEM_PROMPT,
     prompt: userPrompt,

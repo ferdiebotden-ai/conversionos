@@ -172,7 +172,11 @@ const companyProfile = {
   })(),
   whyChooseUs: data.why_choose_us || [],
   values: (data.values && data.values.length > 0) ? data.values.map(v => ({ ...v, iconHint: v.iconHint || 'heart' })) : [],
-  processSteps: (data.process_steps && data.process_steps.length > 0) ? data.process_steps : [],
+  processSteps: [
+    { title: 'Upload a Photo', description: 'Take a photo of your space with your phone or upload an existing image. Our AI design consultant analyses the space instantly.' },
+    { title: 'Explore Design Concepts', description: 'Choose a renovation style and see four unique AI-generated visualizations of your transformed space in under a minute.' },
+    { title: 'Request a Quote', description: 'Love what you see? Request a detailed estimate. We\'ll get back to you quickly with a personalized quote for your project.' },
+  ],
   teamMembers: (data.team_members || []).map(m => ({
     name: m.name,
     role: m.role || '',

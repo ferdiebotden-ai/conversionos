@@ -130,7 +130,103 @@ export async function scrape(url, options = {}) {
     markdown: result.markdown || '',
     metadata: result.metadata || {},
     branding: result.branding || null,
+    images: result.images || null,
+    actions: result.actions || null,
+    screenshot: result.screenshot || null,
   };
+}
+
+/**
+ * Map a website to discover all its URLs.
+ * @param {string} url - root URL to map
+ * @param {object} [options]
+ * @param {number} [options.limit=50] - max URLs to return
+ * @param {string} [options.search] - filter URLs by keyword
+ * @returns {Promise<{ links: Array<string|{url:string,title?:string}> }>}
+ */
+export async function map(url, options = {}) {
+  const fc = getApp();
+  const { limit = 50, search } = options;
+
+  logger.info(`Firecrawl map: ${url} (limit ${limit}${search ? `, search: "${search}"` : ''})`);
+  await enforceRateLimit();
+  const result = await retryOn429(() => fc.mapUrl(url, { limit, ...(search ? { search } : {}) }));
+  creditsUsed += 1;
+
+  if (!result.success) {
+    throw new Error(`Firecrawl map failed for ${url}: ${result.error || 'unknown'}`);
+  }
+
+  return { links: result.links || [] };
+}
+
+/**
+ * Scrape a URL with full options (formats, actions, onlyMainContent).
+ * Extended version of scrape() that passes through all Firecrawl options.
+ * @param {string} url - URL to scrape
+ * @param {object} [options] - all Firecrawl scrapeUrl options
+ * @returns {Promise<object>} full Firecrawl response
+ */
+export async function scrapeAdvanced(url, options = {}) {
+  const fc = getApp();
+  const { timeout = 30000, ...rest } = options;
+
+  logger.debug(`Firecrawl scrapeAdvanced: ${url} (options: ${JSON.stringify(Object.keys(rest))})`);
+  await enforceRateLimit();
+  const result = await retryOn429(() => fc.scrapeUrl(url, { timeout, ...rest }));
+  creditsUsed += 1;
+
+  if (!result.success) {
+    throw new Error(`Firecrawl scrapeAdvanced failed for ${url}: ${result.error || 'unknown'}`);
+  }
+
+  return result;
+}
+
+/**
+ * Batch scrape multiple URLs simultaneously.
+ * Starts the batch and polls until complete.
+ * @param {string[]} urls - URLs to scrape
+ * @param {object} [scrapeOptions] - options for each scrape (formats, actions, etc.)
+ * @param {number} [pollInterval=3000] - ms between status checks
+ * @param {number} [maxWaitMs=300000] - max wait time (5 min)
+ * @returns {Promise<Array<object>>} array of scrape results
+ */
+export async function batchScrape(urls, scrapeOptions = {}, pollInterval = 3000, maxWaitMs = 300000) {
+  const fc = getApp();
+
+  logger.info(`Firecrawl batchScrape: ${urls.length} URLs`);
+  await enforceRateLimit();
+
+  const batch = await retryOn429(() => fc.asyncBulkScrapeUrls(urls, scrapeOptions));
+
+  if (!batch.success) {
+    throw new Error(`Firecrawl batchScrape failed: ${batch.error || 'unknown'}`);
+  }
+
+  const jobId = batch.id;
+  logger.info(`Batch job started: ${jobId}`);
+
+  // Poll for completion
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollInterval));
+    const status = await fc.checkBulkScrapeStatus(jobId);
+
+    if (status.status === 'completed') {
+      creditsUsed += urls.length;
+      logger.info(`Batch job ${jobId} completed: ${status.completed}/${status.total} pages`);
+      return status.data || [];
+    }
+
+    if (status.status === 'failed') {
+      throw new Error(`Batch job ${jobId} failed`);
+    }
+
+    logger.debug(`Batch ${jobId}: ${status.completed || 0}/${status.total || urls.length} pages...`);
+  }
+
+  throw new Error(`Batch job ${jobId} timed out after ${maxWaitMs}ms`);
 }
 
 /**

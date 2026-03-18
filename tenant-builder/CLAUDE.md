@@ -70,7 +70,10 @@ node tenant-builder/orchestrate.mjs --nightly
 
 1. Select targets — Turso DB, direct URL, or Firecrawl discovery
 2. ICP score — 6-criterion model (100 pts), threshold 50/70
-3. Scrape — branding v2 + 7-stage scrape + 4-level logo extraction + social links + Playwright screenshots (ALL builds)
+3. Scrape — branding v2 + site map + 7-stage scrape + deep image scrape + CSS hero extraction + logo extraction + social links + screenshots (ALL builds)
+   - 1.5. **All builds:** `map()` — Firecrawl discovers ALL site URLs (gallery, portfolio, services, about pages)
+   - 2.3. **All builds:** Deep image scrape — Firecrawl markdown + scroll actions + `onlyMainContent: false` on discovered pages → extracts all `<img>` tag URLs
+   - 2.4. **All builds:** CSS hero extraction — Playwright extracts `background-image` from hero sections
    - 3a. **All builds:** `scrape/screenshot-capture.mjs` — Playwright full-page screenshots (desktop+mobile, 12 page paths)
    - 3b. **Bespoke only:** `bespoke-architect.mjs` — GPT 5.4 vision architect (primary) → Opus 4.6 text-only (fallback) → static blueprint (fallback) → SiteBlueprint v2 JSON
    - 3c. **Bespoke only:** `build-custom-sections.mjs` — Codex GPT 5.4 generates per-tenant React sections (parallel or sequential) → `src/sections/custom/{siteId}/` → Codex review quality gate

@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-runtime/src/schemas/theme';
+export * from '../../../../../packages/conversionos-runtime/src/schemas/theme';

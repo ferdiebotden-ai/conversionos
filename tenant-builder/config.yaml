@@ -171,10 +171,21 @@ scraping:
   firecrawl:
     formats:
       - markdown
+      # Note: 'images' format not available in API — images extracted from markdown via regex
       - links
       - html
+    image_scrape_actions:   # Actions to trigger lazy-loaded images before scraping
+      - type: scroll
+        direction: down
+      - type: wait
+        milliseconds: 2000
+      - type: scroll
+        direction: down
+      - type: wait
+        milliseconds: 1000
     timeout_ms: 30000
-    max_pages_per_site: 6   # Homepage + about + services + contact + gallery + testimonials
+    map_limit: 50     # Max URLs to discover via map() endpoint
+    max_pages_per_site: 16  # Increased from 6 — map() discovers more relevant pages
     rate_limit:
       requests_per_minute: 30
       retry_on_429: true

@@ -1,1 +1,1 @@
-export * from '../../packages/conversionos-runtime/src/entitlements.server';
+export * from '../../../../packages/conversionos-runtime/src/entitlements.server';

@@ -146,7 +146,7 @@ export async function generateAIEmail(
   const validatedInput = EmailGenerationInputSchema.parse(input);
 
   const { object } = await generateObject({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'),
     schema: AIEmailSchema,
     system: buildEmailSystemPrompt(branding),
     prompt: buildUserPrompt(validatedInput),

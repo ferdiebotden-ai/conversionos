@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-admin-core/src/components/admin/transparency-card';
+export * from '../../../../../packages/conversionos-admin-core/src/components/admin/transparency-card';

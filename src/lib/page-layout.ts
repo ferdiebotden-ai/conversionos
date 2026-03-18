@@ -4,11 +4,13 @@ import type { SectionId } from '@/lib/section-types';
 
 const DEFAULT_HOMEPAGE_LAYOUT: SectionId[] = [
   'hero:visualizer-teardown',
-  'trust:badge-strip',
   'services:grid-3-cards',
-  'about:split-image-copy',
   'gallery:masonry-grid',
+  'misc:process-steps',
+  'about:split-image-copy',
   'testimonials:cards-carousel',
+  'trust:badge-strip',
+  'contact:form-simple',
   'cta:full-width-primary',
 ];
 

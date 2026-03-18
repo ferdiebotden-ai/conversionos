@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-admin-core/src/components/admin/metrics-cards';
+export * from '../../../../../packages/conversionos-admin-core/src/components/admin/metrics-cards';

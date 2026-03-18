@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     externalDir: true,
   },
   turbopack: {
-    root: configDir,
+    root: path.join(configDir, "../.."),
   },
   transpilePackages: [
     '@norbot/conversionos-admin-core',

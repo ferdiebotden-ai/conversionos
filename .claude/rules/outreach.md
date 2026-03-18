@@ -12,7 +12,7 @@ Every outreach email MUST include:
 
 ## Template Integrity
 
-The email template in `generate-email.mjs` is **Ferdie's exact words** (March 2026 version). AI fills variables — it does not rewrite, rephrase, or "improve" the copy. The subject line, body structure, sign-off, and signature are fixed.
+The email template in `generate-email.mjs` is **Ferdie's exact words** (March 18, 2026 v3 — reputation-first opener, 48h urgency, reply/text CTA). AI fills variables — it does not rewrite, rephrase, or "improve" the copy. The subject line, body structure, sign-off, and signature are fixed.
 
 If you need to change the template wording, get Ferdie's explicit approval first.
 
@@ -28,12 +28,9 @@ If ANY of these 6 fields are missing, the target is **skipped entirely** — no 
 
 | Field | Source | Why Required |
 |-------|--------|-------------|
-| `company_name` | Turso | Opening line must be specific |
-| `city` | Turso | Subject line uses city |
-| `demo_url` | Turso / derived from slug | Email links to live demo |
-| `call_day` | Calendar integration | Call commitment |
-| `call_time` | Calendar integration | Call commitment |
-| `call_phone` | Turso | Call commitment references prospect's number |
+| `company_name` | Turso | Opening line + CTA must be specific |
+| `city` | Turso | Subject line + body opener use city |
+| `email` | Turso | Must contain @ — draft recipient |
 
 ## Banned Terms
 

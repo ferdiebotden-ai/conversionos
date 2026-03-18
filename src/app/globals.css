@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Smooth scroll for anchor navigation (scroll-spy) */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* Account for sticky header (h-16 = 4rem + 1rem buffer) */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

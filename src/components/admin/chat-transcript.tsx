@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-admin-core/src/components/admin/chat-transcript';
+export * from '../../../../../packages/conversionos-admin-core/src/components/admin/chat-transcript';

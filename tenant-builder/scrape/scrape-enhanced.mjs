@@ -25,6 +25,8 @@ import { extractLogo } from './logo-extract.mjs';
 import { captureScreenshots } from './screenshot-capture.mjs';
 import { hexToOklch } from '../../scripts/onboarding/convert-color.mjs';
 import { createClient } from '@libsql/client';
+import { map, scrapeAdvanced } from '../lib/firecrawl-client.mjs';
+import { parse as parseYaml } from 'yaml';
 
 loadEnv();
 requireEnv(['FIRECRAWL_API_KEY']);
@@ -77,6 +79,29 @@ if (!args['skip-branding']) {
   }
 } else {
   logger.info('Phase 1: Skipping branding v2 (--skip-branding)');
+}
+
+// ──────────────────────────────────────────────────────────
+// Phase 1.5: Map site URLs via Firecrawl
+// ──────────────────────────────────────────────────────────
+
+let sitePages = [];
+let imagePages = [];
+const imagePagePatterns = /gallery|portfolio|project|our-work|our-portfolio|service|about|team|photo|images/i;
+
+logger.info('Phase 1.5: Mapping site URLs via Firecrawl');
+try {
+  const configPath = resolve(import.meta.dirname, '../config.yaml');
+  const configYaml = existsSync(configPath) ? parseYaml(readYaml(configPath, 'utf-8')) : {};
+  const mapLimit = configYaml?.scraping?.firecrawl?.map_limit || 50;
+
+  const mapResult = await map(url, { limit: mapLimit });
+  sitePages = (mapResult.links || []).map(l => typeof l === 'string' ? l : l.url).filter(Boolean);
+  imagePages = sitePages.filter(u => imagePagePatterns.test(u));
+  logger.info(`Discovered ${sitePages.length} pages, ${imagePages.length} likely have images`);
+  writeFileSync(resolve(outputDir, 'site-map.json'), JSON.stringify(sitePages, null, 2));
+} catch (e) {
+  logger.warn(`Site mapping failed: ${e.message} — continuing with fallback pages`);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -180,8 +205,103 @@ if (args.bespoke) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Phase 2.7: Bespoke — CSS token extraction + original screenshots
+// Phase 2.3: Deep image scrape via Firecrawl (markdown + scroll actions)
 // ──────────────────────────────────────────────────────────
+
+const allDiscoveredImages = {};
+let cssHeroUrl = null;
+
+// Helper: filter out tiny icons, tracking pixels, and social badges
+function isSubstantialImage(imgUrl) {
+  if (!imgUrl || typeof imgUrl !== 'string') return false;
+  const lower = imgUrl.toLowerCase();
+  if (/\.(svg|gif|ico)(\?|$)/.test(lower)) return false;
+  if (/gravatar|facebook\.com|instagram\.com|twitter\.com|linkedin\.com|youtube\.com|google\.com\/maps|badge|icon|logo.*small|pixel|tracking|1x1|spacer|blank|wp-includes|wp-content\/plugins/i.test(lower)) return false;
+  return true;
+}
+
+logger.info('Phase 2.3: Deep image scrape via Firecrawl (markdown + scroll)');
+try {
+  // Filter image pages (exclude sitemaps, XML, feeds)
+  const excludePatterns = /\.xml|\.pdf|sitemap|feed|rss|wp-json|\.css|\.js|tag\/|category\//i;
+  const filteredImagePages = imagePages.filter(u => !excludePatterns.test(u));
+  const pagesToScrape = [url, ...filteredImagePages.slice(0, 15)]; // Cap at 16 pages total
+  const scrollActions = [
+    { type: 'scroll', direction: 'down' },
+    { type: 'wait', milliseconds: 2000 },
+    { type: 'scroll', direction: 'down' },
+    { type: 'wait', milliseconds: 1000 },
+  ];
+  const imgRegex = /!\[.*?\]\((.*?)\)/g;
+
+  for (const pageUrl of pagesToScrape) {
+    try {
+      const result = await scrapeAdvanced(pageUrl, {
+        formats: ['markdown'],
+        actions: scrollActions,
+        onlyMainContent: false,
+        timeout: 45000,
+      });
+      // Extract image URLs from markdown
+      const mdImages = [];
+      let match;
+      while ((match = imgRegex.exec(result.markdown || '')) !== null) {
+        if (isSubstantialImage(match[1])) mdImages.push(match[1]);
+      }
+      imgRegex.lastIndex = 0;
+      if (mdImages.length > 0) {
+        allDiscoveredImages[pageUrl] = [...new Set(mdImages)];
+        logger.info(`Phase 2.3: ${pageUrl} → ${allDiscoveredImages[pageUrl].length} images`);
+      }
+    } catch (e) {
+      if (!e.message?.includes('404') && !e.message?.includes('403')) {
+        logger.debug(`Image scrape failed for ${pageUrl}: ${e.message?.slice(0, 80)}`);
+      }
+    }
+  }
+
+  const totalImages = Object.values(allDiscoveredImages).reduce((sum, arr) => sum + arr.length, 0);
+  logger.info(`Phase 2.3 complete: ${totalImages} images from ${Object.keys(allDiscoveredImages).length} pages`);
+  writeFileSync(resolve(outputDir, 'all-images.json'), JSON.stringify(allDiscoveredImages, null, 2));
+} catch (e) {
+  logger.warn(`Deep image scrape failed: ${e.message} — continuing without`);
+}
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.4: CSS background hero extraction via Playwright
+// ──────────────────────────────────────────────────────────
+
+logger.info('Phase 2.4: Extracting CSS background hero image via Playwright');
+try {
+  const { chromium: heroChromium } = await import('playwright');
+  const heroBrowser = await heroChromium.launch({ headless: true });
+  const heroPage = await heroBrowser.newPage({ viewport: { width: 1440, height: 900 } });
+  await heroPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  let heroBgUrl = await heroPage.evaluate(() => {
+    const selectors = ['[class*="hero"]', '[class*="banner"]', '[class*="jumbotron"]',
+      'header + section', 'main > section:first-child', '#hero', '.hero-section',
+      '[class*="slider"]', '[class*="carousel"]:first-of-type'];
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const bg = getComputedStyle(el).backgroundImage;
+        const m = bg.match(/url\(["']?(.+?)["']?\)/);
+        if (m && !m[1].includes('data:') && !m[1].includes('gradient')) return m[1];
+      }
+    }
+    return null;
+  });
+  await heroBrowser.close();
+  if (heroBgUrl) {
+    if (heroBgUrl.startsWith('/')) heroBgUrl = new URL(heroBgUrl, url).href;
+    cssHeroUrl = heroBgUrl;
+    logger.info(`Found CSS background hero: ${cssHeroUrl.slice(0, 100)}`);
+  } else {
+    logger.info('No CSS background hero found');
+  }
+} catch (e) {
+  logger.warn(`CSS hero extraction failed: ${e.message} — continuing without`);
+}
 
 // ──────────────────────────────────────────────────────────
 // Phase 2.7: Screenshots for ALL builds + CSS tokens for bespoke
@@ -275,11 +395,110 @@ try {
 }
 
 // ──────────────────────────────────────────────────────────
-// Merge: branding v2 overrides + logo override
+// Merge: branding v2 overrides + logo override + deep images
 // ──────────────────────────────────────────────────────────
 
 logger.info('Merging results');
 const merged = { ...scraped };
+
+// ── Merge deep-scraped images into extracted data ──
+
+// Helper: filter out tiny icons, tracking pixels, and social badges
+function isSubstantialImage(imgUrl) {
+  if (!imgUrl || typeof imgUrl !== 'string') return false;
+  const lower = imgUrl.toLowerCase();
+  // Skip common non-content images
+  if (/\.(svg|gif|ico)(\?|$)/.test(lower)) return false;
+  if (/gravatar|facebook\.com|instagram\.com|twitter\.com|linkedin\.com|youtube\.com|google\.com\/maps|badge|icon|logo.*small|pixel|tracking|1x1|spacer|blank/i.test(lower)) return false;
+  if (/wp-includes|wp-content\/plugins/i.test(lower)) return false;
+  return true;
+}
+
+// 1. Hero image: CSS background > largest homepage image > schema extraction
+if (!merged.hero_image_url && cssHeroUrl) {
+  merged.hero_image_url = cssHeroUrl;
+  merged._provenance = merged._provenance || {};
+  merged._provenance.hero_image_url = 'css_background';
+  logger.info(`Hero image filled from CSS background: ${cssHeroUrl.slice(0, 80)}`);
+}
+
+if (!merged.hero_image_url && allDiscoveredImages[url]?.length > 0) {
+  // Use the first substantial homepage image as hero
+  const homepageImages = allDiscoveredImages[url].filter(isSubstantialImage);
+  if (homepageImages.length > 0) {
+    merged.hero_image_url = homepageImages[0];
+    merged._provenance = merged._provenance || {};
+    merged._provenance.hero_image_url = 'firecrawl_images_format';
+    logger.info(`Hero image filled from homepage images format: ${homepageImages[0].slice(0, 80)}`);
+  }
+}
+
+// 2. Portfolio: fill from gallery/portfolio/projects pages
+if ((!merged.portfolio || merged.portfolio.length === 0) && Object.keys(allDiscoveredImages).length > 0) {
+  const portfolioImages = [];
+  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+    if (/gallery|portfolio|project|our-work|our-portfolio|photo/i.test(pageUrl)) {
+      for (const img of images.filter(isSubstantialImage)) {
+        if (portfolioImages.length < 12) { // Cap at 12 portfolio images
+          portfolioImages.push({
+            title: '',
+            description: '',
+            image_url: img,
+            service_type: '',
+            location: '',
+          });
+        }
+      }
+    }
+  }
+  if (portfolioImages.length > 0) {
+    merged.portfolio = portfolioImages;
+    merged._provenance = merged._provenance || {};
+    merged._provenance.portfolio = 'firecrawl_deep_scrape';
+    logger.info(`Portfolio filled with ${portfolioImages.length} images from gallery/portfolio pages`);
+  }
+}
+
+// 3. Service images: fill from service pages
+if (merged.services?.length > 0) {
+  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+    if (/service/i.test(pageUrl)) {
+      const substantialImages = images.filter(isSubstantialImage);
+      // Try to match service images to services by order
+      for (let i = 0; i < merged.services.length && i < substantialImages.length; i++) {
+        if (!merged.services[i].image_urls?.length || !merged.services[i].image_urls[0]) {
+          merged.services[i].image_urls = [substantialImages[i]];
+          logger.info(`Service "${merged.services[i].name}" image filled from service page`);
+        }
+      }
+      break; // Only use first matching service page
+    }
+  }
+}
+
+// 4. About image: fill from about pages
+if (!merged.about_image_url) {
+  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+    if (/about|team/i.test(pageUrl)) {
+      const substantialImages = images.filter(isSubstantialImage);
+      if (substantialImages.length > 0) {
+        merged.about_image_url = substantialImages[0];
+        merged._provenance = merged._provenance || {};
+        merged._provenance.about_image_url = 'firecrawl_deep_scrape';
+        logger.info(`About image filled from about page: ${substantialImages[0].slice(0, 80)}`);
+        break;
+      }
+    }
+  }
+}
+
+// Store all discovered images metadata for downstream use
+merged._discovered_images = {
+  total: Object.values(allDiscoveredImages).reduce((sum, arr) => sum + arr.length, 0),
+  pages: Object.keys(allDiscoveredImages).length,
+  css_hero: cssHeroUrl,
+  site_pages_discovered: sitePages.length,
+};
 
 // Override primary colour from branding v2
 if (branding.colors?.length > 0) {

@@ -1,1 +1,1 @@
-export * from '../../../packages/conversionos-admin-core/src/components/admin/quote-line-item-card';
+export * from '../../../../../packages/conversionos-admin-core/src/components/admin/quote-line-item-card';
