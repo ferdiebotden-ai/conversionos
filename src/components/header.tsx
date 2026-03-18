@@ -214,7 +214,7 @@ function Logo({ name, tagline, logoUrl, logoOnDark }: { name: string; tagline: s
         alt={name}
         width={220}
         height={56}
-        className="h-10 md:h-11 w-auto max-w-[120px] md:max-w-[200px]"
+        className="h-11 md:h-12 w-auto max-w-[160px] md:max-w-[260px]"
         priority
       />
     )
