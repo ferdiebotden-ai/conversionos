@@ -109,6 +109,86 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
 }
 
 /**
+ * List all Gmail drafts (paginated).
+ * Returns array of { id, message: { id, threadId }, headers: { From, To, Subject } }.
+ */
+export async function listGmailDrafts(credentials) {
+  const { clientId, clientSecret, refreshToken } = credentials;
+  const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
+  const drafts = [];
+  let pageToken = null;
+
+  do {
+    const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me/drafts');
+    url.searchParams.set('maxResults', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!resp.ok) throw new Error(`Gmail list drafts ${resp.status}: ${await resp.text()}`);
+
+    const data = await resp.json();
+    if (data.drafts) drafts.push(...data.drafts);
+    pageToken = data.nextPageToken || null;
+  } while (pageToken);
+
+  return drafts;
+}
+
+/**
+ * Get a single Gmail draft with full metadata (headers).
+ * Returns { id, message: { id, payload: { headers: [...] } } }.
+ */
+export async function getGmailDraft(draftId, credentials) {
+  const { clientId, clientSecret, refreshToken } = credentials;
+  const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
+
+  const resp = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}?format=metadata&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=From`,
+    { headers: { 'Authorization': `Bearer ${accessToken}` } },
+  );
+  if (!resp.ok) throw new Error(`Gmail get draft ${resp.status}: ${await resp.text()}`);
+  return resp.json();
+}
+
+/**
+ * Update an existing Gmail draft with new content.
+ * Returns { success, messageId, draftId, error }.
+ */
+export async function updateGmailDraft(draftId, email, credentials) {
+  const { mimeString, messageId } = buildMimeMessage(email);
+  const { clientId, clientSecret, refreshToken } = credentials;
+
+  try {
+    const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
+    const raw = Buffer.from(mimeString).toString('base64url');
+
+    const resp = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: { raw } }),
+      },
+    );
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      return { success: false, messageId, draftId, error: `Gmail API ${resp.status}: ${err}` };
+    }
+
+    const data = await resp.json();
+    return { success: true, messageId, draftId: data.id, gmailMessageId: data.message?.id };
+  } catch (e) {
+    return { success: false, messageId, draftId, error: e.message };
+  }
+}
+
+/**
  * Create a Gmail draft via the REST API.
  * Returns { success, messageId, draftId, gmailMessageId, error }.
  */

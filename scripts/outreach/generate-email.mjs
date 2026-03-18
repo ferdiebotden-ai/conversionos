@@ -11,27 +11,49 @@
 import { resolve } from 'node:path';
 
 // ──────────────────────────────────────────────────────────
-// Ferdie's exact email template — March 2026
+// Ferdie's email template — March 18, 2026 (v3)
+// Reputation-first opener, 48h urgency, reply/text CTA
 // ──────────────────────────────────────────────────────────
 
-const SUBJECT_TEMPLATE = 'Estimate Request \u2014 {city}';
+const SUBJECT_TEMPLATE = 'Estimate Request - {city}';
 
 // Rotation alternatives for 3+ targets in same city in one batch
 const SUBJECT_ROTATION = [
-  '{company_name} \u2014 Custom Estimate Portal',
+  '{company_name} - Custom Estimate Portal',
   '{city} Renovation Website Demo',
 ];
 
+// Cities >200km from Stratford — omit "out of Stratford" in greeting
+const FAR_CITIES = new Set([
+  'kingston', 'sudbury', 'windsor', 'peterborough', 'oshawa',
+  'ottawa', 'thunder bay', 'sault ste marie', 'north bay', 'barrie',
+  'orillia', 'belleville', 'cornwall', 'timmins', 'kenora',
+  'st catharines', 'niagara falls', 'welland',
+]);
+
+/**
+ * @deprecated v3 template hardcodes "out of Stratford". Kept for backward compat.
+ * Returns " out of Stratford" for nearby cities, "" for distant ones.
+ */
+export function getLocationClause(city) {
+  if (!city) return '';
+  return FAR_CITIES.has(city.toLowerCase()) ? '' : ' out of Stratford';
+}
+
 const BODY_TEMPLATE = `Hi {firstName},
 
-I'm Ferdie out of Stratford \u2014 I built a custom website for {company_name} that captures and qualifies leads for you while you're on a job site.
+I'm Ferdie out of Stratford. I've been looking at renovation contractors in {city} with a strong reputation, and {company_name} stood out.
 
-It's live for 48 hours \u2014 take a look and you'll see your brand, your services, and a working estimate tool under your name (please keep it private):
+I rebuilt your website from the ground up \u2014 same brand, same projects, same reviews \u2014 but brought up to a premium standard with a brain behind it.
+
+Homeowners can take or upload a photo of their space and see what the renovation would look like. Visitors don't slip through the cracks. Leads, quotes, and invoices \u2014 all managed in one place.
+
+There's a demo I've built for you live right now \u2014 it'll be up for 48 hours. Poke around and try it yourself \u2014 upload a photo and see what happens:
 {demoUrl}
 
-I'll give you a call on {callDay} at {callTime} at {callPhone} to walk you through it \u2014 if there's a better time or number, just let me know.
+After you've had a look, just reply to this email or shoot me a text. I can have a fully custom version built for {company_name} within a couple of days.
 
-Talk soon,
+Cheers,
 Ferdie`;
 
 const SIGNATURE = `\u2014
@@ -137,17 +159,6 @@ export function getFirstName(ownerName) {
  * @returns {{ to, subject, textBody, htmlBody, callDay, callTime, firstName, demoUrl, siteId, skipped, skipReason }}
  */
 export function generateEmail(target, options = {}) {
-  // HARD STOP: phone is mandatory
-  if (!target.phone || target.phone.trim().length === 0) {
-    return {
-      to: target.email,
-      subject: '', textBody: '', htmlBody: '',
-      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
-      skipped: true,
-      skipReason: 'HARD STOP: missing phone number',
-    };
-  }
-
   // HARD STOP: company_name is mandatory
   if (!target.company_name || target.company_name.trim().length === 0) {
     return {
@@ -170,6 +181,17 @@ export function generateEmail(target, options = {}) {
     };
   }
 
+  // HARD STOP: email is mandatory
+  if (!target.email || !target.email.includes('@')) {
+    return {
+      to: target.email,
+      subject: '', textBody: '', htmlBody: '',
+      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
+      skipped: true,
+      skipReason: 'HARD STOP: missing or invalid email',
+    };
+  }
+
   const firstName = getFirstName(target.owner_name);
   const city = target.city.trim();
   const companyName = target.company_name.trim();
@@ -177,7 +199,7 @@ export function generateEmail(target, options = {}) {
   const demoUrl = target.demo_url || `https://${siteId}.norbotsystems.com`;
   const callDay = getCallDayLabel();
   const callTime = options.previewSlot || '10:30am';
-  const callPhone = target.phone.trim();
+  const callPhone = (target.phone || '').trim();
 
   // Subject rotation: if 3+ targets in same city, rotate subject lines
   const cityCount = options.cityCount || 1;
@@ -195,10 +217,8 @@ export function generateEmail(target, options = {}) {
 
   const textBody = BODY_TEMPLATE
     .replace('{firstName}', firstName)
-    .replace('{company_name}', companyName)
-    .replace('{callDay}', callDay)
-    .replace('{callTime}', callTime)
-    .replace('{callPhone}', callPhone)
+    .replace('{city}', city)
+    .replace(/\{company_name\}/g, companyName)
     .replace('{demoUrl}', demoUrl);
 
   const fullTextBody = `${textBody}\n\n${SIGNATURE}\n\n${CASL_FOOTER}`;
@@ -462,9 +482,9 @@ export function generateFollowUpEmail(target, emailNum, options = {}) {
 
   // Subject: "Re: Estimate Request — {city}" for threading (emails 2-4)
   // Email 5 uses a different subject to stand out
-  const baseSubject = city ? `Estimate Request \u2014 ${city}` : `Estimate Request \u2014 ${companyName}`;
+  const baseSubject = city ? `Estimate Request - ${city}` : `Estimate Request - ${companyName}`;
   const subject = emailNum === 5
-    ? `${firstName === 'there' ? companyName : firstName} \u2014 last note`
+    ? `${firstName === 'there' ? companyName : firstName} - last note`
     : `Re: ${baseSubject}`;
 
   const textBody = template.body
@@ -489,4 +509,4 @@ export function generateFollowUpEmail(target, emailNum, options = {}) {
   };
 }
 
-export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS, FOLLOWUP_TEMPLATES };
+export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS, FOLLOWUP_TEMPLATES, FAR_CITIES };

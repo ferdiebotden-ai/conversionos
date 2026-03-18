@@ -188,20 +188,21 @@ test('generates complete email for full target', () => {
   assert.ok(email.subject.includes('London'), 'Subject should include city');
   assert.ok(email.subject.startsWith('Estimate Request'), 'Subject format');
   assert.ok(email.textBody.includes('Test Renovations'), 'Body includes company name');
-  assert.ok(email.textBody.includes('519-555-1234'), 'Body includes phone');
   assert.ok(email.textBody.includes('testreno.norbotsystems.com'), 'Body includes demo URL');
   assert.ok(email.textBody.includes('48 hours'), 'Body mentions 48 hours');
-  assert.ok(email.textBody.includes('keep it private'), 'Body mentions privacy');
+  assert.ok(email.textBody.includes('stood out'), 'Body has credibility opener');
+  assert.ok(email.textBody.includes('shoot me a text'), 'Body has text CTA');
+  assert.ok(email.textBody.includes('Cheers,'), 'Body has Cheers sign-off');
   assert.ok(email.textBody.includes('STOP'), 'CASL footer present');
   assert.ok(email.textBody.includes('PO Box 23030'), 'Address present');
   assert.equal(email.firstName, 'Mike');
   assert.equal(email.skipped, false);
 });
 
-test('HARD STOP: skips target with no phone', () => {
+test('generates email even without phone (not a hard stop)', () => {
   const email = generateEmail(mockTargetNoPhone, { previewSlot: '2pm' });
-  assert.equal(email.skipped, true);
-  assert.ok(email.skipReason.includes('phone'), 'Reason mentions phone');
+  assert.equal(email.skipped, false);
+  assert.equal(email.firstName, 'there'); // null owner_name
 });
 
 test('HARD STOP: skips target with no city', () => {
@@ -240,9 +241,20 @@ test('body includes company_name in opening', () => {
   assert.ok(opening.includes('Test Renovations'), 'Opening mentions company');
 });
 
-test('body includes phone number directly', () => {
+test('body includes company_name in CTA', () => {
   const email = generateEmail(mockTarget);
-  assert.ok(email.textBody.includes('at 519-555-1234'), 'Phone in call line');
+  assert.ok(email.textBody.includes('custom version built for Test Renovations'), 'CTA mentions company');
+});
+
+test('city appears in body (not just subject)', () => {
+  const email = generateEmail(mockTarget);
+  assert.ok(email.textBody.includes('contractors in London'), 'Body mentions city');
+});
+
+test('company_name appears twice in body', () => {
+  const email = generateEmail(mockTarget);
+  const matches = email.textBody.match(/Test Renovations/g);
+  assert.ok(matches && matches.length >= 2, 'company_name appears at least twice');
 });
 
 // ──────────────────────────────────────────────────────────
@@ -363,10 +375,10 @@ test('detects banned term "free"', () => {
 });
 
 test('hard-stop email fails validation', () => {
-  const email = generateEmail(mockTargetNoPhone);
+  const email = generateEmail(mockTargetNoCompany);
   const result = validateEmail(email);
   assert.ok(!result.valid);
-  assert.ok(result.issues.some(i => i.includes('HARD STOP')));
+  assert.ok(result.issues.some(i => i.includes('HARD STOP') || i.includes('skipped')));
 });
 
 // ──────────────────────────────────────────────────────────
@@ -477,8 +489,8 @@ test('SUBJECT_ROTATION has 2 alternatives', () => {
   assert.equal(SUBJECT_ROTATION.length, 2);
 });
 
-test('SUBJECT_TEMPLATE uses em dash', () => {
-  assert.ok(SUBJECT_TEMPLATE.includes('\u2014'), 'Subject uses em dash');
+test('SUBJECT_TEMPLATE uses hyphen separator', () => {
+  assert.ok(SUBJECT_TEMPLATE.includes(' - '), 'Subject uses hyphen');
 });
 
 test('BODY_TEMPLATE starts with "Hi"', () => {
