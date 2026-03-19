@@ -92,6 +92,9 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'deltar-construction.norbotsystems.com': 'deltar-construction',
   'stonewood-development-corp.norbotsystems.com': 'stonewood-development-corp',
   'jnr-contracting.norbotsystems.com': 'jnr-contracting',
+  'rtc-renovations.norbotsystems.com': 'rtc-renovations',
+  'menno-s-martin-contractor-ltd.norbotsystems.com': 'menno-s-martin-contractor-ltd',
+  'portfolio-bcci-construction.norbotsystems.com': 'portfolio-bcci-construction',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
