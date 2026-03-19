@@ -90,6 +90,21 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'bacvar-building.norbotsystems.com': 'bacvar-building',
   'ackard-contractors.norbotsystems.com': 'ackard-contractors',
   'deltar-construction.norbotsystems.com': 'deltar-construction',
+  'd-e-p-construction.norbotsystems.com': 'd-e-p-construction',
+  'chermark-renovations.norbotsystems.com': 'chermark-renovations',
+  'a-macdonald-construction.norbotsystems.com': 'a-macdonald-construction',
+  'stonewood-development-corp.norbotsystems.com': 'stonewood-development-corp',
+  'the-house-enhancer.norbotsystems.com': 'the-house-enhancer',
+  'newfore.norbotsystems.com': 'newfore',
+  'bmmb-construction-group.norbotsystems.com': 'bmmb-construction-group',
+  'seaside-renovations.norbotsystems.com': 'seaside-renovations',
+  'pd-renovations.norbotsystems.com': 'pd-renovations',
+  'borman-construction.norbotsystems.com': 'borman-construction',
+  'total-living-concepts.norbotsystems.com': 'total-living-concepts',
+  'mastered-home-renovations.norbotsystems.com': 'mastered-home-renovations',
+  'yorkland-homes.norbotsystems.com': 'yorkland-homes',
+  'rtc-renovations.norbotsystems.com': 'rtc-renovations',
+  'menno-s-martin-contractor-ltd.norbotsystems.com': 'menno-s-martin-contractor-ltd',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
