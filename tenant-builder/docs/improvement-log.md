@@ -83,20 +83,21 @@
 | Date | Issue | Fix | Impact |
 |------|-------|-----|--------|
 | 2026-03-18 | #5 Logo max-width | Increased header.tsx constraints | All tenants with wide logos |
+| 2026-03-19 | #0 Deep image scrape reliability | Playwright fallback for Firecrawl map() + Phase 2.3 image extraction | All builds (was failing 95%) |
+| 2026-03-19 | #1 Nav dropdown services | Phase 2.1 Playwright nav link extraction | Pioneer Craftsmen: 1→8 services |
+| 2026-03-19 | #2 Portfolio classification | URL heuristic + Gemini batch filter (logos/badges removed) | All builds |
+| 2026-03-19 | #4/#10 Hero quality gate | URL heuristic + Gemini evaluation, swap if logo/generic | All builds |
+| 2026-03-19 | #8 Service image mapping | Keyword match + round-robin from portfolio/discovered images | Pioneer Craftsmen: 0/8→8/8 |
+| 2026-03-19 | #9 About image targeted scrape | Phase 2.6 Playwright about page image extraction | Pioneer Craftsmen: empty→populated |
+
+**New files:** `lib/service-image-mapper.mjs`, `lib/image-classifier.mjs`
+**Modified:** `scrape/scrape-enhanced.mjs` (6 new phases/enhancements), `orchestrate.mjs` (timeout 5→10 min)
 
 ---
 
-## Priority Order for Implementation
+## Remaining Open Issues
 
-When implementing fixes from this log, prioritize by:
-1. **Impact x Frequency** — issues affecting the most tenants
-2. **Risk** — LOW risk first, test thoroughly before MEDIUM/HIGH
-3. **Cost** — prefer $0 solutions (Gemini CLI, Playwright) over API calls
-
-**Recommended implementation order:**
-1. #1 (Services from nav dropdowns) — HIGH impact, LOW risk
-2. #3 (Gallery page deep scrape) — HIGH impact, LOW risk
-3. #2 (Portfolio image classification) — HIGH impact, LOW risk
-4. #7 (Service-specific images) — MEDIUM impact, LOW risk
-5. #4 (Hero image quality scoring) — MEDIUM impact, LOW risk
-6. #6 (Cache busting) — LOW impact, just a naming convention
+1. **#3 Gallery page deep scrape** — Lightbox/JS galleries still not fully handled (Playwright fallback helps but doesn't trigger lightbox clicks)
+2. **#6 Image cache busting** — Still affects manual fixes (use versioned filenames)
+3. **#7 Service-specific sub-page images** — Partially addressed by service-image-mapper (keyword match from discovered images), but individual service page scraping not yet implemented
+4. **#12 Small WebP threshold** — 5KB minimum still too aggressive for some compressed thumbnails

@@ -294,7 +294,7 @@ const tasks = targets.map(target => async () => {
         '--output', outputDir,
       ];
       if (bespokeMode) scrapeArgs.push('--bespoke');
-      const scrapeTimeout = bespokeMode ? 600000 : 300000;
+      const scrapeTimeout = bespokeMode ? 600000 : 600000; // 10 min for enhanced scrape (Playwright fallbacks + deep image scrape)
       execFileSync('node', scrapeArgs, {
         cwd: DEMO_ROOT,
         env: process.env,

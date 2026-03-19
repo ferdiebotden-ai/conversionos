@@ -27,6 +27,8 @@ import { hexToOklch } from '../../scripts/onboarding/convert-color.mjs';
 import { createClient } from '@libsql/client';
 import { map, scrapeAdvanced } from '../lib/firecrawl-client.mjs';
 import { parse as parseYaml } from 'yaml';
+import { mapServiceImages } from '../lib/service-image-mapper.mjs';
+import { classifyPortfolioImages, evaluateHeroQuality } from '../lib/image-classifier.mjs';
 
 loadEnv();
 requireEnv(['FIRECRAWL_API_KEY']);
@@ -110,6 +112,49 @@ try {
   logger.warn(`Site mapping failed: ${e.message} — continuing with fallback pages`);
 }
 
+// Phase 1.5b: Playwright fallback when map() fails (Fix 0 — 95% of builds hit this)
+if (sitePages.length === 0) {
+  logger.info('Phase 1.5b: Playwright fallback — discovering pages from nav/footer links');
+  try {
+    const { chromium: navChromium } = await import('playwright');
+    const navBrowser = await navChromium.launch({ headless: true });
+    const navPage = await navBrowser.newPage({ viewport: { width: 1440, height: 900 } });
+    await navPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+    const discoveredLinks = await navPage.evaluate((baseUrl) => {
+      const links = new Set();
+      const selectors = ['nav a', 'footer a', '.menu a', '[class*=nav] a', 'header a', '[role=navigation] a'];
+      for (const sel of selectors) {
+        for (const a of document.querySelectorAll(sel)) {
+          const href = a.href;
+          if (href && href.startsWith(baseUrl) && !href.includes('#') && !href.includes('mailto:') && !href.includes('tel:')) {
+            links.add(href);
+          }
+        }
+      }
+      return [...links];
+    }, new URL('/', url).origin);
+
+    await navBrowser.close();
+
+    if (discoveredLinks.length > 0) {
+      sitePages = [...new Set(discoveredLinks)];
+      imagePages = sitePages.filter(u => imagePagePatterns.test(u));
+      logger.info(`Playwright discovered ${sitePages.length} pages, ${imagePages.length} likely have images`);
+      writeFileSync(resolve(outputDir, 'site-map.json'), JSON.stringify(sitePages, null, 2));
+    }
+  } catch (e) {
+    logger.warn(`Playwright page discovery failed: ${e.message}`);
+  }
+
+  // Final fallback: hardcoded common paths
+  if (imagePages.length === 0) {
+    const fallbackPaths = ['/gallery', '/portfolio', '/projects', '/our-work', '/our-portfolio', '/about', '/about-us', '/services', '/our-services', '/contact', '/testimonials', '/reviews', '/team', '/our-team', '/photos'];
+    imagePages = fallbackPaths.map(p => new URL(p, url).href);
+    logger.info(`Using ${imagePages.length} hardcoded fallback page paths`);
+  }
+}
+
 // ──────────────────────────────────────────────────────────
 // Phase 2: Existing scrape.mjs (7-stage pipeline)
 // ──────────────────────────────────────────────────────────
@@ -139,6 +184,93 @@ try {
 
 // Load the raw scraped data
 const scraped = JSON.parse(readFileSync(scrapeOutputPath, 'utf-8'));
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.1: Nav dropdown service extraction (Fix 1)
+// ──────────────────────────────────────────────────────────
+
+logger.info('Phase 2.1: Extracting services from navigation dropdowns');
+try {
+  const { chromium: svcChromium } = await import('playwright');
+  const svcBrowser = await svcChromium.launch({ headless: true });
+  const svcPage = await svcBrowser.newPage({ viewport: { width: 1440, height: 900 } });
+  await svcPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+  // Hover over nav items to trigger dropdown reveals
+  const navItems = await svcPage.$$('nav li, [class*=nav] li, .menu-item');
+  for (const item of navItems.slice(0, 20)) {
+    try { await item.hover({ timeout: 500 }); } catch { /* ignore hover failures */ }
+  }
+  await svcPage.waitForTimeout(500);
+
+  const navLinks = await svcPage.evaluate(() => {
+    const links = [];
+    const selectors = ['nav li a', '[class*=dropdown] a', '[class*=sub-menu] a', '.nav-item a', 'ul.menu li a', '[class*=mega-menu] a'];
+    const seen = new Set();
+    const excludePatterns = /^\/?$|home|about|contact|gallery|portfolio|blog|news|testimonial|review|faq|privacy|terms|sitemap|career|login/i;
+
+    for (const sel of selectors) {
+      for (const a of document.querySelectorAll(sel)) {
+        const text = (a.textContent || '').trim();
+        const href = a.getAttribute('href') || '';
+        if (text.length > 2 && text.length < 60 && !seen.has(text.toLowerCase()) && !excludePatterns.test(text) && !excludePatterns.test(href)) {
+          // Check if this link is under a "Services" parent
+          const parent = a.closest('li')?.closest('ul')?.closest('li');
+          const parentText = (parent?.querySelector(':scope > a')?.textContent || '').trim().toLowerCase();
+          const isUnderServices = parentText.includes('service') || parentText.includes('what we do') || parentText.includes('our work') || parentText.includes('specialties');
+
+          if (isUnderServices || /service|renovation|remodel|install|construct|repair|build|design/i.test(href)) {
+            seen.add(text.toLowerCase());
+            links.push({ text, href });
+          }
+        }
+      }
+    }
+    return links;
+  });
+
+  await svcBrowser.close();
+
+  if (navLinks.length > 0) {
+    // Merge with existing services (fuzzy dedup)
+    const existingNames = new Set((scraped.services || []).map(s => (s.name || '').toLowerCase().trim()));
+    let added = 0;
+
+    for (const link of navLinks) {
+      const nameLower = link.text.toLowerCase().trim();
+      // Skip if already exists (exact or substring match)
+      const isDuplicate = [...existingNames].some(existing =>
+        existing === nameLower ||
+        existing.includes(nameLower) ||
+        nameLower.includes(existing)
+      );
+
+      if (!isDuplicate) {
+        if (!scraped.services) scraped.services = [];
+        scraped.services.push({
+          name: link.text,
+          description: '',
+          image_urls: [],
+          _provenance: 'nav_dropdown',
+        });
+        existingNames.add(nameLower);
+        added++;
+      }
+    }
+
+    if (added > 0) {
+      scraped._provenance = scraped._provenance || {};
+      scraped._provenance.nav_services_added = added;
+      logger.info(`Phase 2.1: Added ${added} services from nav dropdowns (total: ${scraped.services.length})`);
+    } else {
+      logger.info(`Phase 2.1: ${navLinks.length} nav links found but all duplicates of existing services`);
+    }
+  } else {
+    logger.info('Phase 2.1: No service links found in nav dropdowns');
+  }
+} catch (e) {
+  logger.warn(`Nav dropdown service extraction failed: ${e.message} — continuing without`);
+}
 
 // ──────────────────────────────────────────────────────────
 // Phase 2.5: Bespoke — HTML capture via Firecrawl
@@ -262,8 +394,31 @@ try {
       }
     } catch (e) {
       if (!e.message?.includes('404') && !e.message?.includes('403')) {
-        logger.debug(`Image scrape failed for ${pageUrl}: ${e.message?.slice(0, 80)}`);
+        logger.debug(`Firecrawl image scrape failed for ${pageUrl}: ${e.message?.slice(0, 80)}`);
       }
+      // Playwright fallback for failed Firecrawl pages (Fix 0)
+      try {
+        const { chromium: imgChromium } = await import('playwright');
+        const imgBrowser = await imgChromium.launch({ headless: true });
+        const imgPage = await imgBrowser.newPage({ viewport: { width: 1440, height: 900 } });
+        const resp = await imgPage.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        if (resp && resp.status() < 400) {
+          // Scroll to trigger lazy-loaded images
+          await imgPage.evaluate(() => window.scrollBy(0, document.body.scrollHeight));
+          await imgPage.waitForTimeout(1500);
+
+          const pwImages = await imgPage.$$eval('img', imgs =>
+            imgs.map(i => i.src || i.getAttribute('data-src') || i.getAttribute('data-lazy-src') || '')
+              .filter(s => s && s.startsWith('http'))
+          );
+          const filtered = pwImages.filter(isSubstantialImage);
+          if (filtered.length > 0) {
+            allDiscoveredImages[pageUrl] = [...new Set(filtered)];
+            logger.info(`Phase 2.3 (Playwright fallback): ${pageUrl} → ${filtered.length} images`);
+          }
+        }
+        await imgBrowser.close();
+      } catch { /* Playwright fallback also failed — skip this page */ }
     }
   }
 
@@ -308,6 +463,80 @@ try {
   }
 } catch (e) {
   logger.warn(`CSS hero extraction failed: ${e.message} — continuing without`);
+}
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.6: About image targeted Playwright scrape (Fix 2)
+// ──────────────────────────────────────────────────────────
+
+let playwrightAboutImageUrl = null;
+if (!scraped.about_image_url) {
+  logger.info('Phase 2.6: Targeted about page image scrape via Playwright');
+  const aboutPaths = ['/about', '/about-us', '/our-story', '/our-team', '/our-company', '/who-we-are', '/meet-the-team'];
+
+  try {
+    const { chromium: aboutChromium } = await import('playwright');
+    const aboutBrowser = await aboutChromium.launch({ headless: true });
+
+    for (const aboutPath of aboutPaths) {
+      try {
+        const aboutUrl = new URL(aboutPath, url).href;
+        const aboutPage = await aboutBrowser.newPage({ viewport: { width: 1440, height: 900 } });
+        const resp = await aboutPage.goto(aboutUrl, { waitUntil: 'domcontentloaded', timeout: 12000 });
+
+        if (resp && resp.status() < 400) {
+          // Extract images from the about page, preferring container images
+          const aboutImages = await aboutPage.evaluate(() => {
+            const results = [];
+            const containers = ['main', 'article', '[class*=about]', '[class*=team]', '[class*=story]', '.content', '#content'];
+            const seen = new Set();
+
+            for (const container of containers) {
+              for (const img of document.querySelectorAll(`${container} img`)) {
+                const src = img.src || img.getAttribute('data-src') || '';
+                if (src && src.startsWith('http') && !seen.has(src) && img.naturalWidth > 300 && img.naturalHeight > 200) {
+                  // Exclude logos and icons
+                  const lower = src.toLowerCase();
+                  if (!/logo|icon|badge|favicon|gravatar|avatar/i.test(lower)) {
+                    results.push(src);
+                    seen.add(src);
+                  }
+                }
+              }
+            }
+
+            // Fallback: any large image on the page
+            if (results.length === 0) {
+              for (const img of document.querySelectorAll('img')) {
+                const src = img.src || img.getAttribute('data-src') || '';
+                if (src && src.startsWith('http') && !seen.has(src) && img.naturalWidth > 300 && img.naturalHeight > 200) {
+                  const lower = src.toLowerCase();
+                  if (!/logo|icon|badge|favicon|gravatar|avatar/i.test(lower)) {
+                    results.push(src);
+                    seen.add(src);
+                  }
+                }
+              }
+            }
+
+            return results;
+          });
+
+          if (aboutImages.length > 0) {
+            playwrightAboutImageUrl = aboutImages[0];
+            logger.info(`Phase 2.6: Found about image from ${aboutPath}: ${playwrightAboutImageUrl.slice(0, 80)}`);
+            await aboutPage.close();
+            break;
+          }
+        }
+        await aboutPage.close();
+      } catch { /* about page doesn't exist or timed out — try next */ }
+    }
+
+    await aboutBrowser.close();
+  } catch (e) {
+    logger.warn(`About page image scrape failed: ${e.message} — continuing without`);
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -410,17 +639,6 @@ const merged = { ...scraped };
 
 // ── Merge deep-scraped images into extracted data ──
 
-// Helper: filter out tiny icons, tracking pixels, and social badges
-function isSubstantialImage(imgUrl) {
-  if (!imgUrl || typeof imgUrl !== 'string') return false;
-  const lower = imgUrl.toLowerCase();
-  // Skip common non-content images
-  if (/\.(svg|gif|ico)(\?|$)/.test(lower)) return false;
-  if (/gravatar|facebook\.com|instagram\.com|twitter\.com|linkedin\.com|youtube\.com|google\.com\/maps|badge|icon|logo.*small|pixel|tracking|1x1|spacer|blank/i.test(lower)) return false;
-  if (/wp-includes|wp-content\/plugins/i.test(lower)) return false;
-  return true;
-}
-
 // 1. Hero image: CSS background > largest homepage image > schema extraction
 if (!merged.hero_image_url && cssHeroUrl) {
   merged.hero_image_url = cssHeroUrl;
@@ -440,62 +658,133 @@ if (!merged.hero_image_url && allDiscoveredImages[url]?.length > 0) {
   }
 }
 
-// 2. Portfolio: fill from gallery/portfolio/projects pages
-if ((!merged.portfolio || merged.portfolio.length === 0) && Object.keys(allDiscoveredImages).length > 0) {
-  const portfolioImages = [];
-  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
-    if (/gallery|portfolio|project|our-work|our-portfolio|photo/i.test(pageUrl)) {
-      for (const img of images.filter(isSubstantialImage)) {
-        if (portfolioImages.length < 12) { // Cap at 12 portfolio images
-          portfolioImages.push({
-            title: '',
-            description: '',
-            image_url: img,
-            service_type: '',
-            location: '',
-          });
+// 2. Portfolio: fill from gallery/portfolio/projects pages + ALL pages as fallback
+if (!merged.portfolio || merged.portfolio.length === 0) {
+  const candidateImages = [];
+
+  // First: images from gallery/portfolio/project pages (highest priority)
+  if (Object.keys(allDiscoveredImages).length > 0) {
+    for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+      if (/gallery|portfolio|project|our-work|our-portfolio|photo/i.test(pageUrl)) {
+        for (const img of images.filter(isSubstantialImage)) {
+          candidateImages.push(img);
+        }
+      }
+    }
+
+    // Second fallback: images from ANY page (excluding the homepage hero)
+    if (candidateImages.length < 4) {
+      for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+        for (const img of images.filter(isSubstantialImage)) {
+          if (!candidateImages.includes(img) && img !== merged.hero_image_url) {
+            candidateImages.push(img);
+          }
         }
       }
     }
   }
-  if (portfolioImages.length > 0) {
-    merged.portfolio = portfolioImages;
-    merged._provenance = merged._provenance || {};
-    merged._provenance.portfolio = 'firecrawl_deep_scrape';
-    logger.info(`Portfolio filled with ${portfolioImages.length} images from gallery/portfolio pages`);
-  }
-}
 
-// 3. Service images: fill from service pages
-if (merged.services?.length > 0) {
-  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
-    if (/service/i.test(pageUrl)) {
-      const substantialImages = images.filter(isSubstantialImage);
-      // Try to match service images to services by order
-      for (let i = 0; i < merged.services.length && i < substantialImages.length; i++) {
-        if (!merged.services[i].image_urls?.length || !merged.services[i].image_urls[0]) {
-          merged.services[i].image_urls = [substantialImages[i]];
-          logger.info(`Service "${merged.services[i].name}" image filled from service page`);
-        }
-      }
-      break; // Only use first matching service page
-    }
-  }
-}
+  // Classify portfolio candidates — filter out logos/badges (Fix 4a)
+  if (candidateImages.length > 0) {
+    try {
+      const { projectImages } = await classifyPortfolioImages([...new Set(candidateImages)], {
+        useGemini: candidateImages.length < 30, // Only use Gemini if reasonable number
+      });
 
-// 4. About image: fill from about pages
-if (!merged.about_image_url) {
-  for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
-    if (/about|team/i.test(pageUrl)) {
-      const substantialImages = images.filter(isSubstantialImage);
-      if (substantialImages.length > 0) {
-        merged.about_image_url = substantialImages[0];
+      const portfolioImages = projectImages.slice(0, 12).map(img => ({
+        title: '',
+        description: '',
+        image_url: img,
+        service_type: '',
+        location: '',
+      }));
+
+      if (portfolioImages.length > 0) {
+        merged.portfolio = portfolioImages;
         merged._provenance = merged._provenance || {};
-        merged._provenance.about_image_url = 'firecrawl_deep_scrape';
-        logger.info(`About image filled from about page: ${substantialImages[0].slice(0, 80)}`);
-        break;
+        merged._provenance.portfolio = 'deep_scrape_classified';
+        logger.info(`Portfolio filled with ${portfolioImages.length} classified project images`);
+      }
+    } catch (e) {
+      // Fallback: use all candidates unclassified
+      const portfolioImages = [...new Set(candidateImages)].slice(0, 12).map(img => ({
+        title: '', description: '', image_url: img, service_type: '', location: '',
+      }));
+      if (portfolioImages.length > 0) {
+        merged.portfolio = portfolioImages;
+        merged._provenance = merged._provenance || {};
+        merged._provenance.portfolio = 'deep_scrape_unclassified';
+        logger.info(`Portfolio filled with ${portfolioImages.length} unclassified images (classifier failed: ${e.message})`);
       }
     }
+  }
+}
+
+// 3. Service images: smart mapping from portfolio + discovered images (Fix 3)
+if (merged.services?.length > 0) {
+  merged.services = mapServiceImages(merged.services, merged.portfolio || [], allDiscoveredImages);
+  merged._provenance = merged._provenance || {};
+  merged._provenance.service_images = 'service_image_mapper';
+}
+
+// 4. About image: Playwright Phase 2.6 > deep scrape about pages > fallback
+if (!merged.about_image_url) {
+  // Priority 1: Playwright about page scrape (Phase 2.6)
+  if (playwrightAboutImageUrl) {
+    merged.about_image_url = playwrightAboutImageUrl;
+    merged._provenance = merged._provenance || {};
+    merged._provenance.about_image_url = 'playwright_about_page';
+    logger.info(`About image filled from Playwright about page: ${playwrightAboutImageUrl.slice(0, 80)}`);
+  }
+
+  // Priority 2: Deep-scraped about/team pages
+  if (!merged.about_image_url) {
+    for (const [pageUrl, images] of Object.entries(allDiscoveredImages)) {
+      if (/about|team/i.test(pageUrl)) {
+        const substantialImages = images.filter(isSubstantialImage);
+        if (substantialImages.length > 0) {
+          merged.about_image_url = substantialImages[0];
+          merged._provenance = merged._provenance || {};
+          merged._provenance.about_image_url = 'firecrawl_deep_scrape';
+          logger.info(`About image filled from deep scrape about page: ${substantialImages[0].slice(0, 80)}`);
+          break;
+        }
+      }
+    }
+  }
+
+  // Priority 3: Second-best portfolio image (not the hero)
+  if (!merged.about_image_url && merged.portfolio?.length > 1) {
+    const candidate = merged.portfolio.find(p => p.image_url !== merged.hero_image_url);
+    if (candidate) {
+      merged.about_image_url = candidate.image_url;
+      merged._provenance = merged._provenance || {};
+      merged._provenance.about_image_url = 'portfolio_fallback';
+      logger.info(`About image filled from portfolio fallback: ${candidate.image_url.slice(0, 80)}`);
+    }
+  }
+}
+
+// 5. Hero quality gate — swap if logo/generic (Fix 4b)
+if (merged.hero_image_url) {
+  try {
+    const alternativeImages = [
+      ...(merged.portfolio || []).map(p => p.image_url).filter(Boolean),
+      ...(Object.values(allDiscoveredImages).flat().filter(isSubstantialImage)),
+    ].filter(u => u !== merged.hero_image_url);
+
+    const heroResult = await evaluateHeroQuality(merged.hero_image_url, alternativeImages, {
+      companyName: merged.business_name || '',
+    });
+
+    if (heroResult.swapped) {
+      merged.hero_image_url = heroResult.url;
+      merged._provenance = merged._provenance || {};
+      merged._provenance.hero_image_url = `swapped: ${heroResult.reason}`;
+      logger.info(`Hero image swapped (${heroResult.reason}): ${heroResult.url.slice(0, 80)}`);
+    }
+  } catch (e) {
+    logger.debug(`Hero quality gate failed: ${e.message} — keeping current hero`);
   }
 }
 
