@@ -12,6 +12,10 @@ import { createServiceClient } from '@/lib/db/server';
 import { getSiteIdAsync } from '@/lib/db/site';
 
 export interface CompanyConfig {
+  heroVisualizerImages?: {
+    before: string;
+    styles: { label: string; after: string }[];
+  };
   name: string;
   location: string;
   phone: string;
@@ -87,6 +91,8 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
     const city = (info['city'] as string) || FALLBACK_CONFIG.city;
     const province = (info['province'] as string) || FALLBACK_CONFIG.province;
     const colors = (brand['colors'] as Record<string, string>) || {};
+    const heroVisualizerImages =
+      profile['heroVisualizerImages'] as CompanyConfig['heroVisualizerImages'] | undefined;
 
     return {
       name: (info['name'] as string) || FALLBACK_CONFIG.name,
@@ -123,6 +129,7 @@ export async function getCompanyConfig(): Promise<CompanyConfig> {
       heroHeadline: (profile['heroHeadline'] as string) || FALLBACK_CONFIG.heroHeadline,
       heroSubheadline: (profile['heroSubheadline'] as string) || FALLBACK_CONFIG.heroSubheadline,
       heroImageUrl: (profile['heroImageUrl'] as string) || FALLBACK_CONFIG.heroImageUrl,
+      ...(heroVisualizerImages ? { heroVisualizerImages } : {}),
       aboutImageUrl: (profile['aboutImageUrl'] as string) || FALLBACK_CONFIG.aboutImageUrl,
       logoUrl: (profile['logoUrl'] as string) || FALLBACK_CONFIG.logoUrl,
       trustBadges: (profile['trustBadges'] as CompanyConfig['trustBadges']) || FALLBACK_CONFIG.trustBadges,

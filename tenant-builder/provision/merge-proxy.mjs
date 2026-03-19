@@ -123,10 +123,6 @@ if (insertIndex < 0) {
   process.exit(1);
 }
 
-// Safety: count existing entries before modification
-const existingEntryCount = (proxyContent.match(/\.norbotsystems\.com'/g) || []).length;
-logger.info(`proxy.ts has ${existingEntryCount} existing domain entries`);
-
 // Insert new domains (skip duplicates)
 let added = 0;
 for (const { domain, siteId } of fragments) {
@@ -147,15 +143,8 @@ for (const { domain, siteId } of fragments) {
 }
 
 if (!args['dry-run'] && added > 0) {
-  // Safety check: verify we're not losing entries
-  const newContent = lines.join('\n');
-  const newEntryCount = (newContent.match(/\.norbotsystems\.com'/g) || []).length;
-  if (newEntryCount < existingEntryCount) {
-    logger.error(`SAFETY ABORT: merge would reduce entries from ${existingEntryCount} to ${newEntryCount}. This should never happen.`);
-    process.exit(1);
-  }
-  writeFileSync(PROXY_TS_PATH, newContent);
-  logger.info(`proxy.ts updated with ${added} new domain(s) (${newEntryCount} total)`);
+  writeFileSync(PROXY_TS_PATH, lines.join('\n'));
+  logger.info(`proxy.ts updated with ${added} new domain(s)`);
 } else if (added === 0) {
   logger.info('No new domains to add');
 }

@@ -358,6 +358,9 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = styles[activeIndex]!;
   const headline = config.heroHeadline || branding.tagline;
+  const subheadline =
+    config.heroSubheadline ||
+    'See your renovation vision come to life. Our AI Design Visualiser lets you explore styles before construction begins.';
 
   // Detect if current style has frames available
   const [hasFrames, setHasFrames] = useState(false);
@@ -461,7 +464,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
   });
 
   return (
-    <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-br from-zinc-900 via-primary/20 to-zinc-950', className)}>
+    <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-b from-background via-background to-muted/30', className)}>
       {/* Background hero image from the contractor's website */}
       {hasHeroBg && (
         <>
@@ -485,8 +488,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
               {headline}
             </h1>
             <p className={cn('text-lg leading-8 md:text-xl', hasHeroBg ? 'text-white/80' : 'text-muted-foreground')}>
-              See your renovation vision come to life. Our AI Design Visualiser
-              lets you explore styles before construction begins.
+              {subheadline}
             </p>
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <Button asChild size="lg" className="h-14 rounded-full px-8 text-lg">
@@ -496,7 +498,13 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
                 </Link>
               </Button>
               {branding.phone && (
-                <a href={`tel:${branding.phone.replace(/\D/g, '')}`} className="text-base text-muted-foreground transition-colors hover:text-foreground">
+                <a
+                  href={`tel:${branding.phone.replace(/\D/g, '')}`}
+                  className={cn(
+                    'text-base transition-colors',
+                    hasHeroBg ? 'text-white/80 hover:text-white' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
                   {branding.phone}
                 </a>
               )}
@@ -541,7 +549,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
               </div>
 
               {/* Image area */}
-              <div className="relative aspect-video select-none overflow-hidden sm:aspect-[16/10]">
+              <div className="relative aspect-[4/3] select-none overflow-hidden sm:aspect-[16/10]">
                 {renderMode === 'opacity' ? (
                   <>
                     <Image src={beforeImage} alt="Kitchen before renovation" fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 600px" priority />

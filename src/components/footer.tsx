@@ -9,6 +9,7 @@ import { useTier } from "@/components/tier-provider"
 
 const DEFAULT_QUICK_LINKS = [
   { href: "/services", label: "Our Services" },
+  { href: "/projects", label: "Projects" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ]
@@ -22,6 +23,10 @@ export function Footer({ hideAttribution = false }: { hideAttribution?: boolean 
   const serviceLinks = branding.services.length > 0
     ? branding.services.map(s => ({ href: `/services/${s.slug}`, label: s.name }))
     : []
+
+  const quickLinks = (branding.navItems && branding.navItems.length > 0)
+    ? branding.navItems.filter(item => item.href !== '/')
+    : DEFAULT_QUICK_LINKS
 
   // Hide public footer on admin routes
   if (pathname.startsWith('/admin')) {
@@ -99,7 +104,7 @@ export function Footer({ hideAttribution = false }: { hideAttribution?: boolean 
               Quick Links
             </h3>
             <ul className="space-y-3">
-              {(branding.navItems?.filter(n => n.href !== '/').map(n => ({ href: n.href, label: n.label })) ?? DEFAULT_QUICK_LINKS).map((link) => (
+              {quickLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

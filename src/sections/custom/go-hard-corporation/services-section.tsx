@@ -2,149 +2,156 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { StaggerContainer, StaggerItem } from '@/components/motion';
+import { usePathname } from 'next/navigation';
+
+import { FadeIn, FadeInUp, StaggerContainer, StaggerItem } from '@/components/motion';
 import type { SectionBaseProps } from '@/lib/section-types';
+import { asRecord, firstText, normalizeServices, textList } from '@/sections/custom/_shared/content';
 
-function str(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : '';
-}
-
-function list(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (typeof item === 'string') return item.trim();
-      if (item && typeof item === 'object') {
-        const record = item as Record<string, unknown>;
-        return str(record['title']) || str(record['name']) || str(record['label']);
-      }
-      return '';
-    })
-    .filter(Boolean);
-}
+const FALLBACK_SERVICES = [
+  {
+    name: 'Kitchen Renovation',
+    slug: 'kitchen-renovation',
+    description: 'Thoughtful kitchen renovations with custom cabinetry, layout planning, and finish coordination.',
+    imageUrl: '',
+    features: [],
+  },
+  {
+    name: 'Bathroom Renovation',
+    slug: 'bathroom-renovation',
+    description: 'Bathrooms rebuilt with cleaner layouts, durable tilework, and comfort-first detailing.',
+    imageUrl: '',
+    features: [],
+  },
+  {
+    name: 'Home Additions',
+    slug: 'home-additions',
+    description: 'Home additions planned from design through build so the new square footage feels seamless.',
+    imageUrl: '',
+    features: [],
+  },
+];
 
 export function ServicesSection({ branding, config, className }: SectionBaseProps) {
-  const c = config as unknown as Record<string, unknown>;
-  const brandName = str(branding.name) || 'Go Hard Corporation';
-  const headline =
-    str(c['servicesHeadline']) ||
-    str(c['services_headline']) ||
-    `At ${brandName} we bring your Full Home Renovation ideas to life.`;
-  const subheadline =
-    str(c['heroSubheadline']) ||
-    str(c['hero_subheadline']) ||
-    `${brandName} is a family-owned general contracting company specializing in kitchen renovations, bathroom remodels, and home additions.`;
-  const aboutCopy =
-    str(c['aboutCopy']) ||
-    str(c['about_copy']) ||
-    'Our team of licensed general contractors, designers, and carpenters keeps every renovation organized, on schedule, and on budget from first sketch to final finish.';
+  const pathname = usePathname();
+  const company = asRecord(config);
+  const services = normalizeServices(company['services']);
+  const displayServices = (services.length ? services : FALLBACK_SERVICES).slice(
+    0,
+    pathname.startsWith('/services') ? undefined : 6
+  );
+
   const serviceArea =
-    str(c['serviceArea']) ||
-    str(c['service_area']) ||
+    firstText(company['serviceArea'], company['service_area']) ||
     'Kitchener, Waterloo, Cambridge, and Guelph';
-  const heroImageUrl = str(c['heroImageUrl']) || str(c['hero_image_url']);
-  const services =
-    list(c['services']).slice(0, 4).length > 0
-      ? list(c['services']).slice(0, 4)
-      : ['Kitchen Renovations', 'Bathroom Remodels', 'Home Additions', 'Full Home Renovations'];
+  const intro =
+    firstText(company['heroSubheadline']) ||
+    'Design-build renovations shaped around how your home actually needs to work.';
+  const bodyParagraphs = textList(company['aboutCopy']).slice(0, 2);
+  const companyName = branding.name || 'Go Hard Corporation';
 
   return (
     <section
       className={[
-        'relative overflow-hidden bg-[linear-gradient(180deg,#f8f5ee_0%,#ffffff_42%,#efe9dc_100%)] py-14 text-[rgb(43,44,44)] md:py-24',
+        'relative overflow-hidden bg-[linear-gradient(180deg,#f8f5ef_0%,#ffffff_40%,#f2eee6_100%)] py-16 text-[#2b2c2c] md:py-24',
         className ?? '',
       ].join(' ')}
     >
-      <div className="absolute inset-0 opacity-60">
-        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-[-8%] top-24 h-96 w-96 rounded-full bg-stone-900/8 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(90deg,transparent_0%,rgba(180,186,166,0.14)_50%,transparent_100%)]" />
-      </div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(90,87,68,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(43,44,44,0.06),transparent_28%)]" />
 
-      <StaggerContainer className="relative mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:px-8">
-        <StaggerItem>
-          <div className="rounded-[28px] border border-white/70 bg-white/85 p-7 shadow-[0_18px_44px_rgba(43,44,44,0.08)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(43,44,44,0.14)] md:p-10">
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-              Our Services
-            </p>
-            <h2 className="max-w-4xl font-['Cormorant_Garamond'] text-4xl font-semibold leading-[0.95] tracking-[-0.03em] text-stone-900 sm:text-5xl md:text-6xl xl:text-7xl">
-              <span className="font-bold">At {brandName}</span> we bring your renovation vision to
-              life across <span className="text-primary">{serviceArea}</span>.
+      <div className="relative mx-auto grid max-w-7xl gap-10 px-5 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-10">
+        <FadeIn className="lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-[2rem] border border-[#d9d3c6] bg-white/80 p-8 shadow-[0_24px_60px_rgba(41,35,28,0.08)] backdrop-blur-sm md:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Our Services</p>
+            <h2
+              className="mt-5 text-[clamp(2.6rem,5vw,5.25rem)] font-semibold leading-[0.94] text-[#23231f]"
+              style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+            >
+              Renovations designed with warmth and built with discipline.
             </h2>
-            <p className="mt-6 max-w-3xl font-['Raleway'] text-lg font-medium leading-8 text-[rgb(43,44,44)]/88 md:text-[1.28rem]">
-              {subheadline}
-            </p>
-            <p className="mt-5 max-w-3xl font-['Raleway'] text-base leading-8 text-[rgb(43,44,44)]/74 md:text-lg">
-              {aboutCopy}
-            </p>
-            <p className="mt-5 max-w-3xl font-['Raleway'] text-base leading-8 text-[rgb(43,44,44)]/74 md:text-lg">
-              For nearly a decade, clients have trusted our family-run team to create spaces that
-              feel composed, practical, and built with discipline at every stage.
-            </p>
+            <p className="mt-6 text-base leading-8 text-[#52514a] md:text-lg">{intro}</p>
+            {(bodyParagraphs.length ? bodyParagraphs : [
+              `${companyName} handles kitchens, bathrooms, additions, and interior renovations with one coordinated design-build process.`,
+              `Every stage is planned around schedule clarity, finish quality, and the way the home needs to function day to day across ${serviceArea}.`,
+            ]).map((paragraph, index) => (
+              <p key={`${paragraph}-${index}`} className="mt-4 text-[15px] leading-8 text-[#67645b] md:text-base">
+                {paragraph}
+              </p>
+            ))}
 
-            <div className="mt-8 grid gap-[12px] sm:grid-cols-2">
-              {services.map((service, index) => (
-                <StaggerItem key={`${service}-${index}`}>
-                  <div className="rounded-[28px] border border-stone-200/80 bg-stone-50/90 px-5 py-4 shadow-[0_18px_44px_rgba(43,44,44,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(43,44,44,0.12)]">
-                    <p className="font-['Raleway'] text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-primary/80">
-                      0{index + 1}
-                    </p>
-                    <p className="mt-2 font-['Playfair_Display'] text-2xl leading-tight text-stone-900">
-                      {service}
-                    </p>
-                  </div>
-                </StaggerItem>
-              ))}
-            </div>
-          </div>
-        </StaggerItem>
-
-        <StaggerItem>
-          <div className="grid gap-4 lg:sticky lg:top-8">
-            <div className="relative min-h-[280px] overflow-hidden rounded-[28px] border border-stone-200/70 bg-stone-900 shadow-[0_18px_44px_rgba(43,44,44,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(43,44,44,0.18)]">
-              {heroImageUrl ? (
-                <Image
-                  src={heroImageUrl}
-                  alt={brandName}
-                  fill
-                  priority={false}
-                  className="object-cover object-center"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(31,41,55,0.98)_0%,rgba(180,186,166,0.78)_100%)]" />
-              )}
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,20,20,0.18)_0%,rgba(20,20,20,0.72)_100%)]" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white md:p-7">
-                <p className="font-['Raleway'] text-xs font-semibold uppercase tracking-[0.28em] text-white/72">
-                  Consultation
-                </p>
-                <p className="mt-3 max-w-sm font-['Playfair_Display'] text-3xl leading-tight md:text-4xl">
-                  Structured planning. Beautiful execution. Zero guesswork.
-                </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[1.5rem] border border-[#e6dfd2] bg-[#f8f4eb] px-5 py-4">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-[#7c776b]">Service Area</p>
+                <p className="mt-2 text-base leading-7 text-[#2b2c2c]">{serviceArea}</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-[#e6dfd2] bg-[#23231f] px-5 py-4 text-white">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-white/60">Approach</p>
+                <p className="mt-2 text-base leading-7 text-white/84">Design, selections, scheduling, and construction kept in one flow.</p>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/70 bg-white/88 p-6 shadow-[0_18px_44px_rgba(43,44,44,0.08)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(43,44,44,0.14)] md:p-7">
-              <p className="font-['Raleway'] text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-                Build With Confidence
-              </p>
-              <p className="mt-4 font-['Playfair_Display'] text-3xl leading-tight text-stone-900">
-                Design-led renovations with contractor-grade discipline.
-              </p>
-              <p className="mt-4 font-['Raleway'] text-base leading-7 text-[rgb(43,44,44)]/74">
-                We coordinate design, permits, trades, scheduling, and finish work so the entire
-                experience feels measured, clear, and worth the investment.
-              </p>
+            <FadeInUp>
               <Link
                 href="/visualizer"
-                className="mt-7 inline-flex w-full items-center justify-center rounded-[28px] bg-primary px-6 py-4 text-center font-['proxima-nova'] text-[14px] font-light uppercase tracking-[0.12em] text-primary-foreground transition-all duration-300 hover:scale-[1.02] hover:bg-primary/90"
+                className="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-7 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-primary-foreground transition duration-300 hover:scale-[1.02] hover:bg-primary/90"
               >
                 Get Your Free Design Estimate
               </Link>
-            </div>
+            </FadeInUp>
           </div>
-        </StaggerItem>
-      </StaggerContainer>
+        </FadeIn>
+
+        <StaggerContainer className="grid gap-5 md:grid-cols-2">
+          {displayServices.map((service, index) => (
+            <StaggerItem key={service.slug}>
+              <article className="group overflow-hidden rounded-[2rem] border border-[#ddd6c8] bg-white shadow-[0_24px_60px_rgba(41,35,28,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(41,35,28,0.14)]">
+                <div className="relative aspect-[4/3] overflow-hidden bg-[#ebe4d7]">
+                  {service.imageUrl ? (
+                    <Image
+                      src={service.imageUrl}
+                      alt={service.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,#ded8cb,#b8b3a3_55%,#4f4c40)]" />
+                  )}
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.55))]" />
+                  <div className="absolute left-5 top-5 rounded-full border border-white/30 bg-white/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white backdrop-blur-sm">
+                    {String(index + 1).padStart(2, '0')}
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-6 md:p-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3
+                      className="text-[1.6rem] leading-tight text-[#23231f]"
+                      style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+                    >
+                      {service.name}
+                    </h3>
+                    <span className="shrink-0 text-[11px] uppercase tracking-[0.24em] text-[#7c776b]">Photo-led</span>
+                  </div>
+
+                  <p className="text-[15px] leading-7 text-[#666257]">{service.description}</p>
+
+                  {service.features.length > 0 ? (
+                    <ul className="grid gap-2 text-sm leading-6 text-[#535148]">
+                      {service.features.slice(0, 3).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2">
+                          <span aria-hidden="true" className="mt-2 size-1.5 rounded-full bg-primary" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </article>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
     </section>
   );
 }

@@ -108,6 +108,22 @@
 **Suggested fix:** Use `tenant_threshold` (55) instead of `manual_review` (65) as the batch filter threshold. Or add a `--min-icp` CLI flag to override the threshold.
 **Risk:** LOW — lowers quality floor slightly but all these targets passed ICP scoring
 
+### 13. Merge-proxy step DESTRUCTIVELY overwrites proxy.ts
+**Found:** 2026-03-19 (Batch build session)
+**Symptom:** After Wave 3/4 re-runs, proxy.ts dropped from 67 to 62 entries — 5 entries from Wave 1 were removed. The orchestrator's merge-proxy step rebuilds proxy.ts from the current proxy-fragments directory, discarding entries added by previous waves.
+**Root cause:** `merge-proxy.mjs` reads all `.json` files from `results/{date}/proxy-fragments/`, generates a new `DOMAIN_TO_SITE` map, and overwrites `src/proxy.ts`. The previous wave's fragments were consumed (moved/deleted) after merging, so the re-run only sees the current wave's fragments.
+**Impact:** CRITICAL — entries from parallel or sequential waves get silently deleted, causing 404 errors on previously working tenants
+**Suggested fix:** Merge-proxy should APPEND to the existing proxy.ts entries, not replace them. Read current entries from proxy.ts, merge with new fragments, write the union. Or: accumulate fragments across waves in a persistent directory (not per-date).
+**Risk:** LOW — the fix is additive and makes merge idempotent
+
+### 14. Results directory cleanup removes scraped data needed by re-runs
+**Found:** 2026-03-19 (Wave 3/4 re-runs)
+**Symptom:** "Data file not found: scraped.json" errors for 6+ targets during Wave 3/4. The re-runs expected cached scraped data but the results directory was cleaned up by a previous wave's merge-proxy or deploy step.
+**Root cause:** The orchestrator's deploy step or merge-proxy step cleans up the results directory, removing scraped.json and other intermediate files. When a subsequent wave tries to re-use cached data ("scraped.json already exists — skipping scrape stage"), the file is gone.
+**Impact:** HIGH — re-runs fail silently for targets whose scraped data was deleted
+**Suggested fix:** Never delete results directories during a batch run. Add a `--keep-results` flag or move cleanup to a separate post-batch step. The cache-hit logic ("scraped.json already exists") relies on results persistence.
+**Risk:** LOW — removing the cleanup is safe; disk space is cheap
+
 ### 12. Before/after visualizer demo images missing on all tenants
 **Found:** 2026-03-19 (QA — BL Renovations)
 **Symptom:** 7 console errors on every tenant page: `after-transitional.png`, `after-modern.png`, `after-farmhouse.png`, `after-industrial.png`, `after-scandinavian.png`, `before-kitchen.png` all 404. These are the hero section's before/after comparison slider images.

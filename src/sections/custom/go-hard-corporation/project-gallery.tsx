@@ -1,148 +1,154 @@
 'use client';
 
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { FadeIn, FadeInUp, StaggerContainer, StaggerItem } from '@/components/motion';
+import { GalleryLightbox } from '@/components/gallery-lightbox';
+import type { Project } from '@/components/project-card';
 import type { SectionBaseProps } from '@/lib/section-types';
-import { ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
+import { asRecord, normalizePortfolio } from '@/sections/custom/_shared/content';
 
-type GalleryItem = {
-  title: string;
-  location: string;
-  imageUrl: string;
-};
-
-function str(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : '';
-}
-
-function toGalleryItem(value: unknown, index: number): GalleryItem {
-  const item = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-  return {
-    title: str(item['title']) || str(item['name']) || `Featured Project ${index + 1}`,
-    location: str(item['location']) || str(item['serviceArea']) || 'Cambridge, Ontario',
-    imageUrl: str(item['imageUrl']) || str(item['image_url']) || str(item['photo']) || str(item['src']),
-  };
-}
+const CARD_SPANS = [
+  'md:col-span-2 md:row-span-2',
+  '',
+  'lg:row-span-2',
+  '',
+  'md:col-span-2',
+  '',
+  '',
+  'lg:col-span-2',
+];
 
 export function ProjectGallery({ branding, config, className }: SectionBaseProps) {
-  const c = config as unknown as Record<string, unknown>;
-  const portfolioRaw = Array.isArray(c['portfolio']) ? c['portfolio'] : [];
-  const portfolio = (portfolioRaw.length ? portfolioRaw : [{}, {}, {}, {}]).slice(0, 4).map(toGalleryItem);
+  const pathname = usePathname();
+  const company = asRecord(config);
+  const items = normalizePortfolio(company['portfolio']);
+  const allCategories = ['All', ...new Set(items.map((item) => item.category))];
+  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const companyName = str(branding.name) || 'Go Hard Corporation';
-  const heading = str(c['galleryHeadline']) || str(c['gallery_headline']) || 'Projects built with trust, care, and exacting craft.';
-  const copyOne =
-    str(c['aboutCopy']) ||
-    str(c['about_copy']) ||
-    'Built on family values, we focus on honesty, communication, and care in everything we do. Our goal is to earn your trust through reliable service and lasting results.';
-  const copyTwo =
-    str(c['galleryCopy']) ||
-    str(c['gallery_copy']) ||
-    'Our in-house renovation team works alongside trusted local specialists to deliver kitchens, interiors, and whole-home transformations with calm coordination and precise execution.';
+  const filteredItems = useMemo(
+    () => (activeCategory === 'All' ? items : items.filter((item) => item.category === activeCategory)),
+    [activeCategory, items]
+  );
+  const displayItems = pathname.startsWith('/projects') ? filteredItems : filteredItems.slice(0, 8);
+
+  const lightboxProjects: Project[] = displayItems.map((item, index) => ({
+    id: `${item.title}-${index}`,
+    title: item.title,
+    type: item.category,
+    description: item.description,
+    location: item.location || 'Cambridge, ON',
+    image: item.imageUrl,
+  }));
 
   return (
-    <section
-      className={[
-        'relative overflow-hidden bg-[#f5f1e8] text-stone-900',
-        className ?? '',
-      ].join(' ')}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(180,186,166,0.22),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.76),rgba(232,225,210,0.92))]" />
-      <div className="absolute inset-y-0 right-0 hidden w-[38%] bg-[#23231f] lg:block" />
-
-      <StaggerContainer className="relative mx-auto max-w-7xl px-5 py-16 sm:px-6 md:py-20 lg:px-10">
-        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12">
-          <div className="relative z-10">
-            <StaggerItem>
-              <span className="mb-5 inline-flex text-xs font-semibold uppercase tracking-[0.28em] text-[#5c5b4d] [font-family:'Raleway',sans-serif]">
-                Our Work
-              </span>
-            </StaggerItem>
-
-            <StaggerItem>
-              <h2 className="max-w-xl text-[clamp(2.7rem,5vw,5.4rem)] font-semibold uppercase leading-[0.88] tracking-[0.02em] text-stone-900 [font-family:'Cormorant_Garamond',serif]">
-                {heading}
+    <section className={['bg-[#f6f1e8] py-16 text-[#23231f] md:py-24', className ?? ''].join(' ')}>
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-10">
+        <FadeIn>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Portfolio</p>
+              <h2
+                className="mt-5 text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.94] text-[#23231f]"
+                style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+              >
+                Real projects, photographed the way they were actually built.
               </h2>
-            </StaggerItem>
+            </div>
 
-            <StaggerItem>
-              <div className="mt-7 h-px w-24 bg-[#5c5b4d]/35" />
-            </StaggerItem>
-
-            <StaggerItem>
-              <div className="mt-8 space-y-6 text-[clamp(1rem,1.15vw,1.08rem)] font-light leading-[2.05] text-stone-700 [font-family:'proxima-nova','Raleway',sans-serif]">
-                <p>{copyOne}</p>
-                <p>{copyTwo}</p>
+            <div className="space-y-4">
+              <p className="max-w-2xl text-[15px] leading-8 text-[#615d52] md:text-base">
+                Go Hard Corporation’s work leans warm, bright, and detail-focused. Kitchens, bathrooms, additions, and supporting spaces all carry the same clean composition and finish discipline.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {allCategories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveCategory(category)}
+                    className={[
+                      'rounded-full border px-4 py-2 text-sm font-medium transition',
+                      activeCategory === category
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-[#d8cfbf] bg-white text-[#575348] hover:border-primary hover:text-primary',
+                    ].join(' ')}
+                  >
+                    {category}
+                  </button>
+                ))}
               </div>
-            </StaggerItem>
-
-            <StaggerItem>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-                <Link
-                  href="/visualizer"
-                  className="inline-flex min-h-14 items-center justify-center rounded-[28px] bg-[#5c5b4d] px-7 text-center text-sm font-light uppercase tracking-[0.18em] text-white shadow-[0_18px_44px_rgba(52,49,39,0.18)] transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:bg-[#6a6958] hover:shadow-[0_24px_54px_rgba(52,49,39,0.24)] [font-family:'proxima-nova','Raleway',sans-serif]"
-                >
-                  Get Your Free Design Estimate
-                </Link>
-                <p className="max-w-xs text-sm leading-7 text-stone-600 [font-family:'proxima-nova','Raleway',sans-serif]">
-                  Preview renovation directions with AI-led concepting before your build begins.
-                </p>
-              </div>
-            </StaggerItem>
-          </div>
-
-          <div className="relative lg:pt-6">
-            <div className="absolute -left-4 top-8 hidden h-24 w-24 rounded-[28px] border border-white/50 bg-white/35 backdrop-blur-md lg:block" />
-            <div className="grid grid-cols-2 gap-[12px]">
-              {portfolio.map((item, index) => (
-                <StaggerItem key={`${item.title}-${index}`}>
-                  <ScaleIn>
-                    <article
-                      className={[
-                        'group relative overflow-hidden rounded-[28px] border border-white/40 bg-white/55 shadow-[0_18px_44px_rgba(52,49,39,0.12)] backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_54px_rgba(52,49,39,0.2)]',
-                        index === 0 ? 'col-span-2 min-h-[320px] sm:min-h-[420px]' : 'min-h-[220px] sm:min-h-[260px]',
-                      ].join(' ')}
-                    >
-                      <div className="absolute inset-0">
-                        {item.imageUrl ? (
-                          <Image
-                            src={item.imageUrl}
-                            alt={`${item.title} by ${companyName}`}
-                            fill
-                            priority={false}
-                            className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-[linear-gradient(145deg,#c2c7b5,#7f816e_52%,#3c3b33)]" />
-                        )}
-                        <div className="absolute inset-0 bg-black/40" />
-                        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_18%,rgba(18,18,16,0.12)_48%,rgba(18,18,16,0.82)_100%)]" />
-                      </div>
-
-                      <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
-                        <div className="mb-3 inline-flex w-fit rounded-[28px] border border-white/18 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/86 backdrop-blur-md [font-family:'Raleway',sans-serif]">
-                          {index === 0 ? 'Featured Build' : 'Recent Project'}
-                        </div>
-                        <h3 className="max-w-[14ch] text-[clamp(1.5rem,2.1vw,2.3rem)] font-semibold leading-[0.96] text-white [font-family:'Playfair_Display','Cormorant_Garamond',serif]">
-                          {item.title}
-                        </h3>
-                        <div className="mt-3 flex items-center justify-between gap-4">
-                          <p className="text-sm font-light uppercase tracking-[0.16em] text-white/78 [font-family:'proxima-nova','Raleway',sans-serif]">
-                            {item.location}
-                          </p>
-                          <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d9dccd] [font-family:'Raleway',sans-serif]">
-                            View Story
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  </ScaleIn>
-                </StaggerItem>
-              ))}
             </div>
           </div>
-        </div>
-      </StaggerContainer>
+        </FadeIn>
+
+        <StaggerContainer className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[220px]">
+          {displayItems.map((item, index) => (
+            <StaggerItem key={`${item.title}-${index}`} className={CARD_SPANS[index % CARD_SPANS.length] ?? ''}>
+              <article
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setLightboxIndex(index);
+                  setIsLightboxOpen(true);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setLightboxIndex(index);
+                    setIsLightboxOpen(true);
+                  }
+                }}
+                className="group relative h-full min-h-[280px] cursor-pointer overflow-hidden rounded-[1.75rem] border border-[#ddd5c8] bg-white shadow-[0_24px_60px_rgba(41,35,28,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_34px_80px_rgba(41,35,28,0.14)]"
+              >
+                <Image
+                  src={item.imageUrl}
+                  alt={`${item.title} by ${branding.name || 'Go Hard Corporation'}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04),rgba(0,0,0,0.78))]" />
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white md:p-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/72">{item.category}</p>
+                  <h3
+                    className="mt-2 text-[1.65rem] leading-tight md:text-[1.9rem]"
+                    style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-sm uppercase tracking-[0.18em] text-white/64">{item.location || 'Cambridge, ON'}</p>
+                </div>
+              </article>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+
+        {!pathname.startsWith('/projects') && items.length > displayItems.length ? (
+          <FadeInUp>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-[#666257]">View the full portfolio for more kitchens, bathrooms, additions, and detail work.</p>
+              <Link
+                href="/projects"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d2c9b8] px-7 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-[#3f3d34] transition duration-300 hover:border-primary hover:text-primary"
+              >
+                View Full Portfolio
+              </Link>
+            </div>
+          </FadeInUp>
+        ) : null}
+      </div>
+
+      <GalleryLightbox
+        projects={lightboxProjects}
+        initialIndex={lightboxIndex}
+        open={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
     </section>
   );
 }

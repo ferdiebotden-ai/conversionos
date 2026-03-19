@@ -1,22 +1,25 @@
 'use client';
 
-import type { SectionBaseProps } from '@/lib/section-types';
-import Image from 'next/image';
 import Link from 'next/link';
-import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion';
 
-type WhyChooseUsItem = Record<string, unknown>;
+import { FadeIn, FadeInUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
+import type { SectionBaseProps } from '@/lib/section-types';
+import { asRecord, asRecordArray, str } from '@/sections/custom/_shared/content';
 
-function str(v: unknown): string {
-  return typeof v === 'string' && v.trim() ? v.trim() : '';
-}
-
-function pickImage(item: WhyChooseUsItem): string {
-  const direct = str(item['imageUrl']) || str(item['image_url']) || str(item['iconImage']) || str(item['icon_image']);
-  if (direct) return direct;
-  const images = Array.isArray(item['imageUrls']) ? item['imageUrls'] : Array.isArray(item['image_urls']) ? item['image_urls'] : [];
-  return images.length > 0 ? str(images[0]) : '';
-}
+const FALLBACK_ITEMS = [
+  {
+    title: 'High End Custom Solutions',
+    description: 'Selections, layouts, and finish details are tailored to the home instead of forced into a standard package.',
+  },
+  {
+    title: 'Fast and Efficient',
+    description: 'Projects are managed with clear scheduling updates so homeowners know what is happening and when.',
+  },
+  {
+    title: 'Budget-Friendly',
+    description: 'The team helps homeowners balance scope, materials, and quality without losing the desired result.',
+  },
+];
 
 function initials(label: string): string {
   const parts = label.split(/\s+/).filter(Boolean);
@@ -25,92 +28,52 @@ function initials(label: string): string {
   return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
 }
 
-export function WhyChooseUs({ branding, config, tokens, className }: SectionBaseProps) {
-  const c = config as unknown as Record<string, unknown>;
-  void branding;
-  void tokens;
-
-  const whyChooseUs = Array.isArray(c['whyChooseUs'])
-    ? c['whyChooseUs']
-    : Array.isArray(c['why_choose_us'])
-      ? c['why_choose_us']
-      : [];
-
-  const items = whyChooseUs
-    .filter((item): item is WhyChooseUsItem => typeof item === 'object' && item !== null)
+export function WhyChooseUs({ config, className }: SectionBaseProps) {
+  const company = asRecord(config);
+  const configuredItems = asRecordArray(company['whyChooseUs'])
     .map((item) => ({
-      title: str(item['title']) || str(item['heading']) || str(item['name']),
-      description: str(item['description']) || str(item['copy']) || str(item['text']),
-      image: pickImage(item),
+      title: str(item['title']) || str(item['name']),
+      description: str(item['description']) || str(item['text']),
     }))
-    .filter((item) => item.title || item.description);
-
-  if (items.length === 0) {
-    return null;
-  }
+    .filter((item) => item.title);
+  const items = (configuredItems.length ? configuredItems : FALLBACK_ITEMS).slice(0, 4);
 
   return (
-    <section className={`bg-[#f8f8f8] px-4 py-14 md:px-6 md:py-20 ${className ?? ''}`}>
-      <div className="mx-auto max-w-6xl">
+    <section className={['bg-[#faf7f3] py-16 text-[#2f2f2f] md:py-24', className ?? ''].join(' ')}>
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-10">
         <FadeIn>
           <div className="mx-auto max-w-3xl text-center">
-            <p
-              className="font-['Quicksand',sans-serif] text-[13px] font-normal uppercase tracking-[0.22em] text-muted-foreground"
-            >
-              Why Choose Us
-            </p>
-            <h2 className="mt-3 font-['Poppins',sans-serif] text-3xl font-semibold tracking-[0.01em] text-[#222] md:text-[42px]">
-              Built on Trust, Quality, and Care
+            <p className="font-[Quicksand] text-xs font-semibold uppercase tracking-[0.28em] text-[#9f7e74]">Why Choose Us</p>
+            <h2 className="mt-5 font-[Poppins] text-[clamp(2.2rem,4.2vw,3.9rem)] font-semibold leading-[1.04] text-[#2f2f2f]">
+              Built on trust, quality, and care.
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl font-['Quicksand',sans-serif] text-[16px] leading-7 text-[#666]">
-              We focus on the details that make renovation projects feel straightforward, dependable, and worth the
-              investment from day one.
+            <p className="mt-5 font-[Poppins] text-[15px] leading-8 text-[#68635c] md:text-base">
+              BL Renovations pairs a light, approachable design sensibility with practical renovation management that keeps projects feeling personal rather than transactional.
             </p>
           </div>
         </FadeIn>
 
-        <StaggerContainer className="mt-10 grid gap-5 md:mt-14 md:grid-cols-2 xl:grid-cols-4">
-          {items.map((item, index) => (
-            <StaggerItem key={`${item.title}-${index}`}>
+        <StaggerContainer className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {items.map((item) => (
+            <StaggerItem key={item.title}>
               <ScaleIn>
-                <div className="flex h-full flex-col items-center rounded-[20px] border border-black/6 bg-white px-6 py-8 text-center shadow-[0_18px_45px_rgba(0,0,0,0.06)] transition-transform duration-300 hover:-translate-y-1">
-                  <div className="relative mb-5 flex h-[78px] w-[78px] items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] ring-1 ring-black/5">
-                    {item.image ? (
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                        sizes="78px"
-                      />
-                    ) : (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-white to-primary/10" />
-                        <span className="relative z-10 font-['Poppins',sans-serif] text-lg font-semibold tracking-[0.08em] text-[#444]">
-                          {initials(item.title)}
-                        </span>
-                      </>
-                    )}
+                <article className="flex h-full flex-col rounded-[2rem] border border-[#ede5db] bg-white p-7 text-center shadow-[0_24px_60px_rgba(47,47,47,0.08)]">
+                  <div className="mx-auto flex size-[84px] items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(235,211,203,0.7),rgba(255,255,255,0.9))] font-[Poppins] text-xl font-semibold tracking-[0.08em] text-[#4a4641] ring-1 ring-[#ede5db]">
+                    {initials(item.title)}
                   </div>
-
-                  <h3 className="font-['Poppins',sans-serif] text-[21px] font-semibold leading-tight text-[#222]">
-                    {item.title}
-                  </h3>
-
-                  <p className="mt-3 font-['Quicksand',sans-serif] text-[15px] leading-7 text-[#666]">
-                    {item.description}
-                  </p>
-                </div>
+                  <h3 className="mt-6 font-[Poppins] text-[1.35rem] font-semibold leading-tight text-[#2f2f2f]">{item.title}</h3>
+                  <p className="mt-4 flex-1 font-[Poppins] text-[15px] leading-7 text-[#69635c]">{item.description}</p>
+                </article>
               </ScaleIn>
             </StaggerItem>
           ))}
         </StaggerContainer>
 
         <FadeInUp>
-          <div className="mt-10 flex justify-center md:mt-14">
+          <div className="mt-10 flex justify-center">
             <Link
               href="/visualizer"
-              className="inline-flex min-h-12 items-center justify-center rounded-[4px] border border-[#d8d8d8] bg-transparent px-8 py-3 font-['Quicksand',sans-serif] text-[16px] font-normal tracking-[1px] text-[#444] transition-colors duration-200 hover:bg-primary hover:text-primary-foreground"
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d7c9ba] bg-white px-7 py-3 font-[Quicksand] text-sm font-semibold uppercase tracking-[0.14em] text-[#4a4641] transition duration-300 hover:bg-primary hover:text-primary-foreground"
             >
               Get Your Free Design Estimate
             </Link>

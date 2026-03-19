@@ -65,7 +65,6 @@ const { values: args } = parseArgs({
     'skip-custom-sections': { type: 'boolean', default: false },
     bespoke: { type: 'boolean', default: false },
     'warm-lead': { type: 'boolean', default: false },
-    'min-icp': { type: 'string' },
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     model: { type: 'string' },  // Pass-through to Claude CLI: --model sonnet, --model opus
@@ -223,10 +222,8 @@ if (!args.url) { // Skip scoring for direct URL mode
     }
   }
 
-  // Filter by threshold — use --min-icp override, then icp_routing.tenant_threshold, then manual_review
-  const threshold = args['min-icp'] ? parseInt(args['min-icp'], 10)
-    : CONFIG.icp_scoring.icp_routing?.tenant_threshold
-    ?? CONFIG.icp_scoring.thresholds.manual_review;
+  // Filter by threshold — null scores (scoring failed) are excluded
+  const threshold = CONFIG.icp_scoring.thresholds.manual_review;
   const before = targets.length;
   targets = targets.filter(t => t.icp_score != null && t.icp_score >= threshold);
   const filtered = before - targets.length;

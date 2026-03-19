@@ -2,202 +2,96 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Star } from 'lucide-react';
+
+import { FadeIn, FadeInUp, StaggerContainer, StaggerItem } from '@/components/motion';
 import type { SectionBaseProps } from '@/lib/section-types';
-import { StaggerContainer, StaggerItem } from '@/components/motion';
-
-function str(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : '';
-}
-
-function list(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object') : [];
-}
+import { asRecord, normalizePortfolio, normalizeTestimonials } from '@/sections/custom/_shared/content';
 
 export function Testimonials({ branding, config, className }: SectionBaseProps) {
-  const c = config as unknown as Record<string, unknown>;
-  const companyName = str(branding.name) || 'Go Hard Corporation';
-  const serviceArea =
-    str(c['serviceArea']) ||
-    str(c['service_area']) ||
-    'Kitchener, Waterloo, Cambridge, and Guelph';
+  const pathname = usePathname();
+  const company = asRecord(config);
+  const testimonials = normalizeTestimonials(company['testimonials']);
+  const portfolio = normalizePortfolio(company['portfolio']);
 
-  const introA =
-    str(c['aboutCopy']) ||
-    str(c['about_copy']) ||
-    `${companyName} keeps your renovation organized, on schedule, and on budget. We handle everything from design and permits to construction and finishing across ${serviceArea}.`;
+  if (testimonials.length === 0) return null;
 
-  const introB =
-    str(c['heroSubheadline']) ||
-    str(c['hero_subheadline']) ||
-    'For nearly a decade, clients have trusted us to transform their homes into spaces that look stunning and function perfectly. Our reviews reflect the care, skill, and dedication our team brings to every detail.';
-
-  const testimonials = list(c['testimonials']).slice(0, 3);
-  const portfolio = list(c['portfolio']).slice(0, 2);
-  const fallbackTestimonials =
-    testimonials.length > 0
-      ? testimonials
-      : [
-          {
-            quote:
-              'Every step felt deliberate. The site planning, build sequencing, and finishing details were managed with real discipline.',
-            author: 'Kitchener Homeowner',
-            role: 'Full-home renovation',
-          },
-          {
-            quote:
-              'The team protected the budget without flattening the design. We ended up with a home that feels custom in every room.',
-            author: 'Waterloo Client',
-            role: 'Kitchen and main-floor remodel',
-          },
-          {
-            quote:
-              'Communication stayed sharp from permits through final walkthrough. Nothing felt improvised.',
-            author: 'Cambridge Family',
-            role: 'Addition and interior finishing',
-          },
-        ];
-
-  const fallbackImageA =
-    str(portfolio[0]?.['imageUrl']) ||
-    str(portfolio[0]?.['image_url']) ||
-    str(c['aboutImageUrl']) ||
-    str(c['about_image_url']);
-  const fallbackImageB =
-    str(portfolio[1]?.['imageUrl']) ||
-    str(portfolio[1]?.['image_url']) ||
-    str(c['heroImageUrl']) ||
-    str(c['hero_image_url']);
+  const displayTestimonials = pathname === '/' ? testimonials.slice(0, 3) : testimonials;
+  const sideImages = portfolio.slice(0, 2);
 
   return (
-    <section
-      className={[
-        'relative overflow-hidden bg-[linear-gradient(180deg,rgba(18,18,16,0.96)_0%,rgba(18,18,16,0.92)_44%,rgba(244,240,232,1)_44%,rgba(244,240,232,1)_100%)] text-stone-950',
-        className ?? '',
-      ].join(' ')}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(180,186,166,0.18),transparent_28%),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:auto,32px_32px]" />
+    <section className={['bg-[#22221e] py-16 text-white md:py-24', className ?? ''].join(' ')}>
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-6 lg:grid-cols-[minmax(0,0.84fr)_minmax(0,1.16fr)] lg:px-10">
+        <FadeIn className="lg:sticky lg:top-24 lg:self-start">
+          <div className="space-y-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#c9c5b7]">Client Reviews</p>
+            <h2
+              className="text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.94] text-white"
+              style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+            >
+              Homeowners remember the process as much as the finish.
+            </h2>
+            <p className="max-w-xl text-[15px] leading-8 text-white/72 md:text-base">
+              The strongest pattern in Go Hard Corporation’s reviews is the same one visible in the finished work: careful sequencing, strong communication, and craftsmanship that still feels sharp once the dust settles.
+            </p>
 
-      <StaggerContainer className="relative mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24">
-        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
-          <StaggerItem>
-            <div className="flex h-full flex-col justify-between">
-              <div className="space-y-8 text-stone-100">
-                <div className="space-y-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">What Our Clients Say</p>
-                  <h2 className="max-w-xl font-['Cormorant_Garamond'] text-[clamp(2.9rem,6vw,5.8rem)] font-semibold uppercase leading-[0.86] tracking-[0.03em] text-stone-50">
-                    Structured to feel effortless.
-                  </h2>
-                </div>
-
-                <div className="grid gap-5 border-l border-white/15 pl-5 md:pl-7">
-                  <h3 className="max-w-2xl font-['Raleway'] text-[clamp(1.05rem,1.5vw,1.35rem)] font-light leading-8 text-stone-200">
-                    {introA}
-                  </h3>
-                  <h3 className="max-w-2xl font-['Raleway'] text-[clamp(1.05rem,1.5vw,1.35rem)] font-light leading-8 text-stone-300/95">
-                    {introB}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="mt-10 flex flex-wrap items-center gap-4">
-                <Link
-                  href="/visualizer"
-                  className="inline-flex min-h-14 items-center justify-center bg-primary px-8 font-['proxima-nova'] text-[14px] font-light uppercase tracking-[0.18em] text-primary-foreground transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:bg-primary/85"
-                >
-                  Get Your Free Design Estimate
-                </Link>
-                <div className="border border-white/15 px-5 py-3 font-['Raleway'] text-sm uppercase tracking-[0.18em] text-stone-300">
-                  Nearly a decade of renovations across {serviceArea}
-                </div>
-              </div>
-            </div>
-          </StaggerItem>
-
-          <StaggerItem>
-            <div className="grid gap-5 md:grid-cols-[1.15fr_0.85fr]">
-              <div className="grid gap-5">
-                {fallbackTestimonials.map((item, index) => {
-                  const quote = str(item['quote']) || str(item['testimonial']);
-                  const author = str(item['author']) || str(item['name']) || `${companyName} Client`;
-                  const role = str(item['role']) || str(item['project']) || 'Renovation client';
-
-                  return (
-                    <StaggerItem key={`${author}-${index}`}>
-                      <article className="group border border-stone-300/70 bg-[rgba(255,252,247,0.9)] p-7 transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)] md:p-8">
-                        <div className="mb-6 flex items-center justify-between border-b border-stone-300/80 pb-4">
-                          <span className="font-['proxima-nova'] text-[11px] font-light uppercase tracking-[0.28em] text-stone-500">
-                            Client Review
-                          </span>
-                          <span className="font-['Cormorant_Garamond'] text-3xl leading-none text-primary">&ldquo;</span>
-                        </div>
-                        <p className="font-['Raleway'] text-[1.02rem] leading-8 text-stone-700">{quote}</p>
-                        <div className="mt-7">
-                          <p className="font-['Cormorant_Garamond'] text-2xl font-semibold uppercase tracking-[0.06em] text-stone-950">
-                            {author}
-                          </p>
-                          <p className="mt-1 font-['proxima-nova'] text-[11px] font-light uppercase tracking-[0.24em] text-stone-500">
-                            {role}
-                          </p>
-                        </div>
-                      </article>
-                    </StaggerItem>
-                  );
-                })}
-              </div>
-
-              <div className="grid auto-rows-[220px] gap-5 md:auto-rows-[minmax(220px,1fr)]">
-                <StaggerItem>
-                  <div className="group relative overflow-hidden border border-white/10 bg-stone-900">
-                    {fallbackImageA ? (
-                      <Image
-                        src={fallbackImageA}
-                        alt={`${companyName} project`}
-                        fill
-                        priority={false}
-                        className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(180,186,166,0.92),rgba(38,38,35,0.88))]" />
-                    )}
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(18,18,16,0.72))]" />
-                    <div className="absolute bottom-0 left-0 right-0 p-5 text-stone-50">
-                      <p className="font-['proxima-nova'] text-[11px] font-light uppercase tracking-[0.28em] text-stone-200">
-                        Detail-Driven Delivery
-                      </p>
-                    </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {sideImages.map((item) => (
+                <div key={item.title} className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width: 1024px) 50vw, 20vw"
+                    className="object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.72))]" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-white/70">{item.category}</p>
+                    <p className="mt-2 text-lg leading-tight text-white">{item.title}</p>
                   </div>
-                </StaggerItem>
-
-                <StaggerItem>
-                  <div className="group relative overflow-hidden border border-stone-300/70 bg-[rgba(255,252,247,0.85)] p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-                    <div className="relative h-full min-h-[220px] overflow-hidden border border-stone-300/70">
-                      {fallbackImageB ? (
-                        <Image
-                          src={fallbackImageB}
-                          alt={`${companyName} renovation`}
-                          fill
-                          priority={false}
-                          className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,248,238,1),rgba(180,186,166,0.58))]" />
-                      )}
-                    </div>
-                    <div className="mt-5 border-t border-stone-300/80 pt-4">
-                      <p className="font-['Cormorant_Garamond'] text-3xl font-semibold uppercase tracking-[0.05em] text-stone-950">
-                        Calm process. Sharp finish.
-                      </p>
-                      <p className="mt-2 font-['Raleway'] text-sm leading-7 text-stone-600">
-                        Design, permits, construction, and finishing managed in one disciplined flow.
-                      </p>
-                    </div>
-                  </div>
-                </StaggerItem>
-              </div>
+                </div>
+              ))}
             </div>
-          </StaggerItem>
-        </div>
-      </StaggerContainer>
+
+            <FadeInUp>
+              <Link
+                href="/visualizer"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-7 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-primary-foreground transition duration-300 hover:scale-[1.02] hover:bg-primary/90"
+              >
+                Get Your Free Design Estimate
+              </Link>
+            </FadeInUp>
+          </div>
+        </FadeIn>
+
+        <StaggerContainer className="grid gap-5">
+          {displayTestimonials.map((testimonial) => (
+            <StaggerItem key={`${testimonial.author}-${testimonial.quote.slice(0, 24)}`}>
+              <article className="rounded-[1.75rem] border border-white/10 bg-white/[0.06] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.18)] backdrop-blur-sm md:p-7">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-1 text-[#f3d788]">
+                    {Array.from({ length: testimonial.rating }).map((_, index) => (
+                      <Star key={index} className="size-4 fill-current" />
+                    ))}
+                  </div>
+                  <span className="text-[11px] uppercase tracking-[0.28em] text-white/52">{testimonial.projectType}</span>
+                </div>
+                <p className="mt-5 text-[15px] leading-8 text-white/82 md:text-base">{testimonial.quote}</p>
+                <div className="mt-6 border-t border-white/10 pt-4">
+                  <p
+                    className="text-[1.5rem] leading-tight text-white"
+                    style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
+                  >
+                    {testimonial.author}
+                  </p>
+                </div>
+              </article>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
     </section>
   );
 }

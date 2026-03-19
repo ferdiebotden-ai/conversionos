@@ -79,6 +79,7 @@ export function BrandingProvider({
           primaryOklch: colors["primary_oklch"] || DEMO_BRANDING.primaryOklch,
           logoUrl: (profileData?.["logoUrl"] as string) || (brand?.["logoUrl"] as string) || undefined,
           logoOnDark: (brand?.["logoOnDark"] as boolean) || undefined,
+          navItems: (brand?.["navItems"] as Branding["navItems"]) || undefined,
           services: rawServices.map(s => ({
             name: s.name,
             slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),

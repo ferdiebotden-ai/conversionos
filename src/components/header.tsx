@@ -32,33 +32,63 @@ const DEFAULT_NAV_LINKS = [
 /** Build anchor from href for scroll-spy (e.g., /gallery → #gallery, / → #hero) */
 function hrefToAnchor(href: string): string {
   if (href === '/') return '#hero'
+  if (href === '/gallery' || href === '/projects') return '#projects'
   return `#${href.replace(/^\//, '')}`
 }
 
-/** Scroll-spy: track which section is visible on homepage — derives from actual DOM elements */
+function normalizePath(path: string): string {
+  if (!path) return '/'
+  const normalized = path.replace(/\/+$/, '')
+  return normalized || '/'
+}
+
+function arePathAliases(a: string, b: string): boolean {
+  const left = normalizePath(a)
+  const right = normalizePath(b)
+
+  if (left === right) return true
+
+  return (
+    (left === '/gallery' && right === '/projects') ||
+    (left === '/projects' && right === '/gallery')
+  )
+}
+
+/** Scroll-spy: track which section is visible on homepage */
 function useScrollSpy(isHomepage: boolean) {
   const [activeSection, setActiveSection] = React.useState<string>('hero')
 
   React.useEffect(() => {
     if (!isHomepage) return
 
-    // Scan actual [id] elements inside <main> — works with whatever SectionRenderer renders
-    const mainEl = document.querySelector('main')
-    if (!mainEl) return
-
+    const sectionIds = ['hero', 'services', 'projects', 'how-it-works', 'about', 'contact', 'testimonials', 'trust', 'cta']
+    const latestEntries = new Map<string, IntersectionObserverEntry>()
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
-            setActiveSection(entry.target.id)
-          }
+          latestEntries.set(entry.target.id, entry)
+        }
+
+        const visibleSections = sectionIds
+          .map((id) => latestEntries.get(id))
+          .filter((entry): entry is IntersectionObserverEntry => Boolean(entry?.isIntersecting))
+          .sort((left, right) => {
+            const topDelta = Math.abs(left.boundingClientRect.top) - Math.abs(right.boundingClientRect.top)
+            if (topDelta !== 0) return topDelta
+            return right.intersectionRatio - left.intersectionRatio
+          })
+
+        if (visibleSections[0]?.target.id) {
+          setActiveSection(visibleSections[0].target.id)
         }
       },
-      { rootMargin: '-80px 0px -50% 0px', threshold: 0.3 }
+      { rootMargin: '-96px 0px -45% 0px', threshold: [0.2, 0.35, 0.5, 0.65] }
     )
 
-    const sectionEls = mainEl.querySelectorAll(':scope > div > [id]')
-    sectionEls.forEach(el => observer.observe(el))
+    for (const id of sectionIds) {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    }
 
     return () => observer.disconnect()
   }, [isHomepage])
@@ -88,7 +118,8 @@ export function Header() {
 
   // Dynamic nav: use branding.navItems if set (new builds), else hardcoded default (existing tenants)
   const navLinks = React.useMemo(() => {
-    const items = branding.navItems
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- navItems is a new field not yet in the Branding type
+    const items = (branding as any).navItems as Array<{ label: string; href: string }> | undefined
     if (items && Array.isArray(items) && items.length > 0) {
       return items.map(item => ({
         href: item.href,
@@ -103,7 +134,10 @@ export function Header() {
     if (isHomepage) {
       return sectionMatchesNav(activeSection, link.anchor)
     }
-    return link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
+    const currentPath = normalizePath(pathname)
+    const linkPath = normalizePath(link.href)
+    if (linkPath === '/') return currentPath === '/'
+    return currentPath.startsWith(linkPath) || arePathAliases(currentPath, linkPath)
   }
 
   const getLinkHref = (link: { href: string; anchor: string }) => {
