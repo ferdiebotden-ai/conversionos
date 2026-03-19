@@ -14,8 +14,8 @@ icp_scoring:
     years_in_business: 15
   thresholds:
     auto_proceed: 85
-    manual_review: 65
-    reject: 65
+    manual_review: 50
+    reject: 50
   # ICP-based routing: auto-split high-value leads from scale outreach
   icp_routing:
     warm_lead_threshold: 80    # Score 80+ → bespoke warm-lead build (Opus, Ferdie calls)
