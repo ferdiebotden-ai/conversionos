@@ -26,8 +26,8 @@ function list(value: unknown): string[] {
 export function ServicesSection({ branding, config, className }: SectionBaseProps) {
   const brandName = str(branding.name) || 'Go Hard Corporation';
   const headline =
-    str(config['heroHeadline']) ||
-    str(config['hero_headline']) ||
+    str(config['servicesHeadline']) ||
+    str(config['services_headline']) ||
     `At ${brandName} we bring your Full Home Renovation ideas to life.`;
   const subheadline =
     str(config['heroSubheadline']) ||
@@ -107,7 +107,7 @@ export function ServicesSection({ branding, config, className }: SectionBaseProp
                   alt={brandName}
                   fill
                   priority={false}
-                  className="object-cover"
+                  className="object-cover object-center"
                 />
               ) : (
                 <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(31,41,55,0.98)_0%,rgba(180,186,166,0.78)_100%)]" />

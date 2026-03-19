@@ -91,7 +91,7 @@ export function ProjectGallery({ branding, config, tokens, className }: SectionB
                           src={imageUrl}
                           alt={`${itemTitle} by ${companyName}`}
                           fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                          className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]"
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
                       ) : (

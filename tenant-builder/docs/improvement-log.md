@@ -76,6 +76,46 @@
 **Risk:** LOW — additional scrape step per service page
 **Tenants affected:** a-and-a-home-renovations, likely widespread
 
+### 8. Pipeline stdout killed by tee + head pipe
+**Found:** 2026-03-19 (Batch build session)
+**Symptom:** Build waves using `| tee logfile | head -100` complete content-architect for 20+ targets but only 8 get provisioned. Process exits code 0 but most targets stop mid-pipeline.
+**Root cause:** `head -100` exits after 100 lines, sending SIGPIPE up the pipe chain. `tee` receives SIGPIPE and the node process stdout breaks. Node.js may silently fail subsequent console output but continues executing — however, async pipeline stages that rely on stdout/stderr for progress tracking may stall.
+**Impact:** CRITICAL — batch builds silently lose 60%+ of targets
+**Suggested fix:** Never pipe orchestrate.mjs through `head`. Use `tee logfile` without truncation. For monitoring, use `tail -f logfile` in a separate terminal.
+**Risk:** LOW — remove `| head -100` from all batch invocations
+
+### 9. Claude CLI session expiry during long batch runs
+**Found:** 2026-03-19 (Wave 2 build)
+**Symptom:** Architect stage returns "Not logged in · Please run /login" for all targets in a wave. All architects fall back to default blueprint (5 pages, 0 custom sections). No bespoke builds generated.
+**Root cause:** Claude CLI OAuth session expires during long-running batch builds (60+ min). The orchestrate.mjs subprocess calls `claude -p` which hits the expired session. No auto-refresh mechanism exists.
+**Impact:** HIGH — all bespoke builds degrade to template builds when session expires
+**Suggested fix:** Add a pre-flight check in orchestrate.mjs: run `claude -p "test" --max-turns 1` before starting builds. If it fails with "Not logged in", warn and prompt for login. Also consider catching the "Not logged in" error in architect.mjs and pausing to re-authenticate.
+**Risk:** LOW — additive check, no existing flow changed
+
+### 10. Opus CLI consistently times out at 450s for architect stage
+**Found:** 2026-03-19 (Wave 2 build — multiple targets)
+**Symptom:** Every architect call using Opus CLI (`claude -p`) times out at 450s (timeout-multiplier 1.5 × 300s base). Falls back to default blueprint every time.
+**Root cause:** Opus architect prompts with full HTML + CSS + screenshots are too large for the CLI timeout. The model processes successfully but the CLI subprocess times out before it completes.
+**Impact:** HIGH — bespoke pipeline never completes architect stage, all builds use template fallback
+**Suggested fix:** Either (a) increase architect timeout to 600s in config.yaml, (b) reduce prompt size by summarizing HTML/CSS instead of sending raw markup, or (c) split the architect call into smaller sequential calls.
+**Risk:** MEDIUM — increasing timeout delays builds; reducing prompt size may lose context
+
+### 11. ICP threshold 65 filters out most email-bearing targets
+**Found:** 2026-03-19 (Wave 1 build)
+**Symptom:** 13 of 15 email targets were filtered out by the ICP threshold of 65. These targets (ICP 53-64) have confirmed email addresses and are outreach-ready, but the pipeline rejects them.
+**Root cause:** `config.yaml` sets `manual_review: 65` as the batch build threshold. The ICP routing sets `tenant_threshold: 55` but the batch filter uses `manual_review` not `tenant_threshold`. Mismatch between the routing logic and the filter logic.
+**Impact:** HIGH — 85% of outreach-ready targets are rejected by the batch builder
+**Suggested fix:** Use `tenant_threshold` (55) instead of `manual_review` (65) as the batch filter threshold. Or add a `--min-icp` CLI flag to override the threshold.
+**Risk:** LOW — lowers quality floor slightly but all these targets passed ICP scoring
+
+### 12. Before/after visualizer demo images missing on all tenants
+**Found:** 2026-03-19 (QA — BL Renovations)
+**Symptom:** 7 console errors on every tenant page: `after-transitional.png`, `after-modern.png`, `after-farmhouse.png`, `after-industrial.png`, `after-scandinavian.png`, `before-kitchen.png` all 404. These are the hero section's before/after comparison slider images.
+**Root cause:** The visualizer-teardown hero section references images at `/images/norbot/after-{style}.png` but these files only exist in the norbot base platform, not in per-tenant Supabase storage. When the hero section renders on a tenant domain, these paths resolve to the tenant's domain where they don't exist.
+**Impact:** MEDIUM — hero slider shows broken images on first load, but the main hero background renders correctly
+**Suggested fix:** Either (a) copy the demo before/after images to Supabase storage per-tenant during provisioning, (b) use absolute URLs pointing to the base platform, or (c) generate tenant-specific before/after images using Gemini during provisioning.
+**Risk:** LOW — any approach is additive
+
 ---
 
 ## Implemented Fixes

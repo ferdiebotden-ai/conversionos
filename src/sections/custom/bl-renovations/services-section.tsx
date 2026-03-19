@@ -147,7 +147,7 @@ export function ServicesSection({ branding, config, className }: SectionBaseProp
                     </p>
                     <Link
                       href="/visualizer"
-                      className="inline-flex items-center font-[Quicksand] text-sm font-semibold uppercase tracking-[0.16em] text-[#1A0DAB] transition duration-300 group-hover:translate-x-1"
+                      className="inline-flex items-center font-[Quicksand] text-sm font-semibold uppercase tracking-[0.16em] text-primary transition duration-300 group-hover:translate-x-1"
                     >
                       See your space before you build
                     </Link>

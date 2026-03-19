@@ -19,12 +19,23 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
   const email = str(config['email']) || str(config['contact_email']) || str(branding['email']);
   const address = str(config['address']) || str(config['location']) || str(branding['address']);
   const logoUrl = str(config['logoUrl']) || str(config['logo_url']) || str(branding['logo_url']);
-  const navLinks = list(config['navLinks']).length
-    ? list(config['navLinks'])
-    : ['Home', 'About', 'Services', 'Gallery', 'Contact'];
-  const socialLinks = list(config['socialLinks']).length
-    ? list(config['socialLinks'])
-    : ['Facebook', 'Instagram', 'Houzz'];
+  const navItems = [
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Services', href: '/services' },
+    { label: 'Projects', href: '/projects' },
+    { label: 'Contact', href: '/contact' },
+  ];
+
+  const brandingSocials = Array.isArray((branding as Record<string, unknown>)['socials'])
+    ? ((branding as Record<string, unknown>)['socials'] as { label: string; href: string }[])
+    : [];
+  const socialItems = brandingSocials.length > 0
+    ? brandingSocials
+    : [
+        { label: 'Facebook', href: '#' },
+        { label: 'Instagram', href: '#' },
+      ];
 
   return (
     <footer
@@ -85,14 +96,14 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
             <div>
               <p className="text-[11px] uppercase tracking-[0.34em] text-white/55">Navigation</p>
               <ul className="mt-6 space-y-3">
-                {navLinks.map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
+                {navItems.map((item) => (
+                  <li key={item.label}>
+                    <Link
+                      href={item.href}
                       className="text-[14px] font-light uppercase tracking-[0.16em] text-white/82 transition hover:text-white"
                     >
-                      {item}
-                    </a>
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -103,13 +114,15 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
             <div>
               <p className="text-[11px] uppercase tracking-[0.34em] text-white/55">Follow</p>
               <ul className="mt-6 space-y-3">
-                {socialLinks.map((item) => (
-                  <li key={item}>
+                {socialItems.map((item) => (
+                  <li key={item.label}>
                     <a
-                      href="#"
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-[14px] font-light uppercase tracking-[0.16em] text-white/82 transition hover:text-white"
                     >
-                      {item}
+                      {item.label}
                     </a>
                   </li>
                 ))}

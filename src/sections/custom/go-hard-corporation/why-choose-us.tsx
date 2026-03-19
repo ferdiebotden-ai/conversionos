@@ -65,7 +65,7 @@ export function WhyChooseUs({ branding, config, tokens, className }: SectionBase
   return (
     <section
       className={`bg-[#1f1f1c] px-5 py-16 text-white md:px-8 md:py-24 ${className ?? ''}`}
-      style={{ fontFamily: '"Inter", sans-serif' }}
+      style={{ fontFamily: '"Raleway", "proxima-nova", sans-serif' }}
     >
       <div className="mx-auto max-w-6xl">
         <FadeIn>
@@ -117,7 +117,7 @@ export function WhyChooseUs({ branding, config, tokens, className }: SectionBase
           <div className="mt-12 flex justify-center md:mt-16">
             <Link
               href="/visualizer"
-              className="inline-flex items-center justify-center bg-[#b4baa6] px-8 py-3 text-center font-['proxima-nova'] text-[14px] font-light uppercase tracking-[1px] text-white transition-all duration-300 hover:brightness-105"
+              className="inline-flex items-center justify-center bg-primary px-8 py-3 text-center font-['proxima-nova'] text-[14px] font-light uppercase tracking-[1px] text-primary-foreground transition-all duration-300 hover:scale-[1.02] hover:bg-primary/90"
             >
               Get Your Free Design Estimate
             </Link>

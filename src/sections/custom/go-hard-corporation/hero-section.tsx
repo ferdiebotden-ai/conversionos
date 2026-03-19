@@ -69,11 +69,9 @@ export function HeroSection({ branding, config, tokens, className }: SectionBase
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row">
                 <Link
                   href="/visualizer"
-                  className="inline-flex min-w-[240px] items-center justify-center border border-transparent bg-primary px-7 py-3 text-center text-[0.875rem] font-light uppercase tracking-[0.18em] text-primary-foreground transition duration-300 hover:brightness-95"
+                  className="inline-flex min-w-[240px] items-center justify-center border border-transparent bg-primary px-7 py-3 text-center text-[0.875rem] font-light uppercase tracking-[0.18em] text-primary-foreground transition duration-300 hover:scale-[1.02] hover:bg-primary/90"
                   style={{
                     fontFamily: '"proxima-nova",Inter,sans-serif',
-                    backgroundColor: 'rgb(180, 186, 166)',
-                    color: 'rgb(255, 255, 255)',
                   }}
                 >
                   Get Your Free Design Estimate

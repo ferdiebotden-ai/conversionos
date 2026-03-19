@@ -10,12 +10,13 @@ export function AboutSection({ branding, config, tokens, className }: SectionBas
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
 
+  const c = config as unknown as Record<string, unknown>;
   const aboutText =
-    str(config['aboutText']) ||
-    str(config['about_text']) ||
-    str(config['aboutCopy']) ||
-    str(config['about_copy']);
-  const aboutImage = str(config['aboutImageUrl']) || str(config['about_image_url']);
+    str(c['aboutText']) ||
+    str(c['about_text']) ||
+    str(c['aboutCopy']) ||
+    str(c['about_copy']);
+  const aboutImage = str(c['aboutImageUrl']) || str(c['about_image_url']);
   const companyName = str(branding.name) || 'Our Company';
   const paragraphs = aboutText
     .split(/\n+/)

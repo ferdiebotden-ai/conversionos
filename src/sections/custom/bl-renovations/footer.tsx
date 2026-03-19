@@ -22,27 +22,28 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
   const logoUrl = str(brand['logo_url']) || str(config['logoUrl']) || str(config['logo_url']);
 
   const navigation = [
-    { label: 'Home', href: '#top' },
-    { label: 'About', href: '#about' },
-    { label: 'Services', href: '#services' },
-    { label: 'Gallery', href: '#gallery' },
-    { label: 'Contact', href: '#contact' },
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Services', href: '/services' },
+    { label: 'Projects', href: '/projects' },
+    { label: 'Contact', href: '/contact' },
   ];
 
-  const socialItems = [
-    {
-      label: 'Facebook',
-      href: str(config['facebookUrl']) || str(config['facebook_url']) || '#',
-    },
-    {
-      label: 'Instagram',
-      href: str(config['instagramUrl']) || str(config['instagram_url']) || '#',
-    },
-    {
-      label: 'Houzz',
-      href: str(config['houzzUrl']) || str(config['houzz_url']) || '#',
-    },
-  ].filter((item) => item.href && item.href !== '#');
+  const brandingSocials = Array.isArray(brand['socials'])
+    ? (brand['socials'] as { label: string; href: string }[])
+    : [];
+  const socialItems = brandingSocials.length > 0
+    ? brandingSocials
+    : [
+        {
+          label: 'Facebook',
+          href: str(config['facebookUrl']) || str(config['facebook_url']) || '#',
+        },
+        {
+          label: 'Instagram',
+          href: str(config['instagramUrl']) || str(config['instagram_url']) || '#',
+        },
+      ].filter((item) => item.href && item.href !== '#');
 
   return (
     <footer
