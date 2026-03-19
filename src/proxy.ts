@@ -107,15 +107,11 @@ const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
   'stonewood-development-corp.norbotsystems.com': 'stonewood-development-corp',
   'mastered-home-renovations.norbotsystems.com': 'mastered-home-renovations',
   'total-living-concepts.norbotsystems.com': 'total-living-concepts',
-  'paul-s-contracting.norbotsystems.com': 'paul-s-contracting',
   'menno-s-martin-contractor-ltd.norbotsystems.com': 'menno-s-martin-contractor-ltd',
   'portfolio-bcci-construction.norbotsystems.com': 'portfolio-bcci-construction',
   'rtc-renovations.norbotsystems.com': 'rtc-renovations',
   'jnr-contracting.norbotsystems.com': 'jnr-contracting',
   'fryett-turner-architects.norbotsystems.com': 'home-fryett-turner-architects-inc-custom-design-solutions',
-  'samandrez-premium-kitchen-bathroom-flooring-renovations.norbotsystems.com': 'samandrez-premium-kitchen-bathroom-flooring-renovations',
-  'about-m-j-contracting-family-owned-excellence-m-j-contractin.norbotsystems.com': 'about-m-j-contracting-family-owned-excellence-m-j-contractin',
-  'home-fryett-turner-architects-inc-custom-design-solutions.norbotsystems.com': 'home-fryett-turner-architects-inc-custom-design-solutions',
 };
 
 // ─── Proxy Entry Point ──────────────────────────────────────────────────────
