@@ -27,6 +27,7 @@ export interface Branding {
   faviconUrl?: string | undefined;
   ogImageUrl?: string | undefined;
   services: { name: string; slug: string }[];
+  navItems?: { label: string; href: string }[] | undefined;
 }
 
 const DEMO_BRANDING: Branding = {
@@ -108,6 +109,7 @@ export async function getBranding(): Promise<Branding> {
         name: s.name,
         slug: s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       })),
+      navItems: (brand['navItems'] as Branding['navItems']) || undefined,
     };
   } catch {
     return DEMO_BRANDING;

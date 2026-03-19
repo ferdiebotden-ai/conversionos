@@ -14,7 +14,7 @@ function getSectionAnchorId(sectionId: SectionId): string | null {
   const ANCHOR_MAP: Record<string, string> = {
     hero: 'hero',
     services: 'services',
-    gallery: 'projects',
+    gallery: 'gallery',
     about: 'about',
     contact: 'contact',
     testimonials: 'testimonials',

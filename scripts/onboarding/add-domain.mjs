@@ -18,7 +18,7 @@ import { resolve } from 'node:path';
 
 // ─── Load env ───────────────────────────────────────────────────────────────
 function loadEnv() {
-  for (const envFile of ['.env.local', resolve(process.env.HOME, 'pipeline/scripts/.env')]) {
+  for (const envFile of ['.env.local', resolve(process.env.HOME, 'pipeline/scripts/.env'), resolve(process.env.HOME, 'Norbot-Systems/products/conversionos/pipeline/scripts/.env')]) {
     try {
       const content = readFileSync(resolve(process.cwd(), envFile), 'utf-8');
       for (const line of content.split('\n')) {

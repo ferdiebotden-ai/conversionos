@@ -461,7 +461,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
   });
 
   return (
-    <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-b from-background via-background to-muted/30', className)}>
+    <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-br from-zinc-900 via-primary/20 to-zinc-950', className)}>
       {/* Background hero image from the contractor's website */}
       {hasHeroBg && (
         <>

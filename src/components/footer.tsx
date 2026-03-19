@@ -7,9 +7,8 @@ import { Mail, MapPin, Phone } from "lucide-react"
 import { useBranding } from "@/components/branding-provider"
 import { useTier } from "@/components/tier-provider"
 
-const quickLinks = [
+const DEFAULT_QUICK_LINKS = [
   { href: "/services", label: "Our Services" },
-  { href: "/projects", label: "Projects" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ]
@@ -100,7 +99,7 @@ export function Footer({ hideAttribution = false }: { hideAttribution?: boolean 
               Quick Links
             </h3>
             <ul className="space-y-3">
-              {quickLinks.map((link) => (
+              {(branding.navItems?.filter(n => n.href !== '/').map(n => ({ href: n.href, label: n.label })) ?? DEFAULT_QUICK_LINKS).map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

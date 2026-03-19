@@ -35,14 +35,17 @@ function hrefToAnchor(href: string): string {
   return `#${href.replace(/^\//, '')}`
 }
 
-/** Scroll-spy: track which section is visible on homepage */
+/** Scroll-spy: track which section is visible on homepage — derives from actual DOM elements */
 function useScrollSpy(isHomepage: boolean) {
   const [activeSection, setActiveSection] = React.useState<string>('hero')
 
   React.useEffect(() => {
     if (!isHomepage) return
 
-    const sectionIds = ['hero', 'services', 'projects', 'how-it-works', 'about', 'contact', 'testimonials', 'trust', 'cta']
+    // Scan actual [id] elements inside <main> — works with whatever SectionRenderer renders
+    const mainEl = document.querySelector('main')
+    if (!mainEl) return
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -54,10 +57,8 @@ function useScrollSpy(isHomepage: boolean) {
       { rootMargin: '-80px 0px -50% 0px', threshold: 0.3 }
     )
 
-    for (const id of sectionIds) {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    }
+    const sectionEls = mainEl.querySelectorAll(':scope > div > [id]')
+    sectionEls.forEach(el => observer.observe(el))
 
     return () => observer.disconnect()
   }, [isHomepage])
@@ -87,8 +88,7 @@ export function Header() {
 
   // Dynamic nav: use branding.navItems if set (new builds), else hardcoded default (existing tenants)
   const navLinks = React.useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- navItems is a new field not yet in the Branding type
-    const items = (branding as any).navItems as Array<{ label: string; href: string }> | undefined
+    const items = branding.navItems
     if (items && Array.isArray(items) && items.length > 0) {
       return items.map(item => ({
         href: item.href,
