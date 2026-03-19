@@ -24,6 +24,12 @@ interface UseSliderMotionOptions {
   initialPosition?: number;
   /** Skip intro animation and set position immediately. Default: false */
   reducedMotion?: boolean;
+  /** Delay before intro animation starts (ms). Default: 1800 */
+  introDelay?: number;
+  /** Duration of the sweep animation (seconds). Default: 12 */
+  introDuration?: number;
+  /** Custom cubic-bezier easing. Default: cinematic slow-start */
+  introEase?: [number, number, number, number];
 }
 
 interface UseSliderMotionReturn {
@@ -41,7 +47,7 @@ interface UseSliderMotionReturn {
     onTouchStart: (e: React.TouchEvent) => void;
     onKeyDown: (e: React.KeyboardEvent) => void;
   };
-  /** Run the intro animation (0 → 100 → 88). Returns when complete. */
+  /** Run the intro animation (hold → cinematic sweep 0 → 100). Returns when complete. */
   runIntroAnimation: () => Promise<void>;
   /** Cancel any running animation and mark as user-interrupted. */
   cancelAnimation: () => void;
@@ -50,7 +56,13 @@ interface UseSliderMotionReturn {
 export function useSliderMotion(
   options: UseSliderMotionOptions = {}
 ): UseSliderMotionReturn {
-  const { initialPosition = 0, reducedMotion = false } = options;
+  const {
+    initialPosition = 0,
+    reducedMotion = false,
+    introDelay = 300,
+    introDuration = 10,
+    introEase = [0.25, 0.65, 0.45, 1.0],
+  } = options;
 
   const position = useMotionValue(reducedMotion ? 90 : initialPosition);
   const [isDragging, setIsDragging] = useState(false);
@@ -80,17 +92,19 @@ export function useSliderMotion(
     }
   }, []);
 
-  // ── Intro animation: sweep 0 → 100 (full renovation reveal) ──────
+  // ── Intro animation: hold → slow cinematic sweep → settle ────────
   const runIntroAnimation = useCallback(async () => {
     cancelledRef.current = false;
 
-    await new Promise((r) => setTimeout(r, 600));
+    // Phase 1: Hold on "before" state so user absorbs the original
+    await new Promise((r) => setTimeout(r, introDelay));
     if (cancelledRef.current) return;
 
+    // Phase 2: Slow cinematic sweep 0 → 100
     await new Promise<void>((resolve) => {
       const ctrl = animate(position, 100, {
-        duration: 2.8,
-        ease: [0.25, 0.46, 0.45, 0.94],
+        duration: introDuration,
+        ease: introEase,
         onComplete: resolve,
       });
       controlsRef.current = ctrl;
@@ -100,7 +114,7 @@ export function useSliderMotion(
 
     controlsRef.current = null;
     setShowLabels(true);
-  }, [position]);
+  }, [position, introDelay, introDuration, introEase]);
 
   // ── Mouse events ─────────────────────────────────────────────────
   const handleMouseDown = useCallback(

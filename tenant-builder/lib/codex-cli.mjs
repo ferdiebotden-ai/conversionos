@@ -47,8 +47,8 @@ export async function codexExec(prompt, {
   json = false,
   model,
 } = {}) {
-  // Try Codex first with a short timeout, then fall back to Claude CLI
-  const codexTimeout = Math.min(timeoutMs, 30000); // Cap Codex at 30s — if it hasn't started in 30s, it's hanging
+  // Try Codex first, then fall back to Claude CLI
+  const codexTimeout = Math.min(timeoutMs, 120000); // Cap Codex at 120s — complex sections need time
   logger.debug(`Codex exec [timeout=${codexTimeout}ms, prompt=${prompt.length} chars, images=${images.length}, ephemeral=${ephemeral}]`);
 
   const codexArgs = ['exec', '--full-auto'];
@@ -71,8 +71,8 @@ export async function codexExec(prompt, {
     return { stdout, stderr };
   } catch (codexErr) {
     // Codex failed or timed out — fall back to Claude CLI
-    logger.info(`Codex failed (${codexErr.killed ? 'timeout' : 'error'}), falling back to Claude CLI`);
-    return claudeCodeGen(prompt, { cwd, timeoutMs, outputFile, model: options?.model });
+    logger.info(`Codex failed (${codexErr.killed ? 'timeout' : 'error'}), falling back to Claude CLI [model=${model || 'default'}]`);
+    return claudeCodeGen(prompt, { cwd, timeoutMs, outputFile, model });
   }
 }
 

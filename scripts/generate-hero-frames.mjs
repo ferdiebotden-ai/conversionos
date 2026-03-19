@@ -32,8 +32,8 @@ if (!API_KEY) {
 // ── Config ────────────────────────────────────────────────────────
 
 const STYLES = [
-  { label: 'Transitional', slug: 'transitional' },
   { label: 'Modern', slug: 'modern' },
+  { label: 'Transitional', slug: 'transitional' },
   { label: 'Farmhouse', slug: 'farmhouse' },
   { label: 'Industrial', slug: 'industrial' },
   { label: 'Scandinavian', slug: 'scandinavian' },

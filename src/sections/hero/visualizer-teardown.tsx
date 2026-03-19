@@ -58,8 +58,8 @@ interface StyleOption {
 
 const DEFAULT_BEFORE = '/images/hero/before-kitchen.png';
 const DEFAULT_STYLES: StyleOption[] = [
-  { label: 'Transitional', after: '/images/hero/after-transitional.png' },
   { label: 'Modern', after: '/images/hero/after-modern.png' },
+  { label: 'Transitional', after: '/images/hero/after-transitional.png' },
   { label: 'Farmhouse', after: '/images/hero/after-farmhouse.png' },
   { label: 'Industrial', after: '/images/hero/after-industrial.png' },
   { label: 'Scandinavian', after: '/images/hero/after-scandinavian.png' },
@@ -121,12 +121,12 @@ function FrameScrubber({
     let loaded = 0;
     for (const idx of allIndices) {
       const img = new window.Image();
-      img.src = `${baseUrl}frame_${String(idx).padStart(3, '0')}.jpg`;
+      img.src = `${baseUrl}frame_${String(idx).padStart(3, '0')}.webp`;
       img.onload = () => {
         frames[idx] = img;
         loaded++;
         // Update state periodically (not every frame to avoid re-renders)
-        if (loaded % 10 === 0 || loaded === frameCount) {
+        if (loaded % 20 === 0 || loaded === frameCount) {
           setLoadedCount(loaded);
         }
       };
@@ -351,7 +351,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
       const slug = s.label.toLowerCase();
       // In dev, frames served from public/images/hero/frames/{slug}/
       // We check at runtime by attempting to load frame_000.jpg
-      return { ...s, frameBaseUrl: `/images/hero/frames/${slug}/`, frameCount: 80 };
+      return { ...s, frameBaseUrl: `/images/hero/frames/${slug}/`, frameCount: 157 };
     });
   })();
 
@@ -372,7 +372,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
     }
     img.onload = () => setHasFrames(true);
     img.onerror = () => setHasFrames(false);
-    img.src = `${baseUrl}frame_000.jpg`;
+    img.src = `${baseUrl}frame_000.webp`;
   }, [active.frameBaseUrl, activeIndex]);
 
   // Slider hook
@@ -408,6 +408,8 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
   // Tab switch
   const handleTabSwitch = (index: number) => {
     cancelAnimation();
+    clearPhaseTimer();
+    setHeroPhase('idle');
     setActiveIndex(index);
     position.set(0);
     hasAnimatedRef.current = false;
@@ -427,6 +429,36 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
   // Hero background image: use tenant's heroImageUrl if available
   const heroImageUrl = config.heroImageUrl;
   const hasHeroBg = Boolean(heroImageUrl);
+
+  // ── Brand reveal state machine ─────────────────────────────────
+  // idle → revealing → inviting (slider pulse)
+  // User interaction at any point → idle
+  const [heroPhase, setHeroPhase] = useState<'idle' | 'revealing' | 'inviting'>('idle');
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPhaseTimer = () => {
+    if (phaseTimerRef.current) {
+      clearTimeout(phaseTimerRef.current);
+      phaseTimerRef.current = null;
+    }
+  };
+
+  useMotionValueEvent(position, 'change', (latest) => {
+    if (latest >= 96 && !isDragging && heroPhase === 'idle') {
+      if (!phaseTimerRef.current) {
+        phaseTimerRef.current = setTimeout(() => {
+          setHeroPhase('revealing');
+          phaseTimerRef.current = setTimeout(() => {
+            setHeroPhase('inviting');
+            phaseTimerRef.current = null;
+          }, 3500); // Auto-dismiss after 3.5s → invite slider interaction
+        }, 200);
+      }
+    } else if (isDragging || latest < 85) {
+      clearPhaseTimer();
+      if (heroPhase !== 'idle') setHeroPhase('idle');
+    }
+  });
 
   return (
     <section className={cn('relative overflow-hidden', hasHeroBg ? 'min-h-[600px] md:min-h-[700px]' : 'bg-gradient-to-b from-background via-background to-muted/30', className)}>
@@ -472,7 +504,7 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
           </div>
 
           {/* Right: Before/After card */}
-          <div className="order-1 space-y-4 md:order-2">
+          <div className="order-1 max-w-lg mx-auto space-y-4 md:order-2 md:max-w-none">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold tracking-wide text-card-foreground">
                 <Sparkles className="size-3 text-primary" />
@@ -480,7 +512,12 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
               </span>
             </div>
 
-            <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-2xl shadow-black/10">
+            {/* Glow wrapper — soft ambient primary-tinted glow */}
+            <div className="relative">
+              <div className="absolute -inset-2 -z-10 rounded-[2.25rem] bg-primary/[0.07] blur-xl" aria-hidden="true" />
+              <div className="absolute -inset-px -z-10 rounded-[1.85rem] bg-primary/[0.04]" aria-hidden="true" />
+
+            <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-2xl shadow-black/10 ring-1 ring-primary/10">
               {/* Style tabs — horizontally scrollable with fade hint */}
               <div className="relative border-b border-border">
                 <div className="flex gap-0.5 overflow-x-auto scrollbar-hide px-2 pt-2 pb-1.5 sm:gap-1 sm:px-4 sm:pt-3 sm:pb-2">
@@ -521,12 +558,40 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
                   <TileGrid beforeUrl={beforeImage} afterUrl={active.after} position={position} />
                 )}
 
-                {/* Corner labels */}
-                <div className={cn('absolute left-3 top-3 z-10 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-sm transition-opacity duration-500', showLabels ? 'opacity-100' : 'opacity-0')}>
+                {/* Corner labels — hide during brand reveal */}
+                <div className={cn('absolute left-3 top-3 z-10 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-sm transition-opacity duration-500', showLabels && heroPhase !== 'revealing' ? 'opacity-100' : 'opacity-0')}>
                   Before
                 </div>
-                <div className={cn('absolute right-3 top-3 z-10 rounded-full bg-primary/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur-sm transition-opacity duration-500', showLabels ? 'opacity-100' : 'opacity-0')}>
+                <div className={cn('absolute right-3 top-3 z-10 rounded-full bg-primary/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur-sm transition-opacity duration-500', showLabels && heroPhase !== 'revealing' ? 'opacity-100' : 'opacity-0')}>
                   After
+                </div>
+
+                {/* Brand reveal — fades in, auto-dismisses after 3.5s */}
+                <div
+                  className={cn(
+                    'absolute inset-0 z-20 flex flex-col items-center justify-center transition-all ease-out',
+                    heroPhase === 'revealing'
+                      ? 'opacity-100 duration-1000'
+                      : 'pointer-events-none opacity-0 translate-y-2 duration-700'
+                  )}
+                >
+                  <div className="flex flex-col items-center gap-3 rounded-2xl bg-black/15 px-5 py-4 backdrop-blur-[2px] sm:gap-4 sm:px-12 sm:py-8">
+                    {branding.logoUrl ? (
+                      <img
+                        src={branding.logoUrl}
+                        alt={branding.name}
+                        className="h-7 max-w-[150px] object-contain brightness-0 invert sm:h-10 sm:max-w-[220px]"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold tracking-tight text-white sm:text-2xl">
+                        {branding.name}
+                      </span>
+                    )}
+                    <div className="h-px w-12 bg-white/30" />
+                    <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/70 sm:text-xs">
+                      {active.label} Design
+                    </span>
+                  </div>
                 </div>
 
                 {/* Slider bar */}
@@ -556,8 +621,9 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
                           'absolute top-1/2 -translate-y-1/2',
                           'h-4 w-4 rounded-full border-2 border-primary bg-white shadow-lg',
                           '[@media(hover:none)]:h-10 [@media(hover:none)]:w-10',
-                          'transition-transform duration-100',
-                          isDragging && 'scale-110'
+                          'transition-all duration-200',
+                          isDragging && 'scale-110 cursor-grabbing',
+                          heroPhase === 'inviting' && 'h-6 w-6 scale-125 shadow-primary/40 shadow-xl animate-pulse cursor-grab'
                         )}
                         style={{ left: thumbLeft, x: '-50%' }}
                       />
@@ -569,14 +635,21 @@ export function VisualizerTeardownHero({ branding, config, className }: Props) {
 
               {/* CTA bar */}
               <div className="flex items-center justify-between border-t border-border px-3 py-2 sm:px-4 sm:py-3">
-                <p className="text-[10px] text-muted-foreground sm:text-xs">Drag to compare</p>
-                <Button asChild size="sm" className="h-8 rounded-full px-4 text-xs font-semibold">
+                <p className={cn(
+                  'text-[10px] text-muted-foreground sm:text-xs transition-opacity duration-500',
+                  heroPhase === 'inviting' ? 'opacity-100' : 'opacity-60'
+                )}>
+                  {heroPhase === 'inviting' ? 'Drag the slider to explore' : 'Drag to compare'}
+                </p>
+                <Button asChild size="sm" className="group h-8 rounded-full px-4 text-xs font-semibold transition-shadow duration-300 hover:shadow-md hover:shadow-primary/20">
                   <Link href="/visualizer">
                     Try with Your Space
-                    <ArrowRight className="ml-1.5 size-3.5" />
+                    <ArrowRight className="ml-1.5 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
               </div>
+            </div>
+            {/* /glow wrapper */}
             </div>
           </div>
         </div>

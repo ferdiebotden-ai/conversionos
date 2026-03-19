@@ -61,6 +61,7 @@ const ANIMATION_MAP = {
  * @param {boolean} [options.review=true] - Run Codex review quality gate
  * @param {Array<object>} [options.buildManifest] - Design Director build manifest entries (overrides blueprint specs)
  * @param {object} [options.deepContent] - Content Architect output (rich structured content)
+ * @param {string} [options.model] - Claude CLI model override for fallback codegen
  * @returns {Promise<{ built: number, failed: number }>}
  */
 export async function buildCustomSections(siteId, blueprint, {
@@ -73,6 +74,7 @@ export async function buildCustomSections(siteId, blueprint, {
   review = true,
   buildManifest,
   deepContent,
+  model,
 }) {
   let customSections = blueprint.customSections ?? [];
   if (customSections.length === 0) return { built: 0, failed: 0 };
@@ -127,7 +129,7 @@ export async function buildCustomSections(siteId, blueprint, {
       const cohesiveResult = await buildCohesivePage(siteId, customSections, {
         cwd, timeoutMs: timeoutMs * 2, // Double timeout for larger generation
         integrationSpec, aestheticsPrompt, designLanguage,
-        cssTokens, deepContent, buildManifest, contentFileGenerated,
+        cssTokens, deepContent, buildManifest, contentFileGenerated, model,
       });
 
       if (cohesiveResult.success) {
@@ -226,6 +228,7 @@ export async function buildCustomSections(siteId, blueprint, {
           timeoutMs,
           images: sectionImages,
           ephemeral: true,
+          model,
         });
 
         // Detect new files by diffing directory
@@ -287,7 +290,7 @@ export async function buildCustomSections(siteId, blueprint, {
       logger.warn(`TypeScript errors in custom sections — attempting batch fix`);
       const fixPrompt = `Fix all TypeScript errors in the files under src/sections/custom/${siteId}/. Errors:\n${tscResult.errors}\n\nFix the files so they compile cleanly. Do not delete files.`;
       try {
-        await codexExec(fixPrompt, { cwd, timeoutMs, ephemeral: true });
+        await codexExec(fixPrompt, { cwd, timeoutMs, ephemeral: true, model });
         const retryResult = tscCheck(cwd);
         if (retryResult.exitCode !== 0) {
           logger.warn(`TypeScript errors persist after fix attempt — continuing anyway`);
@@ -690,6 +693,7 @@ async function buildCohesivePage(siteId, sections, {
   deepContent,
   buildManifest,
   contentFileGenerated = false,
+  model,
 }) {
   const customDir = join(cwd, 'src', 'sections', 'custom', siteId);
   const outputFileName = `${siteId}-sections.tsx`;
@@ -817,6 +821,7 @@ export function ServicesSection({ branding, config, tokens, className }: Section
       cwd,
       timeoutMs,
       ephemeral: true,
+      model,
     });
   } catch (err) {
     logger.warn(`Cohesive page Codex call failed: ${err.message?.slice(0, 100)}`);

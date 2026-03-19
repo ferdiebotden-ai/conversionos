@@ -483,6 +483,7 @@ const tasks = targets.map(target => async () => {
             review: true,
             buildManifest: ddManifest,
             deepContent,
+            model: modelOverride,
           });
           logger.progress({ stage: 'custom-sections', target_id: target.id, site_id: siteId, status: 'complete',
             detail: `${built} built, ${csFailed} failed` });

@@ -11,8 +11,8 @@ import { test, expect } from '@playwright/test';
 test.use({ baseURL: 'http://localhost:3002' });
 
 const STYLES = [
-  'Transitional',
   'Modern',
+  'Transitional',
   'Farmhouse',
   'Industrial',
   'Scandinavian',
@@ -60,11 +60,41 @@ test.describe('Desktop 1440px — Frame Scrubber', () => {
     await expect(slider).toHaveAttribute('aria-valuenow', '0');
   });
 
-  test('Before and After labels visible after intro', async ({ page }) => {
+  test('Before and After labels visible during animation', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(4500);
+    // 1.8s hold + a few seconds into the 12s sweep
+    await page.waitForTimeout(5000);
     await expect(page.getByText('Before').first()).toBeVisible();
     await expect(page.getByText('After').first()).toBeVisible();
+  });
+
+  test('Modern is the first/default style tab', async ({ page }) => {
+    await page.goto('/');
+    const tabs = page.locator('button').filter({ hasText: /^(Modern|Transitional|Farmhouse|Industrial|Scandinavian)$/ });
+    const firstTab = tabs.first();
+    await expect(firstTab).toHaveText('Modern');
+  });
+
+  test('intro animation is slow cinematic sweep (10s)', async ({ page }) => {
+    await page.goto('/');
+    const slider = page.getByRole('slider');
+    // After 4s, animation should be in progress but not complete
+    await page.waitForTimeout(4000);
+    const midValue = Number(await slider.getAttribute('aria-valuenow'));
+    expect(midValue).toBeGreaterThan(0);
+    expect(midValue).toBeLessThan(90);
+    // After 13s total (1.8s hold + 10s sweep + buffer), should be at 100
+    await page.waitForTimeout(9000);
+    await expect(slider).toHaveAttribute('aria-valuenow', '100');
+  });
+
+  test('brand reveal CTA appears after animation completes', async ({ page }) => {
+    await page.goto('/');
+    // Wait for full animation: 1.8s hold + 10s sweep + 0.6s reveal delay + 0.5s CTA delay + buffer
+    await page.waitForTimeout(14000);
+    const cta = page.getByRole('link', { name: /Snap a Photo/i });
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute('href', '/visualizer');
   });
 
   test('Try with Your Space CTA links to /visualizer', async ({ page }) => {
