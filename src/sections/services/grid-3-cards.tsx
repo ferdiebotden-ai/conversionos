@@ -5,6 +5,17 @@ import Link from 'next/link';
 import type { SectionBaseProps } from '@/lib/section-types';
 import type { CompanyConfig } from '@/lib/ai/knowledge/company';
 import { StaggerContainer, StaggerItem } from '@/components/motion';
+import {
+  Wrench, ChefHat, Bath, Home, Layers, Trees, Paintbrush,
+  Droplets, Zap, Warehouse, DoorOpen, Building, Hammer,
+} from 'lucide-react';
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  wrench: Wrench, 'chef-hat': ChefHat, bath: Bath, home: Home,
+  layers: Layers, trees: Trees, paintbrush: Paintbrush,
+  droplets: Droplets, zap: Zap, warehouse: Warehouse,
+  'door-open': DoorOpen, building: Building, hammer: Hammer,
+};
 
 interface Props extends SectionBaseProps {
   config: CompanyConfig;
@@ -33,7 +44,7 @@ export function ServicesGrid3Cards({ branding, config, className }: Props) {
                   data-slot="card"
                   className="h-full overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/20 hover:shadow-lg"
                 >
-                  {service.imageUrl && (
+                  {service.imageUrl ? (
                     <div className="relative aspect-[3/2] overflow-hidden">
                       <Image
                         src={service.imageUrl}
@@ -42,6 +53,13 @@ export function ServicesGrid3Cards({ branding, config, className }: Props) {
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-[3/2] items-center justify-center bg-primary/5 rounded-t-xl">
+                      {(() => {
+                        const IconComp = ICON_MAP[service.iconHint ?? ''] ?? Wrench;
+                        return <IconComp className="h-12 w-12 text-primary/25" />;
+                      })()}
                     </div>
                   )}
                   <div className="p-6">

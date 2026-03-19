@@ -45,12 +45,19 @@ const DEFAULT_PROJECTS_LAYOUT: SectionId[] = [
   'cta:full-width-primary',
 ];
 
+const DEFAULT_GALLERY_LAYOUT: SectionId[] = [
+  'misc:breadcrumb-hero',
+  'gallery:masonry-grid',
+  'cta:full-width-primary',
+];
+
 const DEFAULT_LAYOUTS: Record<string, SectionId[]> = {
   homepage: DEFAULT_HOMEPAGE_LAYOUT,
   about: DEFAULT_ABOUT_LAYOUT,
   services: DEFAULT_SERVICES_LAYOUT,
   contact: DEFAULT_CONTACT_LAYOUT,
   projects: DEFAULT_PROJECTS_LAYOUT,
+  gallery: DEFAULT_GALLERY_LAYOUT,
 };
 
 export {
@@ -59,6 +66,7 @@ export {
   DEFAULT_SERVICES_LAYOUT,
   DEFAULT_CONTACT_LAYOUT,
   DEFAULT_PROJECTS_LAYOUT,
+  DEFAULT_GALLERY_LAYOUT,
 };
 
 export async function getPageLayout(pageSlug: string = 'homepage'): Promise<SectionId[]> {

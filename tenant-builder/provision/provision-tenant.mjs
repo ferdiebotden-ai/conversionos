@@ -448,12 +448,55 @@ if (!dryRun) {
       }
     }
 
+    // ── Session 38: Replace gallery:before-after-slider with masonry-grid ──
+    // Before-after slider requires matched photo pairs we don't have — mismatched images look broken
+    for (const [page, sections] of Object.entries(pageLayouts)) {
+      pageLayouts[page] = sections.map(id =>
+        id === 'gallery:before-after-slider' ? 'gallery:masonry-grid' : id
+      );
+    }
+
+    // ── Session 38: Add gallery page layout if we have portfolio images ──
+    if (portfolioCount >= 3 && !pageLayouts.gallery) {
+      pageLayouts.gallery = [
+        'misc:breadcrumb-hero',
+        'gallery:masonry-grid',
+        'cta:full-width-primary',
+      ];
+    }
+
+    // ── Session 38: Build dynamic navItems based on scraped data ──
+    const servicesArr = provDataForLayouts.services || [];
+    const aboutCopy = provDataForLayouts.about_copy || provDataForLayouts.aboutCopy || [];
+    const aboutCopyLen = Array.isArray(aboutCopy) ? aboutCopy.join(' ').length : (aboutCopy || '').length;
+    const hasMission = Boolean(provDataForLayouts.mission);
+    const hasPrincipals = Boolean(provDataForLayouts.principals);
+
+    const navItems = [{ label: 'Home', href: '/' }];
+
+    if (servicesArr.length >= 2) {
+      navItems.push({ label: 'Services', href: '/services' });
+    }
+
+    if (portfolioCount >= 3) {
+      navItems.push({ label: 'Gallery', href: '/gallery' });
+    }
+
+    if (aboutCopyLen > 50 || hasMission || hasPrincipals) {
+      navItems.push({ label: 'About', href: '/about' });
+    }
+
+    navItems.push({ label: 'Contact', href: '/contact' });
+
+    logger.info(`Dynamic nav: ${navItems.map(n => n.label).join(' | ')}`);
+
     // Fix 6: Set per-page hero headlines so inner pages don't reuse homepage headline
     const companyName = provDataForLayouts.business_name || provDataForLayouts.company_name || siteId;
     const pageHeroHeadlines = {
       about: `About ${companyName}`,
       services: 'Our Services',
       projects: 'Our Projects',
+      gallery: 'Our Gallery',
       contact: 'Get in Touch',
     };
 
@@ -477,6 +520,27 @@ if (!dryRun) {
       { onConflict: 'site_id,key' }
     );
     if (headlineErr) logger.warn(`Page hero headlines upsert failed: ${headlineErr.message}`);
+
+    // Session 38: Upsert navItems into branding row (merge, don't overwrite)
+    if (navItems.length > 1) {
+      const { data: existingBranding } = await (sb).from('admin_settings')
+        .select('value')
+        .eq('site_id', siteId)
+        .eq('key', 'branding')
+        .single();
+
+      if (existingBranding?.value) {
+        const brandingVal = typeof existingBranding.value === 'string'
+          ? JSON.parse(existingBranding.value) : existingBranding.value;
+        brandingVal.navItems = navItems;
+        const { error: navErr } = await (sb).from('admin_settings').upsert(
+          { site_id: siteId, key: 'branding', value: brandingVal },
+          { onConflict: 'site_id,key' }
+        );
+        if (navErr) logger.warn(`navItems upsert failed: ${navErr.message}`);
+        else logger.info(`navItems written to branding: ${navItems.length} items`);
+      }
+    }
 
     // Warm-lead: upsert globals_override if present in provision data
     if (args['warm-lead'] && provisionData._globals_override) {

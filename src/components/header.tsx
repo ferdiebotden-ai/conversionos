@@ -20,13 +20,20 @@ import { useCopyContext } from "@/lib/copy/use-site-copy"
 import { getHeaderCTA } from "@/lib/copy/site-copy"
 import { useTier } from "@/components/tier-provider"
 
-const navLinks = [
+/** Default nav links — used when branding.navItems is not set (existing tenants) */
+const DEFAULT_NAV_LINKS = [
   { href: "/", anchor: "#hero", label: "Home" },
   { href: "/services", anchor: "#services", label: "Services" },
   { href: "/projects", anchor: "#projects", label: "Projects" },
   { href: "/about", anchor: "#about", label: "About" },
   { href: "/contact", anchor: "#contact", label: "Contact" },
-] as const
+]
+
+/** Build anchor from href for scroll-spy (e.g., /gallery → #gallery, / → #hero) */
+function hrefToAnchor(href: string): string {
+  if (href === '/') return '#hero'
+  return `#${href.replace(/^\//, '')}`
+}
 
 /** Scroll-spy: track which section is visible on homepage */
 function useScrollSpy(isHomepage: boolean) {
@@ -78,14 +85,28 @@ export function Header() {
   const isHomepage = pathname === '/'
   const activeSection = useScrollSpy(isHomepage)
 
-  const isActive = (link: typeof navLinks[number]) => {
+  // Dynamic nav: use branding.navItems if set (new builds), else hardcoded default (existing tenants)
+  const navLinks = React.useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- navItems is a new field not yet in the Branding type
+    const items = (branding as any).navItems as Array<{ label: string; href: string }> | undefined
+    if (items && Array.isArray(items) && items.length > 0) {
+      return items.map(item => ({
+        href: item.href,
+        anchor: hrefToAnchor(item.href),
+        label: item.label,
+      }))
+    }
+    return DEFAULT_NAV_LINKS
+  }, [branding])
+
+  const isActive = (link: { href: string; anchor: string }) => {
     if (isHomepage) {
       return sectionMatchesNav(activeSection, link.anchor)
     }
     return link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
   }
 
-  const getLinkHref = (link: typeof navLinks[number]) => {
+  const getLinkHref = (link: { href: string; anchor: string }) => {
     // On homepage, use anchor links for smooth scroll; on other pages, use page links
     return isHomepage ? link.anchor : link.href
   }
