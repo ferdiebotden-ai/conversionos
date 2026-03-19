@@ -27,7 +27,7 @@ export function AboutSection({ branding, config, tokens, className }: SectionBas
     <section className={`bg-white px-5 py-14 md:px-8 md:py-20 ${className ?? ''}`}>
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 md:grid-cols-[1.02fr_0.98fr] md:gap-14 lg:gap-20">
-          <SlideInFromSide direction="left">
+          <SlideInFromSide from="left">
             <div className="relative overflow-hidden rounded-[28px] bg-[#f5f1eb] shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
               <div className="relative aspect-[4/5] w-full">
                 {aboutImage ? (

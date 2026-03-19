@@ -32,15 +32,16 @@ function asServiceItem(value: unknown): ServiceItem | null {
 }
 
 export function ServicesSection({ branding, config, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   const companyName = str(branding.name) || 'BL Renovations';
   const serviceArea =
-    str(config['serviceArea']) || str(config['service_area']) || 'Owen Sound & Grey Bruce';
+    str(c['serviceArea']) || str(c['service_area']) || 'Owen Sound & Grey Bruce';
   const intro =
-    str(config['servicesIntro']) ||
-    str(config['services_intro']) ||
+    str(c['servicesIntro']) ||
+    str(c['services_intro']) ||
     `We offer kitchen remodels, bathroom renovations, basement finishing, flooring and tile installations, fixture installations, and tailored interior upgrades throughout ${serviceArea}.`;
 
-  const rawServices = Array.isArray(config['services']) ? config['services'] : [];
+  const rawServices = Array.isArray(c['services']) ? c['services'] : [];
   const services = rawServices
     .map(asServiceItem)
     .filter((item): item is ServiceItem => Boolean(item))

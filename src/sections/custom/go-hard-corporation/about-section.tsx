@@ -18,14 +18,15 @@ function splitParagraphs(value: string): string[] {
 }
 
 export function AboutSection({ branding, config, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   const companyName = str(branding.name) || 'Go Hard Corporation';
   const aboutText =
-    str(config['aboutCopy']) ||
-    str(config['about_copy']) ||
-    str(config['aboutText']) ||
-    str(config['about_text']);
+    str(c['aboutCopy']) ||
+    str(c['about_copy']) ||
+    str(c['aboutText']) ||
+    str(c['about_text']);
   const aboutImage =
-    str(config['aboutImageUrl']) || str(config['about_image_url']);
+    str(c['aboutImageUrl']) || str(c['about_image_url']);
 
   const fallbackHeadline =
     'Your home is a true collection of what you love and a story of who you are.';
@@ -104,7 +105,7 @@ export function AboutSection({ branding, config, className }: SectionBaseProps) 
             </div>
           </FadeIn>
 
-          <SlideInFromSide direction="right" className="flex h-full">
+          <SlideInFromSide from="right" className="flex h-full">
             <div className="group relative flex w-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-stone-900 shadow-[0_18px_44px_rgba(0,0,0,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_64px_rgba(0,0,0,0.38)]">
               <div className="relative min-h-[320px] flex-1 sm:min-h-[440px] lg:min-h-[100%]">
                 {aboutImage ? (

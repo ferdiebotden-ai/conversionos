@@ -6,12 +6,13 @@ import Link from 'next/link';
 import { StaggerContainer, FadeInUp, ParallaxSection } from '@/components/motion';
 
 export function HeroSection({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   function str(v: unknown): string { return typeof v === 'string' && v.trim() ? v.trim() : ''; }
-  const heading = str(config['heroHeadline']) || str(config['hero_headline']);
-  const subheading = str(config['heroSubheadline']) || str(config['hero_subheadline']);
-  const backgroundImage = str(config['heroImageUrl']) || str(config['hero_image_url']);
+  const heading = str(c['heroHeadline']) || str(c['hero_headline']);
+  const subheading = str(c['heroSubheadline']) || str(c['hero_subheadline']);
+  const backgroundImage = str(c['heroImageUrl']) || str(c['hero_image_url']);
 
-  const brand = (branding ?? {}) as Record<string, unknown>;
+  const brand = (branding ?? {}) as unknown as Record<string, unknown>;
   const brandName = str(brand['name']) || 'BL Renovations';
   const phone = str(brand['phone']);
 

@@ -25,18 +25,19 @@ function toGalleryItem(value: unknown, index: number): GalleryItem {
 }
 
 export function ProjectGallery({ branding, config, className }: SectionBaseProps) {
-  const portfolioRaw = Array.isArray(config['portfolio']) ? config['portfolio'] : [];
+  const c = config as unknown as Record<string, unknown>;
+  const portfolioRaw = Array.isArray(c['portfolio']) ? c['portfolio'] : [];
   const portfolio = (portfolioRaw.length ? portfolioRaw : [{}, {}, {}, {}]).slice(0, 4).map(toGalleryItem);
 
   const companyName = str(branding.name) || 'Go Hard Corporation';
-  const heading = str(config['galleryHeadline']) || str(config['gallery_headline']) || 'Projects built with trust, care, and exacting craft.';
+  const heading = str(c['galleryHeadline']) || str(c['gallery_headline']) || 'Projects built with trust, care, and exacting craft.';
   const copyOne =
-    str(config['aboutCopy']) ||
-    str(config['about_copy']) ||
+    str(c['aboutCopy']) ||
+    str(c['about_copy']) ||
     'Built on family values, we focus on honesty, communication, and care in everything we do. Our goal is to earn your trust through reliable service and lasting results.';
   const copyTwo =
-    str(config['galleryCopy']) ||
-    str(config['gallery_copy']) ||
+    str(c['galleryCopy']) ||
+    str(c['gallery_copy']) ||
     'Our in-house renovation team works alongside trusted local specialists to deliver kitchens, interiors, and whole-home transformations with calm coordination and precise execution.';
 
   return (
@@ -95,7 +96,7 @@ export function ProjectGallery({ branding, config, className }: SectionBaseProps
             <div className="grid grid-cols-2 gap-[12px]">
               {portfolio.map((item, index) => (
                 <StaggerItem key={`${item.title}-${index}`}>
-                  <ScaleIn delay={index * 0.1}>
+                  <ScaleIn>
                     <article
                       className={[
                         'group relative overflow-hidden rounded-[28px] border border-white/40 bg-white/55 shadow-[0_18px_44px_rgba(52,49,39,0.12)] backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_54px_rgba(52,49,39,0.2)]',

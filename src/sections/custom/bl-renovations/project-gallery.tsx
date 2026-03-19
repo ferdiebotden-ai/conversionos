@@ -8,20 +8,21 @@ import { ScaleIn, StaggerContainer, StaggerItem } from '@/components/motion';
 type PortfolioItem = Record<string, unknown>;
 
 export function ProjectGallery({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   void tokens;
 
   function str(v: unknown): string {
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
 
-  const portfolio = Array.isArray(config['portfolio']) ? config['portfolio'] : [];
-  const intro = str(config['portfolioIntro']) || str(config['portfolio_intro']);
-  const title = str(config['portfolioTitle']) || str(config['portfolio_title']) || 'Our Work';
+  const portfolio = Array.isArray(c['portfolio']) ? c['portfolio'] : [];
+  const intro = str(c['portfolioIntro']) || str(c['portfolio_intro']);
+  const title = str(c['portfolioTitle']) || str(c['portfolio_title']) || 'Our Work';
   const subtitle =
-    str(config['portfolioSubtitle']) ||
-    str(config['portfolio_subtitle']) ||
+    str(c['portfolioSubtitle']) ||
+    str(c['portfolio_subtitle']) ||
     'Project showcase';
-  const companyName = str((branding as Record<string, unknown>)['name']) || 'BL Renovations';
+  const companyName = str((branding as unknown as Record<string, unknown>)['name']) || 'BL Renovations';
 
   const items = portfolio
     .map((item): PortfolioItem => (item && typeof item === 'object' ? (item as PortfolioItem) : {}))

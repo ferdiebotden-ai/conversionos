@@ -25,20 +25,21 @@ const fallbackItems: WhyChooseUsItem[] = [
 ];
 
 export function WhyChooseUs({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   function str(v: unknown): string {
     return typeof v === "string" && v.trim() ? v.trim() : '';
   }
 
-  const heading = str(config['whyChooseUsHeadline']) || str(config['why_choose_us_headline']) || 'Why Choose Us';
+  const heading = str(c['whyChooseUsHeadline']) || str(c['why_choose_us_headline']) || 'Why Choose Us';
   const subheading =
-    str(config['whyChooseUsSubheadline']) ||
-    str(config['why_choose_us_subheadline']) ||
+    str(c['whyChooseUsSubheadline']) ||
+    str(c['why_choose_us_subheadline']) ||
     'Built on trust, quality workmanship, and a commitment to doing the job right.';
 
-  const rawItems = Array.isArray(config['whyChooseUs'])
-    ? config['whyChooseUs']
-    : Array.isArray(config['why_choose_us'])
-      ? config['why_choose_us']
+  const rawItems = Array.isArray(c['whyChooseUs'])
+    ? c['whyChooseUs']
+    : Array.isArray(c['why_choose_us'])
+      ? c['why_choose_us']
       : [];
 
   const items = (rawItems.length > 0 ? rawItems : fallbackItems)
@@ -59,7 +60,7 @@ export function WhyChooseUs({ branding, config, tokens, className }: SectionBase
     })
     .slice(0, 4);
 
-  const brandName = str((branding as Record<string, unknown>)['name']) || 'Our Team';
+  const brandName = str((branding as unknown as Record<string, unknown>)['name']) || 'Our Team';
   const accents = ['01', '02', '03', '04'];
 
   return (

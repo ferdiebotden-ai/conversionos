@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { StaggerContainer, FadeInUp, ParallaxSection } from '@/components/motion';
 
 export function HeroSection({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   function str(v: unknown): string { return typeof v === 'string' && v.trim() ? v.trim() : ''; }
-  const heading = str(config['heroHeadline']) || str(config['hero_headline']);
-  const subheading = str(config['heroSubheadline']) || str(config['hero_subheadline']);
-  const backgroundImage = str(config['heroImageUrl']) || str(config['hero_image_url']);
+  const heading = str(c['heroHeadline']) || str(c['hero_headline']);
+  const subheading = str(c['heroSubheadline']) || str(c['hero_subheadline']);
+  const backgroundImage = str(c['heroImageUrl']) || str(c['hero_image_url']);
 
   const brandName = str(branding?.name);
   const title = heading || brandName || 'Built for Timeless Outdoor Living';
@@ -20,7 +21,7 @@ export function HeroSection({ branding, config, tokens, className }: SectionBase
   return (
     <ParallaxSection
       className={`relative isolate overflow-hidden bg-black text-white ${className ?? ''}`}
-      speed={0.2}
+      offset={20}
     >
       <section className="relative min-h-[620px] w-full md:min-h-[720px]">
         <div className="absolute inset-0">

@@ -24,27 +24,28 @@ function list(value: unknown): string[] {
 }
 
 export function ServicesSection({ branding, config, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   const brandName = str(branding.name) || 'Go Hard Corporation';
   const headline =
-    str(config['servicesHeadline']) ||
-    str(config['services_headline']) ||
+    str(c['servicesHeadline']) ||
+    str(c['services_headline']) ||
     `At ${brandName} we bring your Full Home Renovation ideas to life.`;
   const subheadline =
-    str(config['heroSubheadline']) ||
-    str(config['hero_subheadline']) ||
+    str(c['heroSubheadline']) ||
+    str(c['hero_subheadline']) ||
     `${brandName} is a family-owned general contracting company specializing in kitchen renovations, bathroom remodels, and home additions.`;
   const aboutCopy =
-    str(config['aboutCopy']) ||
-    str(config['about_copy']) ||
+    str(c['aboutCopy']) ||
+    str(c['about_copy']) ||
     'Our team of licensed general contractors, designers, and carpenters keeps every renovation organized, on schedule, and on budget from first sketch to final finish.';
   const serviceArea =
-    str(config['serviceArea']) ||
-    str(config['service_area']) ||
+    str(c['serviceArea']) ||
+    str(c['service_area']) ||
     'Kitchener, Waterloo, Cambridge, and Guelph';
-  const heroImageUrl = str(config['heroImageUrl']) || str(config['hero_image_url']);
+  const heroImageUrl = str(c['heroImageUrl']) || str(c['hero_image_url']);
   const services =
-    list(config['services']).slice(0, 4).length > 0
-      ? list(config['services']).slice(0, 4)
+    list(c['services']).slice(0, 4).length > 0
+      ? list(c['services']).slice(0, 4)
       : ['Kitchen Renovations', 'Bathroom Remodels', 'Home Additions', 'Full Home Renovations'];
 
   return (

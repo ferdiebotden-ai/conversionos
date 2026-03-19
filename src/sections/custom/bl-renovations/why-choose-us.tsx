@@ -26,13 +26,14 @@ function initials(label: string): string {
 }
 
 export function WhyChooseUs({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   void branding;
   void tokens;
 
-  const whyChooseUs = Array.isArray(config['whyChooseUs'])
-    ? config['whyChooseUs']
-    : Array.isArray(config['why_choose_us'])
-      ? config['why_choose_us']
+  const whyChooseUs = Array.isArray(c['whyChooseUs'])
+    ? c['whyChooseUs']
+    : Array.isArray(c['why_choose_us'])
+      ? c['why_choose_us']
       : [];
 
   const items = whyChooseUs

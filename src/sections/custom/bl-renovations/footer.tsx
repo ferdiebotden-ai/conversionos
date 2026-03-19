@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion';
 
 export function Footer({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   function str(v: unknown): string {
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
@@ -16,10 +17,10 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
 
   const brand = asRecord(branding);
   const companyName = str(brand['name']) || 'BL Renovations';
-  const phone = str(brand['phone']) || str(config['phone']) || str(config['phone_number']);
-  const email = str(brand['email']) || str(config['email']);
-  const address = str(brand['address']) || str(config['address']);
-  const logoUrl = str(brand['logo_url']) || str(config['logoUrl']) || str(config['logo_url']);
+  const phone = str(brand['phone']) || str(c['phone']) || str(c['phone_number']);
+  const email = str(brand['email']) || str(c['email']);
+  const address = str(brand['address']) || str(c['address']);
+  const logoUrl = str(brand['logo_url']) || str(c['logoUrl']) || str(c['logo_url']);
 
   const navigation = [
     { label: 'Home', href: '/' },
@@ -37,11 +38,11 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
     : [
         {
           label: 'Facebook',
-          href: str(config['facebookUrl']) || str(config['facebook_url']) || '#',
+          href: str(c['facebookUrl']) || str(c['facebook_url']) || '#',
         },
         {
           label: 'Instagram',
-          href: str(config['instagramUrl']) || str(config['instagram_url']) || '#',
+          href: str(c['instagramUrl']) || str(c['instagram_url']) || '#',
         },
       ].filter((item) => item.href && item.href !== '#');
 

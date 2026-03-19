@@ -14,24 +14,25 @@ function list(value: unknown): Record<string, unknown>[] {
 }
 
 export function Testimonials({ branding, config, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
   const companyName = str(branding.name) || 'Go Hard Corporation';
   const serviceArea =
-    str(config['serviceArea']) ||
-    str(config['service_area']) ||
+    str(c['serviceArea']) ||
+    str(c['service_area']) ||
     'Kitchener, Waterloo, Cambridge, and Guelph';
 
   const introA =
-    str(config['aboutCopy']) ||
-    str(config['about_copy']) ||
+    str(c['aboutCopy']) ||
+    str(c['about_copy']) ||
     `${companyName} keeps your renovation organized, on schedule, and on budget. We handle everything from design and permits to construction and finishing across ${serviceArea}.`;
 
   const introB =
-    str(config['heroSubheadline']) ||
-    str(config['hero_subheadline']) ||
+    str(c['heroSubheadline']) ||
+    str(c['hero_subheadline']) ||
     'For nearly a decade, clients have trusted us to transform their homes into spaces that look stunning and function perfectly. Our reviews reflect the care, skill, and dedication our team brings to every detail.';
 
-  const testimonials = list(config['testimonials']).slice(0, 3);
-  const portfolio = list(config['portfolio']).slice(0, 2);
+  const testimonials = list(c['testimonials']).slice(0, 3);
+  const portfolio = list(c['portfolio']).slice(0, 2);
   const fallbackTestimonials =
     testimonials.length > 0
       ? testimonials
@@ -59,13 +60,13 @@ export function Testimonials({ branding, config, className }: SectionBaseProps) 
   const fallbackImageA =
     str(portfolio[0]?.['imageUrl']) ||
     str(portfolio[0]?.['image_url']) ||
-    str(config['aboutImageUrl']) ||
-    str(config['about_image_url']);
+    str(c['aboutImageUrl']) ||
+    str(c['about_image_url']);
   const fallbackImageB =
     str(portfolio[1]?.['imageUrl']) ||
     str(portfolio[1]?.['image_url']) ||
-    str(config['heroImageUrl']) ||
-    str(config['hero_image_url']);
+    str(c['heroImageUrl']) ||
+    str(c['hero_image_url']);
 
   return (
     <section

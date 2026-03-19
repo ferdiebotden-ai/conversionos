@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { StaggerContainer, StaggerItem, FadeInUp, FadeIn, ScaleIn } from '@/components/motion';
 
 export function Footer({ branding, config, tokens, className }: SectionBaseProps) {
+  const c = config as unknown as Record<string, unknown>;
+  const brand = branding as unknown as Record<string, unknown>;
   function str(v: unknown): string {
     return typeof v === 'string' && v.trim() ? v.trim() : '';
   }
@@ -14,11 +16,11 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
     return Array.isArray(v) ? v.map((item) => str(item)).filter(Boolean) : [];
   }
 
-  const brandName = str(branding['name']) || 'Go Hard Corporation';
-  const phone = str(config['phone']) || str(config['phone_number']) || str(branding['phone']);
-  const email = str(config['email']) || str(config['contact_email']) || str(branding['email']);
-  const address = str(config['address']) || str(config['location']) || str(branding['address']);
-  const logoUrl = str(config['logoUrl']) || str(config['logo_url']) || str(branding['logo_url']);
+  const brandName = str(brand['name']) || 'Go Hard Corporation';
+  const phone = str(c['phone']) || str(c['phone_number']) || str(brand['phone']);
+  const email = str(c['email']) || str(c['contact_email']) || str(brand['email']);
+  const address = str(c['address']) || str(c['location']) || str(brand['address']);
+  const logoUrl = str(c['logoUrl']) || str(c['logo_url']) || str(brand['logo_url']);
   const navItems = [
     { label: 'Home', href: '/' },
     { label: 'About', href: '/about' },
@@ -27,8 +29,8 @@ export function Footer({ branding, config, tokens, className }: SectionBaseProps
     { label: 'Contact', href: '/contact' },
   ];
 
-  const brandingSocials = Array.isArray((branding as Record<string, unknown>)['socials'])
-    ? ((branding as Record<string, unknown>)['socials'] as { label: string; href: string }[])
+  const brandingSocials = Array.isArray((branding as unknown as Record<string, unknown>)['socials'])
+    ? ((branding as unknown as Record<string, unknown>)['socials'] as { label: string; href: string }[])
     : [];
   const socialItems = brandingSocials.length > 0
     ? brandingSocials
