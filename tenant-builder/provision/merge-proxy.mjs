@@ -62,7 +62,59 @@ async function updateEdgeConfig(domain, siteId) {
   }
 }
 
-const PROXY_TS_PATH = resolve(import.meta.dirname, '../../src/proxy.ts');
+export const PROXY_TS_PATH = resolve(import.meta.dirname, '../../src/proxy.ts');
+
+// ─── Post-Write Verification ─────────────────────────────────────────────────
+
+/**
+ * Read proxy.ts back after writing and verify ALL expected domain entries exist.
+ * Catches silent write failures (partial writes, SIGPIPE, disk full, etc.)
+ *
+ * @param {string} proxyPath - Path to proxy.ts
+ * @param {Array<{domain: string, siteId: string}>} expectedDomains - All domains that should be present
+ * @returns {boolean} true if all entries verified, false if any are missing
+ */
+export function verifyProxyEntries(proxyPath, expectedDomains) {
+  try {
+    const content = readFileSync(proxyPath, 'utf-8');
+
+    // Extract all domain entries from DOMAIN_TO_SITE_FALLBACK block
+    const blockMatch = content.match(/DOMAIN_TO_SITE_FALLBACK[^{]*\{([^}]*)\}/s);
+    if (!blockMatch) {
+      logger.error('CRITICAL: Could not find DOMAIN_TO_SITE_FALLBACK block in proxy.ts during verification');
+      return false;
+    }
+
+    const blockContent = blockMatch[1];
+    const missing = [];
+
+    for (const { domain, siteId } of expectedDomains) {
+      // Check both domain key and siteId value are present in the block
+      if (!blockContent.includes(`'${domain}'`) || !blockContent.includes(`'${siteId}'`)) {
+        missing.push({ domain, siteId });
+      }
+    }
+
+    if (missing.length > 0) {
+      logger.error(`CRITICAL: ${missing.length} domain(s) MISSING from proxy.ts after write:`);
+      for (const { domain, siteId } of missing) {
+        logger.error(`  MISSING: ${domain} -> ${siteId}`);
+      }
+      return false;
+    }
+
+    logger.info(`Proxy verification passed: all ${expectedDomains.length} domain(s) confirmed in proxy.ts`);
+    return true;
+  } catch (e) {
+    logger.error(`CRITICAL: Proxy verification failed — could not read proxy.ts: ${e.message}`);
+    return false;
+  }
+}
+
+// ─── CLI Entry Point ──────────────────────────────────────────────────────────
+// Guard parseArgs() so this file can be imported without crashing.
+
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('merge-proxy.mjs')) {
 
 const { values: args } = parseArgs({
   options: {
@@ -145,6 +197,14 @@ for (const { domain, siteId } of fragments) {
 if (!args['dry-run'] && added > 0) {
   writeFileSync(PROXY_TS_PATH, lines.join('\n'));
   logger.info(`proxy.ts updated with ${added} new domain(s)`);
+
+  // Post-write verification — read back and confirm all entries are present
+  const allExpected = fragments.map(({ domain, siteId }) => ({ domain, siteId }));
+  const verified = verifyProxyEntries(PROXY_TS_PATH, allExpected);
+  if (!verified) {
+    logger.error('CRITICAL: Proxy write verification FAILED — some domains may be missing. Check proxy.ts manually.');
+    process.exitCode = 1;
+  }
 } else if (added === 0) {
   logger.info('No new domains to add');
 }
@@ -155,3 +215,5 @@ if (!args['dry-run']) {
     await updateEdgeConfig(domain, siteId);
   }
 }
+
+} // end CLI guard

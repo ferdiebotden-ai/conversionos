@@ -25,7 +25,7 @@ loadEnv();
 const { query, execute } = await import(resolve(DEMO_ROOT, 'tenant-builder/lib/turso-client.mjs'));
 const logger = await import(resolve(DEMO_ROOT, 'tenant-builder/lib/logger.mjs'));
 const { hasActivePolishQueue } = await import(resolve(DEMO_ROOT, 'scripts/polish/queue-utils.mjs'));
-import { generateEmail, validateEmail, generateFollowUpEmail, FOLLOWUP_SCHEDULE, CALL_SLOTS } from './generate-email.mjs';
+import { generateEmail, validateEmail, generateFollowUpEmail, FOLLOWUP_SCHEDULE, CALL_SLOTS, isPlaceholderEmail } from './generate-email.mjs';
 import { createGmailDraft } from './create-draft.mjs';
 import { findNextSlot, formatSlotForEmail } from './calendar.mjs';
 
@@ -82,6 +82,40 @@ const gmailCredentials = {
   clientSecret: GMAIL_CLIENT_SECRET,
   refreshToken: GMAIL_REFRESH_TOKEN,
 };
+
+// ──────────────────────────────────────────────────────────
+// URL liveness check (A1.1)
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Check if a demo URL is live (HTTP 200). 10s timeout, 2 retries.
+ * @param {string} url
+ * @returns {Promise<{ live: boolean, status: number|null, error?: string }>}
+ */
+export async function checkDemoUrl(url) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const res = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+        redirect: 'follow',
+      });
+      clearTimeout(timeout);
+      if (res.status === 200) {
+        return { live: true, status: res.status };
+      }
+      // Non-200 — retry
+      if (attempt < 2) continue;
+      return { live: false, status: res.status, error: `HTTP ${res.status}` };
+    } catch (e) {
+      if (attempt < 2) continue;
+      return { live: false, status: null, error: e.message };
+    }
+  }
+  return { live: false, status: null, error: 'exhausted retries' };
+}
 
 let succeeded = 0;
 let failed = 0;
@@ -276,14 +310,16 @@ if (args['target-id']) {
   targets = await query(`SELECT * FROM targets WHERE id IN (${placeholders})`, ids);
 } else {
   // All targets with built demos that haven't had drafts created yet
+  // A1.2: tightened — email_message_id IS NULL on all conditions to prevent dedup
   targets = await query(
     `SELECT * FROM targets
      WHERE demo_url IS NOT NULL
        AND email IS NOT NULL AND email != ''
+       AND email_message_id IS NULL
        AND (
          status = 'bespoke_ready'
          OR status = 'demo_built'
-         OR (demo_built_at IS NOT NULL AND email_message_id IS NULL)
+         OR demo_built_at IS NOT NULL
        )
      ORDER BY icp_score DESC`
   );
@@ -336,6 +372,38 @@ for (const target of targets) {
       status: 'start',
       detail: `Generating email for ${name}`,
     });
+
+    // A1.2: Draft dedup — skip if email_message_id already set (belt-and-suspenders for --target-id mode)
+    if (target.email_message_id) {
+      logger.warn(`Skipped ${name}: draft already exists (Message-ID: ${target.email_message_id})`);
+      skipped++;
+      logger.progress({
+        stage: 'outreach',
+        target_id: target.id,
+        site_id: target.slug,
+        status: 'skipped',
+        detail: 'Draft already exists (dedup)',
+      });
+      continue;
+    }
+
+    // A1.1: URL liveness gate — verify demo is actually accessible
+    const demoUrl = target.demo_url || `https://${target.slug}.norbotsystems.com`;
+    if (!args['dry-run']) {
+      const urlCheck = await checkDemoUrl(demoUrl);
+      if (!urlCheck.live) {
+        logger.warn(`Skipped ${name}: demo URL not live — ${demoUrl} (${urlCheck.error})`);
+        skipped++;
+        logger.progress({
+          stage: 'outreach',
+          target_id: target.id,
+          site_id: target.slug,
+          status: 'skipped',
+          detail: `Demo URL not live: ${urlCheck.error}`,
+        });
+        continue;
+      }
+    }
 
     // Compute city rotation index for subject line variation
     const city = (target.city || '').trim().toLowerCase();

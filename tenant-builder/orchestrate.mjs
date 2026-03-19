@@ -33,9 +33,14 @@ import { ensureQueueDirs, hasActivePolishQueue, writePendingQueueItem } from '..
 import { visualDiffWithCodex } from './qa/visual-diff-codex.mjs';
 import { extractPalette } from './lib/palette-extractor.mjs';
 import { generateHeroVisualizerImages } from './lib/hero-image-generator.mjs';
+import { verifyProxyEntries } from './provision/merge-proxy.mjs';
+import { writeProxyFragment } from './provision/proxy-fragment.mjs';
 
 loadEnv();
 requireEnv(['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN']);
+
+// SIGPIPE protection — prevents silent death when piped through `head` or similar
+process.on('SIGPIPE', () => {});
 
 const CONFIG = YAML.parse(readFileSync(resolve(import.meta.dirname, 'config.yaml'), 'utf-8'));
 const DEMO_ROOT = resolve(import.meta.dirname, '..');
@@ -68,6 +73,7 @@ const { values: args } = parseArgs({
     'audit-only': { type: 'boolean', default: false },
     'timeout-multiplier': { type: 'string', default: '1' },
     model: { type: 'string' },  // Pass-through to Claude CLI: --model sonnet, --model opus
+    'min-icp': { type: 'string' },  // Override ICP threshold (default: uses icp_routing.tenant_threshold)
     help: { type: 'boolean' },
   },
 });
@@ -223,7 +229,10 @@ if (!args.url) { // Skip scoring for direct URL mode
   }
 
   // Filter by threshold — null scores (scoring failed) are excluded
-  const threshold = CONFIG.icp_scoring.thresholds.manual_review;
+  // Use ICP routing tenant_threshold (55) by default, not manual_review (65)
+  const threshold = args['min-icp']
+    ? parseInt(args['min-icp'], 10)
+    : (CONFIG.icp_scoring.icp_routing?.tenant_threshold ?? CONFIG.icp_scoring.thresholds.manual_review);
   const before = targets.length;
   targets = targets.filter(t => t.icp_score != null && t.icp_score >= threshold);
   const filtered = before - targets.length;
@@ -662,10 +671,63 @@ if (!dryRun && !auditOnly) {
     logger.warn(`Proxy merge failed: ${e.message?.slice(0, 100)}`);
   }
 
-  // Register domains with Vercel (SSL cert provisioning)
+  // Self-healing proxy verification — ensure every built site-id is in proxy.ts
   const successfulSiteIds = results
     .filter(r => r.status === 'fulfilled')
     .map(r => r.value.siteId);
+
+  if (successfulSiteIds.length > 0) {
+    const proxyTsPath = resolve(DEMO_ROOT, 'src/proxy.ts');
+    const expectedDomains = successfulSiteIds.map(sid => ({
+      domain: `${sid}.norbotsystems.com`,
+      siteId: sid,
+    }));
+    const proxyOk = verifyProxyEntries(proxyTsPath, expectedDomains);
+
+    if (!proxyOk) {
+      // Emergency self-heal: write missing fragments and re-run merge-proxy
+      logger.warn('Proxy verification failed — writing emergency fragments and re-running merge...');
+      const proxyContent = readFileSync(proxyTsPath, 'utf-8');
+      let emergencyCount = 0;
+
+      for (const sid of successfulSiteIds) {
+        const domain = `${sid}.norbotsystems.com`;
+        if (!proxyContent.includes(`'${domain}'`)) {
+          logger.warn(`Emergency proxy fragment for missing domain: ${domain}`);
+          writeProxyFragment(sid, domain, { date: TODAY });
+          emergencyCount++;
+        }
+      }
+
+      if (emergencyCount > 0) {
+        logger.info(`Wrote ${emergencyCount} emergency proxy fragment(s) — re-running merge-proxy...`);
+        try {
+          execFileSync('node', [
+            resolve(TB_ROOT, 'provision/merge-proxy.mjs'),
+            '--date', TODAY,
+          ], {
+            cwd: DEMO_ROOT,
+            env: process.env,
+            timeout: 30000,
+            maxBuffer: 10 * 1024 * 1024,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+
+          // Final verification after emergency merge
+          const finalOk = verifyProxyEntries(proxyTsPath, expectedDomains);
+          if (finalOk) {
+            logger.info('Emergency proxy merge succeeded — all domains now present');
+          } else {
+            logger.error('CRITICAL: Emergency proxy merge STILL has missing domains. Manual fix required.');
+          }
+        } catch (retryErr) {
+          logger.error(`CRITICAL: Emergency proxy merge failed: ${retryErr.message?.slice(0, 100)}`);
+        }
+      }
+    }
+  }
+
+  // Register domains with Vercel (SSL cert provisioning)
 
   for (const sid of successfulSiteIds) {
     const domain = `${sid}.norbotsystems.com`;

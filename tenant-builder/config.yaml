@@ -223,7 +223,7 @@ content_architect:
 # Architect — Opus 4.6 site analysis → SiteBlueprint v2
 architect:
   enabled: true
-  timeout_seconds: 300       # Bespoke prompts need 3-5 min for Opus to analyze HTML+CSS+screenshots
+  timeout_seconds: 600       # Increased from 300 — Opus consistently times out at 450s on complex sites
   fallback_to_defaults: true
 
 # Custom Sections — Codex-generated per-tenant React components

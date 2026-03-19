@@ -123,6 +123,38 @@ export function formatSlotTime(slot) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Placeholder email detection (A1.3)
+// ──────────────────────────────────────────────────────────
+
+const PLACEHOLDER_DOMAINS = new Set([
+  'example.com', 'mailservice.com', 'test.com', 'yoursite.com',
+  'placeholder.com', 'domain.com',
+]);
+
+/**
+ * Detect obviously fake/placeholder email addresses.
+ * Rejects: single-char local parts, youremail@*, known placeholder domains.
+ */
+export function isPlaceholderEmail(email) {
+  if (!email || !email.includes('@')) return false;
+  const [local, domain] = email.toLowerCase().split('@');
+
+  // Specific known fakes
+  if (local === 'mymail' && domain === 'mailservice.com') return true;
+
+  // youremail@anything
+  if (local === 'youremail') return true;
+
+  // Single-char local part (e.g. a@gmail.com)
+  if (local.length <= 1) return true;
+
+  // Known placeholder domains
+  if (PLACEHOLDER_DOMAINS.has(domain)) return true;
+
+  return false;
+}
+
+// ──────────────────────────────────────────────────────────
 // Template filling
 // ──────────────────────────────────────────────────────────
 
@@ -132,6 +164,11 @@ export function formatSlotTime(slot) {
 const SENTINEL_NAMES = new Set([
   'not specified', 'not applicable', 'not provided', 'not found',
   'n/a', 'na', 'unknown', 'none', 'owner',
+]);
+
+// First names that are titles, roles, or generic words — not real first names (A1.4)
+const SENTINEL_FIRST_NAMES = new Set([
+  'not', 'mr', 'mrs', 'ms', 'dr', 'the', 'admin', 'info', 'contact', 'team',
 ]);
 
 export function getFirstName(ownerName) {
@@ -144,6 +181,30 @@ export function getFirstName(ownerName) {
   const cleaned = first.replace(/[,;.]+$/, '');
   // Reject single-char names or names that look like placeholders
   if (cleaned.length <= 1) return 'there';
+  // Reject titles, roles, and generic words (A1.4)
+  if (SENTINEL_FIRST_NAMES.has(cleaned.toLowerCase())) return 'there';
+  return cleaned;
+}
+
+// ──────────────────────────────────────────────────────────
+// Company name cleaning (A1.5)
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Clean company name: truncate at common separators, cap at 50 chars.
+ * "ABC Renos | Kitchener" → "ABC Renos"
+ * "XYZ Contracting - Home Renovations" → "XYZ Contracting"
+ */
+export function cleanCompanyName(name) {
+  if (!name) return name;
+  let cleaned = name.trim();
+  // Truncate at | or spaced dashes ( - , — , – )
+  cleaned = cleaned.split(/\s*\|\s*/)[0].trim();
+  cleaned = cleaned.split(/\s+[—–-]\s+/)[0].trim();
+  // Cap at 50 chars
+  if (cleaned.length > 50) {
+    cleaned = cleaned.slice(0, 50).replace(/\s+\S*$/, '').trim();
+  }
   return cleaned;
 }
 
@@ -192,9 +253,20 @@ export function generateEmail(target, options = {}) {
     };
   }
 
+  // HARD STOP: reject placeholder/fake emails (A1.3)
+  if (isPlaceholderEmail(target.email)) {
+    return {
+      to: target.email,
+      subject: '', textBody: '', htmlBody: '',
+      callDay: '', callTime: '', firstName: '', demoUrl: '', siteId: '',
+      skipped: true,
+      skipReason: `HARD STOP: placeholder email detected (${target.email})`,
+    };
+  }
+
   const firstName = getFirstName(target.owner_name);
   const city = target.city.trim();
-  const companyName = target.company_name.trim();
+  const companyName = cleanCompanyName(target.company_name.trim());
   const siteId = options.siteId || target.slug;
   const demoUrl = target.demo_url || `https://${siteId}.norbotsystems.com`;
   const callDay = getCallDayLabel();
@@ -509,4 +581,4 @@ export function generateFollowUpEmail(target, emailNum, options = {}) {
   };
 }
 
-export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS, FOLLOWUP_TEMPLATES, FAR_CITIES };
+export { SUBJECT_TEMPLATE, SUBJECT_ROTATION, BODY_TEMPLATE, SIGNATURE, CASL_FOOTER, BANNED_TERMS, FOLLOWUP_TEMPLATES, FAR_CITIES, SENTINEL_FIRST_NAMES, PLACEHOLDER_DOMAINS };
