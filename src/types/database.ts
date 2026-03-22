@@ -682,7 +682,7 @@ export type Database = {
 
 // Enum types
 export type LeadStatus = 'new' | 'draft_ready' | 'needs_clarification' | 'sent' | 'won' | 'lost';
-export type ProjectType = 'kitchen' | 'bathroom' | 'basement' | 'flooring' | 'painting' | 'exterior' | 'other';
+export type ProjectType = 'kitchen' | 'bathroom' | 'basement' | 'flooring' | 'painting' | 'exterior' | 'other' | 'living_room' | 'bedroom' | 'dining_room';
 export type Timeline = 'asap' | '1_3_months' | '3_6_months' | '6_plus_months' | 'just_exploring';
 export type BudgetBand = 'under_15k' | '15k_25k' | '25k_40k' | '40k_60k' | '60k_plus' | 'not_sure';
 export type FinishLevel = 'economy' | 'standard' | 'premium';

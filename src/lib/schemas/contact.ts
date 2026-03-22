@@ -16,7 +16,7 @@ export const contactFormSchema = z.object({
       "Please enter a valid phone number"
     ),
   projectType: z.enum(
-    ["kitchen", "bathroom", "basement", "flooring", "other"],
+    ["kitchen", "bathroom", "basement", "flooring", "other", "living_room", "bedroom", "dining_room", "painting", "exterior"],
     { message: "Please select a project type" }
   ),
   message: z
@@ -33,4 +33,9 @@ export const projectTypeLabels: Record<ContactFormData["projectType"], string> =
   basement: "Basement Finishing",
   flooring: "Flooring",
   other: "Other / General Inquiry",
+  living_room: "Living Room",
+  bedroom: "Bedroom",
+  dining_room: "Dining Room",
+  painting: "Painting",
+  exterior: "Exterior",
 }

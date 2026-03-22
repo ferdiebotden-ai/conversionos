@@ -26,7 +26,7 @@ function escapePostgREST(input: string): string {
  */
 const LeadsQuerySchema = z.object({
   status: z.enum(['new', 'draft_ready', 'needs_clarification', 'sent', 'won', 'lost']).optional(),
-  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other']).optional(),
+  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room']).optional(),
   search: z.string().optional(),
   sortBy: z.enum(['created_at', 'name', 'updated_at']).optional().default('created_at'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
@@ -124,7 +124,7 @@ const LeadSubmissionSchema = z.object({
   postalCode: z.string().optional(),
 
   // Project details
-  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other']),
+  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room']),
   areaSqft: z.number().positive().optional(),
   finishLevel: z.enum(['economy', 'standard', 'premium']).optional(),
   timeline: z.enum(['asap', '1_3_months', '3_6_months', '6_plus_months', 'just_exploring']).optional(),

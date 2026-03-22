@@ -15,7 +15,7 @@ export const IntakeExtractionSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
-  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other']).optional(),
+  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room']).optional(),
   areaSqft: z.number().positive().optional(),
   finishLevel: z.enum(['economy', 'standard', 'premium']).optional(),
   timeline: z.enum(['asap', '1_3_months', '3_6_months', '6_plus_months', 'just_exploring']).optional(),
@@ -39,7 +39,7 @@ export const IntakeRequestSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   // Project info
-  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other']).optional(),
+  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room']).optional(),
   areaSqft: z.number().positive().optional(),
   finishLevel: z.enum(['economy', 'standard', 'premium']).optional(),
   timeline: z.enum(['asap', '1_3_months', '3_6_months', '6_plus_months', 'just_exploring']).optional(),

@@ -36,6 +36,9 @@ export const ProjectTypeSchema = z.enum([
   'painting',
   'exterior',
   'other',
+  'living_room',
+  'bedroom',
+  'dining_room',
 ]);
 
 export type ProjectType = z.infer<typeof ProjectTypeSchema>;

@@ -69,6 +69,9 @@ const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   painting: 'Painting',
   exterior: 'Exterior',
   other: 'Other',
+  living_room: 'Living Room',
+  bedroom: 'Bedroom',
+  dining_room: 'Dining Room',
 };
 
 // Format relative time

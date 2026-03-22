@@ -79,7 +79,7 @@ export type AIGeneratedQuote = z.infer<typeof AIGeneratedQuoteSchema>;
  */
 export const QuoteGenerationInputSchema = z.object({
   /** Project type */
-  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other']),
+  projectType: z.enum(['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room']),
 
   /** Square footage if known */
   areaSqft: z.number().positive().optional(),
