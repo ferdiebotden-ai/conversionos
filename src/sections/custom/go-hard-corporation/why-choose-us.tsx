@@ -41,10 +41,10 @@ export function WhyChooseUs({ config, className }: SectionBaseProps) {
               className="mt-5 text-[clamp(2.4rem,4.8vw,4.8rem)] font-semibold leading-[0.95] text-[#23231f]"
               style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
             >
-              The work feels calm because the process is controlled.
+              Why Choose Go Hard Corporation
             </h2>
             <p className="mt-5 text-[15px] leading-8 text-[#666257] md:text-base">
-              Go Hard Corporation’s brand is warm and polished, but the reason it feels trustworthy is simpler: the details are coordinated early and carried through properly once construction starts.
+              Our goal is to help homeowners enjoy clean, functional, and beautiful spaces. Each renovation is carefully designed and built to match your lifestyle, reflect your style, and make your home feel personal and complete.
             </p>
           </div>
         </FadeIn>

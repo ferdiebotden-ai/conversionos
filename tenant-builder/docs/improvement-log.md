@@ -145,9 +145,20 @@
 | 2026-03-19 | #4/#10 Hero quality gate | URL heuristic + Gemini evaluation, swap if logo/generic | All builds |
 | 2026-03-19 | #8 Service image mapping | Keyword match + round-robin from portfolio/discovered images | Pioneer Craftsmen: 0/8→8/8 |
 | 2026-03-19 | #9 About image targeted scrape | Phase 2.6 Playwright about page image extraction | Pioneer Craftsmen: empty→populated |
+| 2026-03-19 | #10 Opus architect timeout | Increased config.yaml 300→600s | Bespoke builds: fewer fallbacks |
+| 2026-03-19 | #11 ICP threshold mismatch | Use tenant_threshold (55) not manual_review (65) + --min-icp flag | 85% more targets eligible |
+| 2026-03-19 | #13 Merge-proxy destructive | Post-write verification + self-healing emergency fragments | Prevents silent proxy entry loss |
+| 2026-03-19 | NEW: SIGPIPE protection | `process.on('SIGPIPE')` in orchestrate.mjs | Prevents silent death when piped |
+| 2026-03-19 | NEW: URL liveness gate | HTTP-check demo URL before creating draft | Prevents 404 links in emails |
+| 2026-03-19 | NEW: Draft deduplication | Check email_message_id before creating draft | Prevents duplicate Gmail drafts |
+| 2026-03-19 | NEW: Placeholder email | Reject fake emails (mymail@mailservice.com etc) | Prevents wasted drafts |
+| 2026-03-19 | NEW: Sentinel "Not" fix | SENTINEL_FIRST_NAMES set checks extracted first name | Prevents "Hi Not," emails |
+| 2026-03-19 | NEW: Company name truncation | cleanCompanyName() strips pipe/dash separators | Prevents 100+ char names in emails |
+| 2026-03-19 | NEW: ferdie@ leakage fix | Cleared paymentEmail/quotesEmail for 6 tenants | Prevents NorBot email in RSC payload |
+| 2026-03-19 | NEW: 21 missing proxy entries | Batch-added to proxy.ts + Vercel domain registration | 21 tenants went from 404→200 |
 
 **New files:** `lib/service-image-mapper.mjs`, `lib/image-classifier.mjs`
-**Modified:** `scrape/scrape-enhanced.mjs` (6 new phases/enhancements), `orchestrate.mjs` (timeout 5→10 min)
+**Modified:** `scrape/scrape-enhanced.mjs` (6 new phases/enhancements), `orchestrate.mjs` (timeout 5→10 min, SIGPIPE, proxy verification, ICP threshold)
 
 ---
 

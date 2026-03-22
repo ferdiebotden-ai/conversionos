@@ -30,10 +30,10 @@ export function Testimonials({ branding, config, className }: SectionBaseProps) 
               className="text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.94] text-white"
               style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
             >
-              Homeowners remember the process as much as the finish.
+              Client Testimonials
             </h2>
             <p className="max-w-xl text-[15px] leading-8 text-white/72 md:text-base">
-              The strongest pattern in Go Hard Corporation’s reviews is the same one visible in the finished work: careful sequencing, strong communication, and craftsmanship that still feels sharp once the dust settles.
+              Our reviews reflect the care, skill, and dedication our team brings to every detail. See what homeowners across Kitchener, Waterloo, Cambridge, and Guelph have to say.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2">

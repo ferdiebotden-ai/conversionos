@@ -46,7 +46,7 @@ export function ServicesSection({ branding, config, className }: SectionBaseProp
     'Kitchener, Waterloo, Cambridge, and Guelph';
   const intro =
     firstText(company['heroSubheadline']) ||
-    'Design-build renovations shaped around how your home actually needs to work.';
+    'We specialize in kitchens, bathrooms, and home additions from design and permits to build.';
   const bodyParagraphs = textList(company['aboutCopy']).slice(0, 2);
   const companyName = branding.name || 'Go Hard Corporation';
 
@@ -67,7 +67,7 @@ export function ServicesSection({ branding, config, className }: SectionBaseProp
               className="mt-5 text-[clamp(2.6rem,5vw,5.25rem)] font-semibold leading-[0.94] text-[#23231f]"
               style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
             >
-              Renovations designed with warmth and built with discipline.
+              At Go Hard Corporation we bring your Full Home Renovation ideas to life.
             </h2>
             <p className="mt-6 text-base leading-8 text-[#52514a] md:text-lg">{intro}</p>
             {(bodyParagraphs.length ? bodyParagraphs : [

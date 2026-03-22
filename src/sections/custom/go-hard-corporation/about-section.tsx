@@ -46,9 +46,9 @@ export function AboutSection({ branding, config, className }: SectionBaseProps) 
 
             <div className="mt-8 flex flex-wrap gap-3">
               {[
-                'Design-build coordination',
-                'Selections and finish guidance',
-                'Kitchens, baths, additions, and interiors',
+                'Full-service design-build',
+                'Kitchens, bathrooms, and additions',
+                'Licensed contractors and designers',
               ].map((item) => (
                 <div
                   key={item}
@@ -95,12 +95,12 @@ export function AboutSection({ branding, config, className }: SectionBaseProps) 
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04),rgba(0,0,0,0.5))]" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
                 <div className="rounded-[1.5rem] border border-white/20 bg-white/10 p-5 text-white backdrop-blur-md">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">Cambridge-Based Design Build</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">Full-Service General Contractor</p>
                   <p
                     className="mt-3 text-[1.7rem] leading-tight md:text-[2.2rem]"
                     style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
                   >
-                    Warm materials, careful planning, and finishing that still feels considered years later.
+                    Making your dream a reality with intentional design and superb craftsmanship.
                   </p>
                 </div>
               </div>

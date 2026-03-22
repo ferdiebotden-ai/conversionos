@@ -269,9 +269,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating lead:', error);
+      console.error('Error creating lead:', JSON.stringify({ code: error.code, message: error.message, details: error.details, hint: error.hint, siteId }));
       return NextResponse.json(
-        { error: 'An unexpected error occurred. Please try again.' },
+        { error: 'An unexpected error occurred. Please try again.', debug: { code: error.code, message: error.message, hint: error.hint } },
         { status: 500 }
       );
     }
@@ -391,9 +391,9 @@ export async function POST(request: NextRequest) {
       hasEstimate: !!quoteDraftJson,
     });
   } catch (error) {
-    console.error('Lead submission error:', error);
+    console.error('Lead submission error:', error instanceof Error ? { message: error.message, stack: error.stack } : error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', debug: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

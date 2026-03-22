@@ -110,8 +110,8 @@ describe('contactFormSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts all valid project types', () => {
-    const projectTypes = ['kitchen', 'bathroom', 'basement', 'flooring', 'other'];
+  it('accepts all valid project types including room types from visualizer', () => {
+    const projectTypes = ['kitchen', 'bathroom', 'basement', 'flooring', 'other', 'living_room', 'bedroom', 'dining_room', 'painting', 'exterior'];
 
     projectTypes.forEach((projectType) => {
       const data = {
@@ -129,8 +129,8 @@ describe('contactFormSchema', () => {
 
 describe('Lead Extraction Schemas', () => {
   describe('ProjectTypeSchema', () => {
-    it('accepts valid project types', () => {
-      const validTypes = ['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other'];
+    it('accepts all valid project types including visualizer room types', () => {
+      const validTypes = ['kitchen', 'bathroom', 'basement', 'flooring', 'painting', 'exterior', 'other', 'living_room', 'bedroom', 'dining_room'];
 
       validTypes.forEach((type) => {
         const result = ProjectTypeSchema.safeParse(type);

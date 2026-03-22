@@ -57,13 +57,13 @@ export function ProjectGallery({ branding, config, className }: SectionBaseProps
                 className="mt-5 text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.94] text-[#23231f]"
                 style={{ fontFamily: '"Playfair Display","Cormorant Garamond",serif' }}
               >
-                Real projects, photographed the way they were actually built.
+                Our Project Portfolio
               </h2>
             </div>
 
             <div className="space-y-4">
               <p className="max-w-2xl text-[15px] leading-8 text-[#615d52] md:text-base">
-                Go Hard Corporation’s work leans warm, bright, and detail-focused. Kitchens, bathrooms, additions, and supporting spaces all carry the same clean composition and finish discipline.
+                At Go Hard Corporation, we provide expert renovation services as a full-service general contractor. Our team transforms kitchens, bathrooms, home additions, and outdoor spaces with quality materials and skilled workmanship.
               </p>
               <div className="flex flex-wrap gap-2">
                 {allCategories.map((category) => (
