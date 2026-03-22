@@ -154,6 +154,11 @@ const LeadSubmissionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // TEMP DIAGNOSTIC: check if X-Debug-Ping header returns early
+  if (request.headers.get('x-debug-ping')) {
+    return NextResponse.json({ ping: 'pong', version: '2026-03-22-diag', ts: Date.now() });
+  }
+
   const limited = await applyRateLimit(request);
   if (limited) return limited;
 
