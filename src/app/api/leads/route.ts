@@ -154,11 +154,6 @@ const LeadSubmissionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  // TEMP DIAGNOSTIC: check if X-Debug-Ping header returns early
-  if (request.headers.get('x-debug-ping')) {
-    return NextResponse.json({ ping: 'pong', version: '2026-03-22-diag', ts: Date.now() });
-  }
-
   const limited = await applyRateLimit(request);
   if (limited) return limited;
 
@@ -274,9 +269,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating lead:', JSON.stringify({ code: error.code, message: error.message, details: error.details, hint: error.hint, siteId }));
+      console.error('Error creating lead:', error);
       return NextResponse.json(
-        { error: 'An unexpected error occurred. Please try again.', debug: { code: error.code, message: error.message, hint: error.hint } },
+        { error: 'An unexpected error occurred. Please try again.' },
         { status: 500 }
       );
     }
@@ -396,9 +391,9 @@ export async function POST(request: NextRequest) {
       hasEstimate: !!quoteDraftJson,
     });
   } catch (error) {
-    console.error('Lead submission error:', error instanceof Error ? { message: error.message, stack: error.stack } : error);
+    console.error('Lead submission error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', debug: error instanceof Error ? error.message : String(error) },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
