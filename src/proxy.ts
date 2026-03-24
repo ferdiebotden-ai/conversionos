@@ -146,6 +146,18 @@ export async function proxy(request: NextRequest) {
     siteId = process.env['NEXT_PUBLIC_SITE_ID'] ?? null;
   }
 
+  // Internal proxy bypass (VP demo app → ConversionOS AI endpoints)
+  // The proxy header is validated again in getSiteIdAsync() at the route level
+  if (!siteId) {
+    const proxySecret = request.headers.get('x-internal-proxy');
+    if (proxySecret && proxySecret === process.env.INTERNAL_PROXY_SECRET) {
+      const proxySiteId = request.headers.get('x-proxy-site-id');
+      if (proxySiteId) {
+        siteId = proxySiteId;
+      }
+    }
+  }
+
   if (!siteId) {
     return new NextResponse('Tenant not found', { status: 404 });
   }
