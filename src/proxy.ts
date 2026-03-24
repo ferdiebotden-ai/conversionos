@@ -150,7 +150,7 @@ export async function proxy(request: NextRequest) {
   // The proxy header is validated again in getSiteIdAsync() at the route level
   if (!siteId) {
     const proxySecret = request.headers.get('x-internal-proxy');
-    if (proxySecret && proxySecret === process.env.INTERNAL_PROXY_SECRET) {
+    if (proxySecret && proxySecret === process.env['INTERNAL_PROXY_SECRET']) {
       const proxySiteId = request.headers.get('x-proxy-site-id');
       if (proxySiteId) {
         siteId = proxySiteId;
