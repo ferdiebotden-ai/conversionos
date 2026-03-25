@@ -29,6 +29,7 @@ import { get } from '@vercel/edge-config';
  * Once stable, this can be removed. New tenants should be added via Edge Config API.
  */
 const DOMAIN_TO_SITE_FALLBACK: Record<string, string> = {
+  'conversionos.vercel.app': 'demo',
   'conversionos.norbotsystems.com': 'conversionos',
   'conversionos-demo.norbotsystems.com': 'demo',
   'red-white-reno.norbotsystems.com': 'red-white-reno',
