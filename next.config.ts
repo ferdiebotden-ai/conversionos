@@ -7,7 +7,7 @@ const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   env: {
-    INTERNAL_PROXY_SECRET: process.env.INTERNAL_PROXY_SECRET,
+    INTERNAL_PROXY_SECRET: process.env['INTERNAL_PROXY_SECRET'],
   },
   experimental: {
     externalDir: true,
