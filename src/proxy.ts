@@ -1,3 +1,4 @@
+// env: NEXT_PUBLIC_INTERNAL_PROXY_SECRET added to Vercel dashboard
 import { NextResponse, type NextRequest } from 'next/server';
 import { get } from '@vercel/edge-config';
 
