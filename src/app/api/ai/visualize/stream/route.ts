@@ -365,17 +365,20 @@ export async function POST(request: NextRequest) {
         } = validated;
 
         // Build per-concept style assignments from multi-style selection
-        // 2 styles → [A, A, B, B], 1 style → [A, A, A, A], 0 styles → use primary
+        // Distributes styles evenly across `count` concepts
         const effectiveStyleList: (typeof style)[] = (() => {
           const styles = selectedStyles ?? [];
-          if (styles.length === 2) {
-            return [styles[0]!, styles[0]!, styles[1]!, styles[1]!];
+          if (styles.length >= 2) {
+            // Distribute evenly: first half = style A, second half = style B
+            return Array.from({ length: count }, (_, i) =>
+              i < Math.ceil(count / 2) ? styles[0]! : styles[1]!
+            );
           }
           if (styles.length === 1) {
-            return [styles[0]!, styles[0]!, styles[0]!, styles[0]!];
+            return Array.from({ length: count }, () => styles[0]!);
           }
-          // No styles selected — use primary style for all (may be from conversation)
-          return [style, style, style, style];
+          // No styles selected — use primary style for all
+          return Array.from({ length: count }, () => style);
         })();
         const isMultiStyle = (selectedStyles ?? []).length === 2;
 
@@ -530,9 +533,9 @@ export async function POST(request: NextRequest) {
                     imageUrl,
                     description: buildConceptDescription(perConceptConfig, i),
                     generatedAt: new Date().toISOString(),
-                    // Multi-style metadata
-                    styleLabel: isMultiStyle ? conceptStyleLabel : undefined,
-                    styleId: isMultiStyle ? conceptStyle : undefined,
+                    // Style metadata — always include for VP demo labels
+                    styleLabel: conceptStyleLabel,
+                    styleId: conceptStyle,
                   };
                   concepts.push(concept);
 
