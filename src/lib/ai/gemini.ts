@@ -116,6 +116,9 @@ CRITICAL REQUIREMENTS:
 - Generate photorealistic images suitable for client presentation
 - The room must remain recognizable — same space, transformed and beautifully staged
 
+UNFINISHED SPACES:
+- If the prompt says the space is "unfinished" (exposed studs, joists, bare concrete), you must show it FULLY FINISHED — drywall installed, ceiling completed, flooring laid, trim added — THEN styled. No raw materials should remain.
+
 COMMON PITFALLS TO AVOID:
 - Do NOT keep the homeowner's existing furniture unless specifically instructed
 - Do NOT change room dimensions, ceiling height, window/door positions

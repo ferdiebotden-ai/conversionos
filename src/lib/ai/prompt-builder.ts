@@ -274,16 +274,42 @@ The renovation should feel like a professional interior design transformation, m
   }
 
   // PART 2: Structural Preservation (CRITICAL)
-  let structuralSection = `=== STRUCTURAL PRESERVATION (CRITICAL) ===
+  const isUnfinished = photoAnalysis?.currentCondition === 'unfinished';
+
+  let structuralSection: string;
+
+  if (isUnfinished) {
+    // Unfinished space: complete the structure THEN apply style
+    structuralSection = `=== STRUCTURAL COMPLETION + PRESERVATION (CRITICAL) ===
+This space is UNFINISHED — it has exposed framing, bare surfaces, or incomplete construction.
+
+STEP 1 — COMPLETE THE SPACE (mentally finish construction before styling):
+- Exposed wall studs/framing → install finished drywall with smooth painted surfaces
+- Exposed ceiling joists/rafters → install a finished ceiling (drywall or style-appropriate ceiling)
+- Bare concrete/plywood floors → install finished flooring appropriate to the style
+- Missing trim/baseboards → add finished trim and baseboards
+- Exposed wiring/plumbing → conceal behind finished walls/ceiling
+- Unfinished window/door frames → add proper casings and trim
+
+STEP 2 — PRESERVE THESE (same as any renovation):
+- Room dimensions, wall positions, and overall layout
+- All window and door POSITIONS (but finish their frames)
+- Camera angle and perspective from original photo
+- Floor plan and traffic flow patterns
+
+The output must show a FULLY FINISHED, professionally styled space — no trace of construction or raw materials should remain.`;
+  } else {
+    structuralSection = `=== STRUCTURAL PRESERVATION (CRITICAL) ===
 ABSOLUTE REQUIREMENTS - These MUST remain UNCHANGED:
 - Room dimensions, walls, and ceiling height
 - All window and door positions
 - Camera angle and perspective from original photo
 - Floor plan and traffic flow patterns`;
+  }
 
   if (photoAnalysis) {
     if (photoAnalysis.structuralElements.length > 0) {
-      structuralSection += `\n\nIdentified Structural Elements to Preserve:
+      structuralSection += `\n\nIdentified Structural Elements${isUnfinished ? ' (finish these)' : ' to Preserve'}:
 ${photoAnalysis.structuralElements.map(e => `- ${e}`).join('\n')}`;
     }
     if (photoAnalysis.preservationConstraints.length > 0) {
@@ -461,7 +487,7 @@ ${photoAnalysis.perspectiveNotes}`;
   promptParts.push(perspectiveSection);
 
   // PART 6: Quality Modifiers
-  let qualitySection = `=== OUTPUT QUALITY REQUIREMENTS ===
+  const qualitySection = `=== OUTPUT QUALITY REQUIREMENTS ===
 - Photorealistic rendering quality suitable for client presentation
 - 2048x2048 resolution output
 - Professional interior photography aesthetic

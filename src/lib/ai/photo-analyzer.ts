@@ -23,7 +23,7 @@ export const VisualizationRoomAnalysisSchema = z.object({
     'dining_room',
     'exterior',
   ]),
-  currentCondition: z.enum(['excellent', 'good', 'dated', 'needs_renovation']),
+  currentCondition: z.enum(['excellent', 'good', 'dated', 'needs_renovation', 'unfinished']),
   /**
    * Structural elements that MUST be preserved
    * e.g., "load-bearing wall on left", "window on north wall"
@@ -168,7 +168,10 @@ Analyze this room photo and provide:
 
 1. **Room Type**: Identify the room type precisely.
 
-2. **Current Condition**: Rate as excellent/good/dated/needs_renovation.
+2. **Current Condition**: Rate as excellent/good/dated/needs_renovation/unfinished.
+   - Use "unfinished" ONLY when the space is fundamentally incomplete: exposed studs, bare joists, no drywall, bare concrete floors, missing ceiling, or exposed framing. This is a construction-in-progress or shell state — NOT just "dated" or "needs paint."
+   - Use "needs_renovation" for a complete but worn, ugly, or outdated space.
+   - Use "dated" for a functional space with an old aesthetic.
 
 3. **Structural Elements**: List all architectural elements that MUST be preserved:
    - Walls and their positions (note any that appear load-bearing)
