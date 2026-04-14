@@ -36,6 +36,13 @@ export async function getSiteIdAsync(): Promise<string> {
     const h = await headers();
     const fromHeader = h.get('x-site-id');
     if (fromHeader) return fromHeader;
+
+    // 1b. Internal proxy header (plugin API → ConversionOS proxy)
+    const proxySecret = h.get('x-internal-proxy');
+    if (proxySecret && proxySecret === process.env['INTERNAL_PROXY_SECRET']) {
+      const proxySiteId = h.get('x-proxy-site-id');
+      if (proxySiteId) return proxySiteId;
+    }
   } catch {
     // headers() throws outside request context (build time, scripts)
   }

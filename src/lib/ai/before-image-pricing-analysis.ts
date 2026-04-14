@@ -68,7 +68,10 @@ export function deriveBeforeScopeFromAnalysis(analysis: RoomAnalysis): BeforeSco
   return {
     demolitionItems: extractDemolitionItems(analysis),
     structuralConstraints: extractStructuralConstraints(analysis),
-    existingCondition: analysis.currentCondition,
+    existingCondition:
+      analysis.currentCondition === 'unfinished'
+        ? 'needs_renovation'
+        : analysis.currentCondition,
     estimatedSqft: parseEstimatedSqft(analysis.estimatedDimensions),
     tradeRequirements: inferTradeRequirements(analysis),
   };

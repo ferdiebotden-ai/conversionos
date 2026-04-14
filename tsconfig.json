@@ -48,5 +48,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "tenant-builder", "testing", "tests"]
+  "exclude": ["node_modules", "tenant-builder", "testing", "tests", "warm-leads/upside-robotics-website"]
 }
