@@ -17,7 +17,9 @@ const requestSchema = z.object({
   image: z.string().min(1, 'Image data is required'),
 });
 
-export const maxDuration = 30;
+// 60s to accommodate GPT-5.4 reasoning effort 'high' — extended chain-of-thought
+// adds latency on structured-output image-analysis vs default-low effort.
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const limited = await applyRateLimit(request);
