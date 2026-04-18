@@ -10,7 +10,7 @@
 import { type NextRequest } from 'next/server';
 import { streamText, generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from '@/lib/ai/providers';
+import { openai, OPENAI_HIGH_EFFORT } from '@/lib/ai/providers';
 import { AI_CONFIG } from '@/lib/ai/config';
 import {
   analyzeRoomPhotoForVisualization,
@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
 
     const result = streamText({
       model: openai(AI_CONFIG.openai.chat),
+      providerOptions: OPENAI_HIGH_EFFORT,
       system: systemPrompt,
       messages: formattedMessages,
       maxOutputTokens: 300,
@@ -196,6 +197,7 @@ async function extractFromMessage(message: string): Promise<z.infer<typeof userM
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.extraction),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: userMessageExtractionSchema,
       prompt: `Extract renovation design intent from this message. Be specific and actionable.
 

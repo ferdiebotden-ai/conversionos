@@ -11,7 +11,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 import {
   MATERIAL_COSTS,
@@ -157,6 +157,7 @@ export async function analyzeConceptForPricing(
 
   const { object } = await generateObject({
     model: openai(AI_CONFIG.openai.vision),
+    providerOptions: OPENAI_HIGH_EFFORT,
     schema: ConceptAnalysisSchema,
     messages: [
       {
@@ -317,6 +318,7 @@ export async function generateConceptDescriptions(
 
   const { object } = await generateObject({
     model: openai(AI_CONFIG.openai.vision),
+    providerOptions: OPENAI_HIGH_EFFORT,
     schema: ConceptDescriptionSchema,
     messages: [
       {

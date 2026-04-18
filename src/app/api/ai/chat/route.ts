@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server';
 import { streamText, type UserModelMessage, type AssistantModelMessage } from 'ai';
-import { openai } from '@/lib/ai/providers';
+import { openai, OPENAI_HIGH_EFFORT } from '@/lib/ai/providers';
 import { AI_CONFIG } from '@/lib/ai/config';
 import { buildAgentSystemPrompt } from '@/lib/ai/personas';
 import { buildHandoffPromptPrefix, type HandoffContext } from '@/lib/chat/handoff';
@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: openai(AI_CONFIG.openai.chat),
+      providerOptions: OPENAI_HIGH_EFFORT,
       system: systemPrompt,
       messages: formattedMessages,
       maxOutputTokens: AI_CONFIG.parameters.chat.maxTokens,

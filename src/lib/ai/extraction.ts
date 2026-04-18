@@ -4,7 +4,7 @@
  */
 
 import { generateObject } from 'ai';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 const LEAD_EXTRACTION_PROMPT = `Based on this conversation, extract the following lead information. Only include fields where information was explicitly provided.
 
@@ -61,6 +61,7 @@ export async function extractLeadData(messages: Message[]): Promise<LeadExtracti
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.extraction),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: LeadExtractionSchema,
       messages: [
         {
@@ -99,6 +100,7 @@ export async function extractPartialLeadData(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.extraction),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: PartialLeadExtractionSchema,
       messages: [
         {
@@ -152,6 +154,7 @@ export async function extractContactInfo(messages: Message[]): Promise<{
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.chat),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: ContactInfoSchema,
       messages: [
         {

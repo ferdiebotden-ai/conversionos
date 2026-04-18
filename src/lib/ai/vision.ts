@@ -4,7 +4,7 @@
  */
 
 import { generateObject } from 'ai';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 import { RoomAnalysisSchema, type RoomAnalysis } from '@/lib/schemas/room-analysis';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ export async function analyzeRoomPhoto(imageBase64: string): Promise<RoomAnalysi
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: RoomAnalysisSchema,
       messages: [
         {
@@ -65,6 +66,7 @@ export async function detectRoomType(imageBase64: string): Promise<{
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         roomType: z.enum(['kitchen', 'bathroom', 'bedroom', 'living_room', 'basement', 'exterior', 'other']),
         confidence: z.number().min(0).max(1),
@@ -107,6 +109,7 @@ export async function validateRoomImage(imageBase64: string): Promise<{
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         isRoomPhoto: z.boolean(),
         isAppropriate: z.boolean(),

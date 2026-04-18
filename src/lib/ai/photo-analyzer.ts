@@ -5,7 +5,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 import type { RoomType } from '@/lib/schemas/visualization';
 
@@ -153,6 +153,7 @@ export async function analyzeRoomPhotoForVisualization(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: VisualizationRoomAnalysisSchema,
       messages: [
         {
@@ -291,6 +292,7 @@ export async function quickPhotoAnalysis(imageBase64: string): Promise<{
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         roomType: z.enum([
           'kitchen',
@@ -365,6 +367,7 @@ export async function extractDesignIntent(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.chat),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         desiredChanges: z.array(z.string()).describe('Specific changes the user wants'),
         constraintsToPreserve: z.array(z.string()).describe('Elements they want to keep'),

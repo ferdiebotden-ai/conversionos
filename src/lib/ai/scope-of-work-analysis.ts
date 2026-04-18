@@ -8,7 +8,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 import type { BeforeScope } from './before-image-pricing-analysis';
 
@@ -86,6 +86,7 @@ export async function analyzeBeforeAfterScope(
 
   const { object } = await generateObject({
     model: openai(AI_CONFIG.openai.vision),
+    providerOptions: OPENAI_HIGH_EFFORT,
     schema: ScopeOfWorkSchema,
     messages: [
       {

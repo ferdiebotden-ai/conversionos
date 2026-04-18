@@ -5,7 +5,7 @@
 
 import { type NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { openai } from '@/lib/ai/providers';
+import { openai, OPENAI_HIGH_EFFORT } from '@/lib/ai/providers';
 import { AI_CONFIG } from '@/lib/ai/config';
 import { buildAgentSystemPrompt } from '@/lib/ai/personas';
 import { applyRateLimit } from '@/lib/rate-limit';
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: openai(AI_CONFIG.openai.chat),
+      providerOptions: OPENAI_HIGH_EFFORT,
       system,
       messages: formattedMessages,
       maxOutputTokens: 512,
