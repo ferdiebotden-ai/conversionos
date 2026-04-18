@@ -5,7 +5,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from './providers';
+import { openai, OPENAI_HIGH_EFFORT } from './providers';
 import { AI_CONFIG } from './config';
 
 /**
@@ -43,6 +43,7 @@ export async function validateStructurePreservation(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: structureValidationSchema,
       messages: [
         {
@@ -122,6 +123,7 @@ export async function quickValidateImage(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         structureScore: z.number().min(0).max(1),
         isAcceptable: z.boolean(),
@@ -168,6 +170,7 @@ export async function validatePhotorealism(
   try {
     const result = await generateObject({
       model: openai(AI_CONFIG.openai.vision),
+      providerOptions: OPENAI_HIGH_EFFORT,
       schema: z.object({
         isPhotorealistic: z.boolean(),
         confidence: z.number().min(0).max(1),
